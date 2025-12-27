@@ -1,17 +1,27 @@
 package com.shourov.apps.pacedream.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shourov.apps.pacedream.feature.auth.presentation.AuthBottomSheet
+import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -21,7 +31,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.pacedream.common.util.Consts.ROOM_TYPE
+import com.pacedream.common.util.Consts.TECH_GEAR_TYPE
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
+import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
+import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenViewModel
 import com.shourov.apps.pacedream.feature.home.presentation.components.PropertyDetailScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.EnhancedDashboardScreen
@@ -33,7 +47,12 @@ import com.shourov.apps.pacedream.feature.home.presentation.components.RecentSea
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingTabScreen
 import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
 import com.shourov.apps.pacedream.feature.chat.presentation.InboxTabScreen
+import com.shourov.apps.pacedream.feature.inbox.presentation.InboxScreen
+import com.shourov.apps.pacedream.feature.inbox.presentation.ThreadScreen
 import com.shourov.apps.pacedream.feature.profile.presentation.ProfileTabScreen
+import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmationScreen
+import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
+import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
 
 fun NavGraphBuilder.DashboardNavigation(
@@ -46,18 +65,19 @@ fun NavGraphBuilder.DashboardNavigation(
         ) {
             composable(route = DashboardDestination.HOME.name) {
                 val navController = rememberNavController()
+                // iOS-parity tabs: Home, Search, Favorites (Wishlist), Inbox, Profile
                 val bottomNavList = mutableListOf(
                     BottomNavigationItem(
                         com.shourov.apps.pacedream.R.drawable.ic_home,
                         com.shourov.apps.pacedream.R.string.home,
                     ),
                     BottomNavigationItem(
-                        com.shourov.apps.pacedream.R.drawable.ic_booking,
-                        com.shourov.apps.pacedream.R.string.booking,
+                        com.shourov.apps.pacedream.R.drawable.ic_search,
+                        com.shourov.apps.pacedream.R.string.search,
                     ),
                     BottomNavigationItem(
-                        com.shourov.apps.pacedream.R.drawable.ic_post,
-                        com.shourov.apps.pacedream.R.string.post,
+                        com.shourov.apps.pacedream.R.drawable.ic_favorite,
+                        com.shourov.apps.pacedream.R.string.favorites,
                     ),
                     BottomNavigationItem(
                         com.shourov.apps.pacedream.R.drawable.ic_notifications,
@@ -78,10 +98,11 @@ fun NavGraphBuilder.DashboardNavigation(
                         mutableIntStateOf(0)
                     }
 
+                    // Bottom bar visibility - always show for main tabs
                     val isBottomBarShow = remember(key1 = backStackState) {
                         backStackState?.destination?.route == DashboardDestination.HOME.name ||
-                            backStackState?.destination?.route == DashboardDestination.BOOKING.name ||
-                            backStackState?.destination?.route == DashboardDestination.POST.name ||
+                            backStackState?.destination?.route == DashboardDestination.SEARCH.name ||
+                            backStackState?.destination?.route == DashboardDestination.FAVORITES.name ||
                             backStackState?.destination?.route == DashboardDestination.INBOX.name ||
                             backStackState?.destination?.route == DashboardDestination.PROFILE.name
                     }
@@ -89,8 +110,8 @@ fun NavGraphBuilder.DashboardNavigation(
                     selectedItem = remember(backStackState) {
                         when (backStackState?.destination?.route) {
                             DashboardDestination.HOME.name -> 0
-                            DashboardDestination.BOOKING.name -> 1
-                            DashboardDestination.POST.name -> 2
+                            DashboardDestination.SEARCH.name -> 1
+                            DashboardDestination.FAVORITES.name -> 2
                             DashboardDestination.INBOX.name -> 3
                             else -> 4
                         }
@@ -115,14 +136,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                             1 -> {
                                                 navigateToTab(
                                                     navController,
-                                                    DashboardDestination.BOOKING.name,
+                                                    DashboardDestination.SEARCH.name,
                                                 )
                                             }
 
                                             2 -> {
                                                 navigateToTab(
                                                     navController,
-                                                    DashboardDestination.POST.name,
+                                                    DashboardDestination.FAVORITES.name,
                                                 )
                                             }
 
@@ -159,20 +180,42 @@ fun NavGraphBuilder.DashboardNavigation(
                                     homeScreenViewModel.homeScreenRoomsState.collectAsStateWithLifecycle()
                                 val homeScreenRentedGearsState =
                                     homeScreenViewModel.homeScreenRentedGearsState.collectAsStateWithLifecycle()
+                                val homeScreenSplitStaysState =
+                                    homeScreenViewModel.homeScreenSplitStaysState.collectAsStateWithLifecycle()
+                                val isRefreshing =
+                                    homeScreenViewModel.isRefreshing.collectAsStateWithLifecycle()
                                 
-                                // Use the enhanced dashboard screen with navigation
+                                // Load all sections in parallel on initial load
+                                LaunchedEffect(Unit) {
+                                    homeScreenViewModel.onEvent(
+                                        HomeScreenEvent.LoadAllSections(
+                                            roomType = ROOM_TYPE,
+                                            gearType = TECH_GEAR_TYPE
+                                        )
+                                    )
+                                }
+                                
+                                // Use the enhanced dashboard screen with all sections
                                 EnhancedDashboardScreen(
                                     roomsState = homeScreenRoomsState.value,
                                     gearsState = homeScreenRentedGearsState.value,
+                                    splitStaysState = homeScreenSplitStaysState.value,
+                                    isRefreshing = isRefreshing.value,
                                     onTimeBasedRoomsChanged = { type ->
                                         homeScreenViewModel.onEvent(
-                                            com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.OnTimeBasedRoomsChanged(type)
+                                            HomeScreenEvent.GetTimeBasedRooms(type)
                                         )
                                     },
                                     onRentedGearsChanged = { type ->
                                         homeScreenViewModel.onEvent(
-                                            com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.OnRentedGearsChanged(type)
+                                            HomeScreenEvent.GetRentedGears(type)
                                         )
+                                    },
+                                    onSplitStaysRetry = {
+                                        homeScreenViewModel.onEvent(HomeScreenEvent.GetSplitStays)
+                                    },
+                                    onRefresh = {
+                                        homeScreenViewModel.onEvent(HomeScreenEvent.RefreshAll)
                                     },
                                     onPropertyClick = { propertyId ->
                                         navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
@@ -185,13 +228,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                             "categories" -> navController.navigate(PropertyDestination.CATEGORY_LIST.name)
                                             "destinations" -> navController.navigate(PropertyDestination.DESTINATION_LIST.name)
                                             "recent" -> navController.navigate(PropertyDestination.RECENT_SEARCHES.name)
-                                            "time-based" -> navController.navigate(PropertyDestination.SEARCH.name)
-                                            "gear" -> navController.navigate(PropertyDestination.SEARCH.name)
+                                            "time-based" -> navController.navigate(DashboardDestination.SEARCH.name)
+                                            "gear" -> navController.navigate(DashboardDestination.SEARCH.name)
+                                            "split-stays" -> navController.navigate(DashboardDestination.SEARCH.name)
                                             else -> { /* Handle other sections */ }
                                         }
                                     },
                                     onSearchClick = {
-                                        navController.navigate(PropertyDestination.SEARCH.name)
+                                        navController.navigate(DashboardDestination.SEARCH.name)
                                     },
                                     onFilterClick = {
                                         navController.navigate(PropertyDestination.FILTER.name)
@@ -201,42 +245,86 @@ fun NavGraphBuilder.DashboardNavigation(
                                     }
                                 )
                             }
-                            composable(DashboardDestination.BOOKING.name) {
-                                BookingTabScreen(
-                                    onBookingClick = { bookingId ->
-                                        // Navigate to booking details
-                                    },
-                                    onNewBookingClick = {
-                                        // Navigate to property search
-                                    }
-                                )
-                            }
-                            composable(DashboardDestination.POST.name) {
-                                PostTabScreen(
+                            
+                            // Search Tab
+                            composable(DashboardDestination.SEARCH.name) {
+                                SearchScreen(
+                                    onBackClick = { navController.popBackStack() },
                                     onPropertyClick = { propertyId ->
-                                        // Navigate to property details
-                                    },
-                                    onAddPropertyClick = {
-                                        // Navigate to add property
-                                    },
-                                    onAnalyticsClick = {
-                                        // Navigate to analytics
-                                    },
-                                    onEarningsClick = {
-                                        // Navigate to earnings
+                                        navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
                                     }
                                 )
                             }
+                            
+                            // Favorites/Wishlist Tab with Auth Modal
+                            composable(DashboardDestination.FAVORITES.name) {
+                                var showAuthSheet by remember { mutableStateOf(false) }
+                                
+                                WishlistScreen(
+                                    onNavigateToTimeBasedDetail = { itemId ->
+                                        navController.navigate("${PropertyDestination.DETAIL.name}/$itemId")
+                                    },
+                                    onNavigateToGearDetail = { gearId ->
+                                        navController.navigate("${PropertyDestination.DETAIL.name}/$gearId")
+                                    },
+                                    onShowAuthSheet = {
+                                        showAuthSheet = true
+                                    }
+                                )
+                                
+                                // Auth Modal - shows over tabs (tabs remain visible)
+                                if (showAuthSheet) {
+                                    AuthBottomSheet(
+                                        onDismiss = { showAuthSheet = false },
+                                        onLoginSuccess = {
+                                            showAuthSheet = false
+                                            // Refresh wishlist after login
+                                        }
+                                    )
+                                }
+                            }
+                            
+                            // Inbox Tab - Connected to real ViewModel
                             composable(DashboardDestination.INBOX.name) {
-                                InboxTabScreen(
-                                    onChatClick = { chatId ->
-                                        // Navigate to chat
+                                var showAuthSheet by remember { mutableStateOf(false) }
+                                
+                                InboxScreen(
+                                    onNavigateToThread = { threadId ->
+                                        navController.navigate("${InboxDestination.THREAD.name}/$threadId")
                                     },
-                                    onNewMessageClick = {
-                                        // Navigate to new message
+                                    onShowAuthSheet = {
+                                        showAuthSheet = true
                                     }
                                 )
+                                
+                                // Auth Modal
+                                if (showAuthSheet) {
+                                    AuthBottomSheet(
+                                        onDismiss = { showAuthSheet = false },
+                                        onLoginSuccess = {
+                                            showAuthSheet = false
+                                        }
+                                    )
+                                }
                             }
+                            
+                            // Thread Screen (Chat detail)
+                            composable(
+                                route = "${InboxDestination.THREAD.name}/{threadId}",
+                                arguments = listOf(
+                                    navArgument("threadId") {
+                                        type = NavType.StringType
+                                    }
+                                )
+                            ) { backStackEntry ->
+                                val threadId = backStackEntry.arguments?.getString("threadId") ?: ""
+                                ThreadScreen(
+                                    threadId = threadId,
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+                            
+                            // Profile Tab with Guest/Host mode
                             composable(DashboardDestination.PROFILE.name) {
                                 val isHostMode by hostModeManager.isHostMode.collectAsState()
                                 ProfileTabScreen(
@@ -341,6 +429,60 @@ fun NavGraphBuilder.DashboardNavigation(
                                         navController.navigate("${PropertyDestination.SEARCH.name}?query=$searchQuery")
                                     }
                                 )
+                            }
+                            
+                            // Booking Confirmation Screen (Deep link target)
+                            composable(
+                                route = "${BookingDestination.BOOKING_CONFIRMATION.name}/{sessionId}/{bookingType}",
+                                arguments = listOf(
+                                    navArgument("sessionId") { type = NavType.StringType },
+                                    navArgument("bookingType") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+                                val bookingType = backStackEntry.arguments?.getString("bookingType") ?: "time_based"
+                                
+                                BookingConfirmationScreen(
+                                    sessionId = sessionId,
+                                    bookingType = bookingType,
+                                    onViewBooking = { bookingId ->
+                                        navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                                    },
+                                    onGoHome = {
+                                        navController.navigate(DashboardDestination.HOME.name) {
+                                            popUpTo(DashboardDestination.HOME.name) { inclusive = true }
+                                        }
+                                    },
+                                    onClose = { navController.popBackStack() }
+                                )
+                            }
+                            
+                            // Booking Cancelled Screen (Deep link target)
+                            composable(BookingDestination.BOOKING_CANCELLED.name) {
+                                BookingCancelledScreen(
+                                    onGoHome = {
+                                        navController.navigate(DashboardDestination.HOME.name) {
+                                            popUpTo(DashboardDestination.HOME.name) { inclusive = true }
+                                        }
+                                    }
+                                )
+                            }
+                            
+                            // Booking Detail stub
+                            composable(
+                                route = "${BookingDestination.BOOKING_DETAIL.name}/{bookingId}",
+                                arguments = listOf(
+                                    navArgument("bookingId") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                                // TODO: Implement BookingDetailScreen
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Booking Detail: $bookingId")
+                                }
                             }
                         }
                     }

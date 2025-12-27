@@ -67,6 +67,10 @@ dependencies {
     implementation(projects.feature.payment)
     implementation(projects.feature.createAccount)
     implementation(projects.feature.host)
+    implementation(projects.feature.wishlist)
+    implementation(projects.feature.inbox)
+    implementation(projects.feature.webflow)
+    implementation(project(":feature:auth"))
 
     implementation(projects.core.common)
     implementation(projects.core.ui)

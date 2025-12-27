@@ -33,10 +33,82 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Deep links for Stripe checkout callbacks (App Links) -->
+            <!-- booking-success on www.pacedream.com -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="https"
+                    android:host="www.pacedream.com"
+                    android:pathPrefix="/booking-success" />
+            </intent-filter>
+            
+            <!-- booking-success on pacedream.com (without www) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="https"
+                    android:host="pacedream.com"
+                    android:pathPrefix="/booking-success" />
+            </intent-filter>
+            
+            <!-- booking-cancelled on www.pacedream.com -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="https"
+                    android:host="www.pacedream.com"
+                    android:pathPrefix="/booking-cancelled" />
+            </intent-filter>
+            
+            <!-- booking-cancelled on pacedream.com (without www) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="https"
+                    android:host="pacedream.com"
+                    android:pathPrefix="/booking-cancelled" />
+            </intent-filter>
+
+            <!-- Auth0 Universal Login callback (custom scheme) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="pacedream"
+                    android:host="callback" />
+            </intent-filter>
+            
+            <!-- Legacy Auth0 callback scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="com.pacedream.app"
+                    android:host="auth0" />
             </intent-filter>
 
         </activity>

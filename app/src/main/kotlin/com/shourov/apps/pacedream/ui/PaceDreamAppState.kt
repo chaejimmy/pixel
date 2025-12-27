@@ -14,6 +14,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import androidx.tracing.trace
 import com.shourov.apps.pacedream.core.ui.TrackDisposableJank
+import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
+import com.shourov.apps.pacedream.navigation.BookingDestination
+import com.shourov.apps.pacedream.navigation.InboxDestination
+import com.shourov.apps.pacedream.navigation.PropertyDestination
 import com.shourov.apps.pacedream.navigation.UserStartTopLevelDestination
 import com.shourov.apps.pacedream.signin.navigation.CREATE_ACCOUNT_ROUTE
 import com.shourov.apps.pacedream.signin.navigation.ONBOARDING_ROUTE
@@ -107,6 +111,30 @@ class PaceDreamAppState(
                 UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToHomeScreen(
                     destinationOptions,
                 )
+            }
+        }
+    }
+    
+    /**
+     * Handle deep link navigation
+     * Called when a deep link is received (booking success, booking cancelled, etc.)
+     */
+    fun handleDeepLink(deepLinkResult: DeepLinkResult) {
+        when (deepLinkResult) {
+            is DeepLinkResult.BookingSuccess -> {
+                val bookingType = deepLinkResult.bookingType?.name?.lowercase() ?: "time_based"
+                navController.navigate(
+                    "${BookingDestination.BOOKING_CONFIRMATION.name}/${deepLinkResult.sessionId}/$bookingType"
+                )
+            }
+            is DeepLinkResult.BookingCancelled -> {
+                navController.navigate(BookingDestination.BOOKING_CANCELLED.name)
+            }
+            is DeepLinkResult.ListingDetail -> {
+                navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.listingId}")
+            }
+            is DeepLinkResult.GearDetail -> {
+                navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
             }
         }
     }

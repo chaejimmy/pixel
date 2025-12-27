@@ -6,12 +6,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.shourov.apps.pacedream.MainActivity
 import com.pacedream.common.composables.components.PaceDreamTopAppBar
 import com.shourov.apps.pacedream.feature.host.presentation.HostModeScreen
 import com.shourov.apps.pacedream.navigation.PaceDreamNavHost
@@ -28,6 +31,15 @@ fun PaceDreamApp(
     val showTopBar = appState.showTopBar
     val navController = appState.navController
     val isHostMode by appState.isHostMode.collectAsState()
+    val context = LocalContext.current
+    
+    // Handle pending deep links from MainActivity
+    LaunchedEffect(Unit) {
+        val activity = context as? MainActivity
+        activity?.consumePendingDeepLink()?.let { deepLinkResult ->
+            appState.handleDeepLink(deepLinkResult)
+        }
+    }
     
     if (isHostMode) {
         // Show host mode interface

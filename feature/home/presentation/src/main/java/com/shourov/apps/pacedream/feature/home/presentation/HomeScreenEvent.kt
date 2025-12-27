@@ -19,4 +19,23 @@ package com.shourov.apps.pacedream.feature.home.presentation
 sealed class HomeScreenEvent {
     data class GetRentedGears(var type: String) : HomeScreenEvent()
     data class GetTimeBasedRooms(var type: String) : HomeScreenEvent()
+    data object GetSplitStays : HomeScreenEvent()
+    
+    /**
+     * Refresh all sections in parallel - for pull-to-refresh
+     */
+    data object RefreshAll : HomeScreenEvent()
+    
+    /**
+     * Load all sections in parallel on initial load
+     */
+    data class LoadAllSections(
+        val roomType: String,
+        val gearType: String,
+    ) : HomeScreenEvent()
+    
+    /**
+     * Navigation events for View All
+     */
+    data class NavigateToSection(val section: String) : HomeScreenEvent()
 }

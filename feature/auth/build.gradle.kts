@@ -9,6 +9,7 @@ android {
 
 dependencies {
     implementation(project(":core:data"))
+    implementation(project(":core:network"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":common"))
@@ -18,4 +19,5 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
 }

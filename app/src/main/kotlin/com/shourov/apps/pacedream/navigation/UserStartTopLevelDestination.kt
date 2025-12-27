@@ -9,8 +9,8 @@ enum class UserStartTopLevelDestination {
 
 enum class DashboardDestination {
     HOME,
-    BOOKING,
-    POST,
+    SEARCH,
+    FAVORITES,  // Wishlist - matches iOS "Favorites" tab
     INBOX,
     PROFILE
 }
@@ -27,7 +27,13 @@ enum class PropertyDestination {
 enum class BookingDestination {
     BOOKING_FORM,
     BOOKING_CONFIRMATION,
-    BOOKING_HISTORY
+    BOOKING_CANCELLED,
+    BOOKING_HISTORY,
+    BOOKING_DETAIL
+}
+
+enum class InboxDestination {
+    THREAD
 }
 
 enum class ProfileDestination {

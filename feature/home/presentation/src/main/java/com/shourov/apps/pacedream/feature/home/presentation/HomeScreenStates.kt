@@ -17,6 +17,7 @@
 package com.shourov.apps.pacedream.feature.home.presentation
 
 import com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel
+import com.shourov.apps.pacedream.feature.home.domain.models.SplitStayModel
 import com.shourov.apps.pacedream.feature.home.domain.models.rooms.RoomModel
 
 
@@ -30,4 +31,20 @@ data class HomeScreenRentedGearsState(
     val rentedGears: List<RentedGearModel> = mutableListOf(),
     val error: String? = null,
     val loading: Boolean = true,
+)
+
+data class HomeScreenSplitStaysState(
+    val splitStays: List<SplitStayModel> = mutableListOf(),
+    val error: String? = null,
+    val loading: Boolean = true,
+)
+
+/**
+ * Combined home screen UI state for better state management
+ */
+data class HomeUiState(
+    val roomsState: HomeScreenRoomsState = HomeScreenRoomsState(),
+    val gearsState: HomeScreenRentedGearsState = HomeScreenRentedGearsState(),
+    val splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
+    val isRefreshing: Boolean = false,
 )

@@ -17,6 +17,7 @@
 package com.shourov.apps.pacedream.feature.home.data.repository
 
 import com.shourov.apps.pacedream.feature.home.data.dto.retned_gears.toRentedGearModel
+import com.shourov.apps.pacedream.feature.home.data.dto.split_stays.toSplitStayModel
 import com.shourov.apps.pacedream.feature.home.data.dto.time_based_deals.toRoomModel
 import com.shourov.apps.pacedream.feature.home.data.remote.HomeApiService
 import com.shourov.apps.pacedream.feature.home.domain.repository.HomeRepository
@@ -46,6 +47,16 @@ class HomeRepositoryImpl(
                 it.toRoomModel()
             }
             emit(rooms)
+        } else throw Throwable(response.message)
+    }.flowOn(dispatcher)
+
+    override suspend fun getSplitStays() = flow {
+        val response = homeApiService.getSplitStays()
+        if (response.status) {
+            val splitStays = response.data.map {
+                it.toSplitStayModel()
+            }
+            emit(splitStays)
         } else throw Throwable(response.message)
     }.flowOn(dispatcher)
 }

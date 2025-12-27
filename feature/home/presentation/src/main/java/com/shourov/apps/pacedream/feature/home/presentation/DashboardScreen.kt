@@ -57,52 +57,67 @@ fun DashboardScreen(
 
 /**
  * Enhanced version of DashboardScreen using the new design system
- * This provides a more modern, iOS-matching UI experience
+ * This provides a more modern, iOS-matching UI experience with:
+ * - All three sections: Hourly Spaces, Rent Gear, Split Stays
+ * - Parallel loading for all sections
+ * - Pull-to-refresh
+ * - Inline warning banners for failed sections
+ * - View All navigation
  */
 @Composable
 fun EnhancedDashboardScreenWrapper(
     modifier: Modifier,
     roomsState: HomeScreenRoomsState,
     gearsState: HomeScreenRentedGearsState,
+    splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
+    isRefreshing: Boolean = false,
     event: (HomeScreenEvent) -> Unit,
 ) {
+    // Load all sections in parallel on initial load
     LaunchedEffect(Unit) {
-        event(HomeScreenEvent.GetTimeBasedRooms(ROOM_TYPE))
-        event(HomeScreenEvent.GetRentedGears(TECH_GEAR_TYPE))
+        event(HomeScreenEvent.LoadAllSections(
+            roomType = ROOM_TYPE,
+            gearType = TECH_GEAR_TYPE
+        ))
     }
 
     EnhancedDashboardScreen(
         roomsState = roomsState,
         gearsState = gearsState,
+        splitStaysState = splitStaysState,
+        isRefreshing = isRefreshing,
         onTimeBasedRoomsChanged = { type ->
             event(HomeScreenEvent.GetTimeBasedRooms(type))
         },
         onRentedGearsChanged = { type ->
             event(HomeScreenEvent.GetRentedGears(type))
         },
+        onSplitStaysRetry = {
+            event(HomeScreenEvent.GetSplitStays)
+        },
+        onRefresh = {
+            event(HomeScreenEvent.RefreshAll)
+        },
         onPropertyClick = { propertyId ->
-            // TODO: Navigate to property detail screen
-            // event(HomeScreenEvent.NavigateToProperty(propertyId))
+            // Navigate to property detail screen
+            event(HomeScreenEvent.NavigateToSection("property:$propertyId"))
         },
         onCategoryClick = { category ->
-            // TODO: Filter by category
-            // event(HomeScreenEvent.FilterByCategory(category))
+            // Navigate to category listing
+            event(HomeScreenEvent.NavigateToSection("category:$category"))
         },
         onViewAllClick = { section ->
-            // TODO: Navigate to section
-            // event(HomeScreenEvent.NavigateToSection(section))
+            // Navigate to section listing
+            event(HomeScreenEvent.NavigateToSection(section))
         },
         onSearchClick = {
-            // TODO: Navigate to search screen
-            // event(HomeScreenEvent.NavigateToSearch)
+            event(HomeScreenEvent.NavigateToSection("search"))
         },
         onFilterClick = {
-            // TODO: Open filter bottom sheet
-            // event(HomeScreenEvent.OpenFilters)
+            event(HomeScreenEvent.NavigateToSection("filters"))
         },
         onNotificationClick = {
-            // TODO: Navigate to notifications
-            // event(HomeScreenEvent.NavigateToNotifications)
+            event(HomeScreenEvent.NavigateToSection("notifications"))
         },
         modifier = modifier
     )

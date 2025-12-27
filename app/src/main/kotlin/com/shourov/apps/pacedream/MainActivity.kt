@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,10 +20,13 @@ import androidx.metrics.performance.JankStats
 import com.google.firebase.FirebaseApp
 import com.shourov.apps.pacedream.feature.auth.presentation.AuthScreen
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
+import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
+import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
 import com.shourov.apps.pacedream.ui.PaceDreamApp
 import com.shourov.apps.pacedream.ui.rememberPaceDreamAppState
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import javax.inject.Inject
 
 private const val TAG = "MainActivity"
@@ -35,8 +39,17 @@ class MainActivity : ComponentActivity() {
      */
     @Inject
     lateinit var lazyStats: dagger.Lazy<JankStats>
+    
+    /**
+     * Deep link handler for processing booking success/cancelled and other deep links
+     */
+    @Inject
+    lateinit var deepLinkHandler: DeepLinkHandler
 
     val viewModel: MainActivityViewModel by viewModels()
+    
+    // Pending deep link to process after navigation is ready
+    private var pendingDeepLink: DeepLinkResult? = null
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,18 +98,38 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        // Check for deep links first
+        val deepLinkResult = deepLinkHandler.parseDeepLink(intent)
+        if (deepLinkResult != null) {
+            pendingDeepLink = deepLinkResult
+            Timber.d("Deep link parsed: $deepLinkResult")
+            return
+        }
+        
+        // Handle push notification intents
         when {
             intent.hasExtra("chat_id") -> {
                 // Navigate to specific chat
                 val chatId = intent.getStringExtra("chat_id")
-                // TODO: Navigate to chat screen
+                Timber.d("Navigate to chat: $chatId")
+                // Navigation will be handled by the app state
             }
             intent.hasExtra("booking_id") -> {
                 // Navigate to specific booking
                 val bookingId = intent.getStringExtra("booking_id")
-                // TODO: Navigate to booking details
+                Timber.d("Navigate to booking: $bookingId")
+                // Navigation will be handled by the app state
             }
         }
+    }
+    
+    /**
+     * Get pending deep link and clear it
+     */
+    fun consumePendingDeepLink(): DeepLinkResult? {
+        val result = pendingDeepLink
+        pendingDeepLink = null
+        return result
     }
 
     override fun onResume() {

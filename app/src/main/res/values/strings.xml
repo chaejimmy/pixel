@@ -3,9 +3,11 @@
 <resources>
     <string name="app_name">PaceDream</string>
     <string name="home">Home</string>
+    <string name="search">Search</string>
+    <string name="favorites">Favorites</string>
     <string name="booking">Booking</string>
     <string name="post">Post</string>
     <string name="inbox">Inbox</string>
     <string name="profile">Profile</string>
-    <string name="not_connected">⚠️ You aren’t connected to the internet</string>
+    <string name="not_connected">⚠️ You aren't connected to the internet</string>
 </resources>

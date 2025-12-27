@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 import com.pacedream.common.util.Consts
@@ -42,14 +44,68 @@ import com.shourov.apps.pacedream.feature.home.domain.models.CategoryModel
 import com.shourov.apps.pacedream.feature.home.domain.models.DestinationModel
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRentedGearsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
+import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
 import com.shourov.apps.pacedream.feature.home.presentation.R
+
+/**
+ * Inline warning banner component for section errors
+ * Matches iOS behavior of showing inline warnings instead of just toasts
+ */
+@Composable
+fun SectionWarningBanner(
+    message: String,
+    onRetry: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = PaceDreamWarning.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = PaceDreamWarning,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = message,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamTextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            if (onRetry != null) {
+                TextButton(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = PaceDreamPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Retry",
+                        style = PaceDreamTypography.CalloutBold
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun EnhancedDashboardContent(
     roomsState: HomeScreenRoomsState,
     gearsState: HomeScreenRentedGearsState,
+    splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
+    onSplitStaysRetry: () -> Unit = {},
     onPropertyClick: (String) -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onDestinationClick: (String) -> Unit = {},
@@ -57,18 +113,6 @@ fun EnhancedDashboardContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
-    LaunchedEffect(roomsState.error) {
-        if (!roomsState.error.isNullOrEmpty()) {
-            context.showToast(roomsState.error)
-        }
-    }
-    
-    LaunchedEffect(gearsState.error) {
-        if (!gearsState.error.isNullOrEmpty()) {
-            context.showToast(gearsState.error)
-        }
-    }
 
     LazyColumn(
         modifier = modifier
@@ -223,11 +267,11 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Time-based Properties Section
+        // Hourly Spaces Section (Time-based Properties)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Time-based Properties",
+                title = "Hourly Spaces",
                 onViewAllClick = { onViewAllClick("time-based") }
             )
             
@@ -240,6 +284,15 @@ fun EnhancedDashboardContent(
             )
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            
+            // Inline warning banner if section failed
+            if (!roomsState.error.isNullOrEmpty() && !roomsState.loading) {
+                SectionWarningBanner(
+                    message = roomsState.error,
+                    onRetry = { onTimeBasedRoomsChanged(Consts.ROOM_TYPE) }
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            }
             
             var timeBasedSelectedTabIndex by remember { mutableIntStateOf(0) }
             val timeBasedTabs = listOf("Room", "Restroom", "EV Parking", "Parking")
@@ -295,13 +348,13 @@ fun EnhancedDashboardContent(
                         PaceDreamShimmerCard()
                     }
                 }
-            } else if (roomsState.rooms.isEmpty()) {
+            } else if (roomsState.error.isNullOrEmpty() && roomsState.rooms.isEmpty()) {
                 PaceDreamEmptyState(
                     title = "No Properties Found",
                     description = "Try adjusting your search criteria or check back later.",
                     icon = Icons.Default.Search
                 )
-            } else {
+            } else if (roomsState.rooms.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
@@ -320,11 +373,11 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Hourly Rented Gear Section
+        // Rent Gear Section (Hourly Rented Gear)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Hourly Rented Gear",
+                title = "Rent Gear",
                 onViewAllClick = { onViewAllClick("gear") }
             )
             
@@ -337,6 +390,15 @@ fun EnhancedDashboardContent(
             )
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            
+            // Inline warning banner if section failed
+            if (!gearsState.error.isNullOrEmpty() && !gearsState.loading) {
+                SectionWarningBanner(
+                    message = gearsState.error,
+                    onRetry = { onRentedGearsChanged(TECH_GEAR_TYPE) }
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            }
             
             var rentedGearsSelectedTabIndex by remember { mutableIntStateOf(0) }
             val rentedGearTabs = listOf("Tech Gear", "Music Gear", "Photography", "Fashion")
@@ -392,13 +454,13 @@ fun EnhancedDashboardContent(
                         PaceDreamShimmerCard()
                     }
                 }
-            } else if (gearsState.rentedGears.isEmpty()) {
+            } else if (gearsState.error.isNullOrEmpty() && gearsState.rentedGears.isEmpty()) {
                 PaceDreamEmptyState(
                     title = "No Gear Available",
                     description = "Check back later for available rental gear.",
                     icon = Icons.Default.ShoppingBag
                 )
-            } else {
+            } else if (gearsState.rentedGears.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
@@ -411,6 +473,66 @@ fun EnhancedDashboardContent(
                             reviewCount = 0, // TODO: Add review count to model
                             imageUrl = gear.image,
                             onClick = { onPropertyClick(gear._id ?: "") }
+                        )
+                    }
+                }
+            }
+        }
+        
+        // Split Stays Section (NEW - matches iOS)
+        item {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            PaceDreamSectionHeader(
+                title = "Split Stays",
+                onViewAllClick = { onViewAllClick("split-stays") }
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            
+            Text(
+                text = "Find roommates and share costs",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamTextSecondary
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            
+            // Inline warning banner if section failed
+            if (!splitStaysState.error.isNullOrEmpty() && !splitStaysState.loading) {
+                SectionWarningBanner(
+                    message = splitStaysState.error,
+                    onRetry = onSplitStaysRetry
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            }
+            
+            if (splitStaysState.loading) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    items(5) {
+                        PaceDreamShimmerCard()
+                    }
+                }
+            } else if (splitStaysState.error.isNullOrEmpty() && splitStaysState.splitStays.isEmpty()) {
+                PaceDreamEmptyState(
+                    title = "No Split Stays Available",
+                    description = "Check back later for shared accommodation options.",
+                    icon = Icons.Default.People
+                )
+            } else if (splitStaysState.splitStays.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    items(splitStaysState.splitStays) { stay ->
+                        PaceDreamPropertyCard(
+                            title = stay.name ?: "Split Stay",
+                            location = stay.location ?: stay.city ?: "Location",
+                            price = "$${stay.price ?: "0"}/${stay.priceUnit ?: "night"}",
+                            rating = stay.rating?.toDouble() ?: 0.0,
+                            reviewCount = stay.reviewCount ?: 0,
+                            imageUrl = stay.images?.firstOrNull(),
+                            onClick = { onPropertyClick(stay._id ?: "") }
                         )
                     }
                 }
