@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.shourov.apps.pacedream.common.composables.theme.*
+import com.pacedream.common.composables.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

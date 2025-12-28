@@ -49,6 +49,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
@@ -244,7 +245,7 @@ private fun ModeToggleRow(
                             ) {
                                 Text(
                                     text = if (unread > 99) "99" else unread.toString(),
-                                    style = PaceDreamTypography.Caption.copy(fontSize = androidx.compose.ui.unit.sp(10)),
+                                    style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
                                     color = if (mode == selectedMode) PaceDreamColors.Primary else Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -362,7 +363,7 @@ private fun ThreadCard(
                         ) {
                             Text(
                                 text = if (thread.unreadCount > 9) "9+" else thread.unreadCount.toString(),
-                                style = PaceDreamTypography.Caption.copy(fontSize = androidx.compose.ui.unit.sp(10)),
+                                style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )

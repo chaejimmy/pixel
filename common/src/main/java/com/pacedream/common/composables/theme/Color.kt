@@ -72,6 +72,10 @@ object PaceDreamColors {
     val OnSurfaceVariant = PaceDreamGray600
     val ErrorContainer = Color(0xFFFFDAD6)
     val OnErrorContainer = Color(0xFF410002)
+    val Border = PaceDreamGray200
+    val OnPrimary = Color(0xFFFFFFFF)
+    val Outline = PaceDreamGray400
+    val OnCard = PaceDreamTextPrimary
 }
 
 // Legacy colors for backward compatibility

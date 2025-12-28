@@ -209,6 +209,12 @@ object PaceDreamTypography {
         fontWeight = FontWeight.Normal,
         lineHeight = 16.sp
     )
+    
+    val Button = TextStyle(
+        fontSize = 16.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineHeight = 20.sp
+    )
 }
 
 // Elevation System

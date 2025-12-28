@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
-import com.pacedream.common.composables.theme.PaceDreamDesignSystem
+import com.pacedream.common.composables.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,7 +54,7 @@ fun BookingFormScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(PaceDreamDesignSystem.PaceDreamColors.Background)
+            .background(PaceDreamColors.Background)
     ) {
         PaceDreamHeroHeader(
             title = "Book Property",
@@ -96,7 +96,7 @@ private fun BookingFormContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+            .padding(PaceDreamSpacing.MD)
     ) {
         // Property Summary
         PropertySummaryCard(
@@ -106,7 +106,7 @@ private fun BookingFormContent(
             currency = uiState.currency
         )
         
-        Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.LG))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
         // Booking Details Form
         BookingDetailsForm(
@@ -122,7 +122,7 @@ private fun BookingFormContent(
             onSpecialRequestsChange = onSpecialRequestsChange
         )
         
-        Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.LG))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
         // Price Summary
         PriceSummaryCard(
@@ -131,7 +131,7 @@ private fun BookingFormContent(
             totalPrice = uiState.totalPrice
         )
         
-        Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.LG))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
         // Book Now Button
         Button(
@@ -140,14 +140,14 @@ private fun BookingFormContent(
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary
+                containerColor = PaceDreamColors.Primary
             ),
-            shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
+            shape = RoundedCornerShape(PaceDreamRadius.MD)
         ) {
             Text(
                 text = "Book Now - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}",
-                style = PaceDreamDesignSystem.PaceDreamTypography.Button,
-                color = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
+                style = PaceDreamTypography.Button,
+                color = PaceDreamColors.OnPrimary
             )
         }
     }
@@ -162,39 +162,39 @@ private fun PropertySummaryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamDesignSystem.PaceDreamColors.Card),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Row(
-            modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+            modifier = Modifier.padding(PaceDreamSpacing.MD)
         ) {
             PaceDreamPropertyImage(
                 imageUrl = propertyImage,
                 contentDescription = "Property: $propertyName",
                 modifier = Modifier
                     .size(80.dp)
-                    .clip(RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.SM))
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
             )
             
-            Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
             
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = propertyName,
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Headline,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.OnCard,
                     fontWeight = FontWeight.SemiBold
                 )
                 
-                Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.SM))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 
                 Text(
                     text = "$currency ${String.format("%.2f", basePrice)} per hour",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Callout,
-                    color = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -217,26 +217,26 @@ private fun BookingDetailsForm(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamDesignSystem.PaceDreamColors.Card),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(
-            modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+            modifier = Modifier.padding(PaceDreamSpacing.MD)
         ) {
             Text(
                 text = "Booking Details",
-                style = PaceDreamDesignSystem.PaceDreamTypography.Headline,
-                color = PaceDreamDesignSystem.PaceDreamColors.OnCard,
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.OnCard,
                 fontWeight = FontWeight.SemiBold
             )
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             // Date Fields
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
                 OutlinedTextField(
                     value = startDate,
@@ -261,12 +261,12 @@ private fun BookingDetailsForm(
                 )
             }
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             // Time Fields
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
                 OutlinedTextField(
                     value = startTime,
@@ -291,7 +291,7 @@ private fun BookingDetailsForm(
                 )
             }
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             // Special Requests
             OutlinedTextField(
@@ -314,21 +314,21 @@ private fun PriceSummaryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamDesignSystem.PaceDreamColors.Card),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(
-            modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+            modifier = Modifier.padding(PaceDreamSpacing.MD)
         ) {
             Text(
                 text = "Price Summary",
-                style = PaceDreamDesignSystem.PaceDreamTypography.Headline,
-                color = PaceDreamDesignSystem.PaceDreamColors.OnCard,
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.OnCard,
                 fontWeight = FontWeight.SemiBold
             )
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -336,17 +336,17 @@ private fun PriceSummaryCard(
             ) {
                 Text(
                     text = "Base Price",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Body,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.OnCard
                 )
                 Text(
                     text = "$currency ${String.format("%.2f", basePrice)}",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Body,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.OnCard
                 )
             }
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -354,21 +354,21 @@ private fun PriceSummaryCard(
             ) {
                 Text(
                     text = "Service Fee",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Body,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.OnCard
                 )
                 Text(
                     text = "$currency ${String.format("%.2f", totalPrice * 0.1)}",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Body,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.OnCard
                 )
             }
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             
-            Divider(color = PaceDreamDesignSystem.PaceDreamColors.Outline)
+            Divider(color = PaceDreamColors.Outline)
             
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -376,14 +376,14 @@ private fun PriceSummaryCard(
             ) {
                 Text(
                     text = "Total",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Headline,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnCard,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.OnCard,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "$currency ${String.format("%.2f", totalPrice)}",
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Headline,
-                    color = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -398,7 +398,7 @@ private fun BookingFormLoadingState() {
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
-            color = PaceDreamDesignSystem.PaceDreamColors.Primary
+            color = PaceDreamColors.Primary
         )
     }
 }

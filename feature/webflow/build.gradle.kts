@@ -20,6 +20,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.browser)
     implementation(libs.coil.kt.compose)
+    implementation(libs.timber)
 }
 
 
