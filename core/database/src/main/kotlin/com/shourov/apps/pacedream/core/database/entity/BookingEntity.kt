@@ -19,6 +19,7 @@ package com.shourov.apps.pacedream.core.database.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 
 @Entity(tableName = "bookings")
 data class BookingEntity(
@@ -57,7 +58,7 @@ fun BookingEntity.asExternalModel(): BookingModel {
         totalPrice = totalPrice ?: 0.0,
         startDate = startDate ?: "",
         endDate = endDate ?: "",
-        status = status ?: "PENDING"
+        status = BookingStatus.fromString(status)
     )
 }
 
@@ -77,6 +78,6 @@ fun BookingModel.asEntity(): BookingEntity {
         totalPrice = totalPrice,
         startDate = startDate,
         endDate = endDate,
-        status = status
+        status = status.name
     )
 }
