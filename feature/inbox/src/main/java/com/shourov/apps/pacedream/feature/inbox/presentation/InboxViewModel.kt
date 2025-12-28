@@ -225,3 +225,4 @@ sealed class InboxNavigation {
     data class ToThread(val threadId: String) : InboxNavigation()
 }
 
+

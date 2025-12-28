@@ -184,3 +184,4 @@ sealed class ThreadDetailEvent {
     object LoadMore : ThreadDetailEvent()
 }
 
+

@@ -351,3 +351,4 @@ data class WishlistToggleResponse(
     val liked: Boolean
 )
 
+

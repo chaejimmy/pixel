@@ -244,3 +244,4 @@ data class HomeUiState(
         get() = hourlySpaces.isEmpty() && rentGear.isEmpty() && splitStays.isEmpty()
 }
 
+

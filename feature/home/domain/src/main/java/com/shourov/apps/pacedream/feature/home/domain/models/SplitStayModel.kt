@@ -40,3 +40,4 @@ data class SplitStayModel(
     val hostAvatar: String? = null,
 )
 
+

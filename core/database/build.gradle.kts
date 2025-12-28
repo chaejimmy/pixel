@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.pacedream.android.library)
-    alias(libs.plugins.pacedream.android.hilt)
     alias(libs.plugins.pacedream.android.room)
-    id("kotlinx-serialization")
+    alias(libs.plugins.pacedream.android.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -14,16 +14,14 @@ android {
 }
 
 dependencies {
-    api(projects.core.model)
-    api(projects.core.common)
-    
+    implementation(projects.core.model)
+    implementation(projects.core.common)
+
     // Kotlinx
     implementation(libs.kotlinx.datetime)
-    
+    implementation(libs.kotlinx.coroutines.guava)
+
     // Serialization
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.moshi)
-    implementation(libs.moshi.adapters)
-    
-    ksp(libs.moshi.codegen)
 }

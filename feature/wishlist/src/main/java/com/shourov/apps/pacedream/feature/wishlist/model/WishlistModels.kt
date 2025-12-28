@@ -105,3 +105,4 @@ sealed class WishlistNavigation {
     object ShowAuthSheet : WishlistNavigation()
 }
 
+

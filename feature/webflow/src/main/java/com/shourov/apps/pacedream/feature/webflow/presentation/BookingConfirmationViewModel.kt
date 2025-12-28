@@ -64,3 +64,4 @@ sealed class BookingConfirmationUiState {
     data class Error(val message: String) : BookingConfirmationUiState()
 }
 
+

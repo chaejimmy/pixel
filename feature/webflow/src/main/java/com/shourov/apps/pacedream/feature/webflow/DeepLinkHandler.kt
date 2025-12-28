@@ -120,3 +120,4 @@ sealed class DeepLinkResult {
     data class GearDetail(val gearId: String) : DeepLinkResult()
 }
 
+
