@@ -101,7 +101,7 @@ sealed class ApiResult<out T> {
         is Failure -> throw error
     }
     
-    fun getOrDefault(default: T): T = when (this) {
+    fun getOrDefault(default: @UnsafeVariance T): T = when (this) {
         is Success -> data
         is Failure -> default
     }

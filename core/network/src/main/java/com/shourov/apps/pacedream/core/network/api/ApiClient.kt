@@ -326,7 +326,7 @@ class ApiClient @Inject constructor(
         return when (e) {
             is SocketTimeoutException -> ApiError.Timeout()
             is IOException -> ApiError.NetworkError()
-            else -> ApiError.Unknown(e.message ?: "Unknown error", cause = e)
+            else -> ApiError.Unknown(e.message ?: "Unknown error", underlyingCause = e)
         }
     }
     

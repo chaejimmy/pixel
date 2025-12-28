@@ -204,7 +204,7 @@ fun PaceDreamCategoryPill(
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) PaceDreamPrimary else PaceDreamGray100
         ),
-        contentPadding = PaddingValues(PaceDreamCategoryPill.Padding)
+        contentPadding = PaceDreamCategoryPill.Padding
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -688,7 +688,7 @@ fun PaceDreamCategoryPillSimple(
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isSelected) PaceDreamPrimary else PaceDreamGray100
         ),
-        contentPadding = PaddingValues(PaceDreamCategoryPill.Padding)
+        contentPadding = PaceDreamCategoryPill.Padding
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
