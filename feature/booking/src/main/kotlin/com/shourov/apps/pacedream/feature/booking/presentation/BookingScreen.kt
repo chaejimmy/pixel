@@ -37,6 +37,7 @@ import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.components.PaceDreamUserAvatar
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -206,10 +207,10 @@ private fun BookingCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StatusChip(status = booking.status)
+                StatusChip(status = booking.status.name)
                 
                 Row {
-                    if (booking.status == "PENDING") {
+                    if (booking.status == BookingStatus.PENDING) {
                         TextButton(onClick = onCancel) {
                             Text("Cancel")
                         }

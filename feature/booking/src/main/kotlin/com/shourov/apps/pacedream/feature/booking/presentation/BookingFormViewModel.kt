@@ -22,6 +22,7 @@ import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.BookingRepository
 import com.shourov.apps.pacedream.core.data.repository.PropertyRepository
 import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -144,7 +145,7 @@ class BookingFormViewModel @Inject constructor(
                 endDate = currentState.endDate,
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
-                status = "PENDING",
+                status = BookingStatus.PENDING,
                 hostName = "Host Name", // This should come from property data
                 checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
                 checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
