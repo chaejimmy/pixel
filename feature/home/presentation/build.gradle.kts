@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.pacedream.android.feature)
+    id("pacedream.android.feature")
     alias(libs.plugins.compose)
 }
 

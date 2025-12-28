@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.pacedream.android.library)
+    id("pacedream.android.library")
 }
 
 android {
