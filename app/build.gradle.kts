@@ -80,6 +80,7 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.designsystem)
     implementation(projects.core.data)
+    implementation(projects.core.network)
     implementation(projects.core.model)
     implementation(projects.core.analytics)
     implementation(projects.common)
@@ -103,6 +104,11 @@ dependencies {
     implementation(libs.coil.kt)
     implementation(libs.lottie.compose)
 
+    // Firebase Messaging for push notifications
+    implementation(libs.firebase.cloud.messaging)
+
+    // Kotlinx Serialization for JSON parsing
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))
