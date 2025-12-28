@@ -1,12 +1,9 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.pacedream.android.feature)
-    id("kotlinx-serialization")
 }
 
 android {
-    namespace = "com.shourov.apps.pacedream.feature.home.domain"
+    namespace = "com.shourov.apps.pacedream.feature.home.data"
     compileSdk = 34
 
     defaultConfig {
