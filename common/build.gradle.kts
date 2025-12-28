@@ -41,20 +41,24 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    //implementation(libs.compose.material3)
     implementation(libs.ui.text.google.fonts)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 
     //compose
-   // implementation(libs.androidx.compose.runtime)
-    //implementation(libs.androidx.compose.bom)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.material)
-
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.compose.ui.util)
     api(libs.androidx.compose.material.iconsExtended)
+
+    // Image loading
+    implementation(libs.coil.kt.compose)
 
     //country picker
     implementation(libs.libphonenumber)
