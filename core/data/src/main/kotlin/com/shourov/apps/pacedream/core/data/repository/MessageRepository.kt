@@ -19,6 +19,8 @@ package com.shourov.apps.pacedream.core.data.repository
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.database.dao.MessageDao
 import com.shourov.apps.pacedream.core.database.entity.MessageEntity
+import com.shourov.apps.pacedream.core.database.entity.asEntity
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.MessageModel
 import kotlinx.coroutines.flow.Flow
@@ -32,27 +34,27 @@ class MessageRepository @Inject constructor(
     private val messageDao: MessageDao
 ) {
     
-    fun getChatMessages(chatId: String): Flow<Result<List<MessageModel>>> {
-        return messageDao.getMessagesByChat(chatId).map { entities ->
+    fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {
+        return messageDao.getMessagesByUser(userName).map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
 
-    fun getUserMessages(userId: String): Flow<Result<List<MessageModel>>> {
-        return messageDao.getMessagesByUser(userId).map { entities ->
+    fun getUnreadMessages(): Flow<Result<List<MessageModel>>> {
+        return messageDao.getUnreadMessages().map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
 
-    fun getUnreadMessages(userId: String): Flow<Result<List<MessageModel>>> {
-        return messageDao.getUnreadMessagesByUser(userId).map { entities ->
-            Result.Success(entities.map { it.asExternalModel() })
-        }
-    }
-
-    fun getLastMessage(chatId: String): Flow<Result<MessageModel?>> {
-        return messageDao.getLastMessageByChat(chatId).map { entity ->
+    fun getLastMessage(): Flow<Result<MessageModel?>> {
+        return messageDao.getLastMessage().map { entity ->
             Result.Success(entity?.asExternalModel())
+        }
+    }
+
+    fun getAllMessages(): Flow<Result<List<MessageModel>>> {
+        return messageDao.getAllMessages().map { entities ->
+            Result.Success(entities.map { it.asExternalModel() })
         }
     }
 
@@ -90,16 +92,11 @@ class MessageRepository @Inject constructor(
         }
     }
 
-    suspend fun markMessageAsRead(chatId: String, messageId: String): Result<Unit> {
+    suspend fun markMessagesAsRead(userName: String): Result<Unit> {
         return try {
-            val response = apiService.markMessageAsRead(chatId, messageId)
-            if (response.isSuccessful) {
-                // Update local database
-                messageDao.markMessagesAsRead(chatId, "current_user_id") // This would need to be passed properly
-                Result.Success(Unit)
-            } else {
-                Result.Error(Exception("Failed to mark message as read: ${response.message()}"))
-            }
+            // Update local database
+            messageDao.markMessagesAsRead(userName)
+            Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
         }

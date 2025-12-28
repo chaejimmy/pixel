@@ -19,6 +19,8 @@ package com.shourov.apps.pacedream.core.data.repository
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.database.dao.BookingDao
 import com.shourov.apps.pacedream.core.database.entity.BookingEntity
+import com.shourov.apps.pacedream.core.database.entity.asEntity
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.BookingModel
 import kotlinx.coroutines.flow.Flow
@@ -32,13 +34,13 @@ class BookingRepository @Inject constructor(
     private val bookingDao: BookingDao
 ) {
     
-    fun getUserBookings(userId: String): Flow<Result<List<BookingModel>>> {
-        return bookingDao.getBookingsByUser(userId).map { entities ->
+    fun getUserBookings(userName: String): Flow<Result<List<BookingModel>>> {
+        return bookingDao.getBookingsByUserName(userName).map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
 
-    fun getBookingById(bookingId: String): Flow<Result<BookingModel?>> {
+    fun getBookingById(bookingId: Int): Flow<Result<BookingModel?>> {
         return bookingDao.getBookingById(bookingId).map { entity ->
             Result.Success(entity?.asExternalModel())
         }
@@ -50,8 +52,8 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    fun getBookingsByUserAndStatus(userId: String, status: String): Flow<Result<List<BookingModel>>> {
-        return bookingDao.getBookingsByUserAndStatus(userId, status).map { entities ->
+    fun getAllBookings(): Flow<Result<List<BookingModel>>> {
+        return bookingDao.getAllBookings().map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
@@ -61,7 +63,7 @@ class BookingRepository @Inject constructor(
             val response = apiService.createBooking(booking)
             if (response.isSuccessful) {
                 // Save to local database
-                bookingDao.insertBooking(booking.asEntity())
+                booking.asEntity()?.let { bookingDao.insertBooking(it) }
                 Result.Success(booking)
             } else {
                 Result.Error(Exception("Failed to create booking: ${response.message()}"))
@@ -71,12 +73,13 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun updateBooking(bookingId: String, booking: BookingModel): Result<BookingModel> {
+    suspend fun updateBooking(booking: BookingModel): Result<BookingModel> {
         return try {
-            val response = apiService.updateBooking(bookingId, booking)
+            val bookingId = booking.id ?: return Result.Error(Exception("Booking ID is required"))
+            val response = apiService.updateBooking(bookingId.toString(), booking)
             if (response.isSuccessful) {
                 // Update local database
-                bookingDao.updateBooking(booking.asEntity())
+                booking.asEntity()?.let { bookingDao.updateBooking(it) }
                 Result.Success(booking)
             } else {
                 Result.Error(Exception("Failed to update booking: ${response.message()}"))
@@ -86,9 +89,9 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun cancelBooking(bookingId: String): Result<Unit> {
+    suspend fun cancelBooking(bookingId: Int): Result<Unit> {
         return try {
-            val response = apiService.cancelBooking(bookingId)
+            val response = apiService.cancelBooking(bookingId.toString())
             if (response.isSuccessful) {
                 // Update local database
                 bookingDao.deleteBookingById(bookingId)
@@ -101,13 +104,11 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun confirmBooking(bookingId: String): Result<Unit> {
+    suspend fun confirmBooking(bookingId: Int): Result<Unit> {
         return try {
-            val response = apiService.confirmBooking(bookingId)
+            val response = apiService.confirmBooking(bookingId.toString())
             if (response.isSuccessful) {
-                // Update local database
-                val booking = bookingDao.getBookingById(bookingId)
-                // Update booking status to confirmed
+                // Booking confirmed - could update local database status if needed
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to confirm booking: ${response.message()}"))
@@ -117,9 +118,9 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun refreshUserBookings(userId: String): Result<Unit> {
+    suspend fun refreshUserBookings(userName: String): Result<Unit> {
         return try {
-            val response = apiService.getUserBookings(userId)
+            val response = apiService.getUserBookings(userName)
             if (response.isSuccessful) {
                 // Handle response and save to database
                 // This would need to be implemented based on your API response structure

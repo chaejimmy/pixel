@@ -19,6 +19,7 @@ package com.shourov.apps.pacedream.core.data.repository
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.database.dao.PropertyDao
 import com.shourov.apps.pacedream.core.database.entity.PropertyEntity
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.response.home.rooms.Result as PropertyModel
 import kotlinx.coroutines.flow.Flow

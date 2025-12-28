@@ -6,10 +6,17 @@ import com.shourov.apps.pacedream.core.database.dao.ChatDao
 import com.shourov.apps.pacedream.core.database.dao.MessageDao
 import com.shourov.apps.pacedream.core.database.dao.PropertyDao
 import com.shourov.apps.pacedream.core.database.dao.UserDao
-import com.shourov.apps.pacedream.core.database.entity.asExternalModel
+import com.shourov.apps.pacedream.core.database.entity.BookingEntity
+import com.shourov.apps.pacedream.core.database.entity.CategoryEntity
+import com.shourov.apps.pacedream.core.database.entity.ChatEntity
+import com.shourov.apps.pacedream.core.database.entity.MessageEntity
+import com.shourov.apps.pacedream.core.database.entity.PropertyEntity
+import com.shourov.apps.pacedream.core.database.entity.UserEntity
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel as bookingAsExternalModel
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel as messageAsExternalModel
+import com.shourov.apps.pacedream.core.database.entity.asExternalModel as propertyAsExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.BookingModel
-import com.shourov.apps.pacedream.model.ChatModel
 import com.shourov.apps.pacedream.model.MessageModel
 import com.shourov.apps.pacedream.model.response.home.rooms.Result
 import kotlinx.coroutines.flow.Flow
@@ -29,7 +36,7 @@ class PaceDreamRepository @Inject constructor(
     // User operations
     fun getUserById(userId: String) = userDao.getUserById(userId)
     
-    suspend fun insertUser(user: com.shourov.apps.pacedream.core.database.entity.UserEntity) {
+    suspend fun insertUser(user: UserEntity) {
         userDao.insertUser(user)
     }
     
@@ -40,8 +47,10 @@ class PaceDreamRepository @Inject constructor(
         }
     }
     
-    fun getPropertyById(propertyId: String): Flow<Result> {
-        return propertyDao.getPropertyById(propertyId).map { it.asExternalModel() }
+    fun getPropertyById(propertyId: String): Flow<Result?> {
+        return propertyDao.getPropertyById(propertyId).map { entity ->
+            entity?.asExternalModel()
+        }
     }
     
     suspend fun refreshProperties() {
@@ -61,13 +70,13 @@ class PaceDreamRepository @Inject constructor(
         }
     }
     
-    fun getBookingsByUser(userId: String): Flow<List<BookingModel>> {
-        return bookingDao.getBookingsByUser(userId).map { entities ->
+    fun getBookingsByUserName(userName: String): Flow<List<BookingModel>> {
+        return bookingDao.getBookingsByUserName(userName).map { entities ->
             entities.map { it.asExternalModel() }
         }
     }
     
-    suspend fun createBooking(booking: BookingModel) {
+    suspend fun createBooking(booking: BookingEntity) {
         try {
             // Call API to create booking
             // val response = apiService.createBooking(booking)
@@ -77,20 +86,20 @@ class PaceDreamRepository @Inject constructor(
             //     }
             // }
             // For now, just insert into local DB
-            // bookingDao.insertBooking(booking.asEntity())
+            bookingDao.insertBooking(booking)
         } catch (e: Exception) {
             // Handle error
         }
     }
     
     // Message operations
-    fun getMessagesForChat(chatId: String): Flow<List<MessageModel>> {
-        return messageDao.getMessagesByChat(chatId).map { entities ->
+    fun getMessagesByUser(userName: String): Flow<List<MessageModel>> {
+        return messageDao.getMessagesByUser(userName).map { entities ->
             entities.map { it.asExternalModel() }
         }
     }
     
-    suspend fun sendMessage(chatId: String, message: MessageModel) {
+    suspend fun sendMessage(message: MessageEntity) {
         try {
             // Call API to send message
             // val response = apiService.sendMessage(chatId, message)
@@ -100,7 +109,7 @@ class PaceDreamRepository @Inject constructor(
             //     }
             // }
             // For now, just insert into local DB
-            // messageDao.insertMessage(message.asEntity())
+            messageDao.insertMessage(message)
         } catch (e: Exception) {
             // Handle error
         }
@@ -109,7 +118,7 @@ class PaceDreamRepository @Inject constructor(
     // Category operations
     fun getAllCategories() = categoryDao.getAllCategories()
     
-    suspend fun insertCategories(categories: List<com.shourov.apps.pacedream.core.database.entity.CategoryEntity>) {
+    suspend fun insertCategories(categories: List<CategoryEntity>) {
         categoryDao.insertCategories(categories)
     }
     
@@ -118,7 +127,17 @@ class PaceDreamRepository @Inject constructor(
     
     fun getChatsByUser(userId: String) = chatDao.getChatsByUser(userId)
     
-    suspend fun insertChat(chat: com.shourov.apps.pacedream.core.database.entity.ChatEntity) {
+    suspend fun insertChat(chat: ChatEntity) {
         chatDao.insertChat(chat)
     }
 }
+
+// Extension functions to resolve ambiguity
+private fun BookingEntity.asExternalModel(): BookingModel =
+    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
+
+private fun MessageEntity.asExternalModel(): MessageModel =
+    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
+
+private fun PropertyEntity.asExternalModel(): Result =
+    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
