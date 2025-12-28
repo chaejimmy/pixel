@@ -110,6 +110,9 @@ dependencies {
     // Kotlinx Serialization for JSON parsing
     implementation(libs.kotlinx.serialization.json)
 
+    // Retrofit for HostModule
+    implementation(libs.retrofit.core)
+
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))
     implementation(project(":feature:home:presentation"))
