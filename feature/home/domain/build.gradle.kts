@@ -37,10 +37,10 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     
-    // Compose dependencies
+    // Compose dependencies (runtime for @Stable, foundation for graphics/Color)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.runtime)
-    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
