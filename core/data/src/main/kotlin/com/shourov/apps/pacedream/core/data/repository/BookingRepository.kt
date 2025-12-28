@@ -40,7 +40,7 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    fun getBookingById(bookingId: Int): Flow<Result<BookingModel?>> {
+    fun getBookingById(bookingId: String): Flow<Result<BookingModel?>> {
         return bookingDao.getBookingById(bookingId).map { entity ->
             Result.Success(entity?.asExternalModel())
         }
@@ -89,9 +89,9 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun cancelBooking(bookingId: Int): Result<Unit> {
+    suspend fun cancelBooking(bookingId: String): Result<Unit> {
         return try {
-            val response = apiService.cancelBooking(bookingId.toString())
+            val response = apiService.cancelBooking(bookingId)
             if (response.isSuccessful) {
                 // Update local database
                 bookingDao.deleteBookingById(bookingId)
@@ -104,9 +104,9 @@ class BookingRepository @Inject constructor(
         }
     }
 
-    suspend fun confirmBooking(bookingId: Int): Result<Unit> {
+    suspend fun confirmBooking(bookingId: String): Result<Unit> {
         return try {
-            val response = apiService.confirmBooking(bookingId.toString())
+            val response = apiService.confirmBooking(bookingId)
             if (response.isSuccessful) {
                 // Booking confirmed - could update local database status if needed
                 Result.Success(Unit)

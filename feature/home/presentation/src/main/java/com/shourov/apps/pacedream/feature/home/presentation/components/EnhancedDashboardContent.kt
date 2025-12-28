@@ -260,9 +260,9 @@ fun EnhancedDashboardContent(
             ) {
                 items(destinations) { destination ->
                     PaceDreamDestinationCard(
-                        name = destination.name,
+                        name = destination.title,
                         imageUrl = null, // Will use drawable resource
-                        onClick = { onDestinationClick(destination.name) }
+                        onClick = { onDestinationClick(destination.title) }
                     )
                 }
             }

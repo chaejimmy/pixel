@@ -79,6 +79,7 @@ object PaceDreamColors {
     val OnSuccess = Color(0xFFFFFFFF)
     val OnWarning = Color(0xFFFFFFFF)
     val OnError = Color(0xFFFFFFFF)
+    val OnBackground = PaceDreamTextPrimary
 }
 
 // Legacy colors for backward compatibility

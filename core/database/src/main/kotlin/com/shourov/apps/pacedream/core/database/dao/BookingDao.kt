@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BookingDao {
     @Query("SELECT * FROM bookings WHERE id = :bookingId")
-    fun getBookingById(bookingId: Int): Flow<BookingEntity?>
+    fun getBookingById(bookingId: String): Flow<BookingEntity?>
 
     @Query("SELECT * FROM bookings WHERE userName = :userName ORDER BY checkInTime DESC")
     fun getBookingsByUserName(userName: String): Flow<List<BookingEntity>>
@@ -47,7 +47,7 @@ interface BookingDao {
     suspend fun deleteBooking(booking: BookingEntity)
 
     @Query("DELETE FROM bookings WHERE id = :bookingId")
-    suspend fun deleteBookingById(bookingId: Int)
+    suspend fun deleteBookingById(bookingId: String)
 
     @Query("DELETE FROM bookings")
     suspend fun deleteAllBookings()

@@ -58,8 +58,7 @@ fun BookingFormScreen(
     ) {
         PaceDreamHeroHeader(
             title = "Book Property",
-            subtitle = "Complete your reservation",
-            onBackClick = { /* Handle back navigation */ }
+            subtitle = "Complete your reservation"
         )
         
         if (uiState.isLoading) {
