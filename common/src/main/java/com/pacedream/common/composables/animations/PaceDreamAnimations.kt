@@ -51,11 +51,12 @@ fun FadeInAnimation(
     visible: Boolean,
     modifier: Modifier = Modifier,
     duration: Int = PaceDreamAnimationDuration.MEDIUM,
+    delay: Int = 0,
     content: @Composable () -> Unit
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(duration, easing = PaceDreamEasing.EaseOut)),
+        enter = fadeIn(animationSpec = tween(duration, delayMillis = delay, easing = PaceDreamEasing.EaseOut)),
         exit = fadeOut(animationSpec = tween(duration, easing = PaceDreamEasing.EaseIn)),
         modifier = modifier
     ) {

@@ -22,45 +22,31 @@ import com.shourov.apps.pacedream.model.MessageModel
 
 @Entity(tableName = "messages")
 data class MessageEntity(
-    @PrimaryKey
-    val id: String,
-    val chatId: String,
-    val senderId: String,
-    val receiverId: String,
-    val content: String,
-    val messageType: String, // TEXT, IMAGE, FILE, SYSTEM
-    val attachmentUrl: String?,
-    val isRead: Boolean,
-    val timestamp: String,
-    val createdAt: String
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+    val profilePic: Int?,
+    val userName: String?,
+    val messageTime: String?,
+    val message: String?,
+    val newMessageCount: Int?
 )
 
 fun MessageEntity.asExternalModel(): MessageModel {
     return MessageModel(
-        id = id,
-        chatId = chatId,
-        senderId = senderId,
-        receiverId = receiverId,
-        content = content,
-        messageType = messageType,
-        attachmentUrl = attachmentUrl,
-        isRead = isRead,
-        timestamp = timestamp,
-        createdAt = createdAt
+        profilePic = profilePic,
+        userName = userName,
+        messageTime = messageTime,
+        message = message,
+        newMessageCount = newMessageCount
     )
 }
 
 fun MessageModel.asEntity(): MessageEntity {
     return MessageEntity(
-        id = id,
-        chatId = chatId,
-        senderId = senderId,
-        receiverId = receiverId,
-        content = content,
-        messageType = messageType,
-        attachmentUrl = attachmentUrl,
-        isRead = isRead,
-        timestamp = timestamp,
-        createdAt = createdAt
+        profilePic = profilePic,
+        userName = userName,
+        messageTime = messageTime,
+        message = message,
+        newMessageCount = newMessageCount
     )
 }

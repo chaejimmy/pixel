@@ -28,7 +28,7 @@ interface PropertyDao {
     @Query("SELECT * FROM properties WHERE propertyType = :propertyType")
     fun getPropertiesByType(propertyType: String): Flow<List<PropertyEntity>>
 
-    @Query("SELECT * FROM properties WHERE isAvailable = 1")
+    @Query("SELECT * FROM properties WHERE status = 1")
     fun getAvailableProperties(): Flow<List<PropertyEntity>>
 
     @Query("SELECT * FROM properties WHERE hostId = :hostId")

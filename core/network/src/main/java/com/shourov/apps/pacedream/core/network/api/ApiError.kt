@@ -49,14 +49,18 @@ sealed class ApiError : Exception() {
     
     data class DecodingError(
         override val message: String = "Failed to process response.",
-        val cause: Throwable? = null
-    ) : ApiError()
+        val underlyingCause: Throwable? = null
+    ) : ApiError() {
+        override val cause: Throwable? get() = underlyingCause
+    }
     
     data class Unknown(
         override val message: String = "An unexpected error occurred.",
         val statusCode: Int? = null,
-        val cause: Throwable? = null
-    ) : ApiError()
+        val underlyingCause: Throwable? = null
+    ) : ApiError() {
+        override val cause: Throwable? get() = underlyingCause
+    }
 }
 
 /**

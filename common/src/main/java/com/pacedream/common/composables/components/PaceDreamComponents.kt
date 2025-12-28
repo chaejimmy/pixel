@@ -653,12 +653,12 @@ fun PaceDreamLoadingState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(PaceDreamLoadingState.Padding),
+            .padding(com.pacedream.common.composables.theme.PaceDreamLoadingState.Padding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         CircularProgressIndicator(
             color = PaceDreamPrimary,
-            modifier = Modifier.size(PaceDreamLoadingState.IconSize)
+            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamLoadingState.IconSize)
         )
         
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -668,5 +668,44 @@ fun PaceDreamLoadingState(
             style = PaceDreamTypography.Body,
             color = PaceDreamTextSecondary
         )
+    }
+}
+
+// Category Pill with Resource ID (for use with animated components)
+@Composable
+fun PaceDreamCategoryPillSimple(
+    title: String,
+    iconRes: Int,
+    isSelected: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(PaceDreamCategoryPill.Height)
+            .clip(RoundedCornerShape(PaceDreamCategoryPill.CornerRadius)),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) PaceDreamPrimary else PaceDreamGray100
+        ),
+        contentPadding = PaddingValues(PaceDreamCategoryPill.Padding)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
+        ) {
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(id = iconRes),
+                contentDescription = null,
+                tint = if (isSelected) Color.White else PaceDreamTextSecondary,
+                modifier = Modifier.size(PaceDreamCategoryPill.IconSize)
+            )
+            
+            Text(
+                text = title,
+                style = PaceDreamTypography.Caption,
+                color = if (isSelected) Color.White else PaceDreamTextSecondary
+            )
+        }
     }
 }

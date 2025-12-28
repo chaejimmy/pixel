@@ -55,20 +55,35 @@ fun PaceDreamAsyncImage(
 ) {
     val context = LocalContext.current
     
-    AsyncImage(
-        model = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .crossfade(true)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .build(),
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = contentScale,
-        placeholder = placeholder,
-        error = error,
-        loading = loading
-    )
+    Box(modifier = modifier) {
+        var isLoading by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+        var hasError by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(imageUrl)
+                .crossfade(true)
+                .memoryCachePolicy(CachePolicy.ENABLED)
+                .diskCachePolicy(CachePolicy.ENABLED)
+                .build(),
+            contentDescription = contentDescription,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = contentScale,
+            onLoading = { isLoading = true; hasError = false },
+            onSuccess = { isLoading = false; hasError = false },
+            onError = { isLoading = false; hasError = true }
+        )
+        
+        if (isLoading && loading != null) {
+            loading()
+        } else if (isLoading && placeholder != null) {
+            placeholder()
+        }
+        
+        if (hasError && error != null) {
+            error()
+        }
+    }
 }
 
 @Composable

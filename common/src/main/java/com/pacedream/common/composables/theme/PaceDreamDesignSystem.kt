@@ -20,6 +20,51 @@ object PaceDreamDesignSystem {
     val Elevation = PaceDreamElevation
     val Typography = PaceDreamTypography
     val Colors = PaceDreamColors
+    
+    // Namespace for access via PaceDreamDesignSystem.PaceDreamSpacing, etc.
+    val PaceDreamSpacing = com.pacedream.common.composables.theme.PaceDreamSpacing
+    val PaceDreamRadius = com.pacedream.common.composables.theme.PaceDreamRadius
+    val PaceDreamIconSize = com.pacedream.common.composables.theme.PaceDreamIconSize
+    val PaceDreamColors = PaceDreamDesignSystemColors
+    val PaceDreamTypography = com.pacedream.common.composables.theme.PaceDreamTypography
+}
+
+/**
+ * Extended color palette for PaceDreamDesignSystem
+ * Provides additional colors needed by components
+ */
+object PaceDreamDesignSystemColors {
+    val Primary = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+    val PrimaryLight = com.pacedream.common.composables.theme.PaceDreamColors.PrimaryLight
+    val PrimaryDark = com.pacedream.common.composables.theme.PaceDreamColors.PrimaryDark
+    val Secondary = com.pacedream.common.composables.theme.PaceDreamColors.Secondary
+    val Accent = com.pacedream.common.composables.theme.PaceDreamColors.Accent
+    val Background = com.pacedream.common.composables.theme.PaceDreamColors.Background
+    val Surface = com.pacedream.common.composables.theme.PaceDreamColors.Surface
+    val Card = com.pacedream.common.composables.theme.PaceDreamColors.Card
+    val TextPrimary = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+    val TextSecondary = com.pacedream.common.composables.theme.PaceDreamColors.TextSecondary
+    val TextTertiary = com.pacedream.common.composables.theme.PaceDreamColors.TextTertiary
+    val Success = com.pacedream.common.composables.theme.PaceDreamColors.Success
+    val Warning = com.pacedream.common.composables.theme.PaceDreamColors.Warning
+    val Error = com.pacedream.common.composables.theme.PaceDreamColors.Error
+    val Info = com.pacedream.common.composables.theme.PaceDreamColors.Info
+    val Gray50 = com.pacedream.common.composables.theme.PaceDreamColors.Gray50
+    val Gray100 = com.pacedream.common.composables.theme.PaceDreamColors.Gray100
+    val Gray200 = com.pacedream.common.composables.theme.PaceDreamColors.Gray200
+    val Gray300 = com.pacedream.common.composables.theme.PaceDreamColors.Gray300
+    val Gray400 = com.pacedream.common.composables.theme.PaceDreamColors.Gray400
+    val Gray500 = com.pacedream.common.composables.theme.PaceDreamColors.Gray500
+    val Gray600 = com.pacedream.common.composables.theme.PaceDreamColors.Gray600
+    val Gray700 = com.pacedream.common.composables.theme.PaceDreamColors.Gray700
+    val Gray800 = com.pacedream.common.composables.theme.PaceDreamColors.Gray800
+    val Gray900 = com.pacedream.common.composables.theme.PaceDreamColors.Gray900
+    
+    // Additional colors used by image components
+    val SurfaceVariant = Gray200
+    val OnSurfaceVariant = Gray600
+    val ErrorContainer = Color(0xFFFFDAD6)
+    val OnErrorContainer = Color(0xFF410002)
 }
 
 // Spacing System

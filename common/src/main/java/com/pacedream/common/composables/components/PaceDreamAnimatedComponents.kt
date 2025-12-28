@@ -161,9 +161,9 @@ private fun AnimatedCategoryPill(
             label = "pill_scale"
         )
         
-        PaceDreamCategoryPill(
-            name = name,
-            icon = icon,
+        PaceDreamCategoryPillSimple(
+            title = name,
+            iconRes = icon,
             isSelected = isSelected,
             onClick = {
                 isPressed = true

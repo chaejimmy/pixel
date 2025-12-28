@@ -23,27 +23,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BookingDao {
     @Query("SELECT * FROM bookings WHERE id = :bookingId")
-    fun getBookingById(bookingId: String): Flow<BookingEntity?>
+    fun getBookingById(bookingId: Int): Flow<BookingEntity?>
 
-    @Query("SELECT * FROM bookings WHERE userId = :userId ORDER BY createdAt DESC")
-    fun getBookingsByUser(userId: String): Flow<List<BookingEntity>>
+    @Query("SELECT * FROM bookings WHERE userName = :userName ORDER BY checkInTime DESC")
+    fun getBookingsByUserName(userName: String): Flow<List<BookingEntity>>
 
-    @Query("SELECT * FROM bookings WHERE hostId = :hostId ORDER BY createdAt DESC")
-    fun getBookingsByHost(hostId: String): Flow<List<BookingEntity>>
-
-    @Query("SELECT * FROM bookings WHERE propertyId = :propertyId ORDER BY createdAt DESC")
-    fun getBookingsByProperty(propertyId: String): Flow<List<BookingEntity>>
-
-    @Query("SELECT * FROM bookings WHERE status = :status ORDER BY createdAt DESC")
+    @Query("SELECT * FROM bookings WHERE bookingStatus = :status ORDER BY checkInTime DESC")
     fun getBookingsByStatus(status: String): Flow<List<BookingEntity>>
 
-    @Query("SELECT * FROM bookings WHERE userId = :userId AND status = :status ORDER BY createdAt DESC")
-    fun getBookingsByUserAndStatus(userId: String, status: String): Flow<List<BookingEntity>>
-
-    @Query("SELECT * FROM bookings WHERE startDate >= :startDate AND endDate <= :endDate")
-    fun getBookingsInDateRange(startDate: String, endDate: String): Flow<List<BookingEntity>>
-
-    @Query("SELECT * FROM bookings ORDER BY createdAt DESC")
+    @Query("SELECT * FROM bookings ORDER BY checkInTime DESC")
     fun getAllBookings(): Flow<List<BookingEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -59,10 +47,7 @@ interface BookingDao {
     suspend fun deleteBooking(booking: BookingEntity)
 
     @Query("DELETE FROM bookings WHERE id = :bookingId")
-    suspend fun deleteBookingById(bookingId: String)
-
-    @Query("DELETE FROM bookings WHERE userId = :userId")
-    suspend fun deleteBookingsByUser(userId: String)
+    suspend fun deleteBookingById(bookingId: Int)
 
     @Query("DELETE FROM bookings")
     suspend fun deleteAllBookings()

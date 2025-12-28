@@ -175,6 +175,7 @@ androidx-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 moshi-codegen = { module = "com.squareup.moshi:moshi-kotlin-codegen", version.ref = "moshi" }
 moshi-adapters = { module = "com.squareup.moshi:moshi-adapters", version.ref = "moshi" }
+moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
 moshi = { module = "com.squareup.moshi:moshi", version.ref = "moshiVersion" }
 retrofit-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }

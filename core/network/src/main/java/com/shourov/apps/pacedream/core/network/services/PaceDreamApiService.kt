@@ -14,6 +14,7 @@ import com.shourov.apps.pacedream.model.MessageModel
 import com.shourov.apps.pacedream.model.NotificationModel
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -205,7 +206,7 @@ interface PaceDreamApiService {
     suspend fun getPropertyReviews(@Path("propertyId") propertyId: String): Response<Any>
 
     @GET("reviews/user/{userId}")
-    suspend fun getUserReviews(@Path("userId") userId: String): Response<Any>
+    suspend fun getUserReviewsById(@Path("userId") userId: String): Response<Any>
 
     // Analytics and Tracking APIs
     @POST("analytics/event")

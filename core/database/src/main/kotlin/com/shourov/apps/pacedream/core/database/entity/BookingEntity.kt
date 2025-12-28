@@ -23,68 +23,37 @@ import com.shourov.apps.pacedream.model.BookingModel
 @Entity(tableName = "bookings")
 data class BookingEntity(
     @PrimaryKey
-    val id: String,
-    val userId: String,
-    val propertyId: String,
-    val propertyName: String,
-    val propertyImage: String?,
-    val startDate: String,
-    val endDate: String,
-    val startTime: String?,
-    val endTime: String?,
-    val totalPrice: Double,
-    val currency: String,
-    val status: String, // PENDING, CONFIRMED, CANCELLED, COMPLETED
-    val paymentStatus: String, // PENDING, PAID, REFUNDED
-    val specialRequests: String?, // JSON string for special requests
-    val hostId: String,
-    val hostName: String,
-    val createdAt: String,
-    val updatedAt: String
+    val id: Int,
+    val userProfilePic: Int?,
+    val userName: String?,
+    val checkOutTime: String?,
+    val checkInTime: String?,
+    val bookingStatus: String?,
+    val price: String?
 )
 
 fun BookingEntity.asExternalModel(): BookingModel {
     return BookingModel(
         id = id,
-        userId = userId,
-        propertyId = propertyId,
-        propertyName = propertyName,
-        propertyImage = propertyImage,
-        startDate = startDate,
-        endDate = endDate,
-        startTime = startTime,
-        endTime = endTime,
-        totalPrice = totalPrice,
-        currency = currency,
-        status = status,
-        paymentStatus = paymentStatus,
-        specialRequests = specialRequests, // This would need to be parsed from JSON
-        hostId = hostId,
-        hostName = hostName,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        userProfilePic = userProfilePic,
+        userName = userName,
+        checkOutTime = checkOutTime,
+        checkInTime = checkInTime,
+        bookingStatus = bookingStatus,
+        price = price
     )
 }
 
-fun BookingModel.asEntity(): BookingEntity {
+fun BookingModel.asEntity(): BookingEntity? {
+    // id is required for Room, so we can't create an entity without it
+    val entityId = id ?: return null
     return BookingEntity(
-        id = id,
-        userId = userId,
-        propertyId = propertyId,
-        propertyName = propertyName,
-        propertyImage = propertyImage,
-        startDate = startDate,
-        endDate = endDate,
-        startTime = startTime,
-        endTime = endTime,
-        totalPrice = totalPrice,
-        currency = currency,
-        status = status,
-        paymentStatus = paymentStatus,
-        specialRequests = specialRequests, // This would need to be serialized to JSON
-        hostId = hostId,
-        hostName = hostName,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        id = entityId,
+        userProfilePic = userProfilePic,
+        userName = userName,
+        checkOutTime = checkOutTime,
+        checkInTime = checkInTime,
+        bookingStatus = bookingStatus,
+        price = price
     )
 }

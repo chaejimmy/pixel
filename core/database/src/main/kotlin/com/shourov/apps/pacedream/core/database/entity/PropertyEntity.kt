@@ -24,71 +24,70 @@ import com.shourov.apps.pacedream.model.response.home.rooms.Result
 data class PropertyEntity(
     @PrimaryKey
     val id: String,
-    val name: String,
+    val name: String?,
     val description: String?,
-    val propertyType: String,
-    val location: String, // JSON string for location data
-    val images: String, // JSON string for image URLs
-    val amenities: String, // JSON string for amenities
-    val rating: Double?,
-    val reviewCount: Int?,
-    val basePrice: Double,
-    val currency: String,
-    val isAvailable: Boolean,
-    val hostId: String,
-    val hostName: String,
-    val hostAvatar: String?,
-    val additionalDetails: String?, // JSON string for additional details
-    val createdAt: String,
-    val updatedAt: String
+    val propertyType: String?,
+    val locationJson: String?, // JSON string for location data
+    val imagesJson: String?, // JSON string for image URLs
+    val amenitiesJson: String?, // JSON string for amenities
+    val rating: Int?,
+    val hostId: String?,
+    val roomType: String?,
+    val status: Boolean?,
+    val createdAt: String?,
+    val updatedAt: String?
 )
 
+/**
+ * Convert PropertyEntity to Result model.
+ * Note: Complex nested objects need JSON parsing for full conversion.
+ */
 fun PropertyEntity.asExternalModel(): Result {
     return Result(
-        id = id,
-        name = name,
+        __v = null,
+        _id = id,
+        additional_details = null,
+        amenities = null, // Would need JSON parsing
+        createdAt = createdAt,
         description = description,
+        dynamic_price = null,
+        facilities = null,
+        faq = null,
+        guest_details = null,
+        host_id = hostId,
+        ideal_renters = null,
+        images = null, // Would need JSON parsing
+        isDeleted = null,
+        location = null, // Would need JSON parsing
+        name = name,
         property_type = propertyType,
-        location = location, // This would need to be parsed from JSON
-        images = images, // This would need to be parsed from JSON
-        amenities = amenities, // This would need to be parsed from JSON
         rating = rating,
-        review_count = reviewCount,
-        pricing = com.shourov.apps.pacedream.model.response.home.rooms.Pricing(
-            base_price = basePrice,
-            currency = currency
-        ),
-        is_available = isAvailable,
-        host = com.shourov.apps.pacedream.model.response.home.rooms.Host(
-            id = hostId,
-            name = hostName,
-            avatar = hostAvatar
-        ),
-        additional_details = additionalDetails, // This would need to be parsed from JSON
-        created_at = createdAt,
-        updated_at = updatedAt
+        room_details = null,
+        room_type = roomType,
+        rules = null,
+        status = status,
+        updatedAt = updatedAt
     )
 }
 
-fun Result.asEntity(): PropertyEntity {
+/**
+ * Convert Result model to PropertyEntity.
+ */
+fun Result.asEntity(): PropertyEntity? {
+    val entityId = _id ?: return null
     return PropertyEntity(
-        id = id,
+        id = entityId,
         name = name,
         description = description,
         propertyType = property_type,
-        location = location, // This would need to be serialized to JSON
-        images = images, // This would need to be serialized to JSON
-        amenities = amenities, // This would need to be serialized to JSON
+        locationJson = null, // Would need JSON serialization
+        imagesJson = null, // Would need JSON serialization
+        amenitiesJson = null, // Would need JSON serialization
         rating = rating,
-        reviewCount = review_count,
-        basePrice = pricing.base_price,
-        currency = pricing.currency,
-        isAvailable = is_available,
-        hostId = host.id,
-        hostName = host.name,
-        hostAvatar = host.avatar,
-        additionalDetails = additional_details, // This would need to be serialized to JSON
-        createdAt = created_at,
-        updatedAt = updated_at
+        hostId = host_id,
+        roomType = room_type,
+        status = status,
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }

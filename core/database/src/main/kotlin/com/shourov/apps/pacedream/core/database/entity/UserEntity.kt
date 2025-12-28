@@ -24,17 +24,25 @@ import com.shourov.apps.pacedream.model.response.User
 data class UserEntity(
     @PrimaryKey
     val id: String,
-    val firstName: String,
-    val lastName: String,
-    val email: String,
-    val phone: String?,
+    val firstName: String?,
+    val lastName: String?,
     val profilePic: String?,
-    val dateOfBirth: String?,
+    val roleId: Int?,
+    val userId: String?,
+    val emailVerified: Boolean?,
+    val allowSharedBooking: Boolean?,
+    val createdAt: String?,
+    val dob: String?,
     val gender: String?,
-    val isVerified: Boolean,
-    val createdAt: String,
-    val updatedAt: String,
-    val preferences: String? // JSON string for user preferences
+    val identityVerified: Boolean?,
+    val isBlocked: Boolean?,
+    val mobile: String?,
+    val mobileVerified: Boolean?,
+    val preferredLanguage: String?,
+    val rating: Int?,
+    val rememberMe: Boolean?,
+    val superHost: Boolean?,
+    val updatedAt: String?
 )
 
 fun UserEntity.asExternalModel(): User {
@@ -42,30 +50,53 @@ fun UserEntity.asExternalModel(): User {
         id = id,
         firstName = firstName,
         lastName = lastName,
-        email = email,
-        phone = phone,
         profilePic = profilePic,
-        dateOfBirth = dateOfBirth,
-        gender = gender,
-        isVerified = isVerified,
+        roleId = roleId,
+        userId = userId,
+        emailVerified = emailVerified,
+        allowSharedBooking = allowSharedBooking,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        dob = dob,
+        gender = gender,
+        identityVerified = identityVerified,
+        isBlocked = isBlocked,
+        mobile = mobile,
+        mobileVerified = mobileVerified,
+        preferredLanguage = preferredLanguage,
+        rating = rating,
+        rememberMe = rememberMe,
+        superHost = superHost,
+        updatedAt = updatedAt,
+        token = null,
+        hobbiesInterests = null,
+        partnerHosting = null,
+        properties = null,
+        reviews = null
     )
 }
 
-fun User.asEntity(): UserEntity {
+fun User.asEntity(): UserEntity? {
+    val entityId = id ?: return null
     return UserEntity(
-        id = id,
+        id = entityId,
         firstName = firstName,
         lastName = lastName,
-        email = email,
-        phone = phone,
         profilePic = profilePic,
-        dateOfBirth = dateOfBirth,
-        gender = gender,
-        isVerified = isVerified,
+        roleId = roleId,
+        userId = userId,
+        emailVerified = emailVerified,
+        allowSharedBooking = allowSharedBooking,
         createdAt = createdAt,
-        updatedAt = updatedAt,
-        preferences = null // Handle preferences separately
+        dob = dob,
+        gender = gender,
+        identityVerified = identityVerified,
+        isBlocked = isBlocked,
+        mobile = mobile,
+        mobileVerified = mobileVerified,
+        preferredLanguage = preferredLanguage,
+        rating = rating,
+        rememberMe = rememberMe,
+        superHost = superHost,
+        updatedAt = updatedAt
     )
 }
