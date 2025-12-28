@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -168,7 +169,7 @@ fun BookingTabScreen(
                     2 -> "No cancelled bookings"
                     else -> "No bookings found"
                 },
-                subtitle = when (selectedTab) {
+                description = when (selectedTab) {
                     0 -> "Start exploring and book your next stay"
                     1 -> "Your completed trips will appear here"
                     2 -> "Cancelled bookings will appear here"

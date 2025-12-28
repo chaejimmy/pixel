@@ -110,7 +110,7 @@ fun HostDashboardScreenWithViewModel(
 }
 
 @Composable
-fun HostHeader(
+private fun HostHeader(
     userName: String,
     totalEarnings: Double,
     activeListings: Int,
@@ -224,7 +224,7 @@ fun QuickActionsSection(
 }
 
 @Composable
-fun QuickActionCard(
+private fun QuickActionCard(
     title: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
@@ -368,7 +368,7 @@ fun PerformanceMetricCard(
 }
 
 @Composable
-fun RecentBookingsSection(
+private fun RecentBookingsSection(
     recentBookings: List<com.shourov.apps.pacedream.model.BookingModel>,
     onBookingClick: (String) -> Unit,
     onViewAllBookingsClick: () -> Unit

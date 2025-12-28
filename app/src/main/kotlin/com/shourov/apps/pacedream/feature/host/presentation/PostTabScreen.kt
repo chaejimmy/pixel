@@ -210,7 +210,7 @@ fun PostTabScreen(
 }
 
 @Composable
-fun QuickActionCard(
+private fun QuickActionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,

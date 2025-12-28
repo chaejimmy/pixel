@@ -1,5 +1,22 @@
 package com.shourov.apps.pacedream.model
 
+/**
+ * Booking status enum matching both iOS and screen usage
+ */
+enum class BookingStatus {
+    PENDING,
+    CONFIRMED,
+    CANCELLED,
+    COMPLETED,
+    REJECTED;
+    
+    companion object {
+        fun fromString(status: String?): BookingStatus {
+            return entries.find { it.name.equals(status, ignoreCase = true) } ?: PENDING
+        }
+    }
+}
+
 data class BookingModel(
     val id: String = "",
     val userProfilePic: Int? = null,
@@ -16,5 +33,12 @@ data class BookingModel(
     val totalPrice: Double = 0.0,
     val startDate: String = "",
     val endDate: String = "",
-    val status: String = "PENDING"
+    val status: BookingStatus = BookingStatus.PENDING,
+    // Additional fields used by BookingTabScreen
+    val propertyId: String = "",
+    val userId: String = "",
+    val hostId: String = "",
+    val guestCount: Int = 1,
+    val createdAt: String = "",
+    val updatedAt: String = ""
 )

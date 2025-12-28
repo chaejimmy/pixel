@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -97,7 +98,7 @@ fun HostDashboardScreen(
 }
 
 @Composable
-fun HostHeader(
+private fun HostHeader(
     userName: String,
     totalEarnings: Double,
     activeListings: Int,
@@ -258,7 +259,7 @@ fun QuickActionsGrid(
 }
 
 @Composable
-fun QuickActionCard(
+private fun QuickActionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
@@ -425,7 +426,7 @@ fun PerformanceMetricCard(
 }
 
 @Composable
-fun RecentBookingsSection(
+private fun RecentBookingsSection(
     bookings: List<BookingModel>,
     onBookingClick: (String) -> Unit,
     onViewAllClick: () -> Unit

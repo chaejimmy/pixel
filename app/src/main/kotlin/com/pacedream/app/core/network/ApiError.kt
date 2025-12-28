@@ -7,7 +7,7 @@ package com.pacedream.app.core.network
  * with user-friendly messages.
  */
 sealed class ApiError(
-    open val message: String,
+    override val message: String,
     open val code: Int? = null
 ) : Exception(message) {
     

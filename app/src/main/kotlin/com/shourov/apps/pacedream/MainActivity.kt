@@ -45,6 +45,12 @@ class MainActivity : ComponentActivity() {
      */
     @Inject
     lateinit var deepLinkHandler: DeepLinkHandler
+    
+    /**
+     * Host mode manager for guest/host switching
+     */
+    @Inject
+    lateinit var hostModeManager: HostModeManager
 
     val viewModel: MainActivityViewModel by viewModels()
     
@@ -70,7 +76,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isAuthenticated by viewModel.isAuthenticated.collectAsState()
 
-            val hostModeManager = remember { HostModeManager() }
             val appState = rememberPaceDreamAppState(
                 windowSizeClass = calculateWindowSizeClass(this),
                 hostModeManager = hostModeManager
@@ -92,9 +97,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let { handleIntent(it) }
+        handleIntent(intent)
     }
 
     private fun handleIntent(intent: Intent) {

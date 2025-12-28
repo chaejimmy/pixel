@@ -1,6 +1,6 @@
 package com.pacedream.app.core.config
 
-import com.pacedream.app.BuildConfig
+import com.shourov.apps.pacedream.BuildConfig
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
