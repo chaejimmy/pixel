@@ -23,13 +23,22 @@ import com.shourov.apps.pacedream.model.BookingModel
 @Entity(tableName = "bookings")
 data class BookingEntity(
     @PrimaryKey
-    val id: Int,
+    val id: String,
     val userProfilePic: Int?,
     val userName: String?,
     val checkOutTime: String?,
     val checkInTime: String?,
     val bookingStatus: String?,
-    val price: String?
+    val price: String?,
+    // Additional fields to match BookingModel
+    val propertyImage: String?,
+    val propertyName: String?,
+    val hostName: String?,
+    val currency: String?,
+    val totalPrice: Double?,
+    val startDate: String?,
+    val endDate: String?,
+    val status: String?
 )
 
 fun BookingEntity.asExternalModel(): BookingModel {
@@ -40,20 +49,34 @@ fun BookingEntity.asExternalModel(): BookingModel {
         checkOutTime = checkOutTime,
         checkInTime = checkInTime,
         bookingStatus = bookingStatus,
-        price = price
+        price = price,
+        propertyImage = propertyImage,
+        propertyName = propertyName ?: "",
+        hostName = hostName ?: "",
+        currency = currency ?: "USD",
+        totalPrice = totalPrice ?: 0.0,
+        startDate = startDate ?: "",
+        endDate = endDate ?: "",
+        status = status ?: "PENDING"
     )
 }
 
-fun BookingModel.asEntity(): BookingEntity? {
-    // id is required for Room, so we can't create an entity without it
-    val entityId = id ?: return null
+fun BookingModel.asEntity(): BookingEntity {
     return BookingEntity(
-        id = entityId,
+        id = id,
         userProfilePic = userProfilePic,
         userName = userName,
         checkOutTime = checkOutTime,
         checkInTime = checkInTime,
         bookingStatus = bookingStatus,
-        price = price
+        price = price,
+        propertyImage = propertyImage,
+        propertyName = propertyName,
+        hostName = hostName,
+        currency = currency,
+        totalPrice = totalPrice,
+        startDate = startDate,
+        endDate = endDate,
+        status = status
     )
 }
