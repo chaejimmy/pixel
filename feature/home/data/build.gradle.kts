@@ -1,5 +1,7 @@
 plugins {
-    alias(libs.plugins.pacedream.android.feature)
+    alias(libs.plugins.pacedream.android.library)
+    alias(libs.plugins.pacedream.android.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
