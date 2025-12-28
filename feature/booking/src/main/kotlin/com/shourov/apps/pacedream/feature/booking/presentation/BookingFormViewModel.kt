@@ -51,10 +51,10 @@ class BookingFormViewModel @Inject constructor(
                         if (property != null) {
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
-                                propertyName = property.name,
-                                propertyImage = property.images.firstOrNull(),
-                                basePrice = property.pricing.base_price,
-                                currency = property.pricing.currency
+                                propertyName = property.name ?: "Property",
+                                propertyImage = property.images?.firstOrNull(),
+                                basePrice = (property.dynamic_price?.firstOrNull()?.price ?: 0).toDouble(),
+                                currency = "USD" // Default currency
                             )
                         } else {
                             _uiState.value = _uiState.value.copy(
@@ -68,6 +68,9 @@ class BookingFormViewModel @Inject constructor(
                             isLoading = false,
                             error = result.exception.message
                         )
+                    }
+                    is Result.Loading -> {
+                        _uiState.value = _uiState.value.copy(isLoading = true)
                     }
                 }
             }
@@ -134,23 +137,17 @@ class BookingFormViewModel @Inject constructor(
             
             val booking = BookingModel(
                 id = UUID.randomUUID().toString(),
-                userId = "current_user_id", // This should come from user session
-                propertyId = currentState.propertyId,
+                userName = "current_user", // This should come from user session
                 propertyName = currentState.propertyName,
                 propertyImage = currentState.propertyImage,
                 startDate = currentState.startDate,
                 endDate = currentState.endDate,
-                startTime = currentState.startTime.takeIf { it.isNotEmpty() },
-                endTime = currentState.endTime.takeIf { it.isNotEmpty() },
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = "PENDING",
-                paymentStatus = "PENDING",
-                specialRequests = currentState.specialRequests.takeIf { it.isNotEmpty() },
-                hostId = "host_id", // This should come from property data
                 hostName = "Host Name", // This should come from property data
-                createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date()),
-                updatedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+                checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
+                checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
             )
             
             when (val result = bookingRepository.createBooking(booking)) {
@@ -160,6 +157,7 @@ class BookingFormViewModel @Inject constructor(
                 is Result.Error -> {
                     _uiState.value = currentState.copy(error = result.exception.message)
                 }
+                is Result.Loading -> { /* No-op */ }
             }
         }
     }

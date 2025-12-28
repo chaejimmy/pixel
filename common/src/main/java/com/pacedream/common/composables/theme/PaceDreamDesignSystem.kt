@@ -198,6 +198,12 @@ object PaceDreamTypography {
         lineHeight = 20.sp
     )
     
+    val CalloutBold = TextStyle(
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        lineHeight = 20.sp
+    )
+    
     val Subheadline = TextStyle(
         fontSize = 15.sp,
         fontWeight = FontWeight.Normal,

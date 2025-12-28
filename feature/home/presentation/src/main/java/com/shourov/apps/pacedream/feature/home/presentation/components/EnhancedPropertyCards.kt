@@ -19,6 +19,7 @@ package com.shourov.apps.pacedream.feature.home.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -57,8 +58,8 @@ fun EnhancedDestinationCard(
         ) {
             // Background Image
             Image(
-                painter = painterResource(destination.image),
-                contentDescription = destination.name,
+                painter = painterResource(destination.icon),
+                contentDescription = destination.title,
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(PaceDreamRadius.MD)),
@@ -87,7 +88,7 @@ fun EnhancedDestinationCard(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Text(
-                    text = destination.name,
+                    text = destination.title,
                     style = PaceDreamTypography.Title3,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

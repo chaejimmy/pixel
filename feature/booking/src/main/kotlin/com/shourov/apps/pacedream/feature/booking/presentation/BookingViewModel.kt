@@ -58,6 +58,9 @@ class BookingViewModel @Inject constructor(
                             error = result.exception.message
                         )
                     }
+                    is Result.Loading -> {
+                        _uiState.value = _uiState.value.copy(isLoading = true)
+                    }
                 }
             }
         }
@@ -80,6 +83,7 @@ class BookingViewModel @Inject constructor(
                         error = result.exception.message
                     )
                 }
+                is Result.Loading -> { /* No-op */ }
             }
         }
     }
@@ -96,6 +100,7 @@ class BookingViewModel @Inject constructor(
                         error = result.exception.message
                     )
                 }
+                is Result.Loading -> { /* No-op */ }
             }
         }
     }

@@ -76,6 +76,9 @@ object PaceDreamColors {
     val OnPrimary = Color(0xFFFFFFFF)
     val Outline = PaceDreamGray400
     val OnCard = PaceDreamTextPrimary
+    val OnSuccess = Color(0xFFFFFFFF)
+    val OnWarning = Color(0xFFFFFFFF)
+    val OnError = Color(0xFFFFFFFF)
 }
 
 // Legacy colors for backward compatibility

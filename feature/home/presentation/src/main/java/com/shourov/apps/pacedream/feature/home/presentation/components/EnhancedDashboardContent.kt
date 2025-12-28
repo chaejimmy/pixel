@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -185,8 +186,8 @@ fun EnhancedDashboardContent(
             ) {
                 items(categories) { category ->
                     PaceDreamCategoryPill(
-                        title = category.name,
-                        icon = when (category.name) {
+                        title = category.title,
+                        icon = when (category.title) {
                             stringResource(R.string.feature_home_rest_room) -> Icons.Default.Bed
                             stringResource(R.string.feature_home_ev_parking) -> Icons.Default.ElectricCar
                             stringResource(R.string.feature_home_storage_room) -> Icons.Default.Storage
@@ -194,7 +195,7 @@ fun EnhancedDashboardContent(
                             else -> Icons.Default.Category
                         },
                         isSelected = false,
-                        onClick = { onCategoryClick(category.name) }
+                        onClick = { onCategoryClick(category.title) }
                     )
                 }
             }
@@ -360,13 +361,13 @@ fun EnhancedDashboardContent(
                 ) {
                     items(roomsState.rooms) { room ->
                         PaceDreamPropertyCard(
-                            title = room.name ?: "Property",
-                            location = room.location?.city ?: "Location",
-                            price = "$${room.dynamic_price?.firstOrNull()?.price ?: "0"}/hour",
-                            rating = room.rating?.toDouble() ?: 0.0,
+                            title = room.title,
+                            location = room.location.city,
+                            price = "$${room.price?.firstOrNull()?.amount ?: 0}/hour",
+                            rating = room.rating.toDouble(),
                             reviewCount = 0, // TODO: Add review count to model
-                            imageUrl = room.images?.firstOrNull(),
-                            onClick = { onPropertyClick(room._id ?: "") }
+                            imageUrl = room.gallery.images.firstOrNull(),
+                            onClick = { onPropertyClick(room.id) }
                         )
                     }
                 }
@@ -466,13 +467,13 @@ fun EnhancedDashboardContent(
                 ) {
                     items(gearsState.rentedGears) { gear ->
                         PaceDreamPropertyCard(
-                            title = gear.name ?: "Gear Item",
-                            location = gear.location ?: "Location",
-                            price = "$${gear.price ?: "0"}/hour",
-                            rating = gear.rating?.toDouble() ?: 0.0,
+                            title = gear.name,
+                            location = gear.location,
+                            price = "$${gear.hourlyRate}/hour",
+                            rating = 0.0, // Gear model doesn't have rating
                             reviewCount = 0, // TODO: Add review count to model
-                            imageUrl = gear.image,
-                            onClick = { onPropertyClick(gear._id ?: "") }
+                            imageUrl = gear.images?.firstOrNull(),
+                            onClick = { onPropertyClick(gear.id) }
                         )
                     }
                 }
