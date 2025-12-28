@@ -113,6 +113,24 @@ dependencies {
     // Retrofit for HostModule
     implementation(libs.retrofit.core)
 
+    // Auth0 SDK for authentication
+    implementation(libs.auth0)
+
+    // Timber for logging
+    implementation(libs.timber)
+
+    // AndroidX Security Crypto for EncryptedSharedPreferences
+    implementation(libs.androidx.security.crypto)
+
+    // OkHttp Logging Interceptor
+    implementation(libs.okhttp.logging)
+
+    // Coil Compose for AsyncImage
+    implementation(libs.coil.kt.compose)
+
+    // AndroidX Browser for CustomTabs
+    implementation(libs.androidx.browser)
+
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))
     implementation(project(":feature:home:presentation"))
