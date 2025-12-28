@@ -75,11 +75,11 @@ data class WithdrawalResponse(
 )
 
 data class HostAnalyticsData(
-    val views: Int,
-    val bookings: Int,
-    val revenue: Double,
-    val occupancyRate: Double,
-    val averageRating: Double,
-    val conversionRate: Double,
-    val timeRange: String
+    val views: Int = 0,
+    val bookings: Int = 0,
+    val revenue: Double = 0.0,
+    val occupancyRate: Double = 0.0,
+    val averageRating: Double = 0.0,
+    val conversionRate: Double = 0.0,
+    val timeRange: String = "Month"
 )

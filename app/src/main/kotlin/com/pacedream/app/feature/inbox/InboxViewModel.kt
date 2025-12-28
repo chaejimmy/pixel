@@ -225,9 +225,10 @@ class InboxViewModel @Inject constructor(
             ?: listing?.get("title")?.jsonPrimitive?.content
         
         // Get unread status
-        val isUnread = obj["unread"]?.jsonPrimitive?.booleanOrNull
+        val unreadCount = obj["unreadCount"]?.jsonPrimitive?.intOrNull ?: 0
+        val isUnread: Boolean = obj["unread"]?.jsonPrimitive?.booleanOrNull
             ?: obj["isUnread"]?.jsonPrimitive?.booleanOrNull
-            ?: (obj["unreadCount"]?.jsonPrimitive?.intOrNull ?: 0) > 0
+            ?: (unreadCount > 0)
         
         // Get timestamp
         val timestamp = obj["updatedAt"]?.jsonPrimitive?.content

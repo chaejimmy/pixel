@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.host.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.host.data.HostBookingsData
+import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HostBookingsViewModel @Inject constructor(
-    // TODO: Inject repository when available
+    private val hostRepository: HostRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(HostBookingsData())

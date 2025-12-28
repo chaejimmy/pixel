@@ -416,7 +416,7 @@ private fun RecentBookingsSection(
 }
 
 @Composable
-fun MyListingsSection(
+private fun MyListingsSection(
     myListings: List<com.shourov.apps.pacedream.model.Property>,
     onListingClick: (String) -> Unit,
     onViewAllListingsClick: () -> Unit
@@ -483,7 +483,7 @@ fun BookingPreviewCard(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = booking.property?.title ?: "N/A",
+                text = booking.propertyName.ifEmpty { "N/A" },
                 style = PaceDreamTypography.Headline,
                 color = PaceDreamColors.TextPrimary,
                 maxLines = 1
@@ -529,7 +529,7 @@ fun ListingPreviewCard(
                 maxLines = 1
             )
             Text(
-                text = "${listing.location.city}, ${listing.location.state}",
+                text = "${listing.location.city}, ${listing.location.country}",
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary
             )

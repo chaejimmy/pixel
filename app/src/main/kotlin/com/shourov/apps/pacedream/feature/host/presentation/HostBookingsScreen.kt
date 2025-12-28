@@ -23,6 +23,7 @@ import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.HostBookingsData
 import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +53,7 @@ fun HostBookingsScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             BookingStatusTabs(
                 selectedStatus = uiState.selectedStatus,
-                onStatusChanged = { viewModel.onStatusChanged(it) }
+                onStatusChanged = { viewModel.updateStatus(it) }
             )
         }
         
@@ -300,7 +301,7 @@ fun HostBookingCard(
                     fontWeight = FontWeight.Bold
                 )
                 
-                PaceDreamStatusChip(status = booking.status)
+                PaceDreamStatusChip(status = booking.status.name, isActive = booking.status == BookingStatus.CONFIRMED)
             }
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -335,7 +336,7 @@ fun HostBookingCard(
                     )
                     
                     Text(
-                        text = "${booking.guests} guests",
+                        text = "${booking.guestCount} guests",
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
@@ -358,7 +359,7 @@ fun HostBookingCard(
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                 
                 Text(
-                    text = booking.property?.title ?: "Property",
+                    text = booking.propertyName.ifEmpty { "Property" },
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextSecondary
                 )
@@ -423,7 +424,7 @@ fun HostBookingCard(
             }
             
             // Action Buttons
-            if (booking.status == "Pending") {
+            if (booking.status == BookingStatus.PENDING) {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 
                 Row(
@@ -453,7 +454,7 @@ fun HostBookingCard(
                         )
                     }
                 }
-            } else if (booking.status == "Confirmed") {
+            } else if (booking.status == BookingStatus.CONFIRMED) {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 
                 OutlinedButton(

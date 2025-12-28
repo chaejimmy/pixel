@@ -41,7 +41,7 @@ fun HostListingsScreen(
         // Listings Header
         item {
             ListingsHeader(
-                totalListings = listingsData.listings.size,
+                totalListings = uiState.listings.size,
                 onAddListingClick = onAddListingClick
             )
         }
@@ -52,8 +52,8 @@ fun HostListingsScreen(
             ListingsFilterSection(
                 selectedFilter = uiState.selectedFilter,
                 selectedSort = uiState.selectedSort,
-                onFilterChanged = { viewModel.onFilterChanged(it) },
-                onSortChanged = { viewModel.onSortChanged(it) }
+                onFilterChanged = { viewModel.updateFilter(it) },
+                onSortChanged = { viewModel.updateSort(it) }
             )
         }
         
@@ -396,7 +396,7 @@ fun HostListingCard(
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                     
                     Text(
-                        text = "${listing.location.city}, ${listing.location.state}",
+                        text = "${listing.location.city}, ${listing.location.country}",
                         style = PaceDreamTypography.Body,
                         color = PaceDreamColors.TextSecondary
                     )
@@ -449,7 +449,8 @@ fun HostListingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     PaceDreamStatusChip(
-                        status = if (listing.isAvailable) "Active" else "Unavailable"
+                        status = if (listing.isAvailable) "Active" else "Unavailable",
+                        isActive = listing.isAvailable
                     )
                     
                     TextButton(

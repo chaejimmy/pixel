@@ -556,7 +556,7 @@ fun HostBookingPreviewCard(
 }
 
 @Composable
-fun MyListingsSection(
+private fun MyListingsSection(
     listings: List<Property>,
     onListingClick: (String) -> Unit,
     onViewAllClick: () -> Unit
@@ -680,7 +680,7 @@ fun HostListingPreviewCard(
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 
                 Text(
-                    text = "${listing.location.city}, ${listing.location.state}",
+                    text = "${listing.location.city}, ${listing.location.country}",
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary
                 )

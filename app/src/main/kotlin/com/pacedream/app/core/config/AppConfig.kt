@@ -38,19 +38,19 @@ class AppConfig @Inject constructor() {
     
     // Auth0 Configuration
     val auth0Domain: String by lazy {
-        getConfigValue("AUTH0_DOMAIN", DEFAULT_AUTH0_DOMAIN)
+        getConfigValue("AUTH0_DOMAIN", DEFAULT_AUTH0_DOMAIN) ?: DEFAULT_AUTH0_DOMAIN
     }
     
     val auth0ClientId: String by lazy {
-        getConfigValue("AUTH0_CLIENT_ID", DEFAULT_AUTH0_CLIENT_ID)
+        getConfigValue("AUTH0_CLIENT_ID", DEFAULT_AUTH0_CLIENT_ID) ?: DEFAULT_AUTH0_CLIENT_ID
     }
     
     val auth0Audience: String by lazy {
-        getConfigValue("AUTH0_AUDIENCE", "https://$auth0Domain/api/v2/")
+        getConfigValue("AUTH0_AUDIENCE", "https://$auth0Domain/api/v2/") ?: "https://$auth0Domain/api/v2/"
     }
     
     val auth0Scopes: String by lazy {
-        getConfigValue("AUTH0_SCOPES", DEFAULT_AUTH0_SCOPES)
+        getConfigValue("AUTH0_SCOPES", DEFAULT_AUTH0_SCOPES) ?: DEFAULT_AUTH0_SCOPES
     }
     
     val auth0Scheme: String = "pacedream"

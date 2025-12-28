@@ -51,7 +51,7 @@ fun HostEarningsScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             TimeRangeSelector(
                 selectedRange = uiState.selectedTimeRange,
-                onRangeChanged = { viewModel.onTimeRangeChanged(it) }
+                onRangeChanged = { viewModel.updateTimeRange(it) }
             )
         }
         
