@@ -12,9 +12,6 @@ import com.shourov.apps.pacedream.core.database.entity.ChatEntity
 import com.shourov.apps.pacedream.core.database.entity.MessageEntity
 import com.shourov.apps.pacedream.core.database.entity.PropertyEntity
 import com.shourov.apps.pacedream.core.database.entity.UserEntity
-import com.shourov.apps.pacedream.core.database.entity.asExternalModel as bookingAsExternalModel
-import com.shourov.apps.pacedream.core.database.entity.asExternalModel as messageAsExternalModel
-import com.shourov.apps.pacedream.core.database.entity.asExternalModel as propertyAsExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.MessageModel
@@ -43,13 +40,13 @@ class PaceDreamRepository @Inject constructor(
     // Property operations
     fun getAllProperties(): Flow<List<Result>> {
         return propertyDao.getAllProperties().map { entities ->
-            entities.map { it.asExternalModel() }
+            entities.map { it.toPropertyModel() }
         }
     }
     
     fun getPropertyById(propertyId: String): Flow<Result?> {
         return propertyDao.getPropertyById(propertyId).map { entity ->
-            entity?.asExternalModel()
+            entity?.toPropertyModel()
         }
     }
     
@@ -66,25 +63,18 @@ class PaceDreamRepository @Inject constructor(
     // Booking operations
     fun getAllBookings(): Flow<List<BookingModel>> {
         return bookingDao.getAllBookings().map { entities ->
-            entities.map { it.asExternalModel() }
+            entities.map { it.toBookingModel() }
         }
     }
     
     fun getBookingsByUserName(userName: String): Flow<List<BookingModel>> {
         return bookingDao.getBookingsByUserName(userName).map { entities ->
-            entities.map { it.asExternalModel() }
+            entities.map { it.toBookingModel() }
         }
     }
     
     suspend fun createBooking(booking: BookingEntity) {
         try {
-            // Call API to create booking
-            // val response = apiService.createBooking(booking)
-            // if (response.isSuccessful) {
-            //     response.body()?.let { createdBooking ->
-            //         bookingDao.insertBooking(createdBooking.asEntity())
-            //     }
-            // }
             // For now, just insert into local DB
             bookingDao.insertBooking(booking)
         } catch (e: Exception) {
@@ -95,19 +85,12 @@ class PaceDreamRepository @Inject constructor(
     // Message operations
     fun getMessagesByUser(userName: String): Flow<List<MessageModel>> {
         return messageDao.getMessagesByUser(userName).map { entities ->
-            entities.map { it.asExternalModel() }
+            entities.map { it.toMessageModel() }
         }
     }
     
     suspend fun sendMessage(message: MessageEntity) {
         try {
-            // Call API to send message
-            // val response = apiService.sendMessage(chatId, message)
-            // if (response.isSuccessful) {
-            //     response.body()?.let { sentMessage ->
-            //         messageDao.insertMessage(sentMessage.asEntity())
-            //     }
-            // }
             // For now, just insert into local DB
             messageDao.insertMessage(message)
         } catch (e: Exception) {
@@ -130,14 +113,55 @@ class PaceDreamRepository @Inject constructor(
     suspend fun insertChat(chat: ChatEntity) {
         chatDao.insertChat(chat)
     }
+    
+    // Private conversion functions to avoid extension function ambiguity
+    private fun BookingEntity.toBookingModel(): BookingModel {
+        return BookingModel(
+            id = id,
+            userProfilePic = userProfilePic,
+            userName = userName,
+            checkOutTime = checkOutTime,
+            checkInTime = checkInTime,
+            bookingStatus = bookingStatus,
+            price = price
+        )
+    }
+    
+    private fun MessageEntity.toMessageModel(): MessageModel {
+        return MessageModel(
+            profilePic = profilePic,
+            userName = userName,
+            messageTime = messageTime,
+            message = message,
+            newMessageCount = newMessageCount
+        )
+    }
+    
+    private fun PropertyEntity.toPropertyModel(): Result {
+        return Result(
+            __v = null,
+            _id = id,
+            additional_details = null,
+            amenities = null,
+            createdAt = createdAt,
+            description = description,
+            dynamic_price = null,
+            facilities = null,
+            faq = null,
+            guest_details = null,
+            host_id = hostId,
+            ideal_renters = null,
+            images = null,
+            isDeleted = null,
+            location = null,
+            name = name,
+            property_type = propertyType,
+            rating = rating,
+            room_details = null,
+            room_type = roomType,
+            rules = null,
+            status = status,
+            updatedAt = updatedAt
+        )
+    }
 }
-
-// Extension functions to resolve ambiguity
-private fun BookingEntity.asExternalModel(): BookingModel =
-    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
-
-private fun MessageEntity.asExternalModel(): MessageModel =
-    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
-
-private fun PropertyEntity.asExternalModel(): Result =
-    com.shourov.apps.pacedream.core.database.entity.asExternalModel(this)
