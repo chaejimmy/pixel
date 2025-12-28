@@ -46,4 +46,7 @@ dependencies {
     ksp(libs.moshi.codegen)
 
     implementation(libs.gson.convert)
+    
+    // Auth0 SDK
+    implementation(libs.auth0)
 }

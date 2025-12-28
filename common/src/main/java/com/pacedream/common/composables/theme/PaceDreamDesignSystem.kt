@@ -14,19 +14,13 @@ import androidx.compose.ui.unit.sp
  */
 
 object PaceDreamDesignSystem {
-    val Spacing = PaceDreamSpacing
-    val Radius = PaceDreamRadius
-    val IconSize = PaceDreamIconSize
-    val Elevation = PaceDreamElevation
-    val Typography = PaceDreamTypography
-    val Colors = PaceDreamColors
-    
-    // Namespace for access via PaceDreamDesignSystem.PaceDreamSpacing, etc.
-    val PaceDreamSpacing = com.pacedream.common.composables.theme.PaceDreamSpacing
-    val PaceDreamRadius = com.pacedream.common.composables.theme.PaceDreamRadius
-    val PaceDreamIconSize = com.pacedream.common.composables.theme.PaceDreamIconSize
-    val PaceDreamColors = PaceDreamDesignSystemColors
-    val PaceDreamTypography = com.pacedream.common.composables.theme.PaceDreamTypography
+    // Use fully qualified references to avoid forward reference issues
+    val Spacing get() = com.pacedream.common.composables.theme.PaceDreamSpacing
+    val Radius get() = com.pacedream.common.composables.theme.PaceDreamRadius
+    val IconSize get() = com.pacedream.common.composables.theme.PaceDreamIconSize
+    val Elevation get() = com.pacedream.common.composables.theme.PaceDreamElevation
+    val Typography get() = com.pacedream.common.composables.theme.PaceDreamTypography
+    val Colors get() = com.pacedream.common.composables.theme.PaceDreamColors
 }
 
 /**

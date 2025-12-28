@@ -80,6 +80,7 @@ authApiPhone = "18.1.0"
 androidxAutofill = "1.1.0"
 countryCodePicker = "0.1"
 lottie = "6.4.0"
+auth0 = "2.10.2"
 junitJunit = "4.12"
 junitKtx = "1.2.1"
 composeMaterial3 = "1.0.0-alpha22"
@@ -185,6 +186,7 @@ google-play-maps = { module = "com.google.android.gms:play-services-maps", versi
 libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "authApiPhone" }
+auth0 = { module = "com.auth0.android:auth0", version.ref = "auth0" }
 androidx-auto-fill = { group = "androidx.autofill", name = "autofill", version.ref = "androidxAutofill" }
 country-code-picker = { group = "com.github.ahmmedrejowan", name = "CountryCodePickerCompose", version.ref = "countryCodePicker" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }
