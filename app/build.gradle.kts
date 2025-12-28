@@ -21,6 +21,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Auth0 manifest placeholders
+        manifestPlaceholders["auth0Domain"] = "pacedream.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] = "pacedream"
     }
 
     buildTypes {

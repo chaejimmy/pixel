@@ -40,7 +40,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
 import coil.size.Scale
-import com.pacedream.common.composables.theme.PaceDreamDesignSystem
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
  * Enhanced Image Components with Coil Integration
@@ -105,7 +109,7 @@ fun PaceDreamPropertyImage(
             contentDescription = contentDescription,
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)),
+                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
             placeholder = {
                 PaceDreamImagePlaceholder(
                     modifier = Modifier.fillMaxSize()
@@ -123,13 +127,13 @@ fun PaceDreamPropertyImage(
                 onClick = onFavoriteClick,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(PaceDreamDesignSystem.PaceDreamSpacing.SM)
+                    .padding(PaceDreamSpacing.SM)
             ) {
                 Icon(
                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                     tint = Color.White,
-                    modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.SM)
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
                 )
             }
         }
@@ -141,7 +145,7 @@ fun PaceDreamUserAvatar(
     imageUrl: String?,
     contentDescription: String? = null,
     modifier: Modifier = Modifier,
-    size: Int = PaceDreamDesignSystem.PaceDreamIconSize.MD.value.toInt()
+    size: Int = PaceDreamIconSize.MD.value.toInt()
 ) {
     PaceDreamAsyncImage(
         imageUrl = imageUrl,
@@ -184,7 +188,7 @@ fun PaceDreamImageCarousel(
             modifier = modifier
                 .fillMaxWidth()
                 .height(200.dp)
-                .clip(RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)),
+                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
             placeholder = {
                 PaceDreamImagePlaceholder(
                     modifier = Modifier.fillMaxSize()
@@ -205,14 +209,14 @@ fun PaceDreamImagePlaceholder(
 ) {
     Box(
         modifier = modifier
-            .background(PaceDreamDesignSystem.PaceDreamColors.SurfaceVariant),
+            .background(PaceDreamColors.SurfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Default.Image,
             contentDescription = "Loading image",
-            tint = PaceDreamDesignSystem.PaceDreamColors.OnSurfaceVariant,
-            modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.LG)
+            tint = PaceDreamColors.OnSurfaceVariant,
+            modifier = Modifier.size(PaceDreamIconSize.LG)
         )
     }
 }
@@ -223,7 +227,7 @@ fun PaceDreamImageError(
 ) {
     Box(
         modifier = modifier
-            .background(PaceDreamDesignSystem.PaceDreamColors.ErrorContainer),
+            .background(PaceDreamColors.ErrorContainer),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -233,14 +237,14 @@ fun PaceDreamImageError(
             Icon(
                 imageVector = Icons.Default.Error,
                 contentDescription = "Error loading image",
-                tint = PaceDreamDesignSystem.PaceDreamColors.OnErrorContainer,
-                modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD)
+                tint = PaceDreamColors.OnErrorContainer,
+                modifier = Modifier.size(PaceDreamIconSize.MD)
             )
-            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.XS))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 text = "Failed to load",
-                style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
-                color = PaceDreamDesignSystem.PaceDreamColors.OnErrorContainer
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.OnErrorContainer
             )
         }
     }
@@ -252,14 +256,14 @@ fun PaceDreamAvatarPlaceholder(
 ) {
     Box(
         modifier = modifier
-            .background(PaceDreamDesignSystem.PaceDreamColors.SurfaceVariant),
+            .background(PaceDreamColors.SurfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Default.Person,
             contentDescription = "User avatar",
-            tint = PaceDreamDesignSystem.PaceDreamColors.OnSurfaceVariant,
-            modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD)
+            tint = PaceDreamColors.OnSurfaceVariant,
+            modifier = Modifier.size(PaceDreamIconSize.MD)
         )
     }
 }
@@ -270,12 +274,12 @@ fun PaceDreamLoadingImage(
 ) {
     Box(
         modifier = modifier
-            .background(PaceDreamDesignSystem.PaceDreamColors.SurfaceVariant),
+            .background(PaceDreamColors.SurfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD),
-            color = PaceDreamDesignSystem.PaceDreamColors.Primary,
+            modifier = Modifier.size(PaceDreamIconSize.MD),
+            color = PaceDreamColors.Primary,
             strokeWidth = 2.dp
         )
     }

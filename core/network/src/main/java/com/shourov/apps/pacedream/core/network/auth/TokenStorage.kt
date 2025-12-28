@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.core.network.auth
 
 import android.content.Context
+import kotlin.jvm.JvmName
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -43,6 +44,7 @@ class TokenStorage @Inject constructor(
      * Store the backend JWT access token
      */
     var accessToken: String?
+        @JvmName("getAccessTokenProperty")
         get() = encryptedPrefs.getString(KEY_ACCESS_TOKEN, null)
         set(value) {
             encryptedPrefs.edit().apply {
@@ -58,6 +60,7 @@ class TokenStorage @Inject constructor(
      * Store the refresh token
      */
     var refreshToken: String?
+        @JvmName("getRefreshTokenProperty")
         get() = encryptedPrefs.getString(KEY_REFRESH_TOKEN, null)
         set(value) {
             encryptedPrefs.edit().apply {

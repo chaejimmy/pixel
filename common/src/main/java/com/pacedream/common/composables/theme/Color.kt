@@ -66,6 +66,12 @@ object PaceDreamColors {
     val Gray700 = PaceDreamGray700
     val Gray800 = PaceDreamGray800
     val Gray900 = PaceDreamGray900
+    
+    // Additional colors used by image components
+    val SurfaceVariant = PaceDreamGray200
+    val OnSurfaceVariant = PaceDreamGray600
+    val ErrorContainer = Color(0xFFFFDAD6)
+    val OnErrorContainer = Color(0xFF410002)
 }
 
 // Legacy colors for backward compatibility
