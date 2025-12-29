@@ -27,10 +27,11 @@ class HostBookingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
-            hostRepository.getHostBookings(uiState.value.selectedStatus)
+            val statusFilter = if (uiState.value.selectedStatus == "All") null else uiState.value.selectedStatus
+            hostRepository.getHostBookings(statusFilter)
                 .onSuccess { bookings ->
                     val totalBookings = bookings.size
-                    val pendingBookings = bookings.count { it.status == "Pending" }
+                    val pendingBookings = bookings.count { it.status == com.shourov.apps.pacedream.model.BookingStatus.PENDING }
                     _uiState.value = _uiState.value.copy(
                         totalBookings = totalBookings,
                         pendingBookings = pendingBookings,

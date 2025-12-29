@@ -96,9 +96,7 @@ enum class ListingSortOption {
     DATE_NEWEST, DATE_OLDEST, PRICE_HIGH_LOW, PRICE_LOW_HIGH, RATING_HIGH_LOW
 }
 
-enum class BookingStatus {
-    ALL, PENDING, CONFIRMED, COMPLETED, CANCELLED
-}
+// Note: Use com.shourov.apps.pacedream.model.BookingStatus for booking status values
 
 enum class TransactionType {
     BOOKING, WITHDRAWAL, FEE

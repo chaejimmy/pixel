@@ -1,6 +1,5 @@
 package com.pacedream.app.core.config
 
-import com.shourov.apps.pacedream.BuildConfig
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import javax.inject.Inject
@@ -38,19 +37,19 @@ class AppConfig @Inject constructor() {
     
     // Auth0 Configuration
     val auth0Domain: String by lazy {
-        getConfigValue("AUTH0_DOMAIN", DEFAULT_AUTH0_DOMAIN) ?: DEFAULT_AUTH0_DOMAIN
+        getConfigValue("AUTH0_DOMAIN") ?: DEFAULT_AUTH0_DOMAIN
     }
     
     val auth0ClientId: String by lazy {
-        getConfigValue("AUTH0_CLIENT_ID", DEFAULT_AUTH0_CLIENT_ID) ?: DEFAULT_AUTH0_CLIENT_ID
+        getConfigValue("AUTH0_CLIENT_ID") ?: DEFAULT_AUTH0_CLIENT_ID
     }
     
     val auth0Audience: String by lazy {
-        getConfigValue("AUTH0_AUDIENCE", "https://$auth0Domain/api/v2/") ?: "https://$auth0Domain/api/v2/"
+        getConfigValue("AUTH0_AUDIENCE") ?: "https://$auth0Domain/api/v2/"
     }
     
     val auth0Scopes: String by lazy {
-        getConfigValue("AUTH0_SCOPES", DEFAULT_AUTH0_SCOPES) ?: DEFAULT_AUTH0_SCOPES
+        getConfigValue("AUTH0_SCOPES") ?: DEFAULT_AUTH0_SCOPES
     }
     
     val auth0Scheme: String = "pacedream"
@@ -69,7 +68,7 @@ class AppConfig @Inject constructor() {
         private const val DEFAULT_BACKEND_URL = "https://pacedream-backend.onrender.com"
         private const val DEFAULT_FRONTEND_URL = "https://www.pacedream.com"
         
-        // Auth0 defaults (must be configured in BuildConfig)
+        // Auth0 defaults
         private const val DEFAULT_AUTH0_DOMAIN = "dev-pacedream.us.auth0.com"
         private const val DEFAULT_AUTH0_CLIENT_ID = "YOUR_AUTH0_CLIENT_ID"
         private const val DEFAULT_AUTH0_SCOPES = "openid profile email offline_access"
@@ -80,8 +79,8 @@ class AppConfig @Inject constructor() {
      * Priority: BACKEND_BASE_URL > PD_BACKEND_BASE_URL > default
      */
     private fun getBackendBaseUrl(): String {
-        return getConfigValue("BACKEND_BASE_URL", null)
-            ?: getConfigValue("PD_BACKEND_BASE_URL", null)
+        return getConfigValue("BACKEND_BASE_URL")
+            ?: getConfigValue("PD_BACKEND_BASE_URL")
             ?: DEFAULT_BACKEND_URL
     }
     
@@ -90,21 +89,21 @@ class AppConfig @Inject constructor() {
      * Priority: FRONTEND_BASE_URL > PD_FRONTEND_BASE_URL > default
      */
     private fun getFrontendBaseUrl(): String {
-        return getConfigValue("FRONTEND_BASE_URL", null)
-            ?: getConfigValue("PD_FRONTEND_BASE_URL", null)
+        return getConfigValue("FRONTEND_BASE_URL")
+            ?: getConfigValue("PD_FRONTEND_BASE_URL")
             ?: DEFAULT_FRONTEND_URL
     }
     
     /**
-     * Get config value from BuildConfig using reflection
+     * Get config value from system properties or environment
      */
-    private fun getConfigValue(fieldName: String, default: String?): String? {
+    private fun getConfigValue(fieldName: String): String? {
         return try {
-            val field = BuildConfig::class.java.getField(fieldName)
-            val value = field.get(null) as? String
-            if (!value.isNullOrBlank()) value else default
+            val value = System.getProperty(fieldName) 
+                ?: System.getenv(fieldName)
+            if (!value.isNullOrBlank()) value else null
         } catch (e: Exception) {
-            default
+            null
         }
     }
     

@@ -63,7 +63,7 @@ fun HostDashboardScreenWithViewModel(
         // Performance Metrics
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PerformanceMetricsSection(
+            PerformanceMetricsSectionVM(
                 totalEarnings = uiState.totalEarnings,
                 totalBookings = uiState.totalBookings,
                 occupancyRate = uiState.occupancyRate,
@@ -178,7 +178,7 @@ private fun HostHeader(
 }
 
 @Composable
-fun QuickActionsSection(
+private fun QuickActionsSection(
     onAddListingClick: () -> Unit,
     onEarningsClick: () -> Unit,
     onAnalyticsClick: () -> Unit
@@ -262,7 +262,7 @@ private fun QuickActionCard(
 }
 
 @Composable
-fun PerformanceMetricsSection(
+private fun PerformanceMetricsSectionVM(
     totalEarnings: Double,
     totalBookings: Int,
     occupancyRate: Double,
@@ -325,7 +325,7 @@ fun PerformanceMetricsSection(
 }
 
 @Composable
-fun PerformanceMetricCard(
+private fun PerformanceMetricCard(
     title: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -464,7 +464,7 @@ private fun MyListingsSection(
 }
 
 @Composable
-fun BookingPreviewCard(
+private fun BookingPreviewCard(
     booking: com.shourov.apps.pacedream.model.BookingModel,
     onClick: () -> Unit
 ) {
@@ -504,7 +504,7 @@ fun BookingPreviewCard(
 }
 
 @Composable
-fun ListingPreviewCard(
+private fun ListingPreviewCard(
     listing: com.shourov.apps.pacedream.model.Property,
     onClick: () -> Unit
 ) {

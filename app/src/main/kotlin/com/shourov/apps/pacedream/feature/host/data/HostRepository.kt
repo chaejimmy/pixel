@@ -138,7 +138,15 @@ class HostRepository @Inject constructor(
         return try {
             val response = hostApiService.getHostAnalytics(timeRange)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: HostAnalyticsData())
+                Result.success(response.body() ?: HostAnalyticsData(
+                    views = 0,
+                    bookings = 0,
+                    revenue = 0.0,
+                    occupancyRate = 0.0,
+                    averageRating = 0.0,
+                    conversionRate = 0.0,
+                    timeRange = timeRange ?: "Month"
+                ))
             } else {
                 Result.failure(Exception("Failed to fetch analytics: ${response.code()}"))
             }
