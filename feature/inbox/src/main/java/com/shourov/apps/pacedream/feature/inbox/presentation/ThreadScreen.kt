@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
 import androidx.compose.animation.AnimatedContent

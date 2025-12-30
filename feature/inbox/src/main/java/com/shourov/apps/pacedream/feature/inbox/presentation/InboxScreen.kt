@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
 import androidx.compose.animation.AnimatedContent
@@ -52,6 +54,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -232,7 +235,7 @@ private fun SuccessState(
                         backgroundContent = {
                             Box(
                                 modifier = Modifier
-                                    .matchParentSize()
+                                    .fillMaxSize()
                                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
                                     .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
                                     .padding(horizontal = PaceDreamSpacing.MD),
