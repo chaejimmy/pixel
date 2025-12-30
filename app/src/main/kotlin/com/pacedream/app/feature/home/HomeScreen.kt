@@ -41,7 +41,7 @@ import coil.compose.AsyncImage
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onSectionViewAll: (String) -> Unit,
-    onListingClick: (String) -> Unit
+    onListingClick: (HomeListingItem) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -185,7 +185,7 @@ private fun HomeSection(
     items: List<HomeListingItem>,
     isLoading: Boolean,
     onViewAllClick: () -> Unit,
-    onItemClick: (String) -> Unit
+    onItemClick: (HomeListingItem) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -250,7 +250,7 @@ private fun HomeSection(
                 items(items) { item ->
                     ListingCard(
                         item = item,
-                        onClick = { onItemClick(item.id) }
+                        onClick = { onItemClick(item) }
                     )
                 }
             }

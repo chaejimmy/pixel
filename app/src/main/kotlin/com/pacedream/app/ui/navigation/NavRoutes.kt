@@ -11,6 +11,7 @@ object NavRoutes {
     const val HOME = "home"
     const val SEARCH = "search"
     const val FAVORITES = "favorites"
+    const val BOOKINGS = "bookings"
     const val INBOX = "inbox"
     const val PROFILE = "profile"
     
@@ -34,7 +35,11 @@ object NavRoutes {
     const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased"
     const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear"
     const val BOOKING_CANCELLED = "booking/cancelled"
-    const val BOOKING_DETAIL = "booking/detail/{bookingId}"
+    const val BOOKING_DETAIL = "bookingDetail/{bookingId}"
+
+    // Native booking flow (Listing Detail → ReserveSheet → Checkout → Confirmation)
+    const val CHECKOUT = "checkout/{listingId}"
+    const val CONFIRMATION = "confirmation/{bookingId}"
     
     // Deep link routes
     const val DEEP_LINK_BOOKING_SUCCESS = "booking-success"
@@ -44,8 +49,10 @@ object NavRoutes {
     fun homeSectionList(sectionType: String) = "home/section/$sectionType"
     fun listingDetail(listingId: String) = "listing/$listingId"
     fun threadDetail(threadId: String) = "inbox/thread/$threadId"
-    fun bookingDetail(bookingId: String) = "booking/detail/$bookingId"
+    fun bookingDetail(bookingId: String) = "bookingDetail/$bookingId"
     fun wishlistItemDetail(itemId: String) = "wishlist/item/$itemId"
+    fun confirmation(bookingId: String) = "confirmation/$bookingId"
+    fun checkout(listingId: String) = "checkout/$listingId"
 }
 
 /**

@@ -129,6 +129,10 @@ dependencies {
     // Coil Compose for AsyncImage
     implementation(libs.coil.kt.compose)
 
+    // Google Maps (detail map preview)
+    implementation(libs.google.play.maps)
+    implementation(libs.google.maps.compose)
+
     // AndroidX Browser for CustomTabs
     implementation(libs.androidx.browser)
 

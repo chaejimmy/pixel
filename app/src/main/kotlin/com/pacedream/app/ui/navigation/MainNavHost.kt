@@ -15,11 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
@@ -40,10 +42,16 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.auth.SessionManager
+import com.pacedream.app.feature.checkout.BookingDraftCodec
+import com.pacedream.app.feature.checkout.CheckoutScreen
+import com.pacedream.app.feature.checkout.ConfirmationScreen
+import com.pacedream.app.feature.bookings.BookingsScreen
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
 import com.pacedream.app.feature.inbox.InboxScreen
 import com.pacedream.app.feature.inbox.ThreadScreen
+import com.pacedream.app.feature.listingdetail.ListingCardModel
+import com.pacedream.app.feature.listingdetail.ListingDetailRoute
 import com.pacedream.app.feature.profile.ProfileScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
@@ -82,6 +90,7 @@ fun MainNavHost(
             NavRoutes.HOME,
             NavRoutes.SEARCH,
             NavRoutes.FAVORITES,
+            NavRoutes.BOOKINGS,
             NavRoutes.INBOX,
             NavRoutes.PROFILE
         )
@@ -119,7 +128,17 @@ fun MainNavHost(
                         onSectionViewAll = { sectionType ->
                             navController.navigate(NavRoutes.homeSectionList(sectionType))
                         },
-                        onListingClick = { listingId ->
+                        onListingClick = { item ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_id", item.id)
+                                set("listing_initial_title", item.title)
+                                set("listing_initial_imageUrl", item.imageUrl)
+                                set("listing_initial_location", item.location)
+                                set("listing_initial_price", item.price)
+                                set("listing_initial_rating", item.rating)
+                                set("listing_initial_type", item.type)
+                            }
+                            val listingId = item.id
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         }
                     )
@@ -134,7 +153,17 @@ fun MainNavHost(
                     HomeSectionListScreen(
                         sectionType = sectionType,
                         onBackClick = { navController.popBackStack() },
-                        onListingClick = { listingId ->
+                        onListingClick = { item ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_id", item.id)
+                                set("listing_initial_title", item.title)
+                                set("listing_initial_imageUrl", item.imageUrl)
+                                set("listing_initial_location", item.location)
+                                set("listing_initial_price", item.price)
+                                set("listing_initial_rating", item.rating)
+                                set("listing_initial_type", item.type)
+                            }
+                            val listingId = item.id
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         }
                     )
@@ -157,6 +186,27 @@ fun MainNavHost(
                             showAuthSheet = true
                         }
                     )
+                }
+
+                // Bookings Tab
+                composable(NavRoutes.BOOKINGS) {
+                    if (authState != AuthState.Authenticated) {
+                        LockedScreen(
+                            title = "Bookings",
+                            message = "Sign in to view your bookings",
+                            onSignInClick = {
+                                authSheetTitle = "Sign in"
+                                authSheetSubtitle = "Sign in to view your bookings."
+                                showAuthSheet = true
+                            }
+                        )
+                    } else {
+                        BookingsScreen(
+                            onBookingClick = { bookingId ->
+                                navController.navigate(NavRoutes.bookingDetail(bookingId))
+                            }
+                        )
+                    }
                 }
                 
                 // Inbox Tab
@@ -219,9 +269,103 @@ fun MainNavHost(
                     arguments = listOf(navArgument("listingId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
-                    ListingDetailPlaceholder(
+                    val initialListing = navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                        val id = handle.get<String>("listing_initial_id")
+                        val title = handle.get<String>("listing_initial_title")
+                        if (!id.isNullOrBlank() && !title.isNullOrBlank()) {
+                            ListingCardModel(
+                                id = id,
+                                title = title,
+                                imageUrl = handle.get("listing_initial_imageUrl"),
+                                location = handle.get("listing_initial_location"),
+                                priceLabel = handle.get("listing_initial_price"),
+                                rating = handle.get("listing_initial_rating"),
+                                type = handle.get("listing_initial_type") ?: ""
+                            )
+                        } else null
+                    }
+
+                    ListingDetailRoute(
                         listingId = listingId,
-                        onBackClick = { navController.popBackStack() }
+                        initialListing = initialListing,
+                        onBackClick = { navController.popBackStack() },
+                        onLoginRequired = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to continue."
+                            showAuthSheet = true
+                        },
+                        onNavigateToInbox = {
+                            navController.navigate(NavRoutes.INBOX) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onNavigateToCheckout = { draft ->
+                            navController.currentBackStackEntry?.savedStateHandle?.set(
+                                "booking_draft_json_${draft.listingId}",
+                                BookingDraftCodec.encode(draft)
+                            )
+                            navController.navigate(NavRoutes.checkout(draft.listingId))
+                        }
+                    )
+                }
+
+                // Native Checkout
+                composable(
+                    route = NavRoutes.CHECKOUT,
+                    arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+                ) { entry ->
+                    val listingId = entry.arguments?.getString("listingId") ?: ""
+                    val raw = navController.previousBackStackEntry?.savedStateHandle
+                        ?.get<String>("booking_draft_json_${listingId}")
+                    val draft = raw?.let { runCatching { BookingDraftCodec.decode(it) }.getOrNull() }
+                    if (draft == null) {
+                        BookingDetailPlaceholder(
+                            bookingId = "Missing BookingDraft",
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    } else {
+                        CheckoutScreen(
+                            draft = draft,
+                            onBackClick = { navController.popBackStack() },
+                            onConfirmSuccess = { bookingId ->
+                                navController.navigate(NavRoutes.confirmation(bookingId))
+                            }
+                        )
+                    }
+                }
+
+                // Native Confirmation
+                composable(
+                    route = NavRoutes.CONFIRMATION,
+                    arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+                ) { entry ->
+                    val bookingId = entry.arguments?.getString("bookingId") ?: ""
+                    ConfirmationScreen(
+                        bookingId = bookingId,
+                        onBackClick = { navController.popBackStack() },
+                        onViewBooking = {
+                            navController.navigate(NavRoutes.BOOKINGS) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                            navController.navigate(NavRoutes.bookingDetail(bookingId))
+                        },
+                        onDone = {
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     )
                 }
                 
@@ -341,6 +485,7 @@ fun PaceDreamBottomBar(
         TabItem(NavRoutes.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home),
         TabItem(NavRoutes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search),
         TabItem(NavRoutes.FAVORITES, "Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
+        TabItem(NavRoutes.BOOKINGS, "Bookings", Icons.Filled.DateRange, Icons.Outlined.DateRange),
         TabItem(NavRoutes.INBOX, "Inbox", Icons.Filled.Mail, Icons.Outlined.MailOutline),
         TabItem(NavRoutes.PROFILE, "Profile", Icons.Filled.Person, Icons.Outlined.Person)
     )

@@ -27,6 +27,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PaceDream.Splash"
         >
+        <!-- Google Maps API key (map preview on listing detail). Set via resources for each build. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
         <profileable
             android:shell="true"
             tools:targetApi="q" />

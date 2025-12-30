@@ -66,6 +66,7 @@ koin = "3.4.0"
 moshi = "1.14.0"
 moshiVersion = "1.14.0"
 playMaps = "18.2.0"
+mapsCompose = "4.4.1"
 timber = "5.0.1"
 gson = "2.10.1"
 gson-converter = "2.9.0"
@@ -183,6 +184,7 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 gson-convert = { module = "com.squareup.retrofit2:converter-gson", version.ref = "gson-converter" }
 identity-credential = { group = "com.android.identity", name = "identity-credential", version.ref = "identityCredential" }
 google-play-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playMaps" }
+google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 libphonenumber = { group = "com.googlecode.libphonenumber", name = "libphonenumber", version.ref = "libphonenumber" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "authApiPhone" }
