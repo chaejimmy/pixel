@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.profile.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -17,12 +18,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileTabScreen(
+    onShowAuthSheet: () -> Unit,
     onEditProfileClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
@@ -32,15 +36,8 @@ fun ProfileTabScreen(
     onSwitchToGuestMode: () -> Unit = {},
     isHostMode: Boolean = false
 ) {
-    // Sample user data - replace with actual data from ViewModel
-    val userStats = remember {
-        listOf(
-            UserStatData("Trips", "12", Icons.Default.Flight),
-            UserStatData("Reviews", "8", Icons.Default.Star),
-            UserStatData("Favorites", "24", Icons.Default.Favorite),
-            UserStatData("Bookings", "15", Icons.Default.CalendarToday)
-        )
-    }
+    val viewModel: ProfileTabViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsState()
     
     val menuSections = remember {
         listOf(
@@ -72,100 +69,152 @@ fun ProfileTabScreen(
             )
         )
     }
-    
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PaceDreamColors.Background),
-        contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
-    ) {
-        // Profile Header
-        item {
-            ProfileHeader(
-                name = "John Doe",
-                email = "john.doe@example.com",
-                memberSince = "Member since 2023",
-                onEditClick = onEditProfileClick
-            )
+
+    when (val state = uiState) {
+        is ProfileTabUiState.Locked -> {
+            RequiresAuthState(onSignIn = onShowAuthSheet)
         }
-        
-        // Host Mode Toggle
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            HostModeToggle(
-                isHostMode = isHostMode,
-                onSwitchToHostMode = onSwitchToHostMode,
-                onSwitchToGuestMode = onSwitchToGuestMode
-            )
-        }
-        
-        // Stats
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
-            Text(
-                text = "Your Activity",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        is ProfileTabUiState.Loading -> {
+            PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                items(userStats) { stat ->
-                    UserStatCard(stat = stat)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(PaceDreamColors.Background),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
                 }
             }
         }
-        
-        // Menu Sections
-        items(menuSections) { section ->
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
-            ProfileMenuSection(
-                section = section,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-            )
-        }
-        
-        // Logout Button
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-            
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PaceDreamSpacing.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.1f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        is ProfileTabUiState.Authenticated -> {
+            PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = { viewModel.refresh() },
+                modifier = Modifier.fillMaxSize()
             ) {
-                Row(
+                LazyColumn(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(PaceDreamSpacing.LG),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                        .fillMaxSize()
+                        .background(PaceDreamColors.Background),
+                    contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Logout",
-                        tint = PaceDreamColors.Error,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    
-                    Text(
-                        text = "Sign Out",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.Error,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    // Profile Header
+                    item {
+                        ProfileHeader(
+                            name = state.user.displayName,
+                            email = state.user.email ?: "",
+                            memberSince = "",
+                            onEditClick = onEditProfileClick
+                        )
+                    }
+
+                    // Host Mode Toggle
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        HostModeToggle(
+                            isHostMode = isHostMode,
+                            onSwitchToHostMode = onSwitchToHostMode,
+                            onSwitchToGuestMode = onSwitchToGuestMode
+                        )
+                    }
+
+                    // Menu Sections
+                    items(menuSections) { section ->
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+                        ProfileMenuSection(
+                            section = section,
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+                        )
+                    }
+
+                    // Logout Button
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = PaceDreamSpacing.LG)
+                                .clickable {
+                                    viewModel.signOut()
+                                    onLogoutClick()
+                                },
+                            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.1f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(PaceDreamSpacing.LG),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
+                                    contentDescription = "Logout",
+                                    tint = PaceDreamColors.Error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
+                                Text(
+                                    text = "Sign Out",
+                                    style = PaceDreamTypography.Body,
+                                    color = PaceDreamColors.Error,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RequiresAuthState(
+    onSignIn: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PaceDreamColors.Background)
+            .padding(PaceDreamSpacing.XL),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Text(
+                text = "Sign in to view your profile",
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Manage bookings, favorites, and account settings",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Button(
+                onClick = onSignIn,
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                modifier = Modifier.fillMaxWidth(0.6f)
+            ) {
+                Text("Sign in / Create account", style = PaceDreamTypography.Headline)
             }
         }
     }

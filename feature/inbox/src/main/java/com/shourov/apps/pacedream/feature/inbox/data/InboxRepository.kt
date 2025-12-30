@@ -18,6 +18,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import timber.log.Timber
+import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -417,6 +418,18 @@ class InboxRepository @Inject constructor(
                 ?: 0
         )
     }
+
+    @VisibleForTesting
+    internal fun parseThreadsResponseForTest(responseBody: String): ThreadsResult =
+        parseThreadsResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun parseMessagesResponseForTest(responseBody: String): MessagesResult =
+        parseMessagesResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun parseUnreadCountsForTest(responseBody: String): UnreadCounts =
+        parseUnreadCounts(responseBody)
     
     private fun parseListing(obj: JsonObject): ThreadListing {
         return ThreadListing(

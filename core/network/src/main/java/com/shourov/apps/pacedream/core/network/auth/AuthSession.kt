@@ -78,39 +78,69 @@ class AuthSession @Inject constructor(
             _authState.value = AuthState.Unauthenticated
         }
     }
+
+    /**
+     * Refresh the current user's profile without changing auth state on non-401 failures.
+     * iOS parity: do not force logout for transient/profile failures; keep last good cached user if present.
+     */
+    suspend fun refreshProfile() {
+        if (!tokenStorage.hasTokens()) {
+            _authState.value = AuthState.Unauthenticated
+            _currentUser.value = null
+            return
+        }
+        // Keep authenticated immediately; bootstrap will handle 401 via refresh/signout.
+        if (_authState.value != AuthState.Authenticated) {
+            _authState.value = AuthState.Authenticated
+        }
+        bootstrap()
+    }
     
     /**
      * Bootstrap the session by fetching user profile
      */
-    private suspend fun bootstrap() {
+    private suspend fun bootstrap(retriedAfterRefresh: Boolean = false) {
         val client = apiClient ?: run {
             Timber.e("ApiClient not set")
             return
         }
-        
-        val url = appConfig.buildApiUrl("account", "me")
-        val result = client.get(url, includeAuth = true)
-        
-        when (result) {
-            is ApiResult.Success -> {
-                parseAndSetUser(result.data)
-            }
-            is ApiResult.Failure -> {
-                when (result.error) {
-                    is ApiError.Unauthorized -> {
-                        // Try refresh
-                        if (!attemptTokenRefresh()) {
-                            signOut()
+
+        // iOS parity: try /account/me first, then fallback endpoints for profile.
+        val urls = listOf(
+            appConfig.buildApiUrl("account", "me"),
+            appConfig.buildApiUrl("users", "get", "profile"),
+            appConfig.buildApiUrl("user", "get", "profile"),
+        )
+
+        for (url in urls) {
+            when (val result = client.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    parseAndSetUser(result.data)
+                    return
+                }
+                is ApiResult.Failure -> {
+                    when (result.error) {
+                        is ApiError.Unauthorized -> {
+                            // Refresh once, retry once (iOS parity). Avoid infinite loops.
+                            if (!retriedAfterRefresh && attemptTokenRefresh()) {
+                                bootstrap(retriedAfterRefresh = true)
+                            } else {
+                                signOut()
+                            }
+                            return
                         }
-                    }
-                    else -> {
-                        // Keep token, try cached user
-                        Timber.w("Failed to fetch user profile, using cached: ${result.error.message}")
-                        loadCachedUser()
+                        else -> {
+                            // Try the next endpoint; do not clear last-good user.
+                            Timber.w("Profile endpoint failed (${url.encodedPath}): ${result.error.message}")
+                        }
                     }
                 }
             }
         }
+
+        // Keep token, try cached user (or keep last-good in-memory user if present).
+        Timber.w("All profile endpoints failed; using cached user if available.")
+        loadCachedUser()
     }
     
     /**

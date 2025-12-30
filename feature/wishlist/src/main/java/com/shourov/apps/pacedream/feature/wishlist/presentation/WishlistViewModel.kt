@@ -167,27 +167,13 @@ class WishlistViewModel @Inject constructor(
             updateUiWithCurrentFilter()
             
             // Step 2: Call API to toggle (remove) the item
-            val result = wishlistRepository.toggleWishlistItem(
-                itemId = item.id,
-                listingId = item.listingId,
-                type = item.itemType
+            val result = wishlistRepository.removeFromWishlist(
+                propertyId = item.listingId.ifBlank { item.id }
             )
             
             // Step 3: Handle result
             when (result) {
-                is ApiResult.Success -> {
-                    val toggleResult = result.data
-                    
-                    // If API returns liked=true, the item was NOT removed (unexpected)
-                    if (toggleResult.liked) {
-                        Timber.w("Item was not removed as expected, restoring")
-                        restoreItem(originalList, itemIndex, item)
-                        _toastMessage.send("Could not remove item. Please try again.")
-                    } else {
-                        // Successfully removed
-                        Timber.d("Item successfully removed from wishlist")
-                    }
-                }
+                is ApiResult.Success -> Timber.d("Item successfully removed from wishlist")
                 is ApiResult.Failure -> {
                     // API failed, restore item
                     Timber.e("Failed to remove item: ${result.error.message}")

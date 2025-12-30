@@ -20,6 +20,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.BookingRepository
+import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.model.BookingModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,7 +32,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BookingViewModel @Inject constructor(
-    private val bookingRepository: BookingRepository
+    private val bookingRepository: BookingRepository,
+    private val authSession: AuthSession
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(BookingUiState())
@@ -39,9 +42,13 @@ class BookingViewModel @Inject constructor(
     fun loadBookings() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            // For now, using a mock user ID - this should come from user session
-            val userId = "current_user_id"
+
+            if (authSession.authState.value == AuthState.Unauthenticated) {
+                _uiState.value = _uiState.value.copy(isLoading = false, bookings = emptyList(), error = "Please sign in.")
+                return@launch
+            }
+
+            val userId = authSession.currentUser.value?.id.orEmpty()
             
             bookingRepository.getUserBookings(userId).collect { result ->
                 when (result) {

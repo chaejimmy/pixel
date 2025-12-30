@@ -225,8 +225,10 @@ class AppConfig @Inject constructor() {
         const val READ_TIMEOUT_SECONDS = 60L
         
         // Retry configurations
-        const val MAX_RETRY_ATTEMPTS = 2 // Total 3 attempts (initial + 2 retries)
-        val RETRY_BACKOFF_DELAYS = listOf(400L, 800L) // milliseconds
+        // iOS parity: retry transient failures up to 3 attempts total (initial + 2 retries)
+        // Backoff: 0.5s, 1.0s
+        const val MAX_RETRY_ATTEMPTS = 2
+        val RETRY_BACKOFF_DELAYS = listOf(500L, 1000L) // milliseconds
     }
 }
 

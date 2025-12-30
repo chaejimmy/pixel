@@ -11,6 +11,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -24,14 +28,16 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 
 /**
  * ApiClient with iOS-parity networking behaviors:
  * - Default timeouts: request 30s, resource/read 60s
- * - Retry rules: Only GET requests, only on timeouts/transient errors, 2 retries with backoff
+ * - Retry rules: Only GET requests, only on timeouts/transient errors, 2 retries with backoff (total 3 attempts)
  * - HTML hardening: Detect and handle HTML responses gracefully
  * - Status mapping: Proper error handling for all HTTP status codes
  * - In-flight GET de-dup: Share results for identical in-flight GET requests
+ * - 401 handling: Attempt refresh once (no auth header) then retry original request once (iOS parity)
  */
 @Singleton
 class ApiClient @Inject constructor(
@@ -51,6 +57,10 @@ class ApiClient @Inject constructor(
     // In-flight GET request deduplication
     private val inFlightRequests = ConcurrentHashMap<String, Deferred<ApiResult<String>>>()
     private val mutex = Mutex()
+
+    // In-flight refresh de-duplication (avoid multiple concurrent refresh calls)
+    private val refreshMutex = Mutex()
+    private var inFlightRefresh: Deferred<Boolean>? = null
     
     /**
      * Perform a GET request with retry logic and deduplication
@@ -169,7 +179,8 @@ class ApiClient @Inject constructor(
         return when (error) {
             is ApiError.Timeout -> true
             is ApiError.NetworkError -> true
-            is ApiError.ServiceUnavailable -> false // Don't retry 502/503/504
+            // iOS parity: retry transient upstream failures (502–504 / 503)
+            is ApiError.ServiceUnavailable -> true
             else -> false
         }
     }
@@ -177,66 +188,193 @@ class ApiClient @Inject constructor(
     /**
      * Execute a single HTTP request
      */
-    private fun executeRequest(
+    private suspend fun executeRequest(
+        method: String,
+        url: HttpUrl,
+        body: String?,
+        includeAuth: Boolean,
+        additionalHeaders: Map<String, String>,
+        allowAuthRefresh: Boolean = true
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val request = buildOkHttpRequest(
+                method = method,
+                url = url,
+                body = body,
+                includeAuth = includeAuth,
+                additionalHeaders = additionalHeaders
+            )
+
+            val response = httpClient.newCall(request).execute()
+
+            // iOS parity: refresh on 401 (once) then retry original request once.
+            if (allowAuthRefresh && includeAuth && response.code == 401) {
+                response.close()
+                val refreshed = refreshAccessTokenIfPossible()
+                if (refreshed) {
+                    val retryRequest = buildOkHttpRequest(
+                        method = method,
+                        url = url,
+                        body = body,
+                        includeAuth = true,
+                        additionalHeaders = additionalHeaders
+                    )
+                    val retryResponse = httpClient.newCall(retryRequest).execute()
+                    return@withContext processResponse(retryResponse)
+                }
+                return@withContext ApiResult.Failure(ApiError.Unauthorized())
+            }
+
+            processResponse(response)
+        } catch (e: SocketTimeoutException) {
+            Timber.e(e, "Request timeout for: ${redactUrl(url)}")
+            ApiResult.Failure(ApiError.Timeout())
+        } catch (e: IOException) {
+            Timber.e(e, "Network error for: ${redactUrl(url)}")
+            ApiResult.Failure(ApiError.NetworkError())
+        } catch (e: Exception) {
+            Timber.e(e, "Unexpected error for: ${redactUrl(url)}")
+            ApiResult.Failure(mapException(e))
+        }
+    }
+
+    private fun buildOkHttpRequest(
         method: String,
         url: HttpUrl,
         body: String?,
         includeAuth: Boolean,
         additionalHeaders: Map<String, String>
-    ): ApiResult<String> {
-        try {
-            val requestBuilder = Request.Builder()
-                .url(url)
-                .header("Accept", "application/json")
-            
-            // Add Content-Type for non-GET requests
-            if (method != "GET" && body != null) {
-                requestBuilder.header("Content-Type", "application/json")
-            }
-            
-            // Add Authorization header if needed
-            if (includeAuth) {
-                tokenProvider.getAccessToken()?.let { token ->
-                    requestBuilder.header("Authorization", "Bearer $token")
-                }
-            }
-            
-            // Add additional headers
-            additionalHeaders.forEach { (key, value) ->
-                requestBuilder.header(key, value)
-            }
-            
-            // Set method and body
-            when (method) {
-                "GET" -> requestBuilder.get()
-                "POST" -> requestBuilder.post(
-                    (body ?: "").toRequestBody("application/json".toMediaType())
-                )
-                "PUT" -> requestBuilder.put(
-                    (body ?: "").toRequestBody("application/json".toMediaType())
-                )
-                "DELETE" -> {
-                    if (body != null) {
-                        requestBuilder.delete(body.toRequestBody("application/json".toMediaType()))
-                    } else {
-                        requestBuilder.delete()
-                    }
-                }
-            }
-            
-            val response = httpClient.newCall(requestBuilder.build()).execute()
-            return processResponse(response)
-            
-        } catch (e: SocketTimeoutException) {
-            Timber.e(e, "Request timeout for: ${redactUrl(url)}")
-            return ApiResult.Failure(ApiError.Timeout())
-        } catch (e: IOException) {
-            Timber.e(e, "Network error for: ${redactUrl(url)}")
-            return ApiResult.Failure(ApiError.NetworkError())
-        } catch (e: Exception) {
-            Timber.e(e, "Unexpected error for: ${redactUrl(url)}")
-            return ApiResult.Failure(mapException(e))
+    ): Request {
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("Accept", "application/json")
+
+        // Add Content-Type for non-GET requests
+        if (method != "GET" && body != null) {
+            requestBuilder.header("Content-Type", "application/json")
         }
+
+        // Add Authorization header if needed
+        if (includeAuth) {
+            tokenProvider.getAccessToken()?.let { token ->
+                requestBuilder.header("Authorization", "Bearer $token")
+            }
+        }
+
+        // Add additional headers
+        additionalHeaders.forEach { (key, value) ->
+            requestBuilder.header(key, value)
+        }
+
+        // Set method and body
+        when (method) {
+            "GET" -> requestBuilder.get()
+            "POST" -> requestBuilder.post(
+                (body ?: "").toRequestBody("application/json".toMediaType())
+            )
+            "PUT" -> requestBuilder.put(
+                (body ?: "").toRequestBody("application/json".toMediaType())
+            )
+            "DELETE" -> {
+                if (body != null) {
+                    requestBuilder.delete(body.toRequestBody("application/json".toMediaType()))
+                } else {
+                    requestBuilder.delete()
+                }
+            }
+        }
+
+        return requestBuilder.build()
+    }
+
+    private suspend fun refreshAccessTokenIfPossible(): Boolean = coroutineScope {
+        val refreshToken = tokenProvider.getRefreshToken()
+        if (refreshToken.isNullOrBlank()) return@coroutineScope false
+
+        val tokenStorage = tokenProvider as? TokenStorage
+            ?: run {
+                Timber.w("TokenProvider is not TokenStorage; cannot persist refreshed tokens")
+                return@coroutineScope false
+            }
+
+        val deferred = refreshMutex.withLock {
+            inFlightRefresh?.takeIf { it.isActive } ?: async(Dispatchers.IO) {
+                performRefresh(refreshToken, tokenStorage)
+            }.also { inFlightRefresh = it }
+        }
+
+        val ok = deferred.await()
+
+        refreshMutex.withLock {
+            if (inFlightRefresh == deferred) inFlightRefresh = null
+        }
+
+        ok
+    }
+
+    private suspend fun performRefresh(refreshToken: String, tokenStorage: TokenStorage): Boolean {
+        // No Authorization header on refresh endpoints (iOS parity)
+        val body = """{"refresh_token":"$refreshToken"}"""
+
+        return refreshWithFallback(
+            primaryCall = {
+                val primaryUrl = appConfig.buildApiUrl("auth", "refresh-token")
+                val primary = executeRequest(
+                    method = "POST",
+                    url = primaryUrl,
+                    body = body,
+                    includeAuth = false,
+                    additionalHeaders = emptyMap(),
+                    allowAuthRefresh = false
+                )
+                (primary as? ApiResult.Success)?.data
+            },
+            fallbackCall = {
+                // Fallback endpoint via frontend proxy
+                val fallbackUrl = appConfig.buildFrontendUrl("api", "proxy", "auth", "refresh-token")
+                val fallback = executeRequest(
+                    method = "POST",
+                    url = fallbackUrl,
+                    body = body,
+                    includeAuth = false,
+                    additionalHeaders = emptyMap(),
+                    allowAuthRefresh = false
+                )
+                (fallback as? ApiResult.Success)?.data
+            },
+            parseAndStore = { responseBody ->
+                parseAndStoreRefreshTokens(responseBody, tokenStorage)
+            }
+        )
+    }
+
+    private fun parseAndStoreRefreshTokens(responseBody: String, tokenStorage: TokenStorage): Boolean {
+        return try {
+            val root = json.parseToJsonElement(responseBody).jsonObject
+            val isSuccess = root["success"]?.jsonPrimitive?.boolean == true ||
+                root["status"]?.jsonPrimitive?.boolean == true
+            if (!isSuccess) return false
+
+            val data = root["data"]?.jsonObject ?: root
+            val accessToken = data["accessToken"]?.jsonPrimitive?.contentOrNull
+                ?: data["access_token"]?.jsonPrimitive?.contentOrNull
+            val newRefreshToken = data["refreshToken"]?.jsonPrimitive?.contentOrNull
+                ?: data["refresh_token"]?.jsonPrimitive?.contentOrNull
+
+            if (!isValidJwtShape(accessToken)) return false
+
+            tokenStorage.storeTokens(accessToken, newRefreshToken ?: tokenStorage.refreshToken)
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to parse refresh-token response")
+            false
+        }
+    }
+
+    private fun isValidJwtShape(token: String?): Boolean {
+        if (token.isNullOrBlank()) return false
+        val parts = token.split(".")
+        return parts.size == 3 && parts.all { it.isNotBlank() }
     }
     
     /**

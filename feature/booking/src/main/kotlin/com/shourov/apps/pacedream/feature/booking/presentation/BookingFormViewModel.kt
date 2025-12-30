@@ -21,6 +21,8 @@ import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.BookingRepository
 import com.shourov.apps.pacedream.core.data.repository.PropertyRepository
+import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +37,8 @@ import javax.inject.Inject
 @HiltViewModel
 class BookingFormViewModel @Inject constructor(
     private val bookingRepository: BookingRepository,
-    private val propertyRepository: PropertyRepository
+    private val propertyRepository: PropertyRepository,
+    private val authSession: AuthSession
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(BookingFormUiState())
@@ -135,10 +138,20 @@ class BookingFormViewModel @Inject constructor(
                 _uiState.value = currentState.copy(error = "Please select start and end dates")
                 return@launch
             }
+
+            if (authSession.authState.value == AuthState.Unauthenticated) {
+                _uiState.value = currentState.copy(error = "Please sign in to book.")
+                return@launch
+            }
+
+            val user = authSession.currentUser.value
+            val userId = user?.id.orEmpty()
             
             val booking = BookingModel(
                 id = UUID.randomUUID().toString(),
-                userName = "current_user", // This should come from user session
+                userName = userId.ifBlank { user?.displayName },
+                userId = userId,
+                propertyId = currentState.propertyId,
                 propertyName = currentState.propertyName,
                 propertyImage = currentState.propertyImage,
                 startDate = currentState.startDate,
@@ -146,7 +159,7 @@ class BookingFormViewModel @Inject constructor(
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = BookingStatus.PENDING,
-                hostName = "Host Name", // This should come from property data
+                hostName = "Host", // TODO: wire host info from property payload when available
                 checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
                 checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
             )

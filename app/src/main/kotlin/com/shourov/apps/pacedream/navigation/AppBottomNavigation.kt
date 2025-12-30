@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -71,15 +73,33 @@ fun AppBottomNavigation(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            modifier = Modifier.size(24.dp),
-                            painter = painterResource(id = bottomNavigationItem.icon),
-                            contentDescription = stringResource(id = bottomNavigationItem.text),
-                            tint = if (selectedIndex == index) 
-                                PaceDreamColors.Primary 
-                            else 
-                                PaceDreamColors.TextSecondary
-                        )
+                        BadgedBox(
+                            badge = {
+                                val count = bottomNavigationItem.badgeCount
+                                if (count != null && count > 0) {
+                                    Badge(
+                                        containerColor = PaceDreamColors.Error,
+                                        contentColor = Color.White
+                                    ) {
+                                        Text(
+                                            text = if (count > 99) "99+" else count.toString(),
+                                            style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(24.dp),
+                                painter = painterResource(id = bottomNavigationItem.icon),
+                                contentDescription = stringResource(id = bottomNavigationItem.text),
+                                tint = if (selectedIndex == index)
+                                    PaceDreamColors.Primary
+                                else
+                                    PaceDreamColors.TextSecondary
+                            )
+                        }
                     }
                 },
                 label = {
@@ -113,5 +133,6 @@ fun AppBottomNavigation(
 @Stable
 data class BottomNavigationItem(
     @DrawableRes val icon: Int,
-    @StringRes val text: Int
+    @StringRes val text: Int,
+    val badgeCount: Int? = null
 )

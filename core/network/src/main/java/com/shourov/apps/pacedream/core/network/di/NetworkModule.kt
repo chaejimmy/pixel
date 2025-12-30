@@ -42,8 +42,12 @@ object NetworkModule {
     fun provideAuthSession(
         tokenStorage: TokenStorage,
         appConfig: AppConfig,
-        json: Json
-    ): AuthSession = AuthSession(tokenStorage, appConfig, json)
+        json: Json,
+        apiClient: ApiClient
+    ): AuthSession = AuthSession(tokenStorage, appConfig, json).apply {
+        // Avoid circular constructor deps; wire client after construction.
+        setApiClient(apiClient)
+    }
 }
 
 

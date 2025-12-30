@@ -6,6 +6,9 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItem
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItemType
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -35,27 +38,117 @@ class WishlistRepository @Inject constructor(
     private val appConfig: AppConfig,
     private val json: Json
 ) {
+    private val _changes = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+    val changes: SharedFlow<Unit> = _changes.asSharedFlow()
+
+    private fun notifyChanged() {
+        _changes.tryEmit(Unit)
+    }
+
+    /**
+     * iOS parity wishlist endpoints:
+     * - GET /v1/wishlists
+     * - POST /v1/wishlists/add
+     * - DELETE /v1/wishlists/{propertyId}
+     *
+     * Backward-compatible fallbacks (older backend):
+     * - GET /v1/account/wishlist
+     * - POST /v1/account/wishlist/toggle
+     */
     
     /**
      * Fetch wishlist items with tolerant parsing
      */
     suspend fun getWishlist(): ApiResult<List<WishlistItem>> {
-        val url = appConfig.buildApiUrl("account", "wishlist")
-        
-        return when (val result = apiClient.get(url, includeAuth = true)) {
+        val primaryUrl = appConfig.buildApiUrl("wishlists")
+
+        val primary = apiClient.get(primaryUrl, includeAuth = true)
+        if (primary is ApiResult.Success) {
+            try {
+                val items = parseWishlistsEndpointResponse(primary.data)
+                return ApiResult.Success(items)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to parse /wishlists response; falling back to /account/wishlist")
+            }
+        }
+
+        // Fallback to legacy endpoint only when primary fails or can't be parsed.
+        val fallbackUrl = appConfig.buildApiUrl("account", "wishlist")
+        return when (val fallback = apiClient.get(fallbackUrl, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val items = parseWishlistResponse(result.data)
+                    val items = parseWishlistResponse(fallback.data)
                     ApiResult.Success(items)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse wishlist response")
+                    Timber.e(e, "Failed to parse legacy wishlist response")
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse wishlist", e))
                 }
             }
-            is ApiResult.Failure -> result
+            is ApiResult.Failure -> {
+                // Prefer the primary error if we have it; otherwise return fallback error.
+                (primary as? ApiResult.Failure) ?: fallback
+            }
         }
     }
     
+    /**
+     * Add a property/listing to wishlist.
+     * Primary: POST /v1/wishlists/add { propertyId }
+     * Fallback: POST /v1/account/wishlist/toggle
+     */
+    suspend fun addToWishlist(propertyId: String): ApiResult<Unit> {
+        val primaryUrl = appConfig.buildApiUrl("wishlists", "add")
+        val body = buildJsonBody(mapOf("propertyId" to propertyId))
+        val primary = apiClient.post(primaryUrl, body, includeAuth = true)
+        if (primary is ApiResult.Success) {
+            if (isSuccessResponse(primary.data)) {
+                notifyChanged()
+                return ApiResult.Success(Unit)
+            }
+        }
+
+        // Fallback: toggle
+        val fallback = toggleWishlistItem(itemId = propertyId, listingId = propertyId, type = null)
+        return when (fallback) {
+            is ApiResult.Success -> {
+                notifyChanged()
+                ApiResult.Success(Unit)
+            }
+            is ApiResult.Failure -> (primary as? ApiResult.Failure)?.let { it } ?: fallback
+        }
+    }
+
+    /**
+     * Remove a property/listing from wishlist.
+     * Primary: DELETE /v1/wishlists/{propertyId}
+     * Fallback: POST /v1/account/wishlist/toggle
+     */
+    suspend fun removeFromWishlist(propertyId: String): ApiResult<Unit> {
+        val primaryUrl = appConfig.buildApiUrl("wishlists", propertyId)
+        val primary = apiClient.delete(primaryUrl, body = null, includeAuth = true)
+        if (primary is ApiResult.Success) {
+            if (isSuccessResponse(primary.data)) {
+                notifyChanged()
+                return ApiResult.Success(Unit)
+            }
+            // Some backends return empty body on success
+            if (primary.data.isBlank()) {
+                notifyChanged()
+                return ApiResult.Success(Unit)
+            }
+        }
+
+        // Fallback: toggle (expected liked=false for removal, but we treat any success as completion)
+        val fallback = toggleWishlistItem(itemId = propertyId, listingId = propertyId, type = null)
+        return when (fallback) {
+            is ApiResult.Success -> {
+                notifyChanged()
+                ApiResult.Success(Unit)
+            }
+            is ApiResult.Failure -> (primary as? ApiResult.Failure)?.let { it } ?: fallback
+        }
+    }
+
     /**
      * Toggle wishlist item (add/remove)
      * Returns ToggleResult with liked status
@@ -79,6 +172,7 @@ class WishlistRepository @Inject constructor(
             is ApiResult.Success -> {
                 try {
                     val toggleResult = parseToggleResponse(result.data)
+                    if (toggleResult.success) notifyChanged()
                     ApiResult.Success(toggleResult)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse toggle response")
@@ -115,6 +209,68 @@ class WishlistRepository @Inject constructor(
         }
     }
     
+    /**
+     * Parse /v1/wishlists response (tolerant).
+     *
+     * Common shapes:
+     * - raw array of wishlist items
+     * - { data: [] } or { wishlists: [] } or { data: { wishlists: [] } }
+     * - each wishlist may contain nested arrays: properties/items/listings
+     */
+    private fun parseWishlistsEndpointResponse(responseBody: String): List<WishlistItem> {
+        val root = json.parseToJsonElement(responseBody)
+
+        // 1) If it's already an array, treat as list of wishlist items/listings
+        if (root is kotlinx.serialization.json.JsonArray) {
+            return root.mapNotNull { el ->
+                val obj = el as? JsonObject ?: return@mapNotNull null
+                parseWishlistItem(obj)
+            }
+        }
+
+        val obj = (root as? JsonObject) ?: return emptyList()
+
+        // 2) Try to find an array of wishlists
+        val wishlistsArray = obj["wishlists"]?.jsonArray
+            ?: obj["data"]?.jsonObject?.get("wishlists")?.jsonArray
+            ?: obj["data"]?.jsonArray
+
+        // If we found wishlists, flatten nested listing arrays (properties/items/listings)
+        if (wishlistsArray != null) {
+            val flattened = mutableListOf<WishlistItem>()
+            wishlistsArray.forEach { wlEl ->
+                val wlObj = wlEl as? JsonObject ?: return@forEach
+                val nested = wlObj["properties"]?.jsonArray
+                    ?: wlObj["items"]?.jsonArray
+                    ?: wlObj["listings"]?.jsonArray
+                if (nested != null) {
+                    nested.forEach { itemEl ->
+                        val itemObj = itemEl as? JsonObject ?: return@forEach
+                        runCatching { parseWishlistItem(itemObj) }.getOrNull()?.let(flattened::add)
+                    }
+                } else {
+                    // Sometimes wishlists are already items
+                    runCatching { parseWishlistItem(wlObj) }.getOrNull()?.let(flattened::add)
+                }
+            }
+            return flattened
+        }
+
+        // 3) Fall back to the legacy tolerant parser paths
+        return parseWishlistResponse(responseBody)
+    }
+
+    private fun isSuccessResponse(responseBody: String): Boolean {
+        return try {
+            val root = json.parseToJsonElement(responseBody).jsonObject
+            root["success"]?.jsonPrimitive?.boolean == true ||
+                root["status"]?.jsonPrimitive?.boolean == true ||
+                root["ok"]?.jsonPrimitive?.boolean == true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     /**
      * Find items array in various response shapes
      */

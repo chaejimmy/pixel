@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 
@@ -37,16 +38,9 @@ fun RecentSearchesScreen(
     onSearchClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var recentSearches by remember { mutableStateOf(listOf(
-        "New York, NY",
-        "San Francisco, CA", 
-        "Miami, FL",
-        "Chicago, IL",
-        "Boston, MA",
-        "Seattle, WA",
-        "Austin, TX",
-        "Denver, CO"
-    )) }
+    // No fake seed data: this starts empty until we wire persistent history.
+    // (Keeping UI + clear/remove affordances for future integration.)
+    var recentSearches by rememberSaveable { mutableStateOf(emptyList<String>()) }
     
     Column(
         modifier = modifier
@@ -73,7 +67,7 @@ fun RecentSearchesScreen(
                 item {
                     PaceDreamEmptyState(
                         title = "No Recent Searches",
-                        description = "Your search history will appear here",
+                        description = "Search for a city or listing and it will appear here.",
                         icon = Icons.Default.Search
                     )
                 }
