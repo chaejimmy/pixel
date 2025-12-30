@@ -19,6 +19,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -366,7 +367,8 @@ class SessionManager @Inject constructor(
     private fun extractStringByPaths(root: JsonElement, paths: List<List<String>>): String? {
         for (path in paths) {
             val value = root.navigate(path)
-            val text = value?.jsonPrimitive?.contentOrNull
+            // Avoid `jsonPrimitive` throwing if this path points to a non-primitive (tolerant parsing).
+            val text = (value as? JsonPrimitive)?.content
             if (!text.isNullOrBlank()) return text
         }
         return null

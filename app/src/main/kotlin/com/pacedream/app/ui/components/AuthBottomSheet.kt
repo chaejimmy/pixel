@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.app.core.auth.Auth0Connection
 
 /**
  * AuthFlowSheet - iOS-parity authentication modal sheet.
