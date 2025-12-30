@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
 import com.google.firebase.FirebaseApp
-import com.shourov.apps.pacedream.feature.auth.presentation.AuthScreen
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
@@ -74,8 +73,6 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            val isAuthenticated by viewModel.isAuthenticated.collectAsState()
-
             val appState = rememberPaceDreamAppState(
                 windowSizeClass = calculateWindowSizeClass(this),
                 hostModeManager = hostModeManager
@@ -83,15 +80,9 @@ class MainActivity : ComponentActivity() {
             
             CompositionLocalProvider {
                 PaceDreamTheme {
-                    if (isAuthenticated) {
-                        PaceDreamApp(appState)
-                    } else {
-                        AuthScreen(
-                            onLoginSuccess = {
-                                viewModel.setAuthenticated(true)
-                            }
-                        )
-                    }
+                    // iOS parity: keep the main app visible even when logged out.
+                    // Protected actions should present the AuthFlowSheet modally.
+                    PaceDreamApp(appState)
                 }
             }
         }

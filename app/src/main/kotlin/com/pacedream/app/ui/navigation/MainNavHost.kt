@@ -38,8 +38,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.pacedream.app.core.auth.AuthSession
 import com.pacedream.app.core.auth.AuthState
+import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
 import com.pacedream.app.feature.inbox.InboxScreen
@@ -48,7 +48,7 @@ import com.pacedream.app.feature.profile.ProfileScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
-import com.pacedream.app.ui.components.AuthBottomSheet
+import com.pacedream.app.ui.components.AuthFlowSheet
 
 /**
  * MainNavHost - Root navigation with stable bottom tabs
@@ -61,7 +61,7 @@ import com.pacedream.app.ui.components.AuthBottomSheet
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavHost(
-    authSession: AuthSession,
+    sessionManager: SessionManager,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -69,10 +69,12 @@ fun MainNavHost(
     val currentRoute = navBackStackEntry?.destination?.route
     
     // Auth state
-    val authState by authSession.authState.collectAsStateWithLifecycle()
+    val authState by sessionManager.authState.collectAsStateWithLifecycle()
     
     // Auth modal state
     var showAuthSheet by remember { mutableStateOf(false) }
+    var authSheetTitle by remember { mutableStateOf("Sign in") }
+    var authSheetSubtitle by remember { mutableStateOf("Sign in to continue.") }
     
     // Determine if bottom bar should be shown (always for main tabs)
     val showBottomBar = remember(currentRoute) {
@@ -150,6 +152,8 @@ fun MainNavHost(
                             navController.navigate(NavRoutes.listingDetail(itemId))
                         },
                         onLoginRequired = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to access your favorites."
                             showAuthSheet = true
                         }
                     )
@@ -162,7 +166,11 @@ fun MainNavHost(
                         LockedScreen(
                             title = "Inbox",
                             message = "Sign in to view your messages",
-                            onSignInClick = { showAuthSheet = true }
+                            onSignInClick = {
+                                authSheetTitle = "Sign in"
+                                authSheetSubtitle = "Sign in to view your messages."
+                                showAuthSheet = true
+                            }
                         )
                     } else {
                         InboxScreen(
@@ -188,7 +196,11 @@ fun MainNavHost(
                 // Profile Tab
                 composable(NavRoutes.PROFILE) {
                     ProfileScreen(
-                        onLoginClick = { showAuthSheet = true },
+                        onLoginClick = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to manage your profile."
+                            showAuthSheet = true
+                        },
                         onHostModeClick = {
                             navController.navigate(NavRoutes.HOST_HOME)
                         },
@@ -302,16 +314,18 @@ fun MainNavHost(
                 }
             }
             
-            // Auth Modal (sheet) - shows over tabs (iOS parity)
-            if (showAuthSheet) {
-                AuthBottomSheet(
-                    onDismiss = { showAuthSheet = false },
-                    onLoginSuccess = {
-                        showAuthSheet = false
-                    }
-                )
-            }
         }
+    }
+
+    if (showAuthSheet) {
+        AuthFlowSheet(
+            title = authSheetTitle,
+            subtitle = authSheetSubtitle,
+            onDismiss = { showAuthSheet = false },
+            onSuccess = {
+                // session bootstrap happens inside session manager
+            }
+        )
     }
 }
 

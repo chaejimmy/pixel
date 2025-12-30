@@ -1,7 +1,6 @@
 package com.pacedream.app.core.di
 
 import android.content.Context
-import com.pacedream.app.core.auth.AuthSession
 import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
@@ -41,19 +40,6 @@ object CoreModule {
         json: Json
     ): ApiClient {
         return ApiClient(appConfig, tokenStorage, json)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideAuthSession(
-        tokenStorage: TokenStorage,
-        appConfig: AppConfig,
-        json: Json,
-        apiClient: ApiClient
-    ): AuthSession {
-        return AuthSession(tokenStorage, appConfig, json).also {
-            it.setApiClient(apiClient)
-        }
     }
 }
 

@@ -2,7 +2,7 @@ package com.pacedream.app.feature.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pacedream.app.core.auth.AuthSession
+import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.auth.TokenStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,11 +18,11 @@ import javax.inject.Inject
  * 
  * iOS Parity:
  * - Guest/Host mode toggle persisted to SharedPreferences
- * - User profile from AuthSession
+ * - User profile from SessionManager
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val authSession: AuthSession,
+    private val sessionManager: SessionManager,
     private val tokenStorage: TokenStorage
 ) : ViewModel() {
     
@@ -32,7 +32,7 @@ class ProfileViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // Observe auth state
-            authSession.authState.collect { state ->
+            sessionManager.authState.collect { state ->
                 _uiState.update {
                     it.copy(isLoggedIn = state == AuthState.Authenticated)
                 }
@@ -41,7 +41,7 @@ class ProfileViewModel @Inject constructor(
         
         viewModelScope.launch {
             // Observe current user
-            authSession.currentUser.collect { user ->
+            sessionManager.currentUser.collect { user ->
                 _uiState.update {
                     it.copy(
                         userName = user?.displayName ?: "",
@@ -63,7 +63,7 @@ class ProfileViewModel @Inject constructor(
     }
     
     fun logout() {
-        authSession.signOut()
+        sessionManager.signOut()
     }
 }
 

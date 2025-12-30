@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.shourov.apps.pacedream.feature.auth.presentation.AuthBottomSheet
 import kotlinx.coroutines.launch
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -274,11 +273,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 
                                 // Auth Modal - shows over tabs (tabs remain visible)
                                 if (showAuthSheet) {
-                                    AuthBottomSheet(
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        title = "Sign in",
+                                        subtitle = "Sign in to access your favorites.",
                                         onDismiss = { showAuthSheet = false },
-                                        onLoginSuccess = {
-                                            showAuthSheet = false
-                                            // Refresh wishlist after login
+                                        onSuccess = {
+                                            // Session bootstrap happens in session manager
                                         }
                                     )
                                 }
@@ -299,11 +299,11 @@ fun NavGraphBuilder.DashboardNavigation(
                                 
                                 // Auth Modal
                                 if (showAuthSheet) {
-                                    AuthBottomSheet(
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        title = "Sign in",
+                                        subtitle = "Sign in to view your messages.",
                                         onDismiss = { showAuthSheet = false },
-                                        onLoginSuccess = {
-                                            showAuthSheet = false
-                                        }
+                                        onSuccess = { }
                                     )
                                 }
                             }

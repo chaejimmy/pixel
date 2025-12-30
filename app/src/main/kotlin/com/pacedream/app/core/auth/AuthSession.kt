@@ -7,7 +7,6 @@ import com.auth0.android.callback.Callback
 import com.auth0.android.provider.WebAuthProvider
 import com.auth0.android.result.Credentials
 import com.pacedream.app.core.config.AppConfig
-import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import kotlinx.coroutines.CoroutineScope
@@ -17,8 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
@@ -29,7 +28,7 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 /**
- * AuthSession - Authentication state management with iOS parity
+ * SessionManager - Authentication state management with iOS parity
  * 
  * Bootstrap behavior:
  * 1. Load tokens from secure storage
@@ -47,11 +46,21 @@ import kotlin.coroutines.resume
  * - Validate JWT shape before accepting
  */
 @Singleton
-class AuthSession @Inject constructor(
+class SessionManager @Inject constructor(
     private val tokenStorage: TokenStorage,
     private val appConfig: AppConfig,
+    private val authRepository: AuthRepository,
     private val json: Json
 ) {
+
+    /**
+     * UI-facing result for auth actions (cancel is not an error).
+     */
+    sealed class AuthActionResult {
+        data object Success : AuthActionResult()
+        data object Cancelled : AuthActionResult()
+        data class Error(val message: String) : AuthActionResult()
+    }
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -59,18 +68,8 @@ class AuthSession @Inject constructor(
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
     
-    // ApiClient injected after construction to avoid circular dependency
-    private var apiClient: ApiClient? = null
-    
     val isAuthenticated: Boolean
         get() = _authState.value == AuthState.Authenticated
-    
-    /**
-     * Set ApiClient after construction
-     */
-    fun setApiClient(client: ApiClient) {
-        this.apiClient = client
-    }
     
     /**
      * Initialize auth session on app launch
@@ -93,28 +92,24 @@ class AuthSession @Inject constructor(
      * Bootstrap session by fetching user profile
      */
     private suspend fun bootstrap() {
-        val client = apiClient ?: run {
-            Timber.e("ApiClient not set")
-            return
-        }
-        
-        val url = appConfig.buildApiUrl("account", "me")
-        val result = client.get(url, includeAuth = true)
-        
+        val result = authRepository.fetchProfileWithFallbacks()
         when (result) {
-            is ApiResult.Success -> {
-                parseAndSetUser(result.data)
-            }
+            is ApiResult.Success -> parseAndSetUser(result.data)
             is ApiResult.Failure -> {
                 when (result.error) {
                     is ApiError.Unauthorized -> {
-                        // Try refresh token once
-                        if (!attemptTokenRefresh()) {
+                        // Try refresh token once; if succeeds retry profile once
+                        if (attemptTokenRefresh()) {
+                            val retry = authRepository.fetchProfileWithFallbacks()
+                            if (retry is ApiResult.Success) {
+                                parseAndSetUser(retry.data)
+                            }
+                        } else {
                             signOut()
                         }
                     }
                     else -> {
-                        // Non-401 error: KEEP token and stay authenticated (iOS parity)
+                        // Non-401 error: KEEP token and stay authenticated (avoid login loops)
                         Timber.w("Failed to fetch user profile, using cached: ${result.error.message}")
                         loadCachedUser()
                     }
@@ -133,37 +128,10 @@ class AuthSession @Inject constructor(
             return false
         }
         
-        val client = apiClient ?: return false
-        
-        // Try primary endpoint
-        val primaryUrl = appConfig.buildApiUrl("auth", "refresh-token")
-        val body = json.encodeToString(
-            RefreshTokenRequest.serializer(),
-            RefreshTokenRequest(refreshToken)
-        )
-        
-        var result = client.post(primaryUrl, body, includeAuth = false)
-        
-        if (result is ApiResult.Failure) {
-            // Try fallback endpoint via frontend proxy
-            Timber.d("Primary refresh failed, trying fallback")
-            val fallbackUrl = appConfig.buildFrontendUrl("api", "proxy", "auth", "refresh-token")
-            result = client.post(fallbackUrl, body, includeAuth = false)
-        }
-        
+        val result = authRepository.refresh(refreshToken)
         return when (result) {
             is ApiResult.Success -> {
-                if (parseAndStoreTokens(result.data)) {
-                    // Retry /account/me once
-                    val meUrl = appConfig.buildApiUrl("account", "me")
-                    val meResult = apiClient?.get(meUrl, includeAuth = true)
-                    if (meResult is ApiResult.Success) {
-                        parseAndSetUser(meResult.data)
-                    }
-                    true
-                } else {
-                    false
-                }
+                parseAndStoreTokens(result.data)
             }
             is ApiResult.Failure -> {
                 Timber.e("Token refresh failed: ${result.error.message}")
@@ -175,7 +143,8 @@ class AuthSession @Inject constructor(
     /**
      * Login with Auth0 Universal Login
      */
-    suspend fun loginWithAuth0(activity: Activity): Result<Unit> = suspendCancellableCoroutine { continuation ->
+    suspend fun loginWithAuth0(activity: Activity, connection: Auth0Connection): AuthActionResult =
+        suspendCancellableCoroutine { continuation ->
         val auth0 = Auth0(
             appConfig.auth0ClientId,
             appConfig.auth0Domain
@@ -185,6 +154,7 @@ class AuthSession @Inject constructor(
             .withScheme(appConfig.auth0Scheme)
             .withScope(appConfig.auth0Scopes)
             .withAudience(appConfig.auth0Audience)
+            .withConnection(connection.connection)
             .start(activity, object : Callback<Credentials, AuthenticationException> {
                 override fun onSuccess(result: Credentials) {
                     Timber.d("Auth0 login successful")
@@ -199,22 +169,70 @@ class AuthSession @Inject constructor(
                         if (exchangeResult) {
                             _authState.value = AuthState.Authenticated
                             bootstrap()
-                            continuation.resume(Result.success(Unit))
+                            continuation.resume(AuthActionResult.Success)
                         } else {
-                            continuation.resume(Result.failure(Exception("Failed to exchange Auth0 tokens")))
+                            continuation.resume(AuthActionResult.Error("Failed to exchange Auth0 tokens"))
                         }
                     }
                 }
                 
                 override fun onFailure(error: AuthenticationException) {
-                    Timber.e(error, "Auth0 login failed")
                     if (error.isCanceled) {
-                        continuation.resume(Result.failure(Exception("Login cancelled")))
+                        // Cancelling is not an error (iOS parity) - no-op.
+                        continuation.resume(AuthActionResult.Cancelled)
                     } else {
-                        continuation.resume(Result.failure(Exception(error.getDescription())))
+                        Timber.e(error, "Auth0 login failed")
+                        continuation.resume(AuthActionResult.Error(error.getDescription()))
                     }
                 }
             })
+    }
+
+    /**
+     * Email login: POST /v1/auth/login/email
+     * Body: { "method":"email", "email":"...", "password":"..." }
+     * No Authorization header.
+     */
+    suspend fun loginWithEmailPassword(email: String, password: String): Result<Unit> {
+        val result = authRepository.emailLogin(email, password)
+        return when (result) {
+            is ApiResult.Success -> {
+                if (parseAndStoreEmailToken(result.data)) {
+                    _authState.value = AuthState.Authenticated
+                    bootstrap()
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Invalid response from server"))
+                }
+            }
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message))
+        }
+    }
+
+    /**
+     * Email signup: POST /v1/auth/signup/email
+     * Body: { email, firstName, lastName, password, dob:"1990-01-01", gender:"unspecified" }
+     * No Authorization header.
+     */
+    suspend fun registerWithEmailPassword(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String
+    ): Result<Unit> {
+        val result = authRepository.emailSignup(email, firstName, lastName, password)
+        return when (result) {
+            is ApiResult.Success -> {
+                if (parseAndStoreEmailToken(result.data)) {
+                    _authState.value = AuthState.Authenticated
+                    bootstrap()
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Invalid response from server"))
+                }
+            }
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message))
+        }
     }
     
     /**
@@ -222,20 +240,14 @@ class AuthSession @Inject constructor(
      * POST /v1/auth/auth0/callback
      */
     private suspend fun exchangeAuth0Tokens(accessToken: String, idToken: String): Boolean {
-        val client = apiClient ?: return false
-        
         // Store Auth0 tokens
         tokenStorage.auth0AccessToken = accessToken
         tokenStorage.auth0IdToken = idToken
-        
-        val url = appConfig.buildApiUrl("auth", "auth0", "callback")
-        val body = json.encodeToString(
-            Auth0CallbackRequest.serializer(),
-            Auth0CallbackRequest(accessToken, idToken)
+
+        val result = authRepository.auth0Callback(
+            auth0AccessToken = accessToken,
+            auth0IdToken = idToken
         )
-        
-        val result = client.post(url, body, includeAuth = false)
-        
         return when (result) {
             is ApiResult.Success -> parseAndStoreTokens(result.data)
             is ApiResult.Failure -> {
@@ -301,6 +313,72 @@ class AuthSession @Inject constructor(
             Timber.e(e, "Failed to parse auth response")
             false
         }
+    }
+
+    /**
+     * Email login/signup token extraction:
+     * token may be in: token, data.token, data.data.token, or jwt (tolerant parsing).
+     */
+    private fun parseAndStoreEmailToken(responseBody: String): Boolean {
+        return try {
+            val root = json.parseToJsonElement(responseBody)
+
+            val token = extractStringByPaths(
+                root,
+                listOf(
+                    listOf("token"),
+                    listOf("jwt"),
+                    listOf("accessToken"),
+                    listOf("data", "token"),
+                    listOf("data", "jwt"),
+                    listOf("data", "accessToken"),
+                    listOf("data", "data", "token"),
+                    listOf("data", "data", "jwt"),
+                    listOf("data", "data", "accessToken")
+                )
+            )
+
+            val refreshToken = extractStringByPaths(
+                root,
+                listOf(
+                    listOf("refreshToken"),
+                    listOf("refresh_token"),
+                    listOf("data", "refreshToken"),
+                    listOf("data", "refresh_token"),
+                    listOf("data", "data", "refreshToken"),
+                    listOf("data", "data", "refresh_token")
+                )
+            )
+
+            if (!tokenStorage.isValidJwtShape(token)) {
+                Timber.e("Invalid access token shape from email auth")
+                return false
+            }
+
+            tokenStorage.storeTokens(token, refreshToken)
+            true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to parse email auth response")
+            false
+        }
+    }
+
+    private fun extractStringByPaths(root: JsonElement, paths: List<List<String>>): String? {
+        for (path in paths) {
+            val value = root.navigate(path)
+            val text = value?.jsonPrimitive?.contentOrNull
+            if (!text.isNullOrBlank()) return text
+        }
+        return null
+    }
+
+    private fun JsonElement.navigate(path: List<String>): JsonElement? {
+        var current: JsonElement? = this
+        for (key in path) {
+            val obj = (current as? JsonObject) ?: return null
+            current = obj[key]
+        }
+        return current
     }
     
     /**
@@ -386,17 +464,5 @@ data class User(
 }
 
 /**
- * Request models
+ * Request models live in `AuthRepository`.
  */
-@Serializable
-data class RefreshTokenRequest(
-    val refresh_token: String
-)
-
-@Serializable
-data class Auth0CallbackRequest(
-    val accessToken: String,
-    val idToken: String
-)
-
-

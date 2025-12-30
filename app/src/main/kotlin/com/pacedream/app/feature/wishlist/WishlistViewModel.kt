@@ -2,7 +2,7 @@ package com.pacedream.app.feature.wishlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pacedream.app.core.auth.AuthSession
+import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
@@ -36,7 +36,7 @@ import javax.inject.Inject
 class WishlistViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
-    private val authSession: AuthSession,
+    private val sessionManager: SessionManager,
     private val json: Json
 ) : ViewModel() {
     
@@ -51,7 +51,7 @@ class WishlistViewModel @Inject constructor(
     
     init {
         viewModelScope.launch {
-            authSession.authState.collect { state ->
+            sessionManager.authState.collect { state ->
                 when (state) {
                     AuthState.Authenticated -> {
                         _uiState.update { it.copy(showLockedState = false, requiresAuth = false) }
