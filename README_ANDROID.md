@@ -268,3 +268,97 @@ Identical GET requests are deduplicated to avoid redundant network calls.
 Proprietary - PaceDream Inc.
 
 
+
+---
+
+## Cursor Prompt Addendum — AuthFlowSheet “Exact iOS Parity” Details
+
+### Add this to the end of the Android Cursor prompt (more “exact iOS parity” details)
+
+#### Visual + layout parity (match iOS `AuthFlowSheet`)
+- **Container**
+  - Use a **sheet with a scrollable content area** (`Column` inside `VerticalScroll`), not a fixed card.
+  - Horizontal padding: **20dp**
+  - Top padding: **18dp**, bottom padding: **24dp**
+  - Use **continuous rounded corners** feel (Material3 `RoundedCornerShape(16.dp)` everywhere used below).
+- **Typography**
+  - Title: **26sp, Bold**
+  - Subtitle: **15sp, Regular**
+  - Primary/secondary button label: **16sp, Bold**
+  - Link text: **14sp, Semibold**
+  - Divider “or”: **13sp, Semibold**
+  - Legal: **12sp, Regular**
+- **Buttons**
+  - All main buttons: **minHeight 50dp**, full width.
+  - Primary filled (purple / brand): corner radius **16dp**
+  - Secondary tinted (brand @ 10%): corner radius **16dp**
+  - Outlined Google button: white surface + **1dp black @ 10%** border, radius **16dp**
+  - Apple button: **solid black**, radius **16dp**, white content.
+  - Disable states: reduce alpha and block taps; keep layout identical.
+  - Loading state: **inline spinner LEFT of text** (keep label visible).
+- **Divider row**
+  - `— or —` with thin lines (1dp) on both sides, black @ 10% alpha.
+- **Text fields**
+  - iOS uses rounded border in this view; implement **rounded outlined** fields.
+  - Email field:
+    - no autocorrect
+    - no auto-capitalization
+    - keyboard: email
+    - trim whitespace on submit
+  - Password field:
+    - masked (no “show password” toggle in this sheet)
+- **Error banner (must be inline, not toast/snackbar)**
+  - Row with warning icon + message text.
+  - Padding **12dp**, radius **14dp**
+  - Background: error color @ 10% alpha
+  - If server message contains prefix like `"Server error 200: "` strip it before display (iOS does this for Google/Apple).
+
+#### Interaction parity
+- On sheet open: **always reset to Chooser mode**, and clear error message.
+- Mode transitions:
+  - Chooser → SignIn/SignUp: animate with a **quick easeInOut (~200ms)** (Compose: `AnimatedContent` or `Crossfade` with `tween(200)`).
+- “Done” (top-right) and “Not now”:
+  - call `onNotNow()` then dismiss.
+- Success behavior (all auth methods):
+  - persist tokens
+  - call `SessionManager.bootstrap()`
+  - call `onSuccess()`
+  - dismiss sheet
+- Cancellation behavior:
+  - If Auth0 flow is cancelled by user, **do not show an error** and do not log them out.
+
+#### Networking parity implementation details (important)
+Use **Retrofit + OkHttp** with these rules:
+- **No-auth endpoints** (must NOT send Bearer even if token exists):
+  - `/v1/auth/login/email`
+  - `/v1/auth/signup/email`
+  - `/v1/auth/auth0/callback`
+  - `/v1/auth/refresh-token`
+  - `https://www.pacedream.com/api/proxy/auth/refresh-token`
+- **Auth interceptor**
+  - Add `Authorization: Bearer <accessToken>` to all other requests.
+- **401 handling**
+  - If request fails with 401:
+    - call refresh once (using refresh token)
+    - retry original request once if refresh succeeded
+    - if refresh fails: clear tokens and mark unauthenticated
+- **Refresh fallback order**
+  1) `POST /v1/auth/refresh-token` `{ refresh_token }`
+  2) `POST https://www.pacedream.com/api/proxy/auth/refresh-token` `{ refresh_token }`
+- **HTML safety (web parity)**
+  - For the proxy fallback responses, if `Content-Type` is `text/html` or body starts with `<!doctype html` / `<html`, treat as failure with user-friendly message: “Service is temporarily unavailable. Please try again in a minute.”
+
+#### Data/state structure (recommendation to Cursor)
+- `AuthUiMode = Chooser | SignIn | SignUp`
+- `AuthUiState`:
+  - `mode`, `email`, `password`, `firstName`, `lastName`
+  - `errorMessage: String?`
+  - `isGoogleLoading`, `isAppleLoading`
+  - `isSubmittingEmail: Boolean`
+- `AuthViewModel` functions:
+  - `onOpenSheet()` resets mode + clears errors
+  - `submitEmailLogin()`, `submitEmailSignup()`
+  - `continueWithGoogle()`, `continueWithApple()`
+
+#### Explicit instruction about your current Android design
+- **Delete/replace** the current “Welcome Back” login card UI and any forced “email+password first” entry screen. The default entry into auth must be the **Chooser sheet** with Sign in / Create account / Google / Apple / Not now, exactly as above.
