@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -166,11 +167,26 @@ fun PropertyDetailScreen(
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
-                        model = preview.imageUrl,
+                        model = preview.imageUrl?.takeIf { it.isNotBlank() },
                         contentDescription = preview.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
+                    if (preview.imageUrl.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(PaceDreamColors.Border.copy(alpha = 0.25f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -230,14 +246,17 @@ fun PropertyDetailScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    val price = preview.priceText?.takeIf { it.isNotBlank() }
                     Column {
                         Text(
-                            text = preview.priceText ?: "",
+                            text = price ?: "Price unavailable",
                             style = PaceDreamTypography.Title3,
-                            color = PaceDreamColors.Primary,
-                            fontWeight = FontWeight.Bold
+                            color = if (price != null) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                            fontWeight = if (price != null) FontWeight.Bold else FontWeight.SemiBold
                         )
-                        Text("per booking", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
+                        if (price != null) {
+                            Text("per booking", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
+                        }
                     }
 
                     Button(

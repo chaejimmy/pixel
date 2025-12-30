@@ -1,5 +1,12 @@
 package com.shourov.apps.pacedream.feature.homefeed
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,12 +30,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -47,8 +57,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamSectionHeader
-import com.pacedream.common.composables.components.PaceDreamSearchBar
+import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -115,6 +126,18 @@ fun HomeFeedScreen(
                     )
                 }
 
+                state.globalErrorMessage?.let { globalErr ->
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        InlineErrorBanner(
+                            message = globalErr,
+                            onAction = { viewModel.refresh() },
+                            actionText = "Retry",
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+                        )
+                    }
+                }
+
                 state.sections.forEach { section ->
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -125,19 +148,38 @@ fun HomeFeedScreen(
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                         section.errorMessage?.takeIf { !section.isLoading }?.let { err ->
-                            ErrorInline(err)
+                            InlineErrorBanner(
+                                message = err,
+                                onAction = { viewModel.refresh() },
+                                actionText = "Retry",
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+                            )
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         }
 
-                        when {
-                            section.isLoading -> SkeletonRow()
-                            section.items.isEmpty() -> EmptyInline("Pull to refresh to try again.")
-                            else -> CardsRow(
-                                section.items,
-                                onListingClick,
-                                favoriteIds = favoriteIds,
-                                onFavorite = { onFavorite(it.id) }
-                            )
+                        AnimatedContent(
+                            targetState = SectionContentState(
+                                isLoading = section.isLoading,
+                                isEmpty = section.items.isEmpty(),
+                            ),
+                            transitionSpec = {
+                                fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                            },
+                            label = "section_content"
+                        ) { contentState ->
+                            when {
+                                contentState.isLoading -> SkeletonRow()
+                                contentState.isEmpty -> EmptyInline(
+                                    message = "Nothing here yet. Pull to refresh to try again.",
+                                    onRefresh = { viewModel.refresh() }
+                                )
+                                else -> CardsRow(
+                                    section.items,
+                                    onListingClick,
+                                    favoriteIds = favoriteIds,
+                                    onFavorite = { onFavorite(it.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -153,12 +195,18 @@ fun HomeFeedScreen(
     }
 }
 
+private data class SectionContentState(
+    val isLoading: Boolean,
+    val isEmpty: Boolean,
+)
+
 @Composable
 private fun Header(title: String, onSearchClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(220.dp)
+            .statusBarsPadding()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -178,13 +226,42 @@ private fun Header(title: String, onSearchClick: () -> Unit) {
                 fontWeight = FontWeight.ExtraBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            PaceDreamSearchBar(
-                query = "",
-                onQueryChange = { },
-                onSearchClick = onSearchClick,
-                onFilterClick = { },
-                placeholder = "Where to?",
-                modifier = Modifier.fillMaxWidth()
+            HomeSearchPill(onClick = onSearchClick)
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "Where to?",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -227,10 +304,10 @@ private fun ListingCard(
                 ListingPreviewStore.put(
                     ListingPreview(
                         id = item.id,
-                        title = item.title,
-                        location = item.location,
-                        imageUrl = item.imageUrl,
-                        priceText = item.priceText,
+                        title = item.title.ifBlank { "Listing" },
+                        location = item.location?.takeIf { it.isNotBlank() },
+                        imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
+                        priceText = item.priceText?.takeIf { it.isNotBlank() },
                         rating = item.rating
                     )
                 )
@@ -247,11 +324,25 @@ private fun ListingCard(
                     .height(180.dp)
             ) {
                 AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = item.title,
+                    model = item.imageUrl?.takeIf { it.isNotBlank() },
+                    contentDescription = item.title.ifBlank { "Listing" },
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+                if (item.imageUrl.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PaceDreamColors.Border.copy(alpha = 0.25f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextSecondary
+                        )
+                    }
+                }
                 IconButton(
                     onClick = onFavorite,
                     modifier = Modifier
@@ -260,11 +351,20 @@ private fun ListingCard(
                         .clip(RoundedCornerShape(PaceDreamRadius.MD))
                         .background(Color.Black.copy(alpha = 0.25f))
                 ) {
-                    Icon(
-                        imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = if (isFavorited) "Remove from favorites" else "Save to favorites",
-                        tint = if (isFavorited) PaceDreamColors.Error else Color.White
-                    )
+                    AnimatedContent(
+                        targetState = isFavorited,
+                        transitionSpec = {
+                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
+                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                        },
+                        label = "favorite_toggle"
+                    ) { favored ->
+                        Icon(
+                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
+                            tint = if (favored) PaceDreamColors.Error else Color.White
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -305,14 +405,14 @@ private fun ListingCard(
                     .padding(PaceDreamSpacing.MD)
             ) {
                 Text(
-                    text = item.title,
+                    text = item.title.ifBlank { "Listing" },
                     style = PaceDreamTypography.Title3,
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                item.location?.let {
+                item.location?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
                         style = PaceDreamTypography.Callout,
@@ -353,6 +453,7 @@ private fun SkeletonRow() {
                             .height(180.dp)
                             .clip(RoundedCornerShape(PaceDreamRadius.LG))
                             .background(PaceDreamColors.Border.copy(alpha = 0.3f))
+                            .shimmerEffect()
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Box(
@@ -360,6 +461,7 @@ private fun SkeletonRow() {
                             .fillMaxWidth(0.7f)
                             .height(16.dp)
                             .background(PaceDreamColors.Border.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .shimmerEffect()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
@@ -367,6 +469,7 @@ private fun SkeletonRow() {
                             .fillMaxWidth(0.45f)
                             .height(12.dp)
                             .background(PaceDreamColors.Border.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                            .shimmerEffect()
                     )
                 }
             }
@@ -375,33 +478,41 @@ private fun SkeletonRow() {
 }
 
 @Composable
-private fun ErrorInline(message: String) {
+private fun EmptyInline(
+    message: String,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.08f))
+            .padding(horizontal = PaceDreamSpacing.LG)
+            .then(modifier),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
-        Text(
-            text = message,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.Error,
-            modifier = Modifier.padding(PaceDreamSpacing.MD)
-        )
-    }
-}
-
-@Composable
-private fun EmptyInline(message: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-    ) {
-        Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
-        Text(message, style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+            Text(
+                message,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedButton(
+                onClick = onRefresh,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Primary)
+            ) {
+                Text("Refresh")
+            }
+        }
     }
 }
 

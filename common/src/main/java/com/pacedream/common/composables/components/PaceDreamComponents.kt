@@ -1,5 +1,9 @@
 package com.pacedream.common.composables.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.*
 
 /**
@@ -489,6 +494,7 @@ fun PaceDreamShimmerCard(
                     .fillMaxWidth()
                     .height(PaceDreamPropertyCard.ImageHeight)
                     .background(PaceDreamGray200)
+                    .shimmerEffect()
             )
             
             // Shimmer Content
@@ -500,6 +506,7 @@ fun PaceDreamShimmerCard(
                         .fillMaxWidth()
                         .height(20.dp)
                         .background(PaceDreamGray200)
+                        .shimmerEffect()
                 )
                 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -509,6 +516,7 @@ fun PaceDreamShimmerCard(
                         .fillMaxWidth()
                         .height(16.dp)
                         .background(PaceDreamGray200)
+                        .shimmerEffect()
                 )
                 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -522,6 +530,7 @@ fun PaceDreamShimmerCard(
                             .width(60.dp)
                             .height(16.dp)
                             .background(PaceDreamGray200)
+                            .shimmerEffect()
                     )
                     
                     Box(
@@ -529,6 +538,7 @@ fun PaceDreamShimmerCard(
                             .width(40.dp)
                             .height(16.dp)
                             .background(PaceDreamGray200)
+                            .shimmerEffect()
                     )
                 }
             }
@@ -546,47 +556,52 @@ fun PaceDreamEmptyState(
     onActionClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(PaceDreamEmptyState.Padding),
-        horizontalAlignment = Alignment.CenterHorizontally
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(tween(durationMillis = 220)) + scaleIn(initialScale = 0.98f, animationSpec = tween(220)),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = PaceDreamTextTertiary,
-            modifier = Modifier.size(PaceDreamEmptyState.IconSize)
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
-        Text(
-            text = title,
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamTextPrimary
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        Text(
-            text = description,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamTextSecondary
-        )
-        
-        actionText?.let { text ->
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(PaceDreamEmptyState.Padding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PaceDreamTextTertiary,
+                modifier = Modifier.size(PaceDreamEmptyState.IconSize)
+            )
+            
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             
-            Button(
-                onClick = { onActionClick?.invoke() },
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
-            ) {
-                Text(
-                    text = text,
-                    style = PaceDreamTypography.Headline,
-                    color = Color.White
-                )
+            Text(
+                text = title,
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamTextPrimary
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            
+            Text(
+                text = description,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamTextSecondary
+            )
+            
+            actionText?.let { text ->
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                
+                Button(
+                    onClick = { onActionClick?.invoke() },
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
+                ) {
+                    Text(
+                        text = text,
+                        style = PaceDreamTypography.Headline,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
@@ -600,46 +615,51 @@ fun PaceDreamErrorState(
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(PaceDreamErrorState.Padding),
-        horizontalAlignment = Alignment.CenterHorizontally
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(tween(durationMillis = 220)) + scaleIn(initialScale = 0.98f, animationSpec = tween(220)),
     ) {
-        Icon(
-            imageVector = Icons.Default.Error,
-            contentDescription = null,
-            tint = PaceDreamError,
-            modifier = Modifier.size(PaceDreamErrorState.IconSize)
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
-        Text(
-            text = title,
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamTextPrimary
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        Text(
-            text = description,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamTextSecondary
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
-        Button(
-            onClick = onRetryClick,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(PaceDreamErrorState.Padding),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Try Again",
-                style = PaceDreamTypography.Headline,
-                color = Color.White
+            Icon(
+                imageVector = Icons.Default.Error,
+                contentDescription = null,
+                tint = PaceDreamError,
+                modifier = Modifier.size(PaceDreamErrorState.IconSize)
             )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            
+            Text(
+                text = title,
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamTextPrimary
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            
+            Text(
+                text = description,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamTextSecondary
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            
+            Button(
+                onClick = onRetryClick,
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
+            ) {
+                Text(
+                    text = "Try Again",
+                    style = PaceDreamTypography.Headline,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -650,24 +670,29 @@ fun PaceDreamLoadingState(
     message: String = "Loading...",
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(com.pacedream.common.composables.theme.PaceDreamLoadingState.Padding),
-        horizontalAlignment = Alignment.CenterHorizontally
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn(tween(durationMillis = 180)) + scaleIn(initialScale = 0.98f, animationSpec = tween(180)),
     ) {
-        CircularProgressIndicator(
-            color = PaceDreamPrimary,
-            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamLoadingState.IconSize)
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
-        Text(
-            text = message,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamTextSecondary
-        )
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(com.pacedream.common.composables.theme.PaceDreamLoadingState.Padding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(
+                color = PaceDreamPrimary,
+                modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamLoadingState.IconSize)
+            )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            
+            Text(
+                text = message,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamTextSecondary
+            )
+        }
     }
 }
 

@@ -1,5 +1,10 @@
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,8 +30,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -59,6 +62,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.components.PaceDreamErrorState
+import com.pacedream.common.composables.components.PaceDreamLoadingState
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -105,18 +110,32 @@ fun ThreadScreen(
         },
         containerColor = PaceDreamColors.Background
     ) { padding ->
-        when (val state = uiState) {
-            is ThreadDetailUiState.Loading -> LoadingState(Modifier.padding(padding))
-            is ThreadDetailUiState.Success -> SuccessState(
-                state = state,
-                onEvent = viewModel::onEvent,
-                modifier = Modifier.padding(padding)
-            )
-            is ThreadDetailUiState.Error -> ErrorState(
-                message = state.message,
-                onRetry = { viewModel.onEvent(ThreadDetailEvent.Refresh) },
-                modifier = Modifier.padding(padding)
-            )
+        AnimatedContent(
+            targetState = uiState,
+            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+            label = "thread_state"
+        ) { state ->
+            when (state) {
+                is ThreadDetailUiState.Loading -> PaceDreamLoadingState(
+                    message = "Loading messages…",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                )
+                is ThreadDetailUiState.Success -> SuccessState(
+                    state = state,
+                    onEvent = viewModel::onEvent,
+                    modifier = Modifier.padding(padding)
+                )
+                is ThreadDetailUiState.Error -> PaceDreamErrorState(
+                    title = "Couldn't load chat",
+                    description = state.message,
+                    onRetryClick = { viewModel.onEvent(ThreadDetailEvent.Refresh) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                )
+            }
         }
     }
 }
@@ -157,13 +176,22 @@ private fun SuccessState(
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(
+                itemsIndexed(
                     items = state.messages,
-                    key = { it.id }
-                ) { message ->
+                    key = { _, msg -> msg.id }
+                ) { index, message ->
+                    val previous = state.messages.getOrNull(index - 1)
+                    val next = state.messages.getOrNull(index + 1)
+                    val isCurrentUser = message.senderId == state.currentUserId
+                    val prevSameSender = previous?.senderId == message.senderId
+                    val nextSameSender = next?.senderId == message.senderId
+
                     MessageBubble(
                         message = message,
-                        isCurrentUser = message.senderId == state.currentUserId
+                        isCurrentUser = isCurrentUser,
+                        isGroupedWithPrevious = prevSameSender,
+                        isGroupedWithNext = nextSameSender,
+                        modifier = Modifier.animateItemPlacement()
                     )
                 }
                 
@@ -208,22 +236,49 @@ private fun SuccessState(
 @Composable
 private fun MessageBubble(
     message: Message,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
+    isGroupedWithPrevious: Boolean,
+    isGroupedWithNext: Boolean,
+    modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
     val maxWidth = (configuration.screenWidthDp * 0.75).dp
+
+    // When messages are consecutive from the same sender, tighten the bubble corners
+    // so the conversation reads as grouped “blocks”.
+    // We keep the “outer” side rounded and tighten the “inner” side when grouped.
+    val topStart = if (isCurrentUser) {
+        PaceDreamRadius.MD
+    } else {
+        if (isGroupedWithPrevious) PaceDreamRadius.SM else PaceDreamRadius.MD
+    }
+    val topEnd = if (isCurrentUser) {
+        if (isGroupedWithPrevious) PaceDreamRadius.SM else PaceDreamRadius.MD
+    } else {
+        PaceDreamRadius.MD
+    }
+    val bottomStart = if (isCurrentUser) {
+        PaceDreamRadius.MD
+    } else {
+        if (isGroupedWithNext) PaceDreamRadius.SM else PaceDreamRadius.MD
+    }
+    val bottomEnd = if (isCurrentUser) {
+        if (isGroupedWithNext) PaceDreamRadius.SM else PaceDreamRadius.MD
+    } else {
+        PaceDreamRadius.MD
+    }
     
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
         Card(
             modifier = Modifier.widthIn(max = maxWidth),
             shape = RoundedCornerShape(
-                topStart = if (isCurrentUser) PaceDreamRadius.MD else PaceDreamRadius.SM,
-                topEnd = if (isCurrentUser) PaceDreamRadius.SM else PaceDreamRadius.MD,
-                bottomStart = PaceDreamRadius.MD,
-                bottomEnd = PaceDreamRadius.MD
+                topStart = topStart,
+                topEnd = topEnd,
+                bottomStart = bottomStart,
+                bottomEnd = bottomEnd,
             ),
             colors = CardDefaults.cardColors(
                 containerColor = if (isCurrentUser) 
@@ -247,16 +302,19 @@ private fun MessageBubble(
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                Text(
-                    text = message.formattedTime,
-                    style = PaceDreamTypography.Caption,
-                    color = if (isCurrentUser) 
-                        Color.White.copy(alpha = 0.7f) 
-                    else 
-                        PaceDreamColors.TextSecondary,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Only show timestamp at the end of a grouped block to reduce noise.
+                if (!isGroupedWithNext) {
+                    Text(
+                        text = message.formattedTime,
+                        style = PaceDreamTypography.Caption,
+                        color = if (isCurrentUser)
+                            Color.White.copy(alpha = 0.7f)
+                        else
+                            PaceDreamColors.TextSecondary,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
@@ -341,43 +399,4 @@ private fun MessageInputBar(
 }
 
 @Composable
-private fun LoadingState(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(color = PaceDreamColors.Primary)
-    }
-}
-
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = message,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.Error,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Button(
-                onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
-            ) {
-                Text("Retry")
-            }
-        }
-    }
-}
-
-
+private fun UnusedPlaceholder() { /* keep file structure stable */ }

@@ -217,7 +217,7 @@ fun AnimatedLoadingState(
 fun AnimatedEmptyState(
     title: String,
     subtitle: String,
-    icon: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Search,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -232,7 +232,7 @@ fun AnimatedEmptyState(
                 duration = PaceDreamAnimationDuration.LONG
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(64.dp)

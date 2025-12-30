@@ -12,6 +12,7 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import okhttp3.HttpUrl
 import timber.log.Timber
 import androidx.annotation.VisibleForTesting
@@ -186,28 +187,34 @@ class SearchRepository @Inject constructor(
 
     private fun parseSearchItem(el: JsonElement): SearchResultItem? {
         val obj = el as? JsonObject ?: return null
-        val id = obj["_id"]?.jsonPrimitive?.content
-            ?: obj["id"]?.jsonPrimitive?.content
-            ?: obj["listingId"]?.jsonPrimitive?.content
+        val id = obj["_id"].stringOrNull()
+            ?: obj["id"].stringOrNull()
+            ?: obj["listingId"].stringOrNull()
             ?: return null
 
-        val title = obj["title"]?.jsonPrimitive?.content
-            ?: obj["name"]?.jsonPrimitive?.content
+        val title = obj["title"].stringOrNull()
+            ?: obj["name"].stringOrNull()
             ?: "Listing"
 
-        val location = obj["city"]?.jsonPrimitive?.content
-            ?: obj["location"]?.jsonObject?.get("city")?.jsonPrimitive?.content
-            ?: obj["location"]?.jsonPrimitive?.content
+        val location = obj["city"].stringOrNull()
+            ?: obj["location"]?.jsonObject?.get("city").stringOrNull()
+            ?: obj["location"].stringOrNull()
+            ?: obj["address"]?.jsonObject?.get("city").stringOrNull()
 
-        val imageUrl = obj["image"]?.jsonPrimitive?.content
-            ?: obj["imageUrl"]?.jsonPrimitive?.content
-            ?: obj["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+        val imageUrl = obj["image"].stringOrNull()
+            ?: obj["imageUrl"].stringOrNull()
+            ?: obj["thumbnail"].stringOrNull()
+            ?: obj["images"]?.jsonArray?.firstOrNull().stringOrNull()
+            ?: obj["gallery"]?.jsonObject?.get("images")?.jsonArray?.firstOrNull().stringOrNull()
+            ?: obj["galleryImages"]?.jsonArray?.firstOrNull().stringOrNull()
 
         val rating = obj["rating"]?.jsonPrimitive?.doubleOrNull
             ?: obj["avgRating"]?.jsonPrimitive?.doubleOrNull
 
-        val priceText = obj["priceText"]?.jsonPrimitive?.content
-            ?: obj["price"]?.jsonPrimitive?.content?.let { "$$it" }
+        val priceText = obj["priceText"].stringOrNull()
+            ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
+            ?: obj["price"]?.jsonObject?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
+            ?: obj["pricing"]?.jsonObject?.get("price")?.stringOrNull()?.let { normalizePriceText(it) }
 
         return SearchResultItem(
             id = id,
@@ -217,6 +224,18 @@ class SearchRepository @Inject constructor(
             priceText = priceText,
             rating = rating
         )
+    }
+
+    private fun normalizePriceText(raw: String): String {
+        val s = raw.trim()
+        if (s.isBlank()) return ""
+        val numeric = s.toDoubleOrNull()
+        return if (numeric != null) "$${s}" else s
+    }
+
+    private fun JsonElement?.stringOrNull(): String? {
+        val s = this?.jsonPrimitive?.contentOrNull?.trim()
+        return s?.takeIf { it.isNotBlank() }
     }
 
     private fun findArray(root: JsonElement, vararg paths: List<String>): JsonArray? {

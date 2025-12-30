@@ -1,5 +1,13 @@
 package com.shourov.apps.pacedream.feature.search
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +67,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.components.PaceDreamEmptyState
+import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamSearchBar
+import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -143,50 +154,54 @@ fun SearchScreen(
                     return@PullToRefreshBox
                 }
 
-                // Map placeholder toggle (phase 2)
-                if (mapMode) {
-                    MapPlaceholder()
-                    return@PullToRefreshBox
-                }
+                // Smoothly crossfade between list UI and map placeholder
+                Crossfade(
+                    targetState = mapMode,
+                    label = "search_map_mode"
+                ) { isMap ->
+                    if (isMap) {
+                        MapPlaceholder()
+                    } else {
+                        // Filters row (UI scaffold; can be wired later)
+                        FiltersRow()
 
-                // Filters row (UI scaffold; can be wired later)
-                FiltersRow()
-
-                when (state.phase) {
-                    SearchPhase.Idle -> IdleState()
-                    SearchPhase.Loading -> SearchSkeleton()
-                    SearchPhase.Error -> ErrorState(
-                        message = state.errorMessage ?: "Search failed",
-                        onRetry = { viewModel.submitSearch() }
-                    )
-                    SearchPhase.Empty -> EmptyState()
-                    SearchPhase.Success, SearchPhase.LoadingMore -> ResultsList(
-                        items = state.items,
-                        isLoadingMore = state.phase == SearchPhase.LoadingMore,
-                        hasMore = state.hasMore,
-                        onLoadMore = { viewModel.loadMoreIfNeeded() },
-                        onItemClick = onListingClick,
-                        favoriteIds = favoriteIds,
-                        onFavoriteClick = { listingId ->
-                            if (authState == AuthState.Unauthenticated) {
-                                onShowAuthSheet()
-                                return@ResultsList
-                            }
-                            scope.launch {
-                                val wasFavorited = favoriteIds.contains(listingId)
-                                when (val res = viewModel.toggleFavorite(listingId)) {
-                                    is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                                    is ApiResult.Failure -> {
-                                        if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                                            onShowAuthSheet()
-                                        } else {
-                                            snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                        when (state.phase) {
+                            SearchPhase.Idle -> IdleState()
+                            SearchPhase.Loading -> SearchSkeleton()
+                            SearchPhase.Error -> ErrorState(
+                                message = state.errorMessage ?: "Search failed",
+                                onRetry = { viewModel.submitSearch() }
+                            )
+                            SearchPhase.Empty -> EmptyState()
+                            SearchPhase.Success, SearchPhase.LoadingMore -> ResultsList(
+                                items = state.items,
+                                isLoadingMore = state.phase == SearchPhase.LoadingMore,
+                                hasMore = state.hasMore,
+                                onLoadMore = { viewModel.loadMoreIfNeeded() },
+                                onItemClick = onListingClick,
+                                favoriteIds = favoriteIds,
+                                onFavoriteClick = { listingId ->
+                                    if (authState == AuthState.Unauthenticated) {
+                                        onShowAuthSheet()
+                                        return@ResultsList
+                                    }
+                                    scope.launch {
+                                        val wasFavorited = favoriteIds.contains(listingId)
+                                        when (val res = viewModel.toggleFavorite(listingId)) {
+                                            is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                            is ApiResult.Failure -> {
+                                                if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                                                    onShowAuthSheet()
+                                                } else {
+                                                    snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
+                            )
                         }
-                    )
+                    }
                 }
             }
         }
@@ -255,10 +270,11 @@ private fun IdleState() {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Search for a city, neighborhood, or listing.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary
+        PaceDreamEmptyState(
+            title = "Start exploring",
+            description = "Search for a city, neighborhood, or listing.",
+            icon = Icons.Default.Search,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -271,15 +287,12 @@ private fun EmptyState() {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("No results", style = PaceDreamTypography.Title3, color = PaceDreamColors.TextPrimary)
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                "Try a different search or pull to refresh.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
-            )
-        }
+        PaceDreamEmptyState(
+            title = "No results",
+            description = "Try a different search or pull to refresh.",
+            icon = Icons.Default.Search,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -291,16 +304,12 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(message, style = PaceDreamTypography.Body, color = PaceDreamColors.Error)
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Button(
-                onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
-            ) {
-                Text("Retry")
-            }
-        }
+        PaceDreamErrorState(
+            title = "Search failed",
+            description = message,
+            onRetryClick = onRetry,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -322,6 +331,7 @@ private fun SearchSkeleton() {
                             .size(96.dp)
                             .clip(RoundedCornerShape(PaceDreamRadius.MD))
                             .background(PaceDreamColors.Border.copy(alpha = 0.35f))
+                            .shimmerEffect()
                     )
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                     Column(modifier = Modifier.weight(1f)) {
@@ -330,6 +340,7 @@ private fun SearchSkeleton() {
                                 .fillMaxWidth(0.7f)
                                 .height(16.dp)
                                 .background(PaceDreamColors.Border.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                .shimmerEffect()
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Box(
@@ -337,6 +348,7 @@ private fun SearchSkeleton() {
                                 .fillMaxWidth(0.5f)
                                 .height(12.dp)
                                 .background(PaceDreamColors.Border.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                .shimmerEffect()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Box(
@@ -344,6 +356,7 @@ private fun SearchSkeleton() {
                                 .fillMaxWidth(0.35f)
                                 .height(12.dp)
                                 .background(PaceDreamColors.Border.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                .shimmerEffect()
                         )
                     }
                 }
@@ -372,7 +385,8 @@ private fun ResultsList(
                 item = item,
                 onClick = { onItemClick(item.id) },
                 isFavorited = favoriteIds.contains(item.id),
-                onFavorite = { onFavoriteClick(item.id) }
+                onFavorite = { onFavoriteClick(item.id) },
+                modifier = Modifier.animateItemPlacement()
             )
         }
 
@@ -408,19 +422,20 @@ private fun SearchResultCard(
     item: SearchResultItem,
     isFavorited: Boolean,
     onClick: () -> Unit,
-    onFavorite: () -> Unit
+    onFavorite: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = {
                 ListingPreviewStore.put(
                     ListingPreview(
                         id = item.id,
-                        title = item.title,
-                        location = item.location,
-                        imageUrl = item.imageUrl,
-                        priceText = item.priceText,
+                        title = item.title.ifBlank { "Listing" },
+                        location = item.location?.takeIf { it.isNotBlank() },
+                        imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
+                        priceText = item.priceText?.takeIf { it.isNotBlank() },
                         rating = item.rating
                     )
                 )
@@ -435,12 +450,27 @@ private fun SearchResultCard(
                     .size(96.dp)
                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
             ) {
-                AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (item.imageUrl.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PaceDreamColors.Border.copy(alpha = 0.25f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextSecondary
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 IconButton(
                     onClick = onFavorite,
                     modifier = Modifier
@@ -450,12 +480,21 @@ private fun SearchResultCard(
                         .background(Color.Black.copy(alpha = 0.25f))
                         .size(28.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = if (isFavorited) "Remove from favorites" else "Save to favorites",
-                        tint = if (isFavorited) PaceDreamColors.Error else Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    AnimatedContent(
+                        targetState = isFavorited,
+                        transitionSpec = {
+                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
+                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                        },
+                        label = "favorite_toggle"
+                    ) { favored ->
+                        Icon(
+                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
+                            tint = if (favored) PaceDreamColors.Error else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -474,7 +513,7 @@ private fun SearchResultCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.title,
+                    text = item.title.ifBlank { "Listing" },
                     style = PaceDreamTypography.Headline,
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
@@ -482,16 +521,17 @@ private fun SearchResultCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                item.location?.let {
+                item.location?.takeIf { it.isNotBlank() }?.let {
                     Text(it, style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary, maxLines = 1)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    val price = item.priceText?.takeIf { it.isNotBlank() }
                     Text(
-                        text = item.priceText ?: "",
+                        text = price ?: "Price unavailable",
                         style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.Bold,
+                        color = if (price != null) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                        fontWeight = if (price != null) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.weight(1f)
                     )
                     item.rating?.let { r ->

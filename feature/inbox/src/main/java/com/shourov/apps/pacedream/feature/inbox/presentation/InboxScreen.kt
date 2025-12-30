@@ -1,5 +1,10 @@
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,6 +40,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -41,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +62,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.components.PaceDreamEmptyState
+import com.pacedream.common.composables.components.PaceDreamErrorState
+import com.pacedream.common.composables.components.PaceDreamLoadingState
+import com.pacedream.common.composables.shimmerEffect
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -71,6 +86,7 @@ fun InboxScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val loadMoreRequestedForSize = remember { mutableIntStateOf(-1) }
     
     // Handle navigation
     LaunchedEffect(Unit) {
@@ -126,18 +142,39 @@ fun InboxScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when (val state = uiState) {
-                is InboxUiState.Loading -> LoadingState()
-                is InboxUiState.Success -> SuccessState(
-                    state = state,
-                    onEvent = viewModel::onEvent
-                )
-                is InboxUiState.Error -> ErrorState(
-                    message = state.message,
-                    onRetry = { viewModel.onEvent(InboxEvent.Refresh) }
-                )
-                is InboxUiState.Empty -> EmptyState()
-                is InboxUiState.RequiresAuth -> RequiresAuthState(onSignIn = onShowAuthSheet)
+            AnimatedContent(
+                targetState = uiState,
+                transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                label = "inbox_state"
+            ) { state ->
+                when (state) {
+                    is InboxUiState.Loading -> InboxSkeletonList()
+                    is InboxUiState.Success -> SuccessState(
+                        state = state,
+                        onEvent = viewModel::onEvent,
+                        loadMoreRequestedForSize = loadMoreRequestedForSize
+                    )
+                    is InboxUiState.Error -> PaceDreamErrorState(
+                        title = "Couldn't load messages",
+                        description = state.message,
+                        onRetryClick = { viewModel.onEvent(InboxEvent.Refresh) },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    is InboxUiState.Empty -> PaceDreamEmptyState(
+                        title = "No messages yet",
+                        description = "Start a conversation with hosts or guests",
+                        icon = Icons.Default.Message,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    is InboxUiState.RequiresAuth -> PaceDreamEmptyState(
+                        title = "Sign in to view messages",
+                        description = "Connect with hosts and guests",
+                        icon = Icons.Default.Lock,
+                        actionText = "Sign In",
+                        onActionClick = onShowAuthSheet,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -147,7 +184,8 @@ fun InboxScreen(
 @Composable
 private fun SuccessState(
     state: InboxUiState.Success,
-    onEvent: (InboxEvent) -> Unit
+    onEvent: (InboxEvent) -> Unit,
+    loadMoreRequestedForSize: androidx.compose.runtime.MutableIntState
 ) {
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -176,10 +214,55 @@ private fun SuccessState(
                     items = state.threads,
                     key = { it.id }
                 ) { thread ->
-                    ThreadCard(
-                        thread = thread,
-                        onClick = { onEvent(InboxEvent.ThreadClicked(thread)) }
+                    val dismissState = rememberSwipeToDismissBoxState(
+                        confirmValueChange = { value ->
+                            if (value == SwipeToDismissBoxValue.EndToStart) {
+                                onEvent(InboxEvent.ArchiveThread(thread))
+                                true
+                            } else {
+                                false
+                            }
+                        }
                     )
+
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        enableDismissFromStartToEnd = false,
+                        enableDismissFromEndToStart = true,
+                        backgroundContent = {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                    .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
+                                    .padding(horizontal = PaceDreamSpacing.MD),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                                ) {
+                                    Text(
+                                        text = "Archive",
+                                        style = PaceDreamTypography.Callout,
+                                        color = PaceDreamColors.TextPrimary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.Archive,
+                                        contentDescription = null,
+                                        tint = PaceDreamColors.TextPrimary
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        ThreadCard(
+                            thread = thread,
+                            onClick = { onEvent(InboxEvent.ThreadClicked(thread)) },
+                            modifier = Modifier.animateItemPlacement()
+                        )
+                    }
                 }
                 
                 // Load more indicator
@@ -197,8 +280,12 @@ private fun SuccessState(
                             )
                         }
                         
-                        LaunchedEffect(Unit) {
-                            onEvent(InboxEvent.LoadMore)
+                        // Trigger pagination only once per list-size to avoid event spam.
+                        LaunchedEffect(state.threads.size) {
+                            if (loadMoreRequestedForSize.intValue != state.threads.size) {
+                                loadMoreRequestedForSize.intValue = state.threads.size
+                                onEvent(InboxEvent.LoadMore)
+                            }
                         }
                     }
                 }
@@ -265,10 +352,11 @@ private fun ModeToggleRow(
 @Composable
 private fun ThreadCard(
     thread: Thread,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -388,108 +476,58 @@ private fun ThreadCard(
 }
 
 @Composable
-private fun LoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(color = PaceDreamColors.Primary)
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Message,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Text(
-                text = "No messages yet",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                text = "Start a conversation with hosts or guests",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
-            )
-        }
-    }
-}
-
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetry: () -> Unit
+private fun InboxSkeletonList(
+    modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = Modifier
+    LazyColumn(
+        modifier = modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
-        contentAlignment = Alignment.Center
+            .navigationBarsPadding(),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = message,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.Error
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Button(
-                onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
+        items(8) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(86.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Text("Retry")
-            }
-        }
-    }
-}
-
-@Composable
-private fun RequiresAuthState(onSignIn: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Text(
-                text = "Sign in to view messages",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                text = "Connect with hosts and guests",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            Button(
-                onClick = onSignIn,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                modifier = Modifier.fillMaxWidth(0.6f)
-            ) {
-                Text("Sign In", style = PaceDreamTypography.Headline)
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(PaceDreamSpacing.MD),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(PaceDreamColors.Border.copy(alpha = 0.35f))
+                            .shimmerEffect()
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.55f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(PaceDreamColors.Border.copy(alpha = 0.35f))
+                                .shimmerEffect()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(PaceDreamColors.Border.copy(alpha = 0.25f))
+                                .shimmerEffect()
+                        )
+                    }
+                }
             }
         }
     }

@@ -1,5 +1,12 @@
 package com.shourov.apps.pacedream.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -198,6 +205,50 @@ fun NavGraphBuilder.DashboardNavigation(
                             navController = navController,
                             startDestination = DashboardDestination.HOME.name,
                             modifier = Modifier.padding(bottom = bottomPadding),
+                            enterTransition = {
+                                fadeIn(
+                                    animationSpec = tween(
+                                        250,
+                                        easing = LinearEasing,
+                                    ),
+                                ) + slideIntoContainer(
+                                    animationSpec = tween(250, easing = EaseIn),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                )
+                            },
+                            exitTransition = {
+                                fadeOut(
+                                    animationSpec = tween(
+                                        200,
+                                        easing = LinearEasing,
+                                    ),
+                                ) + slideOutOfContainer(
+                                    animationSpec = tween(200, easing = EaseOut),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                )
+                            },
+                            popEnterTransition = {
+                                fadeIn(
+                                    animationSpec = tween(
+                                        250,
+                                        easing = LinearEasing,
+                                    ),
+                                ) + slideIntoContainer(
+                                    animationSpec = tween(250, easing = EaseIn),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                )
+                            },
+                            popExitTransition = {
+                                fadeOut(
+                                    animationSpec = tween(
+                                        200,
+                                        easing = LinearEasing,
+                                    ),
+                                ) + slideOutOfContainer(
+                                    animationSpec = tween(200, easing = EaseOut),
+                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                )
+                            },
                         ) {
                             navigation(
                                 startDestination = "home_root",

@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,14 +45,11 @@ fun AppBottomNavigation(
 ) {
 
     NavigationBar(
-        windowInsets = WindowInsets(
-            top = 0.dp,
-            bottom = 0.dp,
-            left = 0.dp,
-            right = 0.dp,
-        ),
+        // Respect system navigation bar insets for gesture/3-button navigation.
+        windowInsets = NavigationBarDefaults.windowInsets,
         modifier = Modifier
             .fillMaxWidth()
+            // Keep a comfortable tap target without forcing a fixed height that can clash with insets.
             .height(80.dp),
         containerColor = PaceDreamColors.Background,
         tonalElevation = 8.dp
