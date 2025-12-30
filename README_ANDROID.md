@@ -273,6 +273,8 @@ Proprietary - PaceDream Inc.
 
 ## Cursor Prompt Addendum — AuthFlowSheet “Exact iOS Parity” Details
 
+The canonical, copy/paste ready Cursor prompt lives in `CURSOR_ANDROID_PROMPT.md`.
+
 ### Add this to the end of the Android Cursor prompt (more “exact iOS parity” details)
 
 #### Visual + layout parity (match iOS `AuthFlowSheet`)
