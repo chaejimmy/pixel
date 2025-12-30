@@ -617,8 +617,6 @@ fun NavGraphBuilder.DashboardNavigation(
             }
         }
     }
-}
-
 fun navigateToTab(
     navController: NavController,
     route: String,

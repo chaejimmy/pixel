@@ -137,7 +137,7 @@ class HomeFeedViewModel @Inject constructor(
                             ).let { if (keep) it else it }
                         }
                     }
-                )
+                }
             )
         }
     }
