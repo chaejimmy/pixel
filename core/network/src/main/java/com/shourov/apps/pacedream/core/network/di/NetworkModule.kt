@@ -9,7 +9,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
@@ -20,17 +19,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     
-    @OptIn(ExperimentalSerializationApi::class)
-    @Provides
-    @Singleton
-    fun provideJson(): Json = Json {
-        explicitNulls = false
-        ignoreUnknownKeys = true
-        isLenient = true
-        coerceInputValues = true
-        prettyPrint = false
-        encodeDefaults = true
-    }
+    // Note: Json is provided by ApiModule.providesNetworkJson()
     
     @Provides
     @Singleton

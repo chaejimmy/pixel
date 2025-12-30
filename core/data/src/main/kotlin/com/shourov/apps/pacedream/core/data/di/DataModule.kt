@@ -16,41 +16,19 @@
 
 package com.shourov.apps.pacedream.core.data.di
 
-import com.shourov.apps.pacedream.core.data.repository.BookingRepository
-import com.shourov.apps.pacedream.core.data.repository.MessageRepository
-import com.shourov.apps.pacedream.core.data.repository.PaceDreamRepository
-import com.shourov.apps.pacedream.core.data.repository.PropertyRepository
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
+/**
+ * Data module for Hilt dependency injection.
+ * 
+ * Note: Repositories (BookingRepository, PropertyRepository, MessageRepository, 
+ * PaceDreamRepository) are injectable via their @Inject constructors and don't
+ * need explicit @Provides methods here.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
-
-    @Provides
-    @Singleton
-    fun providePropertyRepository(
-        propertyRepository: PropertyRepository
-    ): PropertyRepository = propertyRepository
-
-    @Provides
-    @Singleton
-    fun provideBookingRepository(
-        bookingRepository: BookingRepository
-    ): BookingRepository = bookingRepository
-
-    @Provides
-    @Singleton
-    fun provideMessageRepository(
-        messageRepository: MessageRepository
-    ): MessageRepository = messageRepository
-
-    @Provides
-    @Singleton
-    fun providePaceDreamRepository(
-        paceDreamRepository: PaceDreamRepository
-    ): PaceDreamRepository = paceDreamRepository
+    // Repositories are auto-provided via @Inject constructors
 }

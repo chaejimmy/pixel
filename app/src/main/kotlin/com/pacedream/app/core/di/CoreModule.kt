@@ -17,16 +17,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object CoreModule {
     
-    @Provides
-    @Singleton
-    fun provideJson(): Json {
-        return Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-            encodeDefaults = true
-        }
-    }
+    // Note: Json is provided by ApiModule.providesNetworkJson()
     
     @Provides
     @Singleton
