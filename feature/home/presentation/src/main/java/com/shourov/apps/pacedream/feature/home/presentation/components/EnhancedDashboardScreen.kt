@@ -18,8 +18,6 @@ package com.shourov.apps.pacedream.feature.home.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -81,7 +79,6 @@ fun EnhancedDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(PaceDreamColors.Background)
-                .verticalScroll(rememberScrollState())
         ) {
             // Enhanced Header
             EnhancedDashboardHeader(
@@ -92,6 +89,8 @@ fun EnhancedDashboardScreen(
             )
             
             // Enhanced Content with Split Stays
+            // IMPORTANT: This must be measured with bounded height; do NOT wrap LazyColumn in
+            // a parent verticalScroll() as it will crash with infinite height constraints.
             EnhancedDashboardContent(
                 roomsState = roomsState,
                 gearsState = gearsState,
@@ -101,7 +100,10 @@ fun EnhancedDashboardScreen(
                 onSplitStaysRetry = onSplitStaysRetry,
                 onPropertyClick = onPropertyClick,
                 onCategoryClick = onCategoryClick,
-                onViewAllClick = onViewAllClick
+                onViewAllClick = onViewAllClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             )
         }
         
