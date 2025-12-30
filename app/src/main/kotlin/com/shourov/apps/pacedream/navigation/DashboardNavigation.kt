@@ -54,6 +54,7 @@ import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledS
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
 
+@OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.DashboardNavigation(
     hostModeManager: com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 ) {
