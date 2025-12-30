@@ -152,6 +152,7 @@ class HomeFeedRepository @Inject constructor(
                             v["items"]?.let { if (it is JsonArray) return it }
                             v["data"]?.let { if (it is JsonArray) return it }
                         }
+                        else -> Unit
                     }
                 }
                 // deep scan

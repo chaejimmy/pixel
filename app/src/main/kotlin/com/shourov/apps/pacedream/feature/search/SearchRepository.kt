@@ -230,6 +230,7 @@ class SearchRepository @Inject constructor(
                     found["listings"]?.let { if (it is JsonArray) return it }
                     found["data"]?.let { if (it is JsonArray) return it }
                 }
+                else -> Unit
             }
         }
         return null
