@@ -171,12 +171,15 @@ fun PropertyDetailScreen(
         val rating = detail?.rating ?: preview?.rating
         val images = detail?.imageUrls?.takeIf { it.isNotEmpty() } ?: listOfNotNull(preview?.imageUrl)
 
-        androidx.compose.foundation.lazy.LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 120.dp)
+                .padding(padding)
         ) {
+            androidx.compose.foundation.lazy.LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 120.dp)
+            ) {
             item {
                 HeroGallery(
                     title = title,
@@ -379,45 +382,46 @@ fun PropertyDetailScreen(
             }
         }
 
-        // Sticky bottom booking bar (iOS-like)
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(PaceDreamSpacing.LG),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
-        ) {
-            Row(
+            // Sticky bottom booking bar (iOS-like)
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
                     .padding(PaceDreamSpacing.LG),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
             ) {
-                Column {
-                    Text(
-                        text = priceText ?: "Select time",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = if (priceText != null) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        "Taxes shown at checkout",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        if (authState == AuthState.Unauthenticated) onShowAuthSheet() else onBookClick()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(PaceDreamSpacing.LG),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(if (priceText != null) "Reserve" else "Select time", fontWeight = FontWeight.Bold)
+                    Column {
+                        Text(
+                            text = priceText ?: "Select time",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (priceText != null) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            "Taxes shown at checkout",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            if (authState == AuthState.Unauthenticated) onShowAuthSheet() else onBookClick()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
+                    ) {
+                        Text(if (priceText != null) "Reserve" else "Select time", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -449,7 +453,12 @@ private fun ChipPill(text: String) {
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = text, style = PaceDreamTypography.Caption, color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

@@ -29,7 +29,11 @@ class PropertyDetailRepository @Inject constructor(
         return when (val res = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 val parsed = parse(res.data)
-                if (parsed != null) ApiResult.Success(parsed) else ApiResult.Failure(ApiError.DecodingError)
+                if (parsed != null) {
+                    ApiResult.Success(parsed)
+                } else {
+                    ApiResult.Failure(ApiError.DecodingError("Failed to parse listing detail response."))
+                }
             }
             is ApiResult.Failure -> res
         }
