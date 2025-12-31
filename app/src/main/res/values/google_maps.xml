@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Google Maps API key used by the Listing Detail screen map preview.
+
+      Keep this empty in source control; supply it per-environment (e.g. via CI, local overrides,
+      or productFlavors) as needed.
+    -->
+    <string name="google_maps_key"></string>
+</resources>
+

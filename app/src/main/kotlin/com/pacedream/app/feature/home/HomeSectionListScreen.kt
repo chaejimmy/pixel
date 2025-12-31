@@ -33,7 +33,7 @@ fun HomeSectionListScreen(
     sectionType: String,
     viewModel: HomeSectionListViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
-    onListingClick: (String) -> Unit
+    onListingClick: (HomeListingItem) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -106,7 +106,7 @@ fun HomeSectionListScreen(
                         items(uiState.items) { item ->
                             ListingGridCard(
                                 item = item,
-                                onClick = { onListingClick(item.id) }
+                                onClick = { onListingClick(item) }
                             )
                         }
                     }
