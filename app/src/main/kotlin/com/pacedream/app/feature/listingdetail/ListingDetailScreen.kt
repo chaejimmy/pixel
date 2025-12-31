@@ -323,6 +323,7 @@ private fun ReserveSheet(
     var startTime by remember { mutableStateOf<LocalTime?>(null) }
     var endTime by remember { mutableStateOf<LocalTime?>(null) }
     var guests by remember { mutableStateOf(1) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     BottomSheetHeader(title = "Reserve", onClose = onClose)
 
@@ -341,7 +342,7 @@ private fun ReserveSheet(
                 onClick = {
                     val now = startTime ?: LocalTime.of(9, 0)
                     val picker = android.app.TimePickerDialog(
-                        /* context = */ androidx.compose.ui.platform.LocalContext.current,
+                        /* context = */ context,
                         /* listener = */ { _, h, m -> startTime = LocalTime.of(h, m) },
                         /* hourOfDay = */ now.hour,
                         /* minute = */ now.minute,
@@ -357,7 +358,7 @@ private fun ReserveSheet(
                 onClick = {
                     val now = endTime ?: LocalTime.of(10, 0)
                     val picker = android.app.TimePickerDialog(
-                        /* context = */ androidx.compose.ui.platform.LocalContext.current,
+                        /* context = */ context,
                         /* listener = */ { _, h, m -> endTime = LocalTime.of(h, m) },
                         /* hourOfDay = */ now.hour,
                         /* minute = */ now.minute,
