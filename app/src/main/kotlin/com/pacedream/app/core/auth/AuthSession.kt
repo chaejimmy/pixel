@@ -367,7 +367,7 @@ class SessionManager @Inject constructor(
     private fun extractStringByPaths(root: JsonElement, paths: List<List<String>>): String? {
         for (path in paths) {
             val value = root.navigate(path)
-            // Avoid `jsonPrimitive` throwing if this path points to a non-primitive (tolerant parsing).
+            // Avoid `jsonPrimitive` throwing    if this path points to a non-primitive (tolerant parsing).
             val text = (value as? JsonPrimitive)?.content
             if (!text.isNullOrBlank()) return text
         }
