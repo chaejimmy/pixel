@@ -1,1 +1,0 @@
-com.shourov.apps.pacedream.core.datastore.proto
