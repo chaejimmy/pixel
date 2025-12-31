@@ -33,18 +33,42 @@ class HomeFeedRepository @Inject constructor(
         page1: Int,
         limit: Int
     ): ApiResult<List<HomeCard>> {
-        val backendUrl = appConfig.buildApiUrlWithQuery(
-            "listings",
-            queryParams = mapOf(
-                "page" to page1.toString(),
-                "limit" to limit.toString(),
-                "shareType" to shareType
-            )
+        fun backendUrl(params: Map<String, String?>): HttpUrl =
+            appConfig.buildApiUrlWithQuery("listings", queryParams = params)
+
+        suspend fun tryBackend(params: Map<String, String?>): ApiResult<List<HomeCard>> {
+            val url = backendUrl(params)
+            Timber.d("HomeFeed listings: ${url} (params=$params)")
+            val res = apiClient.get(url, includeAuth = true)
+            return when (res) {
+                is ApiResult.Success -> ApiResult.Success(parseListingsToCards(res.data))
+                is ApiResult.Failure -> res
+            }
+        }
+
+        // Backend attempts (param-name + value normalization + optional status)
+        val attempts = listOf(
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType),
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType),
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType.lowercase()),
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType.lowercase()),
+            // Some backends require status=published
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType, "status" to "published"),
+            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType, "status" to "published"),
         )
 
-        val backend = apiClient.get(backendUrl, includeAuth = false)
-        if (backend is ApiResult.Success) {
-            return ApiResult.Success(parseListingsToCards(backend.data))
+        var lastFailure: ApiResult.Failure? = null
+        for (params in attempts) {
+            when (val tried = tryBackend(params)) {
+                is ApiResult.Success -> if (tried.data.isNotEmpty()) return tried
+                is ApiResult.Failure -> lastFailure = tried
+            }
+        }
+
+        // Last backend attempt: no filters (at least show something)
+        when (val unfiltered = tryBackend(mapOf("page" to page1.toString(), "limit" to limit.toString()))) {
+            is ApiResult.Success -> if (unfiltered.data.isNotEmpty()) return unfiltered
+            is ApiResult.Failure -> lastFailure = unfiltered
         }
 
         // Fallback only if backend fails
@@ -56,10 +80,15 @@ class HomeFeedRepository @Inject constructor(
             .addQueryParameter("skip_pagination", "true")
             .build()
 
+        Timber.w("HomeFeed listings backend empty/failing, trying frontend proxy fallback: ${fallbackUrl}")
         val fallback = apiClient.get(fallbackUrl, includeAuth = false)
         return when (fallback) {
-            is ApiResult.Success -> ApiResult.Success(parseListingsToCards(fallback.data))
-            is ApiResult.Failure -> fallback
+            is ApiResult.Success -> {
+                val cards = parseListingsToCards(fallback.data)
+                if (cards.isNotEmpty()) ApiResult.Success(cards)
+                else ApiResult.Failure(ApiError.DecodingError("No listings returned for $shareType (backend + proxy empty)."))
+            }
+            is ApiResult.Failure -> lastFailure ?: fallback
         }
     }
 
@@ -78,15 +107,12 @@ class HomeFeedRepository @Inject constructor(
             if (cards.isNotEmpty()) return ApiResult.Success(cards)
         }
 
-        val fallbackUrl = appConfig.buildApiUrlWithQuery(
-            "rooms", "search",
-            queryParams = mapOf("limit" to limit.toString())
+        // Backend mismatch safety: if time_based isn't supported, fall back to standard listings for USE.
+        return getListingsShareTypePage(
+            shareType = "USE",
+            page1 = 1,
+            limit = limit
         )
-        val fallback = apiClient.get(fallbackUrl, includeAuth = false)
-        return when (fallback) {
-            is ApiResult.Success -> ApiResult.Success(parseListingsToCards(fallback.data))
-            is ApiResult.Failure -> fallback
-        }
     }
 
     /**
