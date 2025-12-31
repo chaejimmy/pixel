@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class PropertyDetailViewModel @Inject constructor(
     private val authSession: AuthSession,
     private val wishlistRepository: WishlistRepository,
+    private val detailRepository: PropertyDetailRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -29,6 +31,9 @@ class PropertyDetailViewModel @Inject constructor(
 
     private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
+
+    private val _uiState = MutableStateFlow(PropertyDetailUiState(isLoading = true))
+    val uiState: StateFlow<PropertyDetailUiState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -46,6 +51,9 @@ class PropertyDetailViewModel @Inject constructor(
                 if (authSession.authState.value != AuthState.Unauthenticated) refreshFavorites()
             }
         }
+
+        // Load listing detail
+        refreshDetail()
     }
 
     fun isFavorited(): Boolean = listingId.isNotBlank() && _favoriteIds.value.contains(listingId)
@@ -57,6 +65,26 @@ class PropertyDetailViewModel @Inject constructor(
                     res.data.map { it.listingId.ifBlank { it.id } }.toSet()
                 is ApiResult.Failure -> {
                     if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
+                }
+            }
+        }
+    }
+
+    fun refreshDetail() {
+        if (listingId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = it.detail == null, errorMessage = null, inlineErrorMessage = null) }
+            when (val res = detailRepository.getListingDetail(listingId)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false, detail = res.data, errorMessage = null, inlineErrorMessage = null) }
+                }
+                is ApiResult.Failure -> {
+                    val hasCached = _uiState.value.detail != null
+                    if (hasCached) {
+                        _uiState.update { it.copy(isLoading = false, inlineErrorMessage = res.error.message ?: "Failed to load") }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = res.error.message ?: "Failed to load") }
+                    }
                 }
             }
         }
