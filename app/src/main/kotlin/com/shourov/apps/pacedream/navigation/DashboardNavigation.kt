@@ -92,7 +92,7 @@ fun NavGraphBuilder.DashboardNavigation(
                     }
                 }
 
-                // iOS-parity tabs: Home, Search, Favorites (Wishlist), Inbox, Profile
+                // Tab order (matches requested): Home, Favorites, Bookings, Messages, Profile
                 val bottomNavigationItems = remember(inboxUnread) {
                     listOf(
                     BottomNavigationItem(
@@ -100,16 +100,16 @@ fun NavGraphBuilder.DashboardNavigation(
                             text = com.shourov.apps.pacedream.R.string.home,
                     ),
                     BottomNavigationItem(
-                            icon = com.shourov.apps.pacedream.R.drawable.ic_search,
-                            text = com.shourov.apps.pacedream.R.string.search,
-                    ),
-                    BottomNavigationItem(
                             icon = com.shourov.apps.pacedream.R.drawable.ic_favorite,
                             text = com.shourov.apps.pacedream.R.string.favorites,
                     ),
                     BottomNavigationItem(
+                            icon = com.shourov.apps.pacedream.R.drawable.ic_booking,
+                            text = com.shourov.apps.pacedream.R.string.bookings,
+                    ),
+                    BottomNavigationItem(
                             icon = com.shourov.apps.pacedream.R.drawable.ic_notifications,
-                            text = com.shourov.apps.pacedream.R.string.inbox,
+                            text = com.shourov.apps.pacedream.R.string.messages,
                             badgeCount = inboxUnread
                     ),
                     BottomNavigationItem(
@@ -129,10 +129,12 @@ fun NavGraphBuilder.DashboardNavigation(
                         val destination = backStackState?.destination ?: return@remember false
                         destination.hierarchy.any { d ->
                             d.route == DashboardDestination.HOME.name ||
-                                d.route == DashboardDestination.SEARCH.name ||
                                 d.route == DashboardDestination.FAVORITES.name ||
+                                d.route == DashboardDestination.BOOKINGS.name ||
                                 d.route == DashboardDestination.INBOX.name ||
-                                d.route == DashboardDestination.PROFILE.name
+                                d.route == DashboardDestination.PROFILE.name ||
+                                // Keep the bottom bar visible for Search even though it's not a tab.
+                                d.route == DashboardDestination.SEARCH.name
                         }
                     }
 
@@ -140,10 +142,12 @@ fun NavGraphBuilder.DashboardNavigation(
                         val destination = backStackState?.destination
                         when {
                             destination?.hierarchy?.any { it.route == DashboardDestination.HOME.name } == true -> 0
-                            destination?.hierarchy?.any { it.route == DashboardDestination.SEARCH.name } == true -> 1
-                            destination?.hierarchy?.any { it.route == DashboardDestination.FAVORITES.name } == true -> 2
+                            destination?.hierarchy?.any { it.route == DashboardDestination.FAVORITES.name } == true -> 1
+                            destination?.hierarchy?.any { it.route == DashboardDestination.BOOKINGS.name } == true -> 2
                             destination?.hierarchy?.any { it.route == DashboardDestination.INBOX.name } == true -> 3
                             destination?.hierarchy?.any { it.route == DashboardDestination.PROFILE.name } == true -> 4
+                            // Search is launched from the Home header; keep Home highlighted.
+                            destination?.hierarchy?.any { it.route == DashboardDestination.SEARCH.name } == true -> 0
                             else -> 0
                         }
                     }
@@ -167,14 +171,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                             1 -> {
                                                 navigateToTab(
                                                     navController,
-                                                    DashboardDestination.SEARCH.name,
+                                                    DashboardDestination.FAVORITES.name,
                                                 )
                                             }
 
                                             2 -> {
                                                 navigateToTab(
                                                     navController,
-                                                    DashboardDestination.FAVORITES.name,
+                                                    DashboardDestination.BOOKINGS.name,
                                                 )
                                             }
 
@@ -318,6 +322,20 @@ fun NavGraphBuilder.DashboardNavigation(
                                             onSuccess = { showAuthSheet = false }
                                         )
                                     }
+                                }
+                            }
+
+                            // Bookings Tab (3rd)
+                            navigation(
+                                startDestination = "bookings_root",
+                                route = DashboardDestination.BOOKINGS.name
+                            ) {
+                                composable("bookings_root") {
+                                    BookingTabScreen(
+                                        onBookingClick = { bookingId ->
+                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                                        }
+                                    )
                                 }
                             }
                             
