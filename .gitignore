@@ -14,6 +14,10 @@ local.properties
 .gradle/
 **/.gradle/
 
+# Kotlin (K2 / compiler caches)
+.kotlin/
+**/.kotlin/
+
 # Build outputs
 build/
 **/build/
