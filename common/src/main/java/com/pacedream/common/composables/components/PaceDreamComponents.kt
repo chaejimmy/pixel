@@ -99,7 +99,10 @@ fun PaceDreamSearchBar(
             .height(PaceDreamSearchBar.Height)
             .clip(RoundedCornerShape(PaceDreamSearchBar.CornerRadius))
             .background(PaceDreamCard)
-            .padding(PaceDreamSearchBar.Padding),
+            .padding(
+                horizontal = PaceDreamSearchBar.HorizontalPadding,
+                vertical = PaceDreamSearchBar.Padding
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -117,7 +120,8 @@ fun PaceDreamSearchBar(
             placeholder = { 
                 Text(
                     text = placeholder,
-                    color = PaceDreamTextTertiary
+                    color = PaceDreamTextTertiary,
+                    style = PaceDreamTypography.Body
                 ) 
             },
             modifier = Modifier.weight(1f),
@@ -182,6 +186,8 @@ fun PaceDreamMetricCard(
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamTextPrimary
             )
+            
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             
             Text(
                 text = title,
@@ -581,12 +587,13 @@ fun PaceDreamEmptyState(
                 color = PaceDreamTextPrimary
             )
             
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             Text(
                 text = description,
                 style = PaceDreamTypography.Body,
-                color = PaceDreamTextSecondary
+                color = PaceDreamTextSecondary,
+                lineHeight = PaceDreamTypography.Body.lineHeight
             )
             
             actionText?.let { text ->
@@ -594,11 +601,12 @@ fun PaceDreamEmptyState(
                 
                 Button(
                     onClick = { onActionClick?.invoke() },
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
+                    modifier = Modifier.height(PaceDreamButtonHeight.MD)
                 ) {
                     Text(
                         text = text,
-                        style = PaceDreamTypography.Headline,
+                        style = PaceDreamTypography.Button,
                         color = Color.White
                     )
                 }
@@ -640,23 +648,25 @@ fun PaceDreamErrorState(
                 color = PaceDreamTextPrimary
             )
             
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             Text(
                 text = description,
                 style = PaceDreamTypography.Body,
-                color = PaceDreamTextSecondary
+                color = PaceDreamTextSecondary,
+                lineHeight = PaceDreamTypography.Body.lineHeight
             )
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             
             Button(
                 onClick = onRetryClick,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
+                modifier = Modifier.height(PaceDreamButtonHeight.MD)
             ) {
                 Text(
                     text = "Try Again",
-                    style = PaceDreamTypography.Headline,
+                    style = PaceDreamTypography.Button,
                     color = Color.White
                 )
             }

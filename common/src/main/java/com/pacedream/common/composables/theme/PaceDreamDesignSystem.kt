@@ -7,6 +7,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 
 /**
  * PaceDream Design System
@@ -62,14 +63,15 @@ object PaceDreamDesignSystemColors {
 }
 
 // Spacing System
+// Enhanced with modern spacing scale for better visual hierarchy
 object PaceDreamSpacing {
-    val XS = 4.dp
-    val SM = 8.dp
-    val MD = 16.dp
-    val LG = 24.dp
-    val XL = 32.dp
-    val XXL = 48.dp
-    val XXXL = 64.dp
+    val XS = 4.dp      // Minimal spacing (icons, tight elements)
+    val SM = 8.dp      // Small spacing (related elements)
+    val MD = 16.dp     // Medium spacing (standard padding)
+    val LG = 24.dp     // Large spacing (section separation)
+    val XL = 32.dp     // Extra large spacing (major sections)
+    val XXL = 48.dp    // Extra extra large (page margins)
+    val XXXL = 64.dp   // Maximum spacing (full page sections)
 }
 
 // Corner Radius System
@@ -84,44 +86,50 @@ object PaceDreamRadius {
 }
 
 // Icon Size System
+// Enhanced with modern icon sizing for better visibility and touch targets
 object PaceDreamIconSize {
-    val XS = 12.dp
-    val SM = 16.dp
-    val MD = 20.dp
-    val LG = 24.dp
-    val XL = 32.dp
-    val XXL = 48.dp
-    val XXXL = 64.dp
+    val XS = 14.dp   // Extra small icons (inline, compact)
+    val SM = 18.dp   // Small icons (list items, secondary)
+    val MD = 24.dp   // Medium icons (standard, recommended)
+    val LG = 28.dp   // Large icons (prominent, cards)
+    val XL = 36.dp   // Extra large (featured, hero)
+    val XXL = 48.dp  // Extra extra large (empty states)
+    val XXXL = 64.dp // Maximum (landing pages, illustrations)
 }
 
 // Component Dimensions
+// Enhanced with modern, professional sizing for better UX
 object PaceDreamSearchBar {
-    val Height = 56.dp
+    val Height = 56.dp  // Optimal touch target height
     val CornerRadius = PaceDreamRadius.MD
-    val Padding = PaceDreamSpacing.SM
+    val Padding = PaceDreamSpacing.SM  // Internal padding
+    val HorizontalPadding = PaceDreamSpacing.MD  // Horizontal padding for content
     val IconSize = PaceDreamIconSize.MD
 }
 
 object PaceDreamMetricCard {
-    val MinHeight = 120.dp
+    val MinHeight = 128.dp  // Increased for better visual balance
     val Elevation = 4.dp
     val CornerRadius = PaceDreamRadius.MD
-    val Padding = PaceDreamSpacing.MD
+    val Padding = PaddingValues(PaceDreamSpacing.MD)
     val IconSize = PaceDreamIconSize.LG
 }
 
 object PaceDreamCategoryPill {
-    val Height = 40.dp
+    val Height = 44.dp  // Better touch target (minimum 44dp recommended)
     val CornerRadius = PaceDreamRadius.Round
-    val Padding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
-    val IconSize = PaceDreamIconSize.SM
+    val Padding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
+    val IconSize = PaceDreamIconSize.MD  // Slightly larger for better visibility
 }
 
 object PaceDreamPropertyCard {
     val Elevation = 6.dp
     val CornerRadius = PaceDreamRadius.LG
-    val ImageHeight = 180.dp
-    val ContentPadding = PaddingValues(PaceDreamSpacing.MD)
+    val ImageHeight = 200.dp  // Increased for better image display
+    val ContentPadding = PaddingValues(
+        horizontal = PaceDreamSpacing.MD,
+        vertical = PaceDreamSpacing.MD
+    )
 }
 
 object PaceDreamDestinationCard {
@@ -133,10 +141,13 @@ object PaceDreamDestinationCard {
 }
 
 object PaceDreamRecentSearchItem {
-    val Height = 48.dp
+    val Height = 52.dp  // Better touch target
     val CornerRadius = PaceDreamRadius.MD
-    val Padding = PaddingValues(PaceDreamSpacing.MD)
-    val IconSize = PaceDreamIconSize.SM
+    val Padding = PaddingValues(
+        horizontal = PaceDreamSpacing.MD,
+        vertical = PaceDreamSpacing.MD
+    )
+    val IconSize = PaceDreamIconSize.MD  // Better visibility
 }
 
 object PaceDreamEmptyState {
@@ -155,71 +166,83 @@ object PaceDreamLoadingState {
 }
 
 // Typography System
+// Enhanced with modern, professional typography with proper letter spacing and line heights
 object PaceDreamTypography {
     val LargeTitle = TextStyle(
-        fontSize = 34.sp,
+        fontSize = 36.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 40.sp
+        lineHeight = 44.sp,
+        letterSpacing = (-0.02).em
     )
     
     val Title1 = TextStyle(
-        fontSize = 28.sp,
+        fontSize = 30.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 34.sp
+        lineHeight = 38.sp,
+        letterSpacing = (-0.01).em
     )
     
     val Title2 = TextStyle(
-        fontSize = 22.sp,
+        fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 28.sp
+        lineHeight = 32.sp,
+        letterSpacing = 0.em
     )
     
     val Title3 = TextStyle(
         fontSize = 20.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 24.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.01.em
     )
     
     val Headline = TextStyle(
-        fontSize = 17.sp,
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 22.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     )
     
     val Body = TextStyle(
         fontSize = 17.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 22.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.01.em
     )
     
     val Callout = TextStyle(
         fontSize = 16.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 20.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     )
     
     val CalloutBold = TextStyle(
         fontSize = 16.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 20.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     )
     
     val Subheadline = TextStyle(
         fontSize = 15.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 20.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.01.em
     )
     
     val Caption = TextStyle(
-        fontSize = 12.sp,
+        fontSize = 13.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 16.sp
+        lineHeight = 18.sp,
+        letterSpacing = 0.01.em
     )
     
     val Button = TextStyle(
         fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 20.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.02.em
     )
 }
 
@@ -235,11 +258,12 @@ object PaceDreamElevation {
 }
 
 // Button Heights
+// Enhanced with modern touch target sizes (minimum 44dp for accessibility)
 object PaceDreamButtonHeight {
-    val SM = 32.dp
-    val MD = 40.dp
-    val LG = 48.dp
-    val XL = 56.dp
+    val SM = 36.dp   // Small buttons (compact UI)
+    val MD = 48.dp   // Standard buttons (recommended minimum)
+    val LG = 56.dp   // Large buttons (primary actions)
+    val XL = 64.dp   // Extra large (hero buttons)
 }
 
 // Animation Durations
