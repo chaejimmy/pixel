@@ -12,9 +12,13 @@ import com.shourov.apps.pacedream.core.data.UserAuthPath
 import com.shourov.apps.pacedream.core.data.UserAuthPath.EXISTING
 import com.shourov.apps.pacedream.core.data.UserAuthPath.NEW
 import com.shourov.apps.pacedream.home.HomeScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.shourov.apps.pacedream.signin.OnBoardingScreen
 import com.shourov.apps.pacedream.signin.StartWithEmailScreen
 import com.shourov.apps.pacedream.signin.StartWithPhoneScreen
+import com.shourov.apps.pacedream.signin.screens.otp.OtpVerificationScreen
+import com.shourov.apps.pacedream.signin.screens.otp.PhoneEntryScreen
 import com.shourov.apps.pacedream.signin.setup.SetupScreen
 
 const val ONBOARDING_ROUTE = "onboarding_route"
@@ -22,6 +26,8 @@ const val START_WITH_EMAIL_ROUTE = "start_with_email_route"
 const val START_SIGN_IN_WITH_PHONE_ROUTE = "sign_in_route"
 const val CREATE_ACCOUNT_ROUTE = "create_account_route"
 const val HOME_ROUTE = "home_route"
+const val OTP_PHONE_ENTRY_ROUTE = "otp_phone_entry_route"
+const val OTP_VERIFICATION_ROUTE = "otp_verification_route/{phoneNumber}"
 
 const val DASHBOARD_ROUTE = "dashboard_route"
 
@@ -132,5 +138,45 @@ fun NavGraphBuilder.userOnBoardingScreen(
         route = HOME_ROUTE,
     ) {
         HomeScreen()
+    }
+    
+    composable(
+        route = OTP_PHONE_ENTRY_ROUTE,
+    ) {
+        PhoneEntryScreen(
+            onOTPSent = { phoneNumber ->
+                val encodedPhone = java.net.URLEncoder.encode(phoneNumber, "UTF-8")
+                navController.navigate("otp_verification_route/$encodedPhone")
+            },
+            onNavigateToEmail = {
+                onNavigateToSignInWithEmail()
+            },
+            onNavigateToGoogle = {
+                // TODO: Implement Google login
+            }
+        )
+    }
+    
+    composable(
+        route = OTP_VERIFICATION_ROUTE,
+        arguments = listOf(
+            navArgument("phoneNumber") { type = NavType.StringType }
+        )
+    ) { backStackEntry ->
+        val encodedPhone = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+        val phoneNumber = java.net.URLDecoder.decode(encodedPhone, "UTF-8")
+        OtpVerificationScreen(
+            phoneNumber = phoneNumber,
+            onLoginSuccess = { userData ->
+                if (userData.incompleteProfile == true) {
+                    onNavigateToAccountSetup()
+                } else {
+                    onNavigateToAccountSetup() // Navigate to home/account setup
+                }
+            },
+            onBackToPhone = {
+                navController.popBackStack()
+            }
+        )
     }
 }

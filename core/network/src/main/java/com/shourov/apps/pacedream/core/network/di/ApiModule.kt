@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.shourov.apps.pacedream.core.network.BuildConfig
 import com.shourov.apps.pacedream.core.network.PaceDreamNetworkRepositoryImpl
 import com.shourov.apps.pacedream.core.network.RetrofitPaceDreamApiService
+import com.shourov.apps.pacedream.core.network.services.OtpService
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import dagger.Module
 import dagger.Provides
@@ -77,6 +78,11 @@ object ApiModule {
     @Provides
     fun providesPaceDreamApiService(retrofit: Retrofit): PaceDreamApiService =
         retrofit.create(PaceDreamApiService::class.java)
+
+    @Singleton
+    @Provides
+    fun providesOtpService(retrofit: Retrofit): OtpService =
+        retrofit.create(OtpService::class.java)
 
     @Singleton
     @Provides
