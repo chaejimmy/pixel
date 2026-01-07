@@ -6,8 +6,10 @@
     <string name="search">Search</string>
     <string name="favorites">Favorites</string>
     <string name="booking">Booking</string>
+    <string name="bookings">Bookings</string>
     <string name="post">Post</string>
     <string name="inbox">Inbox</string>
+    <string name="messages">Messages</string>
     <string name="profile">Profile</string>
     <string name="not_connected">You are not connected to the internet</string>
 </resources>

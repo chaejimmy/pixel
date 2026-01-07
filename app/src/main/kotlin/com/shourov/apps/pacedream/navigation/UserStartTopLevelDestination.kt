@@ -11,6 +11,7 @@ enum class DashboardDestination {
     HOME,
     SEARCH,
     FAVORITES,  // Wishlist - matches iOS "Favorites" tab
+    BOOKINGS,   // Bookings tab (calendar)
     INBOX,
     PROFILE
 }
