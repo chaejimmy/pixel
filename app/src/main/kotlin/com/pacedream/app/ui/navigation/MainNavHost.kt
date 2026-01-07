@@ -140,6 +140,18 @@ fun MainNavHost(
                             }
                             val listingId = item.id
                             navController.navigate(NavRoutes.listingDetail(listingId))
+                        },
+                        onSearchClick = {
+                            navController.navigate(NavRoutes.SEARCH)
+                        },
+                        onCategoryClick = { categoryName ->
+                            // Navigate to search with category filter
+                            navController.navigate("${NavRoutes.SEARCH}?category=$categoryName")
+                        },
+                        onCategoryFilterClick = { categoryFilter ->
+                            // Filter listings by category (could update view model state)
+                            // For now, navigate to search with filter
+                            navController.navigate("${NavRoutes.SEARCH}?filter=$categoryFilter")
                         }
                     )
                 }
