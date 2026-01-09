@@ -80,11 +80,12 @@ fun HomeScreen(
                 )
             }
             
-            // Categories Section
+            // Categories Section - Always visible
             item {
                 CategoriesSection(
                     onViewAllClick = { onSectionViewAll("categories") },
-                    onCategoryClick = onCategoryClick
+                    onCategoryClick = onCategoryClick,
+                    modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
             
@@ -347,10 +348,11 @@ private fun CategoryFilterButtons(
 @Composable
 private fun CategoriesSection(
     onViewAllClick: () -> Unit,
-    onCategoryClick: (String) -> Unit
+    onCategoryClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp)
     ) {
