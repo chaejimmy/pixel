@@ -36,7 +36,8 @@ fun ProfileScreen(
     onLoginClick: () -> Unit,
     onHostModeClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onHelpClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -86,6 +87,7 @@ fun ProfileScreen(
                 item {
                     ProfileMenuSection(
                         onSettingsClick = onSettingsClick,
+                        onHelpClick = onHelpClick,
                         onLogoutClick = { viewModel.logout() }
                     )
                 }
@@ -237,6 +239,7 @@ private fun HostModeCard(
 @Composable
 private fun ProfileMenuSection(
     onSettingsClick: () -> Unit,
+    onHelpClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     Card(
@@ -254,7 +257,7 @@ private fun ProfileMenuSection(
             ProfileMenuItem(
                 icon = Icons.AutoMirrored.Filled.Help,
                 title = "Help & Support",
-                onClick = { /* TODO */ }
+                onClick = onHelpClick
             )
             
             HorizontalDivider()

@@ -64,7 +64,8 @@ fun HomeScreen(
             item {
                 HeroSection(
                     onSearchClick = onSearchClick,
-                    onFilterClick = { /* TODO: Open filters */ }
+                    onFilterClick = { /* TODO: Open filters */ },
+                    heroImageUrl = uiState.heroImageUrl
                 )
             }
             
@@ -162,33 +163,36 @@ fun HomeScreen(
 @Composable
 private fun HeroSection(
     onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit
+    onFilterClick: () -> Unit,
+    heroImageUrl: String? = null
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(320.dp)
     ) {
-        // Background Image (placeholder - use actual image URL)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF1E88E5),
-                            Color(0xFF1976D2)
+        // Background Image - use actual image if provided, otherwise use gradient
+        if (heroImageUrl != null) {
+            AsyncImage(
+                model = heroImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Fallback gradient (can be replaced with actual hero image URL from API/config)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF1E88E5),
+                                Color(0xFF1976D2)
+                            )
                         )
                     )
-                )
-        ) {
-            // You can replace this with AsyncImage with actual hero image URL
-            // AsyncImage(
-            //     model = "https://example.com/hero-image.jpg",
-            //     contentDescription = null,
-            //     contentScale = ContentScale.Crop,
-            //     modifier = Modifier.fillMaxSize()
-            // )
+            )
         }
         
         // Dark overlay for better text readability
@@ -215,7 +219,7 @@ private fun HeroSection(
             // Hero Text
             Column {
                 Text(
-                    text = "Share it. Borrow it. Split it.",
+                    text = "One place to share it all",
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -223,10 +227,35 @@ private fun HeroSection(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "An all-in-one platform to share, book, and split what you need.",
+                    text = "Book, share, or split stays, time, and spaces—on one platform.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color.White.copy(alpha = 0.9f)
                 )
+                Spacer(modifier = Modifier.height(24.dp))
+                // Get to know PaceDream CTA Button
+                Button(
+                    onClick = { /* TODO: Navigate to about/onboarding */ },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF5527D7), // PaceDream Primary
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Get to know PaceDream",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
             
             // Search Bar
@@ -307,8 +336,12 @@ private fun CategoryFilterButtons(
         "Restroom" to Icons.Default.Wc,
         "Nap Pod" to Icons.Default.Bed,
         "Meeting Room" to Icons.Default.Business,
-        "Storage" to Icons.Default.Storage,
-        "Parking" to Icons.Default.LocalParking
+        "Study Room" to Icons.Default.School,
+        "Short Stay" to Icons.Default.Hotel,
+        "Apartment" to Icons.Default.Apartment,
+        "Luxury Room" to Icons.Default.Star,
+        "Parking" to Icons.Default.LocalParking,
+        "Storage Space" to Icons.Default.Storage
     )
     
     LazyRow(

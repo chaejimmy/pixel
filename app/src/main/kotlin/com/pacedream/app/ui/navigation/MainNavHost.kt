@@ -271,7 +271,17 @@ fun MainNavHost(
                         },
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
+                        },
+                        onHelpClick = {
+                            navController.navigate(NavRoutes.FAQ)
                         }
+                    )
+                }
+                
+                // FAQ Screen
+                composable(NavRoutes.FAQ) {
+                    com.pacedream.app.feature.faq.FAQScreen(
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
                 

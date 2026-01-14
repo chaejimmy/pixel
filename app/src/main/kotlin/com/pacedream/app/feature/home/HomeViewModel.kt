@@ -45,6 +45,12 @@ class HomeViewModel @Inject constructor(
     
     init {
         loadAllSections()
+        // Set default hero image URL (can be fetched from API/config later)
+        _uiState.update { 
+            it.copy(
+                heroImageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" // Default scenic image
+            )
+        }
     }
     
     fun refresh() {
@@ -266,7 +272,8 @@ data class HomeUiState(
     val splitStays: List<HomeListingItem> = emptyList(),
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
-    val splitStaysError: String? = null
+    val splitStaysError: String? = null,
+    val heroImageUrl: String? = null // Hero background image URL
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays
