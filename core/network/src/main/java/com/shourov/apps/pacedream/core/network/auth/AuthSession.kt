@@ -229,18 +229,29 @@ class AuthSession @Inject constructor(
     /**
      * Login with Auth0 Universal Login
      * Launches Auth0 WebAuth and exchanges tokens for backend session
+     * 
+     * @param connection Optional Auth0 connection name (e.g., "google-oauth2" for Google OAuth)
      */
-    suspend fun loginWithAuth0(activity: Activity): Result<Unit> = suspendCancellableCoroutine { continuation ->
+    suspend fun loginWithAuth0(
+        activity: Activity,
+        connection: String? = null
+    ): Result<Unit> = suspendCancellableCoroutine { continuation ->
         val auth0 = Auth0(
             appConfig.auth0ClientId,
             appConfig.auth0Domain
         )
         
-        WebAuthProvider.login(auth0)
+        val webAuth = WebAuthProvider.login(auth0)
             .withScheme(appConfig.auth0Scheme)
             .withScope("openid profile email offline_access")
             .withAudience(appConfig.auth0Audience)
-            .start(activity, object : Callback<Credentials, AuthenticationException> {
+        
+        // Add connection parameter if specified (for social logins like Google OAuth)
+        connection?.let {
+            webAuth.withConnection(it)
+        }
+        
+        webAuth.start(activity, object : Callback<Credentials, AuthenticationException> {
                 override fun onSuccess(result: Credentials) {
                     Timber.d("Auth0 login successful")
                     // Exchange for backend tokens
