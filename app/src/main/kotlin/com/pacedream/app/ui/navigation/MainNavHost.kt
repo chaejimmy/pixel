@@ -272,6 +272,9 @@ fun MainNavHost(
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
                         },
+                        onIdentityVerificationClick = {
+                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        },
                         onHelpClick = {
                             navController.navigate(NavRoutes.FAQ)
                         }
@@ -281,6 +284,13 @@ fun MainNavHost(
                 // FAQ Screen
                 composable(NavRoutes.FAQ) {
                     com.pacedream.app.feature.faq.FAQScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                
+                // Identity Verification Screen
+                composable(NavRoutes.IDENTITY_VERIFICATION) {
+                    com.pacedream.app.feature.verification.IdentityVerificationScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }

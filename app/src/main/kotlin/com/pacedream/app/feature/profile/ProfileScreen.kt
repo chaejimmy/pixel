@@ -37,6 +37,7 @@ fun ProfileScreen(
     onHostModeClick: () -> Unit,
     onEditProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onIdentityVerificationClick: () -> Unit = {},
     onHelpClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,6 +80,21 @@ fun ProfileScreen(
                         onToggle = { viewModel.toggleHostMode() },
                         onHostDashboard = onHostModeClick
                     )
+                }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                
+                // Identity Verification (if logged in)
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ProfileMenuItem(
+                            icon = Icons.Default.VerifiedUser,
+                            title = "Identity Verification",
+                            onClick = onIdentityVerificationClick
+                        )
+                    }
                 }
                 
                 item { Spacer(modifier = Modifier.height(16.dp)) }

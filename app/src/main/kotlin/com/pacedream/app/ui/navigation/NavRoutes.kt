@@ -30,6 +30,7 @@ object NavRoutes {
     const val HOST_LISTINGS = "profile/host/listings"
     const val EDIT_PROFILE = "profile/edit"
     const val SETTINGS = "profile/settings"
+    const val IDENTITY_VERIFICATION = "profile/identity-verification"
     const val FAQ = "profile/faq"
     
     // Webflow / Booking routes
