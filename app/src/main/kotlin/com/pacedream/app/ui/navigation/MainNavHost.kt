@@ -53,6 +53,13 @@ import com.pacedream.app.feature.inbox.ThreadScreen
 import com.pacedream.app.feature.listingdetail.ListingCardModel
 import com.pacedream.app.feature.listingdetail.ListingDetailRoute
 import com.pacedream.app.feature.profile.ProfileScreen
+import com.pacedream.app.feature.settings.SettingsRootScreen
+import com.pacedream.app.feature.settings.help.SettingsHelpSupportScreen
+import com.pacedream.app.feature.settings.notifications.SettingsNotificationsScreen
+import com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen
+import com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen
+import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
+import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -278,6 +285,77 @@ fun MainNavHost(
                         onHelpClick = {
                             navController.navigate(NavRoutes.FAQ)
                         }
+                    )
+                }
+
+                // Settings root screen
+                composable(NavRoutes.SETTINGS) {
+                    SettingsRootScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onPersonalInfoClick = {
+                            navController.navigate(NavRoutes.SETTINGS_PERSONAL_INFO)
+                        },
+                        onLoginSecurityClick = {
+                            navController.navigate(NavRoutes.SETTINGS_LOGIN_SECURITY)
+                        },
+                        onNotificationsClick = {
+                            navController.navigate(NavRoutes.SETTINGS_NOTIFICATIONS)
+                        },
+                        onPreferencesClick = {
+                            navController.navigate(NavRoutes.SETTINGS_PREFERENCES)
+                        },
+                        onPaymentMethodsClick = {
+                            navController.navigate(NavRoutes.SETTINGS_PAYMENT_METHODS)
+                        },
+                        onHelpSupportClick = {
+                            navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
+                        }
+                    )
+                }
+
+                composable(NavRoutes.SETTINGS_PERSONAL_INFO) {
+                    SettingsPersonalInfoScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(NavRoutes.SETTINGS_LOGIN_SECURITY) {
+                    SettingsLoginSecurityScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onAccountDeactivated = {
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+
+                composable(NavRoutes.SETTINGS_NOTIFICATIONS) {
+                    SettingsNotificationsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(NavRoutes.SETTINGS_PREFERENCES) {
+                    SettingsPreferencesScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                // Payment Methods
+                composable(NavRoutes.SETTINGS_PAYMENT_METHODS) {
+                    SettingsPaymentMethodsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                composable(NavRoutes.SETTINGS_HELP_SUPPORT) {
+                    SettingsHelpSupportScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onOpenFaq = { navController.navigate(NavRoutes.FAQ) }
                     )
                 }
                 

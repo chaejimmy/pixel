@@ -138,6 +138,9 @@ dependencies {
     // AndroidX Browser for CustomTabs
     implementation(libs.androidx.browser)
 
+    // Stripe Android SDK for Payment Methods
+    implementation("com.stripe:stripe-android:22.5.0")
+
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))
     implementation(project(":feature:home:presentation"))
