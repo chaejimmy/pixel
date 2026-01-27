@@ -5,7 +5,9 @@ import com.google.gson.GsonBuilder
 import com.shourov.apps.pacedream.core.network.BuildConfig
 import com.shourov.apps.pacedream.core.network.PaceDreamNetworkRepositoryImpl
 import com.shourov.apps.pacedream.core.network.RetrofitPaceDreamApiService
+import com.shourov.apps.pacedream.core.network.services.OtpService
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
+import com.shourov.apps.pacedream.core.network.services.VerificationApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -77,6 +79,16 @@ object ApiModule {
     @Provides
     fun providesPaceDreamApiService(retrofit: Retrofit): PaceDreamApiService =
         retrofit.create(PaceDreamApiService::class.java)
+
+    @Singleton
+    @Provides
+    fun providesOtpService(retrofit: Retrofit): OtpService =
+        retrofit.create(OtpService::class.java)
+
+    @Singleton
+    @Provides
+    fun providesVerificationApi(retrofit: Retrofit): VerificationApi =
+        retrofit.create(VerificationApi::class.java)
 
     @Singleton
     @Provides

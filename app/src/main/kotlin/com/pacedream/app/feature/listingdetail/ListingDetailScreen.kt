@@ -883,14 +883,24 @@ private fun MapPreviewCard(
         val mapsEnabled = mapsKey.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
-            val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(mapCoordinate, 13f)
+            // Recreate camera position state when coordinate changes to ensure map updates
+            val cameraPositionState = remember(
+                key1 = mapCoordinate.latitude,
+                key2 = mapCoordinate.longitude
+            ) {
+                rememberCameraPositionState {
+                    position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
+                }
             }
+            
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState
             ) {
-                Marker(state = MarkerState(position = mapCoordinate))
+                Marker(
+                    state = MarkerState(position = mapCoordinate),
+                    title = "Location"
+                )
             }
         } else {
             Box(

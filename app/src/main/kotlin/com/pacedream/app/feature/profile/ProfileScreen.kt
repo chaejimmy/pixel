@@ -36,7 +36,9 @@ fun ProfileScreen(
     onLoginClick: () -> Unit,
     onHostModeClick: () -> Unit,
     onEditProfileClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onIdentityVerificationClick: () -> Unit = {},
+    onHelpClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -82,10 +84,26 @@ fun ProfileScreen(
                 
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 
+                // Identity Verification (if logged in)
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ProfileMenuItem(
+                            icon = Icons.Default.VerifiedUser,
+                            title = "Identity Verification",
+                            onClick = onIdentityVerificationClick
+                        )
+                    }
+                }
+                
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+                
                 // Menu items
                 item {
                     ProfileMenuSection(
                         onSettingsClick = onSettingsClick,
+                        onHelpClick = onHelpClick,
                         onLogoutClick = { viewModel.logout() }
                     )
                 }
@@ -237,6 +255,7 @@ private fun HostModeCard(
 @Composable
 private fun ProfileMenuSection(
     onSettingsClick: () -> Unit,
+    onHelpClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     Card(
@@ -254,7 +273,7 @@ private fun ProfileMenuSection(
             ProfileMenuItem(
                 icon = Icons.AutoMirrored.Filled.Help,
                 title = "Help & Support",
-                onClick = { /* TODO */ }
+                onClick = onHelpClick
             )
             
             HorizontalDivider()

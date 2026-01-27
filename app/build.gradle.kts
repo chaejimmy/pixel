@@ -132,9 +132,14 @@ dependencies {
     // Google Maps (detail map preview)
     implementation(libs.google.play.maps)
     implementation(libs.google.maps.compose)
+    // Google Play Services Location
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
     // AndroidX Browser for CustomTabs
     implementation(libs.androidx.browser)
+
+    // Stripe Android SDK for Payment Methods
+    implementation("com.stripe:stripe-android:22.5.0")
 
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))

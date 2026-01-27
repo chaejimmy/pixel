@@ -30,6 +30,14 @@ object NavRoutes {
     const val HOST_LISTINGS = "profile/host/listings"
     const val EDIT_PROFILE = "profile/edit"
     const val SETTINGS = "profile/settings"
+    const val SETTINGS_PERSONAL_INFO = "profile/settings/personal-info"
+    const val SETTINGS_LOGIN_SECURITY = "profile/settings/login-security"
+    const val SETTINGS_NOTIFICATIONS = "profile/settings/notifications"
+    const val SETTINGS_PREFERENCES = "profile/settings/preferences"
+    const val SETTINGS_PAYMENT_METHODS = "profile/settings/payment-methods"
+    const val SETTINGS_HELP_SUPPORT = "profile/settings/help-support"
+    const val IDENTITY_VERIFICATION = "profile/identity-verification"
+    const val FAQ = "profile/faq"
     
     // Webflow / Booking routes
     const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased"

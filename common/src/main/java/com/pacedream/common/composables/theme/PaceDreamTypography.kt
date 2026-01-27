@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import com.pacedream.common.R
 
 val provider = GoogleFont.Provider(
@@ -48,106 +49,127 @@ val paceDreamDisplayFontFamily = FontFamily(
 /**
  * PaceDream Typography that maps to Material 3 Typography
  * This ensures compatibility with Material 3 while using our custom design system
+ * Enhanced with modern, professional typography with proper letter spacing and line heights
  */
 val PaceDreamMaterialTypography = Typography(
     // Display styles - for large headings
+    // Modern typography: larger sizes with better line height ratios and letter spacing
     displayLarge = TextStyle(
         fontFamily = paceDreamDisplayFontFamily,
-        fontSize = 34.sp,
+        fontSize = 36.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 40.sp
+        lineHeight = 44.sp,
+        letterSpacing = (-0.02).em
     ),
     displayMedium = TextStyle(
         fontFamily = paceDreamDisplayFontFamily,
-        fontSize = 28.sp,
+        fontSize = 30.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 34.sp
+        lineHeight = 38.sp,
+        letterSpacing = (-0.01).em
     ),
     displaySmall = TextStyle(
         fontFamily = paceDreamDisplayFontFamily,
-        fontSize = 22.sp,
+        fontSize = 24.sp,
         fontWeight = FontWeight.Bold,
-        lineHeight = 28.sp
+        lineHeight = 32.sp,
+        letterSpacing = 0.em
     ),
     
     // Headline styles - for section headings
+    // Improved readability with better line height ratios
     headlineLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 20.sp,
+        fontSize = 22.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 24.sp
+        lineHeight = 28.sp,
+        letterSpacing = 0.em
     ),
     headlineMedium = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 17.sp,
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 22.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     ),
     headlineSmall = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 17.sp,
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 22.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     ),
     
     // Title styles - for card titles and important text
+    // Professional sizing with optimal readability
     titleLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 20.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 24.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.01.em
     ),
     titleMedium = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 17.sp,
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 22.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     ),
     titleSmall = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 15.sp,
+        fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
-        lineHeight = 20.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.01.em
     ),
     
     // Body styles - for regular text
+    // Optimized for readability with comfortable line heights
     bodyLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 17.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 22.sp
+        lineHeight = 26.sp,
+        letterSpacing = 0.01.em
     ),
     bodyMedium = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 16.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 20.sp
+        lineHeight = 24.sp,
+        letterSpacing = 0.01.em
     ),
     bodySmall = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 15.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 20.sp
+        lineHeight = 22.sp,
+        letterSpacing = 0.01.em
     ),
     
     // Label styles - for small text and labels
+    // Clear and readable even at smaller sizes
     labelLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 12.sp,
+        fontSize = 14.sp,
         fontWeight = FontWeight.Medium,
-        lineHeight = 16.sp
+        lineHeight = 20.sp,
+        letterSpacing = 0.01.em
     ),
     labelMedium = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 12.sp,
+        fontSize = 13.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 16.sp
+        lineHeight = 18.sp,
+        letterSpacing = 0.01.em
     ),
     labelSmall = TextStyle(
         fontFamily = paceDreamFontFamily,
-        fontSize = 10.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.Normal,
-        lineHeight = 14.sp
+        lineHeight = 16.sp,
+        letterSpacing = 0.02.em
     )
 )
 
