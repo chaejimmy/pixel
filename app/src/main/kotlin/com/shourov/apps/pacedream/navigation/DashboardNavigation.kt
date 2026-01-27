@@ -331,12 +331,47 @@ fun NavGraphBuilder.DashboardNavigation(
                                 route = DashboardDestination.BOOKINGS.name
                             ) {
                                 composable("bookings_root") {
+                                val authGate = hiltViewModel<AuthGateViewModel>()
+                                val authState by authGate.authState.collectAsStateWithLifecycle()
+                                var showAuthSheet by remember { mutableStateOf(false) }
+
+                                if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "Sign in to view your bookings",
+                                                style = PaceDreamTypography.Title3,
+                                                color = PaceDreamColors.TextPrimary
+                                            )
+                                            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                                            androidx.compose.material3.Button(
+                                                onClick = { showAuthSheet = true },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
+                                            ) {
+                                                Text("Sign in")
+                                            }
+                                        }
+                                    }
+                                } else {
                                     BookingTabScreen(
                                         onBookingClick = { bookingId ->
                                             navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
                                         }
                                     )
                                 }
+
+                                if (showAuthSheet) {
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        title = "Sign in",
+                                        subtitle = "Sign in to view your bookings.",
+                                        onDismiss = { showAuthSheet = false },
+                                        onSuccess = { showAuthSheet = false }
+                                    )
+                                }
+                            }
                             }
                             
                             // Favorites/Wishlist Tab with Auth Modal
