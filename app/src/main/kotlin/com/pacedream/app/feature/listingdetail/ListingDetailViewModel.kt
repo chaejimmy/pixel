@@ -182,23 +182,35 @@ class ListingDetailViewModel @Inject constructor(
 
     private fun resolveMapCoordinateIfNeeded(listing: ListingDetailModel) {
         val loc = listing.location ?: return
+        
+        // First, try to use direct coordinates if available
         val lat = loc.latitude
         val lng = loc.longitude
         if (lat != null && lng != null) {
+            Timber.d("Using direct coordinates: lat=$lat, lng=$lng")
             _uiState.update { it.copy(mapCoordinate = LatLng(lat, lng), isGeocoding = false) }
             return
         }
 
-        val address = loc.fullAddress ?: loc.cityState ?: return
+        // If no direct coordinates, try geocoding from address
+        val address = loc.fullAddress ?: loc.cityState
+        if (address == null) {
+            Timber.w("No coordinates or address available for location")
+            _uiState.update { it.copy(isGeocoding = false, mapCoordinate = null) }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isGeocoding = true) }
             try {
+                Timber.d("Geocoding address: $address")
                 val geocoder = Geocoder(context, Locale.getDefault())
+                
                 @Suppress("DEPRECATION")
                 val results = geocoder.getFromLocationName(address, 1)
                 val first = results?.firstOrNull()
                 if (first != null) {
+                    Timber.d("Geocoding successful: lat=${first.latitude}, lng=${first.longitude}")
                     _uiState.update {
                         it.copy(
                             mapCoordinate = LatLng(first.latitude, first.longitude),
@@ -206,10 +218,11 @@ class ListingDetailViewModel @Inject constructor(
                         )
                     }
                 } else {
+                    Timber.w("Geocoding returned no results for address: $address")
                     _uiState.update { it.copy(isGeocoding = false) }
                 }
             } catch (e: Exception) {
-                Timber.w(e, "Geocoding failed")
+                Timber.e(e, "Geocoding failed for address: $address")
                 _uiState.update { it.copy(isGeocoding = false) }
             }
         }

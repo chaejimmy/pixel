@@ -45,6 +45,12 @@ class HomeViewModel @Inject constructor(
     
     init {
         loadAllSections()
+        // Set default hero image URL (can be fetched from API/config later)
+        _uiState.update { 
+            it.copy(
+                heroImageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" // Default scenic image
+            )
+        }
     }
     
     fun refresh() {
@@ -198,24 +204,58 @@ class HomeViewModel @Inject constructor(
     
     private fun parsePrice(obj: JsonObject): String? {
         return try {
-            // Try dynamic_price first
+            // Try dynamic_price first (for hourly spaces)
             obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
-                price["price"]?.jsonPrimitive?.content?.let { "\$$it/hr" }
+                val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
+                    ?: price["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                priceValue?.let { formatPrice(it, "hr") }
+            }
+            // Try pricing object
+            ?: obj["pricing"]?.jsonObject?.let { pricing ->
+                val hourlyFrom = pricing["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
+                    ?: pricing["hourly_from"]?.jsonPrimitive?.doubleOrNull
+                val basePrice = pricing["basePrice"]?.jsonPrimitive?.doubleOrNull
+                    ?: pricing["base_price"]?.jsonPrimitive?.doubleOrNull
+                val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content
+                    ?: pricing["frequency"]?.jsonPrimitive?.content
+                    ?: pricing["unit"]?.jsonPrimitive?.content
+                
+                val amount = hourlyFrom ?: basePrice
+                val unit = frequency?.lowercase()?.takeIf { it.isNotBlank() } ?: "hr"
+                amount?.let { formatPrice(it, unit) }
             }
             // Try price object
             ?: obj["price"]?.let { price ->
                 when (price) {
                     is JsonObject -> {
-                        val amount = price["amount"]?.jsonPrimitive?.content
-                        val unit = price["unit"]?.jsonPrimitive?.content ?: "month"
-                        amount?.let { "\$$it/$unit" }
+                        val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
+                            ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                        val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
+                        amount?.let { formatPrice(it, unit) }
                     }
-                    else -> "\$${price.jsonPrimitive.content}/hr"
+                    else -> {
+                        val priceValue = price.jsonPrimitive.doubleOrNull
+                            ?: price.jsonPrimitive.content.toDoubleOrNull()
+                        priceValue?.let { formatPrice(it, "hr") }
+                    }
                 }
             }
         } catch (e: Exception) {
             null
         }
+    }
+    
+    /**
+     * Format price to match iOS format: "$12/hr" (no spaces, lowercase unit)
+     */
+    private fun formatPrice(amount: Double, unit: String): String {
+        val formattedAmount = if (amount == amount.toInt().toDouble()) {
+            amount.toInt().toString()
+        } else {
+            "%.2f".format(amount).trimEnd('0').trimEnd('.')
+        }
+        val normalizedUnit = unit.lowercase().trim()
+        return "$$formattedAmount/$normalizedUnit"
     }
 }
 
@@ -232,7 +272,8 @@ data class HomeUiState(
     val splitStays: List<HomeListingItem> = emptyList(),
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
-    val splitStaysError: String? = null
+    val splitStaysError: String? = null,
+    val heroImageUrl: String? = null // Hero background image URL
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays

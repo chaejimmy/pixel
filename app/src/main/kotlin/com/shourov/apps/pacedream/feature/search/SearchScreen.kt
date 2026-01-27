@@ -67,6 +67,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
@@ -80,6 +82,10 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
+import com.pacedream.app.core.location.LocationService
+import com.pacedream.app.core.location.LocationServiceEntryPoint
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +104,47 @@ fun SearchScreen(
     var mapMode by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    
+    // Get LocationService via Hilt entry point
+    val locationService = remember {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            LocationServiceEntryPoint::class.java
+        ).locationService()
+    }
+    
+    // Location permission launcher
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val hasPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        
+        if (hasPermission) {
+            scope.launch {
+                val location = locationService.getCurrentLocation()
+                if (location != null) {
+                    val address = locationService.getAddressFromLocation(
+                        location.latitude,
+                        location.longitude
+                    )
+                    if (address != null) {
+                        whereQuery = address
+                        viewModel.onQueryChanged(address)
+                        viewModel.updateSearchParams(city = address)
+                        snackbarHostState.showSnackbar("Location set: $address")
+                    } else {
+                        snackbarHostState.showSnackbar("Could not determine address")
+                    }
+                } else {
+                    snackbarHostState.showSnackbar("Location unavailable")
+                }
+            }
+        } else {
+            snackbarHostState.showSnackbar("Location permission denied")
+        }
+    }
 
     LaunchedEffect(initialQuery) {
         val q = initialQuery?.trim().orEmpty()
@@ -131,13 +178,93 @@ fun SearchScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Search bar always visible (iOS parity)
-                PaceDreamSearchBar(
-                    query = state.query,
-                    onQueryChange = { viewModel.onQueryChanged(it) },
-                    onSearchClick = { viewModel.submitSearch() },
-                    onFilterClick = { /* phase 2 */ },
-                    placeholder = "Where to?",
+                // Enhanced Search Bar with tabs and multi-field search
+                var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.USE) }
+                var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
+                var whereQuery by remember { mutableStateOf(state.query) }
+                val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
+                
+                // Sync local state with ViewModel state
+                LaunchedEffect(state.shareType) {
+                    selectedTab = when (state.shareType?.uppercase()) {
+                        "USE" -> com.pacedream.app.feature.search.SearchTab.USE
+                        "BORROW" -> com.pacedream.app.feature.search.SearchTab.BORROW
+                        "SPLIT" -> com.pacedream.app.feature.search.SearchTab.SPLIT
+                        else -> com.pacedream.app.feature.search.SearchTab.USE
+                    }
+                }
+                
+                com.pacedream.app.feature.search.EnhancedSearchBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        selectedTab = tab
+                        val shareType = when (tab) {
+                            com.pacedream.app.feature.search.SearchTab.USE -> "USE"
+                            com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
+                            com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
+                        }
+                        viewModel.updateSearchParams(shareType = shareType)
+                    },
+                    whatQuery = whatQuery,
+                    onWhatQueryChange = { 
+                        whatQuery = it
+                        viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
+                    },
+                    whereQuery = whereQuery,
+                    onWhereQueryChange = { 
+                        whereQuery = it
+                        viewModel.onQueryChanged(it)
+                        viewModel.updateSearchParams(city = it.takeIf { it.isNotBlank() })
+                    },
+                    selectedDate = selectedDateDisplay,
+                    onDateClick = openDatePicker,
+                    onUseMyLocation = { 
+                        if (!locationService.hasLocationPermission()) {
+                            // Request permission
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        } else {
+                            // Permission already granted, get location
+                            scope.launch {
+                                val location = locationService.getCurrentLocation()
+                                if (location != null) {
+                                    val address = locationService.getAddressFromLocation(
+                                        location.latitude,
+                                        location.longitude
+                                    )
+                                    if (address != null) {
+                                        whereQuery = address
+                                        viewModel.onQueryChanged(address)
+                                        viewModel.updateSearchParams(city = address)
+                                        snackbarHostState.showSnackbar("Location set: $address")
+                                    } else {
+                                        snackbarHostState.showSnackbar("Could not determine address")
+                                    }
+                                } else {
+                                    snackbarHostState.showSnackbar("Location unavailable")
+                                }
+                            }
+                        }
+                    },
+                    onSearchClick = { 
+                        // Update ViewModel with all search parameters
+                        viewModel.updateSearchParams(
+                            shareType = when (selectedTab) {
+                                com.pacedream.app.feature.search.SearchTab.USE -> "USE"
+                                com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
+                                com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
+                            },
+                            whatQuery = whatQuery.takeIf { it.isNotBlank() },
+                            city = whereQuery.takeIf { it.isNotBlank() },
+                            startDate = selectedDateISO,
+                            endDate = selectedDateISO // For now, use same date for start/end
+                        )
+                        viewModel.submitSearch()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)

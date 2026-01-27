@@ -8,19 +8,21 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -41,9 +43,13 @@ import coil.compose.AsyncImage
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onSectionViewAll: (String) -> Unit,
-    onListingClick: (HomeListingItem) -> Unit
+    onListingClick: (HomeListingItem) -> Unit,
+    onSearchClick: () -> Unit = {},
+    onCategoryClick: (String) -> Unit = {},
+    onCategoryFilterClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedCategoryFilter by remember { mutableStateOf("All") }
     
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
@@ -54,9 +60,34 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Header
+            // Hero Section
             item {
-                HomeHeader()
+                HeroSection(
+                    onSearchClick = onSearchClick,
+                    onFilterClick = { /* TODO: Open filters */ },
+                    heroImageUrl = uiState.heroImageUrl
+                )
+            }
+            
+            // Category Filter Buttons
+            item {
+                CategoryFilterButtons(
+                    selectedCategory = selectedCategoryFilter,
+                    onCategorySelected = { category ->
+                        selectedCategoryFilter = category
+                        onCategoryFilterClick(category)
+                    },
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+            }
+            
+            // Categories Section - Always visible
+            item {
+                CategoriesSection(
+                    onViewAllClick = { onSectionViewAll("categories") },
+                    onCategoryClick = onCategoryClick,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
             
             // Warning banner if some sections failed
@@ -74,7 +105,7 @@ fun HomeScreen(
                 item {
                     HomeSection(
                         title = "Hourly Spaces",
-                        subtitle = "Book by the hour",
+                        subtitle = "Find flexible spaces for short stays",
                         items = uiState.hourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
@@ -88,7 +119,7 @@ fun HomeScreen(
                 item {
                     HomeSection(
                         title = "Rent Gear",
-                        subtitle = "Equipment rentals",
+                        subtitle = "Equipment and tools for every need",
                         items = uiState.rentGear,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
@@ -125,25 +156,362 @@ fun HomeScreen(
     }
 }
 
+/**
+ * Hero Section with background image, overlay text, and search bar
+ * Matches iOS design
+ */
 @Composable
-private fun HomeHeader() {
-    Column(
+private fun HeroSection(
+    onSearchClick: () -> Unit,
+    onFilterClick: () -> Unit,
+    heroImageUrl: String? = null
+) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .height(320.dp)
     ) {
-        Text(
-            text = "PaceDream",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
+        // Background Image - use actual image if provided, otherwise use gradient
+        if (heroImageUrl != null) {
+            AsyncImage(
+                model = heroImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Fallback gradient (can be replaced with actual hero image URL from API/config)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF1E88E5),
+                                Color(0xFF1976D2)
+                            )
+                        )
+                    )
+            )
+        }
+        
+        // Dark overlay for better text readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.3f),
+                            Color.Black.copy(alpha = 0.5f)
+                        )
+                    )
+                )
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Find your perfect space",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        
+        // Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 60.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Hero Text
+            Column {
+                Text(
+                    text = "One place to share it all",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    lineHeight = MaterialTheme.typography.displaySmall.lineHeight
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Book, share, or split stays, time, and spaces—on one platform.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                // Get to know PaceDream CTA Button
+                Button(
+                    onClick = { /* TODO: Navigate to about/onboarding */ },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF5527D7), // PaceDream Primary
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Get to know PaceDream",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            
+            // Search Bar
+            SearchBarCard(
+                onSearchClick = onSearchClick,
+                onFilterClick = onFilterClick
+            )
+        }
     }
+}
+
+/**
+ * Search Bar Card
+ */
+@Composable
+private fun SearchBarCard(
+    onSearchClick: () -> Unit,
+    onFilterClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSearchClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Search anywhere",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Share • Borrow • Split",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            IconButton(onClick = onFilterClick) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Filters",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Category Filter Buttons (All, Restroom, Nap Pod, etc.)
+ */
+@Composable
+private fun CategoryFilterButtons(
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val categories = listOf(
+        "All" to Icons.Default.Apps, // Using Apps icon instead of GridView
+        "Restroom" to Icons.Default.Wc,
+        "Nap Pod" to Icons.Default.Bed,
+        "Meeting Room" to Icons.Default.Business,
+        "Study Room" to Icons.Default.School,
+        "Short Stay" to Icons.Default.Hotel,
+        "Apartment" to Icons.Default.Apartment,
+        "Luxury Room" to Icons.Default.Star,
+        "Parking" to Icons.Default.LocalParking,
+        "Storage Space" to Icons.Default.Storage
+    )
+    
+    LazyRow(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(categories) { (name, icon) ->
+            FilterChip(
+                selected = selectedCategory == name,
+                onClick = { onCategorySelected(name) },
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(name)
+                    }
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    }
+}
+
+/**
+ * Categories Section with large category cards
+ */
+@Composable
+private fun CategoriesSection(
+    onViewAllClick: () -> Unit,
+    onCategoryClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+    ) {
+        // Section Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Categories",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            TextButton(onClick = onViewAllClick) {
+                Text(
+                    text = "View All",
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Category Cards
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(getCategoryCards()) { category ->
+                CategoryCard(
+                    category = category,
+                    onClick = { onCategoryClick(category.name) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Category Card (large card with icon and title)
+ */
+@Composable
+private fun CategoryCard(
+    category: CategoryCardData,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .height(120.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = category.color
+        )
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = category.name,
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = category.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Category Card Data
+ */
+private data class CategoryCardData(
+    val name: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val color: Color
+)
+
+/**
+ * Get category cards data
+ */
+private fun getCategoryCards(): List<CategoryCardData> {
+    return listOf(
+        CategoryCardData(
+            name = "Rest Room",
+            icon = Icons.Default.Bed,
+            color = Color(0xFF2196F3) // Blue
+        ),
+        CategoryCardData(
+            name = "Time-Based",
+            icon = Icons.Default.Schedule,
+            color = Color(0xFF9C27B0) // Purple
+        ),
+        CategoryCardData(
+            name = "Storage",
+            icon = Icons.Default.Storage,
+            color = Color(0xFFFF9800) // Orange
+        ),
+        CategoryCardData(
+            name = "Parking",
+            icon = Icons.Default.LocalParking,
+            color = Color(0xFF4CAF50) // Green
+        ),
+        CategoryCardData(
+            name = "Meeting",
+            icon = Icons.Default.Business,
+            color = Color(0xFFF44336) // Red
+        )
+    )
 }
 
 @Composable

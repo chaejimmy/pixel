@@ -31,12 +31,11 @@ fun TitleText(
     modifier: Modifier = Modifier,
     text: String,
 ) {
-
     Text(
         modifier = modifier,
         text = text,
         style = MaterialTheme.typography.headlineLarge.copy(
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
         ),
     )
 }
@@ -47,12 +46,11 @@ fun MediumTitleText(
     text: String,
     color: Color = HeadlineColor,
 ) {
-
     Text(
         modifier = modifier,
         text = text,
-        style = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.headlineMedium.copy(
+            fontWeight = FontWeight.SemiBold,
             color = color,
         ),
     )
@@ -64,12 +62,11 @@ fun SmallTitleText(
     text: String,
     color: Color = HeadlineColor,
 ) {
-
     Text(
         modifier = modifier,
         text = text,
         style = MaterialTheme.typography.titleMedium.copy(
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = color,
         ),
     )
@@ -81,12 +78,11 @@ fun NormalTitleText(
     text: String,
     color: Color = HeadlineColor,
 ) {
-
     Text(
         modifier = modifier,
         text = text,
         style = MaterialTheme.typography.titleMedium.copy(
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             color = color,
         ),
     )
@@ -100,8 +96,8 @@ fun ViewAllText(
     Text(
         modifier = modifier,
         text = "View All",
-        fontSize = NormalText,
-        style = MaterialTheme.typography.titleMedium.copy(
+        style = MaterialTheme.typography.titleSmall.copy(
+            fontWeight = FontWeight.Medium,
             color = color,
         ),
     )

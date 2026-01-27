@@ -94,6 +94,25 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(query = q, errorMessage = null) }
         fetchAutocompleteDebounced(q)
     }
+    
+    fun updateSearchParams(
+        shareType: String? = null,
+        whatQuery: String? = null,
+        city: String? = null,
+        startDate: String? = null,
+        endDate: String? = null
+    ) {
+        _uiState.update { current ->
+            current.copy(
+                shareType = shareType ?: current.shareType,
+                whatQuery = whatQuery ?: current.whatQuery,
+                city = city ?: current.city,
+                startDate = startDate ?: current.startDate,
+                endDate = endDate ?: current.endDate,
+                errorMessage = null
+            )
+        }
+    }
 
     fun submitSearch() {
         val q = uiState.value.query.trim()
@@ -145,7 +164,11 @@ class SearchViewModel @Inject constructor(
                 category = current.category?.takeIf { it.isNotBlank() },
                 page0 = page,
                 perPage = current.perPage,
-                sort = current.sort
+                sort = current.sort,
+                shareType = current.shareType?.takeIf { it.isNotBlank() },
+                whatQuery = current.whatQuery?.takeIf { it.isNotBlank() },
+                startDate = current.startDate?.takeIf { it.isNotBlank() },
+                endDate = current.endDate?.takeIf { it.isNotBlank() }
             )
 
             when (res) {
@@ -207,7 +230,11 @@ data class SearchUiState(
     val hasMore: Boolean = false,
     val suggestions: List<AutocompleteSuggestion> = emptyList(),
     val phase: SearchPhase = SearchPhase.Idle,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val shareType: String? = null, // USE, BORROW, or SPLIT
+    val whatQuery: String? = null, // Keywords search
+    val startDate: String? = null, // ISO date string
+    val endDate: String? = null // ISO date string
 )
 
 enum class SearchPhase {

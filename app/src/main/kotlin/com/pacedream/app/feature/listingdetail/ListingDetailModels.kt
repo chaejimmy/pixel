@@ -57,7 +57,7 @@ data class ListingPricing(
     val frequencyLabel: String? = null
 ) {
     /**
-     * e.g. "$120 / hr" or "$80 / night" depending on data.
+     * Format price to match iOS: "$12/hr" or "$80/night" (no spaces, lowercase unit)
      */
     val displayPrimary: String?
         get() {
@@ -66,9 +66,10 @@ data class ListingPricing(
                 "USD" -> "$"
                 else -> "$"
             }
-            val freq = frequencyLabel?.takeIf { it.isNotBlank() }
+            val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.lowercase()
                 ?: if (hourlyFrom != null) "hr" else null
-            return if (freq != null) "$symbol${trimTrailingZeros(amount)} / $freq" else "$symbol${trimTrailingZeros(amount)}"
+            val formattedAmount = trimTrailingZeros(amount)
+            return if (freq != null) "$symbol$formattedAmount/$freq" else "$symbol$formattedAmount"
         }
 
     private fun trimTrailingZeros(value: Double): String {

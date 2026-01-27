@@ -13,6 +13,24 @@ android {
         buildConfig = true
     }
 
+    defaultConfig {
+        // Load secrets from properties file
+        val secretsProperties = java.util.Properties()
+        val secretsFile = rootProject.file("secrets.defaults.properties")
+        if (secretsFile.exists()) {
+            secretsFile.inputStream().use { secretsProperties.load(it) }
+        }
+        
+        // Auth0 Configuration from secrets file
+        val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "dev-pacedream.us.auth0.com"
+        val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: ""
+        val auth0Audience = secretsProperties.getProperty("AUTH0_AUDIENCE") ?: "https://$auth0Domain/api/v2/"
+        
+        buildConfigField("String", "AUTH0_DOMAIN", "\"$auth0Domain\"")
+        buildConfigField("String", "AUTH0_CLIENT_ID", "\"$auth0ClientId\"")
+        buildConfigField("String", "AUTH0_AUDIENCE", "\"$auth0Audience\"")
+    }
+
 }
 
 secrets {

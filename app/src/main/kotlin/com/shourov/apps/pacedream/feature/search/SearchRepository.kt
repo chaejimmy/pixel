@@ -48,7 +48,11 @@ class SearchRepository @Inject constructor(
         category: String? = null,
         page0: Int,
         perPage: Int,
-        sort: String? = null
+        sort: String? = null,
+        shareType: String? = null, // USE, BORROW, or SPLIT
+        whatQuery: String? = null, // Keywords search
+        startDate: String? = null, // ISO date string
+        endDate: String? = null // ISO date string
     ): ApiResult<SearchPage> {
         val primaryUrl = appConfig.frontendBaseUrl.newBuilder()
             .addPathSegment("api")
@@ -60,6 +64,10 @@ class SearchRepository @Inject constructor(
                 if (!city.isNullOrBlank()) addQueryParameter("city", city)
                 if (!category.isNullOrBlank()) addQueryParameter("category", category)
                 if (!sort.isNullOrBlank()) addQueryParameter("sort", sort)
+                if (!shareType.isNullOrBlank()) addQueryParameter("shareType", shareType)
+                if (!whatQuery.isNullOrBlank()) addQueryParameter("what", whatQuery)
+                if (!startDate.isNullOrBlank()) addQueryParameter("startDate", startDate)
+                if (!endDate.isNullOrBlank()) addQueryParameter("endDate", endDate)
             }
             .build()
 
@@ -81,7 +89,11 @@ class SearchRepository @Inject constructor(
                 "perPage" to perPage.toString(),
                 "city" to city,
                 "category" to category,
-                "sort" to sort
+                "sort" to sort,
+                "shareType" to shareType,
+                "what" to whatQuery,
+                "startDate" to startDate,
+                "endDate" to endDate
             )
         )
 
