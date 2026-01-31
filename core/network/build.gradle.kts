@@ -6,6 +6,8 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.shourov.apps.pacedream.core.network"
 
@@ -15,7 +17,7 @@ android {
 
     defaultConfig {
         // Load secrets from properties file
-        val secretsProperties = java.util.Properties()
+        val secretsProperties = Properties()
         val secretsFile = rootProject.file("secrets.defaults.properties")
         if (secretsFile.exists()) {
             secretsFile.inputStream().use { secretsProperties.load(it) }
