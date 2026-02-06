@@ -2,11 +2,16 @@ package com.pacedream.app.feature.checkout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -70,18 +75,45 @@ fun CheckoutScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Booking summary", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Text("Listing: ${draft.listingId}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Date: ${draft.date}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Start: ${draft.startTimeISO}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("End: ${draft.endTimeISO}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Guests: ${draft.guests}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            draft.totalAmountEstimate?.let {
-                Text("Estimated total: $it", color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SummaryRow("Date", draft.date)
+                    SummaryRow("Start", draft.startTimeISO.substringAfter("T").take(5))
+                    SummaryRow("End", draft.endTimeISO.substringAfter("T").take(5))
+                    SummaryRow("Guests", "${draft.guests}")
+                }
+            }
+
+            draft.totalAmountEstimate?.let { total ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SummaryRow("Estimated total", "$${String.format("%.2f", total)}")
+                    }
+                }
             }
 
             uiState.errorMessage?.let {
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(it, color = MaterialTheme.colorScheme.error)
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -102,6 +134,17 @@ fun CheckoutScreen(
                 Text(if (uiState.isSubmitting) "Confirming…" else "Confirm")
             }
         }
+    }
+}
+
+@Composable
+private fun SummaryRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+        Text(value, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

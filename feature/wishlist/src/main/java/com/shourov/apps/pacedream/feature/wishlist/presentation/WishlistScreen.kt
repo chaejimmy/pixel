@@ -275,14 +275,14 @@ private fun WishlistItemCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.XS)
-                        .size(32.dp)
+                        .size(36.dp)
                         .background(Color.White.copy(alpha = 0.9f), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Favorite,
                         contentDescription = "Remove from favorites",
                         tint = PaceDreamColors.Error,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 
@@ -388,7 +388,7 @@ private fun EmptyState() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
                 imageVector = Icons.Default.FavoriteBorder,
-                contentDescription = null,
+                contentDescription = "No favorites",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )

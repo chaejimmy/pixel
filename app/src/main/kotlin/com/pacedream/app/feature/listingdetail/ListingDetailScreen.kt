@@ -279,7 +279,11 @@ fun ListingDetailScreen(
                     if (rating == null || count == null || count == 0) {
                         Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
-                        Text("⭐ $rating ($count reviews)", style = MaterialTheme.typography.titleMedium)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Star, contentDescription = "Rating", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("$rating ($count reviews)", style = MaterialTheme.typography.titleMedium)
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Review list is coming soon on Android.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -545,7 +549,7 @@ private fun HeroGallery(
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) Color(0xFFFF5A5F) else Color.White
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White
                     )
                 }
             }
@@ -592,7 +596,7 @@ private fun TitleMetaBlock(
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFB400),
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -911,13 +915,13 @@ private fun MapPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Default.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = when {
                             isGeocoding -> "Finding location…"
                             !mapsEnabled -> "Map preview unavailable"
-                            else -> "Map preview unavailable"
+                            else -> "Location not found"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
