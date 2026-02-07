@@ -91,7 +91,7 @@ fun CustomInputTextField(
             text = it
             onValueChange(text)
         },
-       // label = { if (label.isNullOrBlank()) null else  Text(text = label) },
+        label = if (!label.isNullOrBlank()) { { Text(text = label) } } else null,
         leadingIcon = leadingIcon,
         singleLine = true,
         keyboardOptions = keyboardOptions,
@@ -105,7 +105,10 @@ fun CustomInputTextField(
                 enter = scaleIn(),
                 exit = scaleOut(),
             ) {
-                IconButton(onClick = { text = "" }) {
+                IconButton(onClick = {
+                    text = ""
+                    onValueChange("")
+                }) {
                     Icon(
                         imageVector = Icons.Filled.Cancel,
                         contentDescription = "clear text",

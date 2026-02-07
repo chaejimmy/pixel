@@ -125,9 +125,9 @@ private fun ChatHeader(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Online",
+                    text = "Active now",
                     style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.7f)
+                    color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.6f)
                 )
             }
             
@@ -159,7 +159,14 @@ private fun MessagesList(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    
+
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
     LazyColumn(
         modifier = modifier,
         state = listState,
@@ -264,7 +271,7 @@ private fun MessageInput(
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))
             
             FloatingActionButton(
-                onClick = onSendMessage,
+                onClick = { if (message.isNotBlank()) onSendMessage() },
                 modifier = Modifier.size(48.dp),
                 containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
                 contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary

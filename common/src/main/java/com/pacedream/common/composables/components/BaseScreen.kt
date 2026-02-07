@@ -55,8 +55,9 @@ fun BaseScreen(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) {
-        Column (modifier = Modifier.padding(6.dp)){
+        Column (modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)){
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -65,20 +66,21 @@ fun BaseScreen(
                 ) {
                     Icon(
                         modifier = Modifier
-                            // .background(Color.Transparent)
                             .padding(2.dp)
                             .height(35.dp)
                             .width(35.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainer)//Color(0xFFF2F2F7))
-                        ,
-                        imageVector = navIcon, contentDescription = "back")
+                            .background(MaterialTheme.colorScheme.surfaceContainer),
+                        imageVector = navIcon, contentDescription = "Navigate back")
                 }
-                
-                Text(text = title, modifier = Modifier.fillMaxWidth(0.8f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
+
+                Text(text = title, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
+
+                // Balance the row with invisible spacer matching IconButton size
+                Spacer(modifier = Modifier.width(48.dp))
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             content()
         }
     }

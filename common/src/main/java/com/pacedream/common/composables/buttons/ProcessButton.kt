@@ -51,7 +51,7 @@ fun ProcessButton(
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 1.dp),
+            modifier = Modifier.padding(vertical = 8.dp),
         ) {
             Text(
                 text = text,
@@ -62,7 +62,7 @@ fun ProcessButton(
                         .size(18.dp)
                         .padding(start = 4.dp),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }

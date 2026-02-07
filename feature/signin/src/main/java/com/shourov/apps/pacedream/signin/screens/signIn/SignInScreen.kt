@@ -58,9 +58,7 @@ navController: NavController
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-
-                },
+                title = { },
                 navigationIcon = {
                     RoundIconButton(
                         icon = PaceDreamIcons.ArrowBack,
@@ -82,7 +80,7 @@ navController: NavController
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 6.dp, end = 6.dp, top = 6.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TitleText(

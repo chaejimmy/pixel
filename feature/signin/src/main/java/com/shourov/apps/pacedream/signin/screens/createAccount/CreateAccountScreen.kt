@@ -63,7 +63,7 @@ fun CreateAccountScreen(
 
     LaunchedEffect(key1 = createAccountViewModel.toastMessage.value) {
         if (createAccountViewModel.toastMessage.value.isNotBlank()){
-            Toast.makeText(context, "the name is : ${createAccountViewModel.toastMessage.value}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, createAccountViewModel.toastMessage.value, Toast.LENGTH_SHORT).show()
             createAccountViewModel.toastMessage.value = ""
         }
     }
@@ -93,9 +93,7 @@ fun CreateAccountScreen(
                 VerticalSpacer(height = 10)
 
                 Box(
-                    modifier = Modifier,
-                      //  .fillMaxSize(0.2f),
-                        //.padding(bottom = 20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     Row(

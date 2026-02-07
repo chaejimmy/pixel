@@ -154,7 +154,11 @@ fun NetworkErrorBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(PaceDreamColors.Error.copy(alpha = 0.1f))
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+                .background(
+                    color = PaceDreamColors.Error.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD)
+                )
                 .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -167,7 +171,7 @@ fun NetworkErrorBanner(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
                     tint = PaceDreamColors.Error,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
