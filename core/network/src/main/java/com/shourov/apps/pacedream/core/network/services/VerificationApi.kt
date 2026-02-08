@@ -7,7 +7,7 @@ import retrofit2.http.*
 
 /**
  * Verification API service for ID verification
- * Matches web API endpoints at /api/proxy/v1/users/verification/*
+ * Matches web API endpoints at /api/proxy/v1/users/verification/&#42;
  */
 interface VerificationApi {
     
