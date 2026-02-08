@@ -234,7 +234,7 @@ fun HostModeToggleScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(PaceDreamRadius.LG)),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(PaceDreamSpacing.LG)

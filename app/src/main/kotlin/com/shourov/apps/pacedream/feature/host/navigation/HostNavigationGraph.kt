@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.host.navigation
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostBookingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel
@@ -61,6 +62,15 @@ fun NavGraphBuilder.HostNavigationGraph(
     composable(HostScreen.Settings.route) {
         HostSettingsScreen(
             onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    composable(HostNavigationDestinations.ADD_LISTING) {
+        CreateListingScreen(
+            onBackClick = { navController.popBackStack() },
+            onPublishSuccess = { listingId ->
+                navController.popBackStack()
+            }
         )
     }
 }

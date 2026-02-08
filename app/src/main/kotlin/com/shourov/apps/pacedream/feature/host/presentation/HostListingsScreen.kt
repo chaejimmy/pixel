@@ -222,7 +222,7 @@ fun EmptyListingsState(
             .padding(horizontal = PaceDreamSpacing.LG)
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.XXXL),
@@ -315,7 +315,7 @@ fun HostListingCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
             // Property Image

@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.VerticalSpacer
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.core.ui.R
 import com.shourov.apps.pacedream.core.ui.SignInButton
@@ -90,13 +95,35 @@ fun StartWithEmailOrPhoneScreen(
                 )
             }
         }
-        VerticalSpacer(height = 20)
+        VerticalSpacer(height = 12)
+
+        // Divider with "or" text - iOS style
         Box(
             modifier = Modifier
-                .padding(horizontal = 12.dp),
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.LG),
+            contentAlignment = Alignment.Center,
+        ) {
+            HorizontalDivider(color = PaceDreamColors.Border)
+            Text(
+                text = "  or  ",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = PaceDreamSpacing.MD)
+            )
+        }
+
+        VerticalSpacer(height = 12)
+
+        Box(
+            modifier = Modifier
+                .padding(horizontal = PaceDreamSpacing.MD),
             contentAlignment = Alignment.BottomCenter,
         ) {
             Column {
+                // Toggle email/phone
                 SignInButton(
                     logo = if (startWithPhone) R.drawable.google_gmail else null,
                     icon = if (!startWithPhone) PaceDreamIcons.PhoneAndroid else null,
@@ -105,11 +132,26 @@ fun StartWithEmailOrPhoneScreen(
                     modifier = Modifier.fillMaxWidth(),
                     isLoading = false,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                // Continue with Google (Auth0 social connection)
                 SignInButton(
                     logo = R.drawable.google_logo,
-                    text = R.string.core_ui_continue_with_google, // strings based on loading state
-                    onClick = {   /*TODO google auth client */ },
+                    text = R.string.core_ui_continue_with_google,
+                    onClick = { /* TODO: Auth0 loginWithAuth0(connection = "google-oauth2") */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = false,
+                )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                // Continue with Apple (Auth0 social connection) - iOS parity
+                SignInButton(
+                    logo = null,
+                    icon = PaceDreamIcons.PhoneAndroid, // TODO: Replace with Apple icon
+                    text = R.string.core_ui_continue_with_google, // TODO: Add "Continue with Apple" string
+                    onClick = { /* TODO: Auth0 loginWithAuth0(connection = "apple") */ },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
@@ -117,9 +159,8 @@ fun StartWithEmailOrPhoneScreen(
                                 .asPaddingValues()
                                 .calculateBottomPadding(),
                         ),
-                    isLoading = false, // todo replace with auth client loading state
+                    isLoading = false,
                 )
-//            Spacer(modifier = Modifier.height(16.dp).padding())
             }
         }
     }
