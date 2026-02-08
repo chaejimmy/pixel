@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -18,9 +19,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPreferencesScreen(
     onBackClick: () -> Unit,
@@ -98,11 +102,11 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageExpanded)
                     }
                 )
-                androidx.compose.material3.ExposedDropdownMenu(
+                ExposedDropdownMenu(
                     expanded = languageExpanded,
                     onDismissRequest = { languageExpanded = false }
                 ) {
-                    languageOptions.forEach { option ->
+                    for (option in languageOptions) {
                         DropdownMenuItem(
                             text = { Text(option) },
                             onClick = {
@@ -130,11 +134,11 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded)
                     }
                 )
-                androidx.compose.material3.ExposedDropdownMenu(
+                ExposedDropdownMenu(
                     expanded = currencyExpanded,
                     onDismissRequest = { currencyExpanded = false }
                 ) {
-                    currencyOptions.forEach { option ->
+                    for (option in currencyOptions) {
                         DropdownMenuItem(
                             text = { Text(option) },
                             onClick = {
@@ -162,11 +166,11 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = timezoneExpanded)
                     }
                 )
-                androidx.compose.material3.ExposedDropdownMenu(
+                ExposedDropdownMenu(
                     expanded = timezoneExpanded,
                     onDismissRequest = { timezoneExpanded = false }
                 ) {
-                    timezoneOptions.forEach { option ->
+                    for (option in timezoneOptions) {
                         DropdownMenuItem(
                             text = { Text(option) },
                             onClick = {

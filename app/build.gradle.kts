@@ -26,6 +26,8 @@ android {
         // Auth0 manifest placeholders
         manifestPlaceholders["auth0Domain"] = "pacedream.us.auth0.com"
         manifestPlaceholders["auth0Scheme"] = "pacedream"
+        // Stripe publishable key (set in local.properties or CI as stripePublishableKey)
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${(project.findProperty("stripePublishableKey") as? String) ?: ""}\"")
     }
 
     buildTypes {
@@ -58,6 +60,9 @@ android {
         unitTests {
             isIncludeAndroidResources = true
         }
+    }
+    buildFeatures {
+        buildConfig = true
     }
     namespace = "com.shourov.apps.pacedream"
 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -184,7 +185,7 @@ fun OTPInputView(
             placeholder = { Text("000000") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = MaterialTheme.typography.headlineMedium.copy(
-                letterSpacing = 8.dp.value
+                letterSpacing = 8.sp
             ),
             singleLine = true,
             leadingIcon = {

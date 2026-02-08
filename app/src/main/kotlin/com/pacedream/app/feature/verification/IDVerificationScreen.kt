@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import android.net.Uri
 import coil.compose.AsyncImage
 import com.shourov.apps.pacedream.core.network.model.verification.VerificationStatusResponse
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IDVerificationContent(
     status: VerificationStatusResponse.VerificationStatusData.IDStatus?,
@@ -176,7 +178,7 @@ fun IDTypePicker(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                idTypes.forEach { (label, value) ->
+                for ((label, value) in idTypes) {
                     DropdownMenuItem(
                         text = { Text(label) },
                         onClick = {

@@ -46,6 +46,12 @@ interface HostApiService {
         @Body reason: BookingStatusUpdate
     ): Response<BookingModel>
 
+    @PATCH("host/bookings/{bookingId}")
+    suspend fun updateBookingStatus(
+        @Path("bookingId") bookingId: String,
+        @Body body: BookingStatusUpdate
+    ): Response<BookingModel>
+
     // Earnings (using ApiEndPoints constants)
     @GET(ApiEndPoints.HOST_GET_EARNINGS)
     suspend fun getHostEarnings(

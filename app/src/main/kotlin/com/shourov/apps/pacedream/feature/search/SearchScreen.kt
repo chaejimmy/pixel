@@ -131,7 +131,6 @@ fun SearchScreen(
                         location.longitude
                     )
                     if (address != null) {
-                        whereQuery = address
                         viewModel.onQueryChanged(address)
                         viewModel.updateSearchParams(city = address)
                         snackbarHostState.showSnackbar("Location set: $address")
@@ -143,7 +142,9 @@ fun SearchScreen(
                 }
             }
         } else {
-            snackbarHostState.showSnackbar("Location permission denied")
+            scope.launch {
+                snackbarHostState.showSnackbar("Location permission denied")
+            }
         }
     }
 

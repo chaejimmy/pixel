@@ -887,16 +887,10 @@ private fun MapPreviewCard(
         val mapsEnabled = mapsKey.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
-            // Recreate camera position state when coordinate changes to ensure map updates
-            val cameraPositionState = remember(
-                key1 = mapCoordinate.latitude,
-                key2 = mapCoordinate.longitude
-            ) {
-                rememberCameraPositionState {
-                    position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
-                }
+            val cameraPositionState = rememberCameraPositionState()
+            androidx.compose.runtime.LaunchedEffect(mapCoordinate.latitude, mapCoordinate.longitude) {
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
             }
-            
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState

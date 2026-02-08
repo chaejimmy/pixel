@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -48,16 +49,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.app.core.auth.TokenStorage
-import com.shourov.apps.pacedream.BuildConfig
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPaymentMethodsScreen(
     onBackClick: () -> Unit,
@@ -67,6 +69,7 @@ fun SettingsPaymentMethodsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val context = LocalContext.current
     val publishableKey = remember { StripePublishableKeyProvider.getPublishableKey() }
     val isStripeConfigured = !publishableKey.isNullOrBlank()
 
@@ -94,10 +97,10 @@ fun SettingsPaymentMethodsScreen(
         }
     )
 
-    LaunchedEffect(publishableKey) {
+    LaunchedEffect(publishableKey, context) {
         if (isStripeConfigured) {
             PaymentConfiguration.init(
-                context = androidx.compose.ui.platform.LocalContext.current,
+                context = context,
                 publishableKey = publishableKey!!
             )
         } else {
@@ -490,9 +493,8 @@ private fun formatExpiry(expMonth: Int?, expYear: Int?): String {
 object StripePublishableKeyProvider {
     fun getPublishableKey(): String? {
         return try {
-            val field = BuildConfig::class.java.getField("STRIPE_PUBLISHABLE_KEY")
-            val value = field.get(null) as? String
-            value?.takeIf { it.isNotBlank() }
+            val value = com.shourov.apps.pacedream.BuildConfig.STRIPE_PUBLISHABLE_KEY
+            value.takeIf { it.isNotBlank() }
         } catch (e: Exception) {
             null
         }
@@ -503,9 +505,9 @@ object StripePublishableKeyProvider {
 private fun rememberPaymentSheet(
     onResult: (PaymentSheetResult) -> Unit
 ): PaymentSheet {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = context as? android.app.Activity
-        ?: throw IllegalStateException("PaymentSheet requires an Activity context")
+    val context = LocalContext.current
+    val activity = context as? androidx.activity.ComponentActivity
+        ?: throw IllegalStateException("PaymentSheet requires a ComponentActivity context")
     return remember(activity) {
         PaymentSheet(activity, onResult)
     }
