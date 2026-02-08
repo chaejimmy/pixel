@@ -5,7 +5,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -25,11 +27,49 @@ import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.*
 
 /**
- * Enhanced UI Components for PaceDream App
- * Matching iOS design patterns and specifications
+ * iOS 26 Liquid Glass Components for PaceDream App
+ *
+ * Components follow Apple's Liquid Glass design language:
+ * - Translucent surfaces with subtle borders
+ * - Minimal elevation, prefer material over shadow
+ * - Content-first: UI recedes, content extends to edges
+ * - Floating elements that adapt to context
+ * - 44dp minimum touch targets
+ * - Concentric corner radii
  */
 
-// Hero Header Component
+// ============================================================================
+// Glass Surface Modifier - Reusable Liquid Glass appearance
+// ============================================================================
+@Composable
+fun Modifier.glassSurface(
+    shape: RoundedCornerShape = RoundedCornerShape(PaceDreamRadius.LG),
+    alpha: Float = PaceDreamGlass.RegularAlpha,
+): Modifier {
+    val glassTheme = LocalGlassTheme.current
+    val surfaceColor = if (glassTheme.isDark) {
+        PaceDreamColors.GlassSurfaceDark
+    } else {
+        PaceDreamColors.GlassSurface
+    }
+    val borderColor = if (glassTheme.isDark) {
+        PaceDreamColors.GlassBorderDark
+    } else {
+        PaceDreamColors.GlassBorder
+    }
+    return this
+        .clip(shape)
+        .background(surfaceColor.copy(alpha = alpha))
+        .border(
+            width = PaceDreamGlass.BorderWidth,
+            color = borderColor,
+            shape = shape
+        )
+}
+
+// ============================================================================
+// Hero Header - Floating glass header with gradient
+// ============================================================================
 @Composable
 fun PaceDreamHeroHeader(
     title: String,
@@ -44,11 +84,18 @@ fun PaceDreamHeroHeader(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamPrimary,
-                        PaceDreamPrimary.copy(alpha = 0.8f)
+                        PaceDreamPrimary.copy(alpha = 0.85f)
                     )
+                ),
+                shape = RoundedCornerShape(
+                    bottomStart = PaceDreamRadius.XL,
+                    bottomEnd = PaceDreamRadius.XL
                 )
             )
-            .padding(PaceDreamSpacing.LG)
+            .padding(
+                horizontal = PaceDreamSpacing.MD,
+                vertical = PaceDreamSpacing.XL
+            )
     ) {
         Column {
             Row(
@@ -56,26 +103,35 @@ fun PaceDreamHeroHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title,
                         style = PaceDreamTypography.Title1,
                         color = Color.White
                     )
                     subtitle?.let {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                         Text(
                             text = it,
                             style = PaceDreamTypography.Body,
-                            color = Color.White.copy(alpha = 0.9f)
+                            color = Color.White.copy(alpha = 0.85f)
                         )
                     }
                 }
-                
-                IconButton(onClick = onNotificationClick) {
+
+                // Floating glass notification button
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier
+                        .size(PaceDreamButtonHeight.MD)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.20f))
+                ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
             }
@@ -83,7 +139,9 @@ fun PaceDreamHeroHeader(
     }
 }
 
-// Enhanced Search Bar Component
+// ============================================================================
+// Search Bar - iOS 26 compact floating search field
+// ============================================================================
 @Composable
 fun PaceDreamSearchBar(
     query: String,
@@ -93,16 +151,14 @@ fun PaceDreamSearchBar(
     placeholder: String = "Search properties...",
     modifier: Modifier = Modifier
 ) {
+    val searchShape = RoundedCornerShape(PaceDreamSearchBar.CornerRadius)
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(PaceDreamSearchBar.Height)
-            .clip(RoundedCornerShape(PaceDreamSearchBar.CornerRadius))
-            .background(PaceDreamCard)
-            .padding(
-                horizontal = PaceDreamSearchBar.HorizontalPadding,
-                vertical = PaceDreamSearchBar.Padding
-            ),
+            .height(PaceDreamSearchBar.ExpandedHeight)
+            .glassSurface(shape = searchShape)
+            .padding(horizontal = PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -111,18 +167,18 @@ fun PaceDreamSearchBar(
             tint = PaceDreamTextSecondary,
             modifier = Modifier.size(PaceDreamSearchBar.IconSize)
         )
-        
+
         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-        
+
         TextField(
             value = query,
             onValueChange = onQueryChange,
-            placeholder = { 
+            placeholder = {
                 Text(
                     text = placeholder,
                     color = PaceDreamTextTertiary,
                     style = PaceDreamTypography.Body
-                ) 
+                )
             },
             modifier = Modifier.weight(1f),
             colors = TextFieldDefaults.colors(
@@ -133,10 +189,14 @@ fun PaceDreamSearchBar(
                 focusedTextColor = PaceDreamTextPrimary,
                 unfocusedTextColor = PaceDreamTextPrimary
             ),
-            textStyle = PaceDreamTypography.Body
+            textStyle = PaceDreamTypography.Body,
+            singleLine = true
         )
-        
-        IconButton(onClick = onFilterClick) {
+
+        IconButton(
+            onClick = onFilterClick,
+            modifier = Modifier.size(PaceDreamButtonHeight.SM)
+        ) {
             Icon(
                 imageVector = Icons.Default.FilterList,
                 contentDescription = "Filter",
@@ -147,7 +207,9 @@ fun PaceDreamSearchBar(
     }
 }
 
-// Enhanced Metric Card Component
+// ============================================================================
+// Metric Card - Glass material stat card
+// ============================================================================
 @Composable
 fun PaceDreamMetricCard(
     title: String,
@@ -156,19 +218,18 @@ fun PaceDreamMetricCard(
     color: Color = PaceDreamPrimary,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val cardShape = RoundedCornerShape(PaceDreamMetricCard.CornerRadius)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(PaceDreamMetricCard.MinHeight)
-            .padding(PaceDreamSpacing.XS),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamMetricCard.Elevation),
-        shape = RoundedCornerShape(PaceDreamMetricCard.CornerRadius)
+            .heightIn(min = PaceDreamMetricCard.MinHeight)
+            .padding(PaceDreamSpacing.XS)
+            .glassSurface(shape = cardShape)
+            .padding(PaceDreamSpacing.MD)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(PaceDreamMetricCard.Padding),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -178,17 +239,17 @@ fun PaceDreamMetricCard(
                 tint = color,
                 modifier = Modifier.size(PaceDreamMetricCard.IconSize)
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
             Text(
                 text = value,
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamTextPrimary
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-            
+
             Text(
                 text = title,
                 style = PaceDreamTypography.Caption,
@@ -198,7 +259,9 @@ fun PaceDreamMetricCard(
     }
 }
 
-// Enhanced Category Pill Component
+// ============================================================================
+// Category Pill - iOS 26 compact pill with glass material
+// ============================================================================
 @Composable
 fun PaceDreamCategoryPill(
     title: String,
@@ -207,15 +270,18 @@ fun PaceDreamCategoryPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pillShape = RoundedCornerShape(PaceDreamCategoryPill.CornerRadius)
+
     Button(
         onClick = onClick,
         modifier = modifier
-            .height(PaceDreamCategoryPill.Height)
-            .clip(RoundedCornerShape(PaceDreamCategoryPill.CornerRadius)),
+            .height(PaceDreamCategoryPill.Height),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) PaceDreamPrimary else PaceDreamGray100
+            containerColor = if (isSelected) PaceDreamPrimary else iOSSystemFill
         ),
-        contentPadding = PaceDreamCategoryPill.Padding
+        contentPadding = PaceDreamCategoryPill.Padding,
+        shape = pillShape,
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -227,17 +293,19 @@ fun PaceDreamCategoryPill(
                 tint = if (isSelected) Color.White else PaceDreamTextSecondary,
                 modifier = Modifier.size(PaceDreamCategoryPill.IconSize)
             )
-            
+
             Text(
                 text = title,
-                style = PaceDreamTypography.Caption,
-                color = if (isSelected) Color.White else PaceDreamTextSecondary
+                style = PaceDreamTypography.Footnote,
+                color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }
     }
 }
 
-// Enhanced Section Header Component
+// ============================================================================
+// Section Header - iOS 26 bold left-aligned typography
+// ============================================================================
 @Composable
 fun PaceDreamSectionHeader(
     title: String,
@@ -254,7 +322,7 @@ fun PaceDreamSectionHeader(
             style = PaceDreamTypography.Title3,
             color = PaceDreamTextPrimary
         )
-        
+
         onViewAllClick?.let { onClick ->
             TextButton(onClick = onClick) {
                 Text(
@@ -267,7 +335,9 @@ fun PaceDreamSectionHeader(
     }
 }
 
-// Property Card Component
+// ============================================================================
+// Property Card - Glass material card with concentric radii
+// ============================================================================
 @Composable
 fun PaceDreamPropertyCard(
     title: String,
@@ -279,6 +349,8 @@ fun PaceDreamPropertyCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cardShape = RoundedCornerShape(PaceDreamPropertyCard.CornerRadius)
+
     Card(
         onClick = onClick,
         modifier = modifier
@@ -286,10 +358,10 @@ fun PaceDreamPropertyCard(
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamPropertyCard.Elevation),
-        shape = RoundedCornerShape(PaceDreamPropertyCard.CornerRadius)
+        shape = cardShape
     ) {
         Column {
-            // Property Image with Coil
+            // Property Image
             PaceDreamPropertyImage(
                 imageUrl = imageUrl,
                 contentDescription = "Property image: $title",
@@ -297,8 +369,8 @@ fun PaceDreamPropertyCard(
                     .fillMaxWidth()
                     .height(PaceDreamPropertyCard.ImageHeight)
             )
-            
-            // Property Details
+
+            // Property Details with iOS-style compact spacing
             Column(
                 modifier = Modifier.padding(PaceDreamPropertyCard.ContentPadding)
             ) {
@@ -308,9 +380,9 @@ fun PaceDreamPropertyCard(
                     color = PaceDreamTextPrimary,
                     maxLines = 2
                 )
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -318,21 +390,21 @@ fun PaceDreamPropertyCard(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamTextSecondary,
-                        modifier = Modifier.size(PaceDreamIconSize.SM)
+                        modifier = Modifier.size(PaceDreamIconSize.XS)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
+
                     Text(
                         text = location,
-                        style = PaceDreamTypography.Callout,
+                        style = PaceDreamTypography.Footnote,
                         color = PaceDreamTextSecondary,
                         maxLines = 1
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -343,7 +415,7 @@ fun PaceDreamPropertyCard(
                         style = PaceDreamTypography.Headline,
                         color = PaceDreamPrimary
                     )
-                    
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -351,11 +423,11 @@ fun PaceDreamPropertyCard(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
                             tint = PaceDreamWarning,
-                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
-                        
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                        
+
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
+
                         Text(
                             text = "$rating ($reviewCount)",
                             style = PaceDreamTypography.Caption,
@@ -368,7 +440,9 @@ fun PaceDreamPropertyCard(
     }
 }
 
-// Destination Card Component
+// ============================================================================
+// Destination Card - Compact glass card
+// ============================================================================
 @Composable
 fun PaceDreamDestinationCard(
     name: String,
@@ -376,6 +450,8 @@ fun PaceDreamDestinationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cardShape = RoundedCornerShape(PaceDreamDestinationCard.CornerRadius)
+
     Card(
         onClick = onClick,
         modifier = modifier
@@ -383,8 +459,8 @@ fun PaceDreamDestinationCard(
             .height(PaceDreamDestinationCard.Height)
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamPropertyCard.Elevation),
-        shape = RoundedCornerShape(PaceDreamDestinationCard.CornerRadius)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = cardShape
     ) {
         Column {
             // Destination Image
@@ -392,36 +468,21 @@ fun PaceDreamDestinationCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(PaceDreamDestinationCard.ImageHeight)
-                    .background(PaceDreamGray200)
+                    .background(PaceDreamGray100)
             ) {
-                if (imageUrl != null) {
-                    // TODO: Add Coil image loading
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            tint = PaceDreamTextTertiary,
-                            modifier = Modifier.size(PaceDreamIconSize.LG)
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = PaceDreamTextTertiary,
-                            modifier = Modifier.size(PaceDreamIconSize.LG)
-                        )
-                    }
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (imageUrl != null) Icons.Default.Image else Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = PaceDreamTextTertiary,
+                        modifier = Modifier.size(PaceDreamIconSize.LG)
+                    )
                 }
             }
-            
+
             // Destination Name
             Box(
                 modifier = Modifier
@@ -431,7 +492,7 @@ fun PaceDreamDestinationCard(
             ) {
                 Text(
                     text = name,
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Footnote,
                     color = PaceDreamTextPrimary
                 )
             }
@@ -439,7 +500,9 @@ fun PaceDreamDestinationCard(
     }
 }
 
-// Recent Search Item Component
+// ============================================================================
+// Recent Search Item - iOS-style list row
+// ============================================================================
 @Composable
 fun PaceDreamRecentSearchItem(
     location: String,
@@ -451,7 +514,7 @@ fun PaceDreamRecentSearchItem(
         modifier = modifier
             .height(PaceDreamRecentSearchItem.Height)
             .padding(PaceDreamSpacing.XS),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamGray100),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamGray50),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRecentSearchItem.CornerRadius)
     ) {
@@ -467,19 +530,21 @@ fun PaceDreamRecentSearchItem(
                 tint = PaceDreamTextSecondary,
                 modifier = Modifier.size(PaceDreamRecentSearchItem.IconSize)
             )
-            
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-            
+
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
             Text(
                 text = location,
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Body,
                 color = PaceDreamTextPrimary
             )
         }
     }
 }
 
-// Loading Shimmer Component
+// ============================================================================
+// Shimmer Loading Card
+// ============================================================================
 @Composable
 fun PaceDreamShimmerCard(
     modifier: Modifier = Modifier
@@ -487,46 +552,46 @@ fun PaceDreamShimmerCard(
     Card(
         modifier = modifier
             .width(200.dp)
-            .height(PaceDreamPropertyCard.ImageHeight + 120.dp)
+            .height(PaceDreamPropertyCard.ImageHeight + 100.dp)
             .padding(PaceDreamSpacing.XS),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamGray100),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamGray50),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamPropertyCard.CornerRadius)
     ) {
         Column {
-            // Shimmer Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(PaceDreamPropertyCard.ImageHeight)
-                    .background(PaceDreamGray200)
+                    .background(PaceDreamGray100)
                     .shimmerEffect()
             )
-            
-            // Shimmer Content
+
             Column(
                 modifier = Modifier.padding(PaceDreamPropertyCard.ContentPadding)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(20.dp)
-                        .background(PaceDreamGray200)
+                        .height(17.dp)
+                        .clip(RoundedCornerShape(PaceDreamRadius.XS))
+                        .background(PaceDreamGray100)
                         .shimmerEffect()
                 )
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
+
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(16.dp)
-                        .background(PaceDreamGray200)
+                        .fillMaxWidth(0.7f)
+                        .height(13.dp)
+                        .clip(RoundedCornerShape(PaceDreamRadius.XS))
+                        .background(PaceDreamGray100)
                         .shimmerEffect()
                 )
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -534,16 +599,18 @@ fun PaceDreamShimmerCard(
                     Box(
                         modifier = Modifier
                             .width(60.dp)
-                            .height(16.dp)
-                            .background(PaceDreamGray200)
+                            .height(15.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.XS))
+                            .background(PaceDreamGray100)
                             .shimmerEffect()
                     )
-                    
+
                     Box(
                         modifier = Modifier
                             .width(40.dp)
-                            .height(16.dp)
-                            .background(PaceDreamGray200)
+                            .height(15.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.XS))
+                            .background(PaceDreamGray100)
                             .shimmerEffect()
                     )
                 }
@@ -552,7 +619,9 @@ fun PaceDreamShimmerCard(
     }
 }
 
-// Empty State Component
+// ============================================================================
+// Empty State - Centered with iOS 26 typography
+// ============================================================================
 @Composable
 fun PaceDreamEmptyState(
     title: String,
@@ -564,7 +633,8 @@ fun PaceDreamEmptyState(
 ) {
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(tween(durationMillis = 220)) + scaleIn(initialScale = 0.98f, animationSpec = tween(220)),
+        enter = fadeIn(tween(durationMillis = PaceDreamAnimationDuration.SHORT)) +
+                scaleIn(initialScale = 0.98f, animationSpec = tween(PaceDreamAnimationDuration.SHORT)),
     ) {
         Column(
             modifier = modifier
@@ -578,31 +648,33 @@ fun PaceDreamEmptyState(
                 tint = PaceDreamTextTertiary,
                 modifier = Modifier.size(PaceDreamEmptyState.IconSize)
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
             Text(
                 text = title,
                 style = PaceDreamTypography.Title3,
                 color = PaceDreamTextPrimary
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = description,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamTextSecondary,
                 lineHeight = PaceDreamTypography.Body.lineHeight
             )
-            
+
             actionText?.let { text ->
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
                 Button(
                     onClick = { onActionClick?.invoke() },
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
-                    modifier = Modifier.height(PaceDreamButtonHeight.MD)
+                    modifier = Modifier.height(PaceDreamButtonHeight.MD),
+                    shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                 ) {
                     Text(
                         text = text,
@@ -615,7 +687,9 @@ fun PaceDreamEmptyState(
     }
 }
 
-// Error State Component
+// ============================================================================
+// Error State
+// ============================================================================
 @Composable
 fun PaceDreamErrorState(
     title: String,
@@ -625,7 +699,8 @@ fun PaceDreamErrorState(
 ) {
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(tween(durationMillis = 220)) + scaleIn(initialScale = 0.98f, animationSpec = tween(220)),
+        enter = fadeIn(tween(durationMillis = PaceDreamAnimationDuration.SHORT)) +
+                scaleIn(initialScale = 0.98f, animationSpec = tween(PaceDreamAnimationDuration.SHORT)),
     ) {
         Column(
             modifier = modifier
@@ -639,30 +714,32 @@ fun PaceDreamErrorState(
                 tint = PaceDreamError,
                 modifier = Modifier.size(PaceDreamErrorState.IconSize)
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
             Text(
                 text = title,
                 style = PaceDreamTypography.Title3,
                 color = PaceDreamTextPrimary
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = description,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamTextSecondary,
                 lineHeight = PaceDreamTypography.Body.lineHeight
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
             Button(
                 onClick = onRetryClick,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
-                modifier = Modifier.height(PaceDreamButtonHeight.MD)
+                modifier = Modifier.height(PaceDreamButtonHeight.MD),
+                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
             ) {
                 Text(
                     text = "Try Again",
@@ -674,7 +751,9 @@ fun PaceDreamErrorState(
     }
 }
 
-// Loading State Component
+// ============================================================================
+// Loading State
+// ============================================================================
 @Composable
 fun PaceDreamLoadingState(
     message: String = "Loading...",
@@ -682,7 +761,8 @@ fun PaceDreamLoadingState(
 ) {
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn(tween(durationMillis = 180)) + scaleIn(initialScale = 0.98f, animationSpec = tween(180)),
+        enter = fadeIn(tween(durationMillis = PaceDreamAnimationDuration.FAST)) +
+                scaleIn(initialScale = 0.98f, animationSpec = tween(PaceDreamAnimationDuration.FAST)),
     ) {
         Column(
             modifier = modifier
@@ -692,11 +772,12 @@ fun PaceDreamLoadingState(
         ) {
             CircularProgressIndicator(
                 color = PaceDreamPrimary,
-                modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamLoadingState.IconSize)
+                modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamLoadingState.IconSize),
+                strokeWidth = 3.dp
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             Text(
                 text = message,
                 style = PaceDreamTypography.Body,
@@ -706,7 +787,9 @@ fun PaceDreamLoadingState(
     }
 }
 
-// Category Pill with Resource ID (for use with animated components)
+// ============================================================================
+// Category Pill (Resource ID variant)
+// ============================================================================
 @Composable
 fun PaceDreamCategoryPillSimple(
     title: String,
@@ -717,13 +800,13 @@ fun PaceDreamCategoryPillSimple(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .height(PaceDreamCategoryPill.Height)
-            .clip(RoundedCornerShape(PaceDreamCategoryPill.CornerRadius)),
+        modifier = modifier.height(PaceDreamCategoryPill.Height),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) PaceDreamPrimary else PaceDreamGray100
+            containerColor = if (isSelected) PaceDreamPrimary else iOSSystemFill
         ),
-        contentPadding = PaceDreamCategoryPill.Padding
+        contentPadding = PaceDreamCategoryPill.Padding,
+        shape = RoundedCornerShape(PaceDreamCategoryPill.CornerRadius),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -735,11 +818,11 @@ fun PaceDreamCategoryPillSimple(
                 tint = if (isSelected) Color.White else PaceDreamTextSecondary,
                 modifier = Modifier.size(PaceDreamCategoryPill.IconSize)
             )
-            
+
             Text(
                 text = title,
-                style = PaceDreamTypography.Caption,
-                color = if (isSelected) Color.White else PaceDreamTextSecondary
+                style = PaceDreamTypography.Footnote,
+                color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }
     }

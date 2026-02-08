@@ -19,19 +19,27 @@ package com.pacedream.common.composables.theme
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val ExtraSmallPadding = 4.dp
+// ============================================================================
+// Legacy Padding Tokens - iOS 26 HIG aligned
+// Prefer PaceDreamSpacing for new code
+// ============================================================================
+val ExtraSmallPadding = 4.dp   // = PaceDreamSpacing.XS
 val SmallPadding = 6.dp
-val NormalPadding = 8.dp
+val NormalPadding = 8.dp       // = PaceDreamSpacing.SM
 val MediumPadding = 12.dp
-val LargePadding = 16.dp
-val ExtraLargePadding = 20.dp
-val LargerPadding = 24.dp
+val LargePadding = 16.dp      // = PaceDreamSpacing.MD
+val ExtraLargePadding = 20.dp  // = PaceDreamSpacing.LG
+val LargerPadding = 24.dp     // = PaceDreamSpacing.XL
 
 val BorderWidth = 1.dp
 
-val SmallText = 12.sp
-val NormalText = 14.sp
-val MediumText = 16.sp
-val LargeText = 18.sp
-val ExtraLargeText = 20.sp
-val LargerText = 24.sp
+// ============================================================================
+// Legacy Text Size Tokens - iOS 26 HIG type scale
+// Prefer PaceDreamTypography named styles for new code
+// ============================================================================
+val SmallText = 11.sp   // Caption 2 (iOS)
+val NormalText = 13.sp   // Footnote (iOS)
+val MediumText = 16.sp   // Callout (iOS)
+val LargeText = 17.sp    // Body / Headline (iOS default)
+val ExtraLargeText = 20.sp // Title 3 (iOS)
+val LargerText = 22.sp    // Title 2 (iOS)

@@ -43,6 +43,16 @@ import com.pacedream.common.composables.components.PaceDreamSearchBar
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.home.presentation.R
 
+/**
+ * iOS 26 Liquid Glass Dashboard Header
+ *
+ * Layout pattern: Full-bleed background image with translucent overlay,
+ * floating glass elements, and content-first typography.
+ * - Rounded bottom corners (XL = 20dp)
+ * - Translucent primary overlay (60% alpha)
+ * - 44dp minimum touch targets
+ * - iOS 26 typography scale
+ */
 @Composable
 fun EnhancedDashboardHeader(
     userName: String = "Darryl Rutledge",
@@ -54,12 +64,13 @@ fun EnhancedDashboardHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomEnd = PaceDreamRadius.LG, bottomStart = PaceDreamRadius.LG))
+            .clip(RoundedCornerShape(bottomEnd = PaceDreamRadius.XL, bottomStart = PaceDreamRadius.XL))
             .paint(
                 painterResource(id = R.drawable.bg_dashboard_header),
                 contentScale = ContentScale.FillBounds,
             ),
     ) {
+        // Translucent overlay (Liquid Glass style)
         Surface(
             color = PaceDreamPrimary.copy(alpha = 0.6f),
             modifier = Modifier.fillMaxSize(),
@@ -69,9 +80,9 @@ fun EnhancedDashboardHeader(
                     .fillMaxWidth()
                     .padding(
                         top = 60.dp,
-                        start = PaceDreamSpacing.LG,
-                        end = PaceDreamSpacing.LG,
-                        bottom = PaceDreamSpacing.LG,
+                        start = PaceDreamSpacing.MD,
+                        end = PaceDreamSpacing.MD,
+                        bottom = PaceDreamSpacing.XL,
                     ),
             ) {
                 // User Profile and Notifications Row
@@ -82,81 +93,80 @@ fun EnhancedDashboardHeader(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // User Avatar
+                        // User Avatar - 56dp circle (iOS standard)
                         Image(
                             painter = painterResource(R.drawable.ic_dummy_user),
                             contentDescription = null,
                             modifier = Modifier
-                                .size(70.dp)
+                                .size(56.dp)
                                 .clip(CircleShape),
                         )
-                        
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                        
-                        // Greeting and Name
+
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
+                        // Greeting and Name - iOS 26 compact typography
                         val annotatedString = buildAnnotatedString {
                             append(stringResource(R.string.feature_home_good_morning))
                             appendLine()
-                            withStyle(style = SpanStyle(fontSize = PaceDreamTypography.Body.fontSize)) {
+                            withStyle(style = SpanStyle(
+                                fontSize = PaceDreamTypography.Headline.fontSize,
+                                fontWeight = FontWeight.SemiBold
+                            )) {
                                 append(userName)
                             }
                         }
-                        
+
                         Text(
                             text = annotatedString,
                             color = Color.White,
-                            style = PaceDreamTypography.Body,
+                            style = PaceDreamTypography.Subheadline,
                             modifier = Modifier.weight(1F),
                         )
                     }
-                    
-                    // Notification Button
-                    Box(
+
+                    // Floating Glass Notification Button (44dp iOS touch target)
+                    IconButton(
+                        onClick = onNotificationClick,
                         modifier = Modifier
+                            .size(PaceDreamButtonHeight.MD)
                             .clip(CircleShape)
-                            .background(PaceDreamAccent)
-                            .padding(PaceDreamSpacing.SM)
+                            .background(Color.White.copy(alpha = PaceDreamGlass.BorderAlpha))
                     ) {
-                        IconButton(
-                            onClick = onNotificationClick,
-                            modifier = Modifier.size(30.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color.White,
-                                modifier = Modifier.size(PaceDreamIconSize.MD)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.MD)
+                        )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                
-                // Divider
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+                // Subtle divider (iOS separator style)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(1.dp)
-                        .background(Color.White.copy(alpha = 0.3f))
+                        .height(0.5.dp)
+                        .background(Color.White.copy(alpha = 0.2f))
                 )
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                
-                // Main Title
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+                // Main Title - iOS 26 bold left-aligned
                 Text(
                     text = stringResource(R.string.feature_home_find_your_perfect_stay),
                     style = PaceDreamTypography.Title1,
                     color = Color.White,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.Bold,
                 )
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                
-                // Search Bar
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+                // Search Bar + Filter Button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     PaceDreamSearchBar(
                         query = "",
@@ -166,13 +176,13 @@ fun EnhancedDashboardHeader(
                         placeholder = "Search properties, locations...",
                         modifier = Modifier.weight(1f)
                     )
-                    
-                    // Filter Button
+
+                    // Glass filter button (44dp iOS touch target)
                     IconButton(
                         onClick = onFilterClick,
                         modifier = Modifier
-                            .size(48.dp)
-                            .background(PaceDreamAccent, CircleShape)
+                            .size(PaceDreamButtonHeight.MD)
+                            .background(Color.White.copy(alpha = PaceDreamGlass.BorderAlpha), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
@@ -187,6 +197,9 @@ fun EnhancedDashboardHeader(
     }
 }
 
+/**
+ * Compact header for scrolled state - iOS 26 large title collapse pattern
+ */
 @Composable
 fun CompactDashboardHeader(
     title: String = "PaceDream",
@@ -203,25 +216,27 @@ fun CompactDashboardHeader(
                 .fillMaxWidth()
                 .padding(
                     top = 60.dp,
-                    start = PaceDreamSpacing.LG,
-                    end = PaceDreamSpacing.LG,
-                    bottom = PaceDreamSpacing.LG,
+                    start = PaceDreamSpacing.MD,
+                    end = PaceDreamSpacing.MD,
+                    bottom = PaceDreamSpacing.SM,
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = title,
-                style = PaceDreamTypography.Title2,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
+                style = PaceDreamTypography.Headline,
+                color = Color.White
             )
-            
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
             ) {
-                IconButton(onClick = onSearchClick) {
+                IconButton(
+                    onClick = onSearchClick,
+                    modifier = Modifier.size(PaceDreamButtonHeight.MD)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
@@ -229,8 +244,11 @@ fun CompactDashboardHeader(
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
-                
-                IconButton(onClick = onNotificationClick) {
+
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier.size(PaceDreamButtonHeight.MD)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
@@ -243,6 +261,9 @@ fun CompactDashboardHeader(
     }
 }
 
+/**
+ * Minimal header for detail/inner screens - iOS 26 inline navigation bar
+ */
 @Composable
 fun MinimalDashboardHeader(
     title: String = "PaceDream",
@@ -261,15 +282,18 @@ fun MinimalDashboardHeader(
                 .fillMaxWidth()
                 .padding(
                     top = 60.dp,
-                    start = PaceDreamSpacing.LG,
-                    end = PaceDreamSpacing.LG,
-                    bottom = PaceDreamSpacing.LG,
+                    start = PaceDreamSpacing.MD,
+                    end = PaceDreamSpacing.MD,
+                    bottom = PaceDreamSpacing.SM,
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back Button
+            // Back Button (44dp touch target)
             onBackClick?.let { onClick ->
-                IconButton(onClick = onClick) {
+                IconButton(
+                    onClick = onClick,
+                    modifier = Modifier.size(PaceDreamButtonHeight.MD)
+                ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
@@ -278,30 +302,32 @@ fun MinimalDashboardHeader(
                     )
                 }
             }
-            
+
             // Title and Subtitle
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = title,
-                    style = PaceDreamTypography.Title3,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    style = PaceDreamTypography.Headline,
+                    color = Color.White
                 )
-                
+
                 subtitle?.let {
                     Text(
                         text = it,
-                        style = PaceDreamTypography.Callout,
-                        color = Color.White.copy(alpha = 0.9f)
+                        style = PaceDreamTypography.Subheadline,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                 }
             }
-            
-            // Action Button
+
+            // Action Button (44dp touch target)
             onActionClick?.let { onClick ->
-                IconButton(onClick = onClick) {
+                IconButton(
+                    onClick = onClick,
+                    modifier = Modifier.size(PaceDreamButtonHeight.MD)
+                ) {
                     actionIcon?.invoke() ?: Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More",
