@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="pacedream_launcher_background">#0057FF</color>
+    <!-- iOS 26 System Indigo - matches iOS app icon tint -->
+    <color name="pacedream_launcher_background">#5856D6</color>
 </resources>

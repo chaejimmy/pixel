@@ -109,11 +109,11 @@ interface PaceDreamApiService {
     @GET(ApiEndPoints.ROOMMATE_ROOM_STAY)
     suspend fun getRoomStayAll(): RoomsResponse
 
-    // Property Management APIs
-    @GET("properties/{propertyId}")
+    // ── Property Management APIs ──────────────────────────────
+    @GET(ApiEndPoints.GET_PROPERTY_BY_ID)
     suspend fun getPropertyById(@Path("propertyId") propertyId: String): Response<Any>
 
-    @GET("properties/search")
+    @GET(ApiEndPoints.SEARCH_PROPERTIES)
     suspend fun searchProperties(
         @Query("query") query: String,
         @Query("propertyType") propertyType: String?,
@@ -124,94 +124,129 @@ interface PaceDreamApiService {
         @Query("limit") limit: Int = 20
     ): Response<Any>
 
-    @GET("properties/categories")
+    @GET(ApiEndPoints.GET_PROPERTY_CATEGORIES)
     suspend fun getPropertyCategories(): Response<Any>
 
-    @GET("properties/destinations")
+    @GET(ApiEndPoints.GET_POPULAR_DESTINATIONS)
     suspend fun getPopularDestinations(): Response<Any>
 
-    // Booking Management APIs
-    @POST("bookings")
+    @GET(ApiEndPoints.GET_FEATURED_PROPERTIES)
+    suspend fun getFeaturedProperties(): Response<Any>
+
+    @GET(ApiEndPoints.GET_NEARBY_PROPERTIES)
+    suspend fun getNearbyProperties(
+        @Query("lat") latitude: Double,
+        @Query("lng") longitude: Double,
+        @Query("radius") radiusKm: Int = 25
+    ): Response<Any>
+
+    // ── Wishlist / Favorites (iOS parity) ──────────────────────
+    @GET(ApiEndPoints.GET_WISHLIST)
+    suspend fun getWishlist(@Header("Authorization") token: String): Response<Any>
+
+    @POST(ApiEndPoints.ADD_TO_WISHLIST)
+    suspend fun addToWishlist(
+        @Header("Authorization") token: String,
+        @Body data: Map<String, String>
+    ): Response<Any>
+
+    @DELETE(ApiEndPoints.REMOVE_FROM_WISHLIST)
+    suspend fun removeFromWishlist(
+        @Header("Authorization") token: String,
+        @Path("propertyId") propertyId: String
+    ): Response<Any>
+
+    // ── Booking Management APIs ────────────────────────────────
+    @POST(ApiEndPoints.CREATE_BOOKING)
     suspend fun createBooking(@Body booking: BookingModel): Response<Any>
 
-    @GET("bookings/user/{userId}")
+    @GET(ApiEndPoints.GET_USER_BOOKINGS)
     suspend fun getUserBookings(@Path("userId") userId: String): Response<Any>
 
-    @GET("bookings/{bookingId}")
+    @GET(ApiEndPoints.GET_BOOKING_BY_ID)
     suspend fun getBookingById(@Path("bookingId") bookingId: String): Response<Any>
 
-    @PUT("bookings/{bookingId}")
+    @PUT(ApiEndPoints.UPDATE_BOOKING)
     suspend fun updateBooking(
         @Path("bookingId") bookingId: String,
         @Body booking: BookingModel
     ): Response<Any>
 
-    @DELETE("bookings/{bookingId}")
+    @DELETE(ApiEndPoints.CANCEL_BOOKING)
     suspend fun cancelBooking(@Path("bookingId") bookingId: String): Response<Any>
 
-    @POST("bookings/{bookingId}/confirm")
+    @POST(ApiEndPoints.CONFIRM_BOOKING)
     suspend fun confirmBooking(@Path("bookingId") bookingId: String): Response<Any>
 
-    // Messaging APIs
-    @GET("chats/user/{userId}")
+    @GET(ApiEndPoints.GET_BOOKING_AVAILABILITY)
+    suspend fun getBookingAvailability(@Path("propertyId") propertyId: String): Response<Any>
+
+    // ── Messaging APIs ─────────────────────────────────────────
+    @GET(ApiEndPoints.GET_USER_CHATS)
     suspend fun getUserChats(@Path("userId") userId: String): Response<Any>
 
-    @GET("chats/{chatId}/messages")
+    @GET(ApiEndPoints.GET_CHAT_MESSAGES)
     suspend fun getChatMessages(
         @Path("chatId") chatId: String,
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 50
     ): Response<Any>
 
-    @POST("chats")
+    @POST(ApiEndPoints.CREATE_CHAT)
     suspend fun createChat(@Body chatData: Map<String, String>): Response<Any>
 
-    @POST("chats/{chatId}/messages")
+    @POST(ApiEndPoints.SEND_MESSAGE)
     suspend fun sendMessage(
         @Path("chatId") chatId: String,
         @Body message: MessageModel
     ): Response<Any>
 
-    @PUT("chats/{chatId}/messages/{messageId}/read")
+    @PUT(ApiEndPoints.MARK_MESSAGE_READ)
     suspend fun markMessageAsRead(
         @Path("chatId") chatId: String,
         @Path("messageId") messageId: String
     ): Response<Any>
 
-    // Notification APIs
-    @GET("notifications/user/{userId}")
+    // ── Notification APIs ──────────────────────────────────────
+    @GET(ApiEndPoints.GET_USER_NOTIFICATIONS)
     suspend fun getUserNotifications(@Path("userId") userId: String): Response<Any>
 
-    @PUT("notifications/{notificationId}/read")
+    @PUT(ApiEndPoints.MARK_NOTIFICATION_READ)
     suspend fun markNotificationAsRead(@Path("notificationId") notificationId: String): Response<Any>
 
-    @PUT("notifications/user/{userId}/read-all")
+    @PUT(ApiEndPoints.MARK_ALL_NOTIFICATIONS_READ)
     suspend fun markAllNotificationsAsRead(@Path("userId") userId: String): Response<Any>
 
-    // Payment APIs
-    @POST("payments/create-intent")
+    @POST(ApiEndPoints.REGISTER_PUSH_TOKEN)
+    suspend fun registerPushToken(@Body tokenData: Map<String, String>): Response<Any>
+
+    // ── Payment APIs ───────────────────────────────────────────
+    @POST(ApiEndPoints.CREATE_PAYMENT_INTENT)
     suspend fun createPaymentIntent(@Body paymentData: Map<String, Any>): Response<Any>
 
-    @POST("payments/confirm")
+    @POST(ApiEndPoints.CONFIRM_PAYMENT)
     suspend fun confirmPayment(@Body paymentData: Map<String, Any>): Response<Any>
 
-    @GET("payments/user/{userId}/history")
+    @GET(ApiEndPoints.GET_PAYMENT_HISTORY)
     suspend fun getPaymentHistory(@Path("userId") userId: String): Response<Any>
 
-    // Review and Rating APIs
-    @POST("reviews")
+    @GET(ApiEndPoints.GET_PAYMENT_METHODS)
+    suspend fun getPaymentMethods(@Header("Authorization") token: String): Response<Any>
+
+    // ── Review and Rating APIs ─────────────────────────────────
+    @POST(ApiEndPoints.CREATE_REVIEW)
     suspend fun createReview(@Body reviewData: Map<String, Any>): Response<Any>
 
-    @GET("reviews/property/{propertyId}")
+    @GET(ApiEndPoints.GET_PROPERTY_REVIEWS)
     suspend fun getPropertyReviews(@Path("propertyId") propertyId: String): Response<Any>
 
-    @GET("reviews/user/{userId}")
+    @GET(ApiEndPoints.GET_USER_REVIEWS_BY_ID)
     suspend fun getUserReviewsById(@Path("userId") userId: String): Response<Any>
 
-    // Analytics and Tracking APIs
-    @POST("analytics/event")
+    // ── Analytics and Tracking APIs ────────────────────────────
+    @POST(ApiEndPoints.TRACK_EVENT)
     suspend fun trackEvent(@Body eventData: Map<String, Any>): Response<Any>
 
-    @POST("analytics/property-view")
+    @POST(ApiEndPoints.TRACK_PROPERTY_VIEW)
     suspend fun trackPropertyView(@Body viewData: Map<String, Any>): Response<Any>
 }

@@ -132,16 +132,17 @@ private fun BookingFormContent(
         
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
-        // Book Now Button
+        // Book Now Button - iOS 26 style
         Button(
             onClick = onBookNow,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(PaceDreamButtonHeight.LG),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PaceDreamColors.Primary
             ),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
+            shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
             Text(
                 text = "Book Now - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}",
@@ -162,7 +163,7 @@ private fun PropertySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Row(
@@ -217,7 +218,7 @@ private fun BookingDetailsForm(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(
@@ -314,7 +315,7 @@ private fun PriceSummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(
