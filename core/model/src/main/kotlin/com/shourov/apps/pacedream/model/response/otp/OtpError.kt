@@ -1,16 +1,17 @@
 package com.shourov.apps.pacedream.model.response.otp
 
 /**
- * Sealed class for OTP-related errors
+ * Sealed class for OTP-related errors.
+ * Extends Exception so it can be used with Result.failure() and exception handling.
  */
-sealed class OtpError {
-    data class NetworkError(val message: String) : OtpError()
-    data class RateLimited(val retryAfter: String?) : OtpError()
-    data class ServiceUnavailable(val message: String) : OtpError()
-    data class InvalidPhone(val message: String) : OtpError()
-    data class VerificationFailed(val message: String) : OtpError()
-    data class MaxAttemptsReached(val message: String) : OtpError()
-    data class UnknownError(val message: String) : OtpError()
+sealed class OtpError(message: String) : Exception(message) {
+    data class NetworkError(override val message: String) : OtpError(message)
+    data class RateLimited(val retryAfter: String?) : OtpError("Rate limited${retryAfter?.let { " (retry after $it)" } ?: ""}")
+    data class ServiceUnavailable(override val message: String) : OtpError(message)
+    data class InvalidPhone(override val message: String) : OtpError(message)
+    data class VerificationFailed(override val message: String) : OtpError(message)
+    data class MaxAttemptsReached(override val message: String) : OtpError(message)
+    data class UnknownError(override val message: String) : OtpError(message)
 }
 
 /**
