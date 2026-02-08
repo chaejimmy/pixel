@@ -247,6 +247,7 @@ private fun SearchField(
  * Date picker helper with formatted date string
  * Returns both display string and ISO date string for API
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberDatePickerState(
     initialDate: Long? = null

@@ -22,8 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -102,7 +102,7 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageExpanded)
                     }
                 )
-                ExposedDropdownMenu(
+                DropdownMenu(
                     expanded = languageExpanded,
                     onDismissRequest = { languageExpanded = false }
                 ) {
@@ -134,7 +134,7 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded)
                     }
                 )
-                ExposedDropdownMenu(
+                DropdownMenu(
                     expanded = currencyExpanded,
                     onDismissRequest = { currencyExpanded = false }
                 ) {
@@ -166,7 +166,7 @@ fun SettingsPreferencesScreen(
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = timezoneExpanded)
                     }
                 )
-                ExposedDropdownMenu(
+                DropdownMenu(
                     expanded = timezoneExpanded,
                     onDismissRequest = { timezoneExpanded = false }
                 ) {

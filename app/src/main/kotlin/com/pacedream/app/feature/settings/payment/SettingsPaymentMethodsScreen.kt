@@ -150,6 +150,7 @@ fun SettingsPaymentMethodsScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsPaymentMethodsContent(
     uiState: PaymentMethodsUiState,
