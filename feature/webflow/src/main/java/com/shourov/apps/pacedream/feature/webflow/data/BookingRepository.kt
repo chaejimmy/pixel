@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
+import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -196,8 +197,20 @@ class BookingRepository @Inject constructor(
         clearStoredCheckout()
     }
     
+    @VisibleForTesting
+    internal fun parseCheckoutResponseForTest(responseBody: String, type: BookingType): CheckoutResult =
+        parseCheckoutResponse(responseBody, type)
+
+    @VisibleForTesting
+    internal fun parseBookingConfirmationForTest(responseBody: String, type: BookingType): BookingConfirmation =
+        parseBookingConfirmation(responseBody, type)
+
+    @VisibleForTesting
+    internal fun extractSessionIdFromUrlForTest(url: String): String? =
+        extractSessionIdFromUrl(url)
+
     // Parsing methods
-    
+
     private fun parseCheckoutResponse(responseBody: String, type: BookingType): CheckoutResult {
         val jsonElement = json.parseToJsonElement(responseBody)
         val jsonObject = jsonElement.jsonObject

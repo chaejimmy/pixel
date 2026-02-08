@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
+import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -183,6 +184,18 @@ class WishlistRepository @Inject constructor(
         }
     }
     
+    @VisibleForTesting
+    internal fun parseWishlistResponseForTest(responseBody: String): List<WishlistItem> =
+        parseWishlistsEndpointResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun parseToggleResponseForTest(responseBody: String): ToggleResult =
+        parseToggleResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun isSuccessResponseForTest(responseBody: String): Boolean =
+        isSuccessResponse(responseBody)
+
     /**
      * Parse wishlist response with tolerant path finding
      * Looks for items array in: items, data.items, data.data.items
