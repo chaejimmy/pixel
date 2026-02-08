@@ -13,6 +13,8 @@ dependencies {
     implementation(libs.country.code.picker)
 //    implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.auth)
+    implementation(libs.retrofit.gson)
+    implementation(libs.timber)
     implementation(project(":common"))
     implementation(project(":core:network"))
     implementation(project(":core:ui"))
