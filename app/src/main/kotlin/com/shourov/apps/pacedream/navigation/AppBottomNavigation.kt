@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,85 +35,82 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 
+/**
+ * iOS 26 Liquid Glass Floating Tab Bar
+ *
+ * Matches iOS tab bar design language:
+ * - Translucent glass material background
+ * - Compact height (iOS standard tab bar)
+ * - Caption2 labels (11sp)
+ * - System indigo active tint, secondary label inactive
+ * - No indicator / transparent selection
+ */
 @Composable
 fun AppBottomNavigation(
     items: List<BottomNavigationItem>,
     selectedIndex: Int,
     onItemClick: (Int) -> Unit,
 ) {
-
     NavigationBar(
-        // Respect system navigation bar insets for gesture/3-button navigation.
         windowInsets = NavigationBarDefaults.windowInsets,
         modifier = Modifier
             .fillMaxWidth()
-            // Keep a comfortable tap target without forcing a fixed height that can clash with insets.
-            .height(80.dp),
-        containerColor = PaceDreamColors.Background,
-        tonalElevation = 8.dp
+            .height(72.dp),
+        containerColor = PaceDreamColors.Background.copy(alpha = PaceDreamGlass.ThickAlpha),
+        tonalElevation = 0.dp
     ) {
         items.forEachIndexed { index, bottomNavigationItem ->
             NavigationBarItem(
                 selected = selectedIndex == index,
                 onClick = { onItemClick(index) },
                 icon = {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (selectedIndex == index) 
-                                    PaceDreamColors.Primary.copy(alpha = 0.1f) 
-                                else 
-                                    Color.Transparent
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                val count = bottomNavigationItem.badgeCount
-                                if (count != null && count > 0) {
-                                    Badge(
-                                        containerColor = PaceDreamColors.Error,
-                                        contentColor = Color.White
-                                    ) {
-                                        Text(
-                                            text = if (count > 99) "99+" else count.toString(),
-                                            style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
-                                            color = Color.White
-                                        )
-                                    }
+                    BadgedBox(
+                        badge = {
+                            val count = bottomNavigationItem.badgeCount
+                            if (count != null && count > 0) {
+                                Badge(
+                                    containerColor = PaceDreamColors.Red,
+                                    contentColor = Color.White
+                                ) {
+                                    Text(
+                                        text = if (count > 99) "99+" else count.toString(),
+                                        style = PaceDreamTypography.Caption2,
+                                        color = Color.White
+                                    )
                                 }
                             }
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(24.dp),
-                                painter = painterResource(id = bottomNavigationItem.icon),
-                                contentDescription = stringResource(id = bottomNavigationItem.text),
-                                tint = if (selectedIndex == index)
-                                    PaceDreamColors.Primary
-                                else
-                                    PaceDreamColors.TextSecondary
-                            )
                         }
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(PaceDreamIconSize.MD),
+                            painter = painterResource(id = bottomNavigationItem.icon),
+                            contentDescription = stringResource(id = bottomNavigationItem.text),
+                            tint = if (selectedIndex == index)
+                                PaceDreamColors.Primary
+                            else
+                                PaceDreamColors.TextSecondary
+                        )
                     }
                 },
                 label = {
                     Text(
                         text = stringResource(id = bottomNavigationItem.text),
-                        style = PaceDreamTypography.Caption.copy(
-                            fontSize = 11.sp,
-                            fontWeight = if (selectedIndex == index) 
-                                FontWeight.SemiBold 
-                            else 
+                        style = PaceDreamTypography.Caption2.copy(
+                            fontWeight = if (selectedIndex == index)
+                                FontWeight.SemiBold
+                            else
                                 FontWeight.Normal
                         ),
-                        color = if (selectedIndex == index) 
-                            PaceDreamColors.Primary 
-                        else 
+                        color = if (selectedIndex == index)
+                            PaceDreamColors.Primary
+                        else
                             PaceDreamColors.TextSecondary
                     )
                 },

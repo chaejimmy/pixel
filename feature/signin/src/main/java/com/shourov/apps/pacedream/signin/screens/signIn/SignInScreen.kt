@@ -47,6 +47,9 @@ import com.pacedream.common.composables.inputfields.CustomInputTextField
 import com.pacedream.common.composables.inputfields.CustomPasswordField
 import com.pacedream.common.composables.texts.ClickableText
 import com.pacedream.common.composables.texts.TitleText
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.signin.navigation.SignInRoutes
 
@@ -67,20 +70,24 @@ navController: NavController
                         }
                     )
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                ),
             )
         },
+        containerColor = PaceDreamColors.Background,
     ){
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it),
-            color = MaterialTheme.colorScheme.background
+            color = PaceDreamColors.Background
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TitleText(
@@ -100,7 +107,6 @@ navController: NavController
                 VerticalSpacer(height = 10)
 
                 CustomInputTextField(
-                    //enter email
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(

@@ -29,7 +29,7 @@ fun HostModeToggle(
         colors = CardDefaults.cardColors(
             containerColor = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Card
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -90,7 +90,7 @@ fun HostModeIndicator(
             modifier = modifier
                 .clip(RoundedCornerShape(PaceDreamRadius.SM)),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary),
-            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
                 modifier = Modifier.padding(

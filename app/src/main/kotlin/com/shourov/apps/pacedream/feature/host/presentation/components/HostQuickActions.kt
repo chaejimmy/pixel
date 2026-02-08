@@ -68,7 +68,7 @@ fun QuickActionCard(
             .width(120.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         onClick = onClick
     ) {
         Column(
@@ -215,7 +215,7 @@ fun HostActionButton(
             .height(100.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         onClick = onClick
     ) {
         Column(

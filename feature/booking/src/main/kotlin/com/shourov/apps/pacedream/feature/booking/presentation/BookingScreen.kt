@@ -116,8 +116,8 @@ private fun BookingCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(PaceDreamRadius.MD)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD)
@@ -212,11 +212,16 @@ private fun BookingCard(
                 Row {
                     if (booking.status == BookingStatus.PENDING) {
                         TextButton(onClick = onCancel) {
-                            Text("Cancel")
+                            Text("Cancel", style = PaceDreamTypography.Callout, color = PaceDreamColors.Error)
                         }
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Button(onClick = onConfirm) {
-                            Text("Confirm")
+                        Button(
+                            onClick = onConfirm,
+                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                            shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                        ) {
+                            Text("Confirm", style = PaceDreamTypography.Callout)
                         }
                     }
                 }
@@ -236,12 +241,14 @@ private fun StatusChip(status: String) {
     
     Card(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(PaceDreamRadius.SM)
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Text(
             text = status,
-            style = PaceDreamTypography.Caption,
+            style = PaceDreamTypography.Caption2,
             color = textColor,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(
                 horizontal = PaceDreamSpacing.SM,
                 vertical = PaceDreamSpacing.XS

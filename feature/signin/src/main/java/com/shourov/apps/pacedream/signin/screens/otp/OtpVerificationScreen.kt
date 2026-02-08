@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +36,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import kotlinx.coroutines.delay
 
 /**
@@ -67,35 +74,38 @@ fun OtpVerificationScreen(
     }
     
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = PaceDreamColors.Background,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(PaceDreamSpacing.MD),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "We sent a 6-digit code to",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
             )
-            
+
             Text(
                 text = maskPhone(phoneNumber),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 32.dp)
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary,
+                modifier = Modifier.padding(bottom = PaceDreamSpacing.XXL)
             )
-            
+
             Text(
                 text = "Enter verification code",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.padding(bottom = PaceDreamSpacing.MD)
             )
-            
+
             // OTP Input (single field with formatting)
             OutlinedTextField(
                 value = uiState.otpCode,
@@ -106,15 +116,15 @@ fun OtpVerificationScreen(
                 singleLine = true,
                 isError = uiState.otpError != null,
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = 24.sp,
+                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                textStyle = PaceDreamTypography.Title2.copy(
                     textAlign = TextAlign.Center
                 )
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Verify Button
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            // Verify Button - iOS 26 style
             Button(
                 onClick = {
                     viewModel.verifyAndLogin(
@@ -128,28 +138,36 @@ fun OtpVerificationScreen(
                     )
                 },
                 enabled = uiState.otpCode.length == 6 && !uiState.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.MD),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Primary
+                ),
+                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.height(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = PaceDreamColors.OnPrimary
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Verifying...")
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text("Verifying...", style = PaceDreamTypography.Button)
                 } else {
-                    Text("Verify")
+                    Text("Verify", style = PaceDreamTypography.Button)
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             Text(
                 text = "Didn't receive the code?",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
             )
-            
+
             // Resend Button
             TextButton(
                 onClick = {
@@ -173,15 +191,21 @@ fun OtpVerificationScreen(
                         "Resend code in ${resendCountdown}s"
                     } else {
                         "Resend code"
-                    }
+                    },
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             // Change phone number link
             TextButton(onClick = onBackToPhone) {
-                Text("← Change phone number")
+                Text(
+                    "← Change phone number",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary
+                )
             }
         }
     }
