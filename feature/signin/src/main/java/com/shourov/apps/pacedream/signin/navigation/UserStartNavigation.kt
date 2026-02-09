@@ -1,9 +1,12 @@
 package com.shourov.apps.pacedream.signin.navigation
 
+import android.app.Activity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavOptions
@@ -14,9 +17,11 @@ import com.shourov.apps.pacedream.core.data.UserAuthPath.NEW
 import com.shourov.apps.pacedream.home.HomeScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.shourov.apps.pacedream.signin.EmailSignInViewModel
 import com.shourov.apps.pacedream.signin.OnBoardingScreen
 import com.shourov.apps.pacedream.signin.StartWithEmailScreen
 import com.shourov.apps.pacedream.signin.StartWithPhoneScreen
+import com.shourov.apps.pacedream.signin.screens.forgotPassword.ForgotPasswordScreen
 import com.shourov.apps.pacedream.signin.screens.otp.OtpVerificationScreen
 import com.shourov.apps.pacedream.signin.screens.otp.PhoneEntryScreen
 import com.shourov.apps.pacedream.signin.setup.SetupScreen
@@ -28,6 +33,7 @@ const val CREATE_ACCOUNT_ROUTE = "create_account_route"
 const val HOME_ROUTE = "home_route"
 const val OTP_PHONE_ENTRY_ROUTE = "otp_phone_entry_route"
 const val OTP_VERIFICATION_ROUTE = "otp_verification_route/{phoneNumber}"
+const val FORGOT_PASSWORD_ROUTE = "forgot_password_route"
 
 const val DASHBOARD_ROUTE = "dashboard_route"
 
@@ -45,6 +51,9 @@ fun NavController.navigateToCreateAccountScreen(navOptions: NavOptions) =
 
 fun NavController.navigateToHomeScreen(navOptions: NavOptions) =
     navigate(HOME_ROUTE, navOptions)
+
+fun NavController.navigateToForgotPassword() =
+    navigate(FORGOT_PASSWORD_ROUTE)
 
 
 fun NavGraphBuilder.userOnBoardingScreen(
@@ -64,7 +73,6 @@ fun NavGraphBuilder.userOnBoardingScreen(
             },
             onSignIn = {
                 userAuthPath = EXISTING
-                //onStartWithPhone()
                 onNavigateToSignInWithEmail()
             },
         )
@@ -93,7 +101,6 @@ fun NavGraphBuilder.userOnBoardingScreen(
             userAuthPath = userAuthPath,
             onNavigateToAccountSignIn = {
                 userAuthPath = EXISTING
-                //onStartWithPhone()
                 onNavigateToSignInWithEmail()
             },
             onContinueAccountSetup = onNavigateToAccountSetup,
@@ -104,7 +111,9 @@ fun NavGraphBuilder.userOnBoardingScreen(
         route = START_WITH_EMAIL_ROUTE,
     ) {
         StartWithEmailScreen(
-            onContinueWithGoogleClicked = { /*TODO google auth client */ },
+            onContinueWithGoogleClicked = {
+                // Google auth is now handled inside StartWithEmailScreen via EmailSignInViewModel
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
@@ -115,7 +124,9 @@ fun NavGraphBuilder.userOnBoardingScreen(
                 userAuthPath = it
                 onStartWithPhone()
             },
-            onForgotPasswordClicked = { /*TODO forgot password */ },
+            onForgotPasswordClicked = {
+                navController.navigateToForgotPassword()
+            },
             onContinueAccountSetup = onNavigateToAccountSetup,
             onNavigateToCreateAccount = {
                 userAuthPath = NEW
@@ -131,7 +142,9 @@ fun NavGraphBuilder.userOnBoardingScreen(
     composable(
         route = CREATE_ACCOUNT_ROUTE,
     ) {
-        SetupScreen()
+        SetupScreen(
+            onSetupComplete = onNavigateToAccountSetup,
+        )
     }
 
     composable(
@@ -139,10 +152,24 @@ fun NavGraphBuilder.userOnBoardingScreen(
     ) {
         HomeScreen()
     }
-    
+
+    composable(
+        route = FORGOT_PASSWORD_ROUTE,
+    ) {
+        ForgotPasswordScreen(
+            onBackClick = {
+                navController.popBackStack()
+            },
+        )
+    }
+
     composable(
         route = OTP_PHONE_ENTRY_ROUTE,
     ) {
+        val authViewModel: EmailSignInViewModel = hiltViewModel()
+        val context = LocalContext.current
+        val activity = context as Activity
+
         PhoneEntryScreen(
             onOTPSent = { phoneNumber ->
                 val encodedPhone = java.net.URLEncoder.encode(phoneNumber, "UTF-8")
@@ -152,11 +179,15 @@ fun NavGraphBuilder.userOnBoardingScreen(
                 onNavigateToSignInWithEmail()
             },
             onNavigateToGoogle = {
-                // TODO: Implement Google login
+                authViewModel.loginWithGoogle(
+                    activity = activity,
+                    onSuccess = { onNavigateToAccountSetup() },
+                    onError = { /* Error handled via uiState */ }
+                )
             }
         )
     }
-    
+
     composable(
         route = OTP_VERIFICATION_ROUTE,
         arguments = listOf(
@@ -168,11 +199,7 @@ fun NavGraphBuilder.userOnBoardingScreen(
         OtpVerificationScreen(
             phoneNumber = phoneNumber,
             onLoginSuccess = { userData ->
-                if (userData.incompleteProfile == true) {
-                    onNavigateToAccountSetup()
-                } else {
-                    onNavigateToAccountSetup() // Navigate to home/account setup
-                }
+                onNavigateToAccountSetup()
             },
             onBackToPhone = {
                 navController.popBackStack()
