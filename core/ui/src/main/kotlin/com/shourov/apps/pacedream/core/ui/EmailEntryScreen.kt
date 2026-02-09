@@ -96,36 +96,38 @@ fun EmailEntryScreen(
                 onDone = { focusManager.clearFocus() },
             ),
         )
-        AnimatedVisibility(visible = userAuthPath == UserAuthPath.NEW) {
-            Column(
+        // Show password field for both NEW and EXISTING users
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CustomInputField(
+                label = R.string.core_ui_password_label,
+                value = password,
+                onValueChange = {
+                    password = it
+                    onPasswordChange(it)
+                },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CustomInputField(
-                    label = R.string.core_ui_password_label,
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        onPasswordChange(it)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    inputType = InputType.PASSWORD,
-                    onClear = { },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = PaceDreamIcons.Password,
-                            contentDescription = PaceDreamIcons.Password.name,
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { focusManager.clearFocus() },
-                    ),
-                )
+                inputType = InputType.PASSWORD,
+                onClear = { },
+                leadingIcon = {
+                    Icon(
+                        imageVector = PaceDreamIcons.Password,
+                        contentDescription = PaceDreamIcons.Password.name,
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() },
+                ),
+            )
+            // Show forgot password link only for existing users signing in
+            AnimatedVisibility(visible = userAuthPath == UserAuthPath.EXISTING) {
                 Text(
                     text = stringResource(id = R.string.core_ui_forgot_password),
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -144,12 +146,9 @@ fun EmailEntryScreen(
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            isEnabled = emailStateInternal.isValid && (userAuthPath == UserAuthPath.EXISTING || password.isNotEmpty()),
+            isEnabled = emailStateInternal.isValid && password.isNotEmpty(),
             text = continueButtonText,
-            isProcessing = when (userAuthPath) {
-                UserAuthPath.NEW -> isProcessing
-                UserAuthPath.EXISTING -> false
-            },
+            isProcessing = isProcessing,
         )
         if (userAuthPath == UserAuthPath.NEW) {
             Spacer(modifier = Modifier.height(16.dp))

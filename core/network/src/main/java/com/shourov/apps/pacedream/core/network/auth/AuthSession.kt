@@ -217,6 +217,76 @@ class AuthSession @Inject constructor(
     }
     
     /**
+     * Forgot password - send reset link to email
+     */
+    suspend fun forgotPassword(email: String): Result<String> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+
+        val url = appConfig.buildApiUrl("auth", "forgot-password")
+        val body = json.encodeToString(
+            ForgotPasswordEmailRequest.serializer(),
+            ForgotPasswordEmailRequest(email = email)
+        )
+
+        val result = client.post(url, body, includeAuth = false)
+
+        return when (result) {
+            is ApiResult.Success -> {
+                try {
+                    val jsonElement = json.parseToJsonElement(result.data)
+                    val jsonObject = jsonElement.jsonObject
+                    val message = jsonObject["message"]?.jsonPrimitive?.content
+                        ?: "Password reset link sent to your email"
+                    Result.success(message)
+                } catch (e: Exception) {
+                    Result.success("Password reset link sent to your email")
+                }
+            }
+            is ApiResult.Failure -> {
+                Result.failure(Exception(result.error.message ?: "Failed to send reset link"))
+            }
+        }
+    }
+
+    /**
+     * Update user profile after account setup
+     */
+    suspend fun updateProfile(
+        firstName: String,
+        lastName: String,
+        dateOfBirth: Long? = null,
+        interests: Set<String> = emptySet()
+    ): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+
+        val url = appConfig.buildApiUrl("account", "update")
+
+        val profileData = buildMap {
+            if (firstName.isNotBlank()) put("firstName", firstName)
+            if (lastName.isNotBlank()) put("lastName", lastName)
+            dateOfBirth?.let { put("dateOfBirth", it.toString()) }
+            if (interests.isNotEmpty()) put("interests", interests.joinToString(","))
+        }
+
+        val body = json.encodeToString(
+            kotlinx.serialization.serializer<Map<String, String>>(),
+            profileData
+        )
+
+        val result = client.post(url, body, includeAuth = true)
+
+        return when (result) {
+            is ApiResult.Success -> {
+                refreshProfile()
+                Result.success(Unit)
+            }
+            is ApiResult.Failure -> {
+                Result.failure(Exception(result.error.message ?: "Failed to update profile"))
+            }
+        }
+    }
+
+    /**
      * Sign out - clear all tokens and state
      */
     fun signOut() {
@@ -513,5 +583,11 @@ data class EmailRegisterRequest(
     val password: String,
     val firstName: String,
     val lastName: String
+)
+
+@Serializable
+data class ForgotPasswordEmailRequest(
+    val email: String,
+    val method: String = "email"
 )
 

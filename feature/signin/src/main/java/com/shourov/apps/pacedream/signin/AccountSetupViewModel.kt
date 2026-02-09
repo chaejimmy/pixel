@@ -5,18 +5,36 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.data.AccountCreationProcess
 import com.shourov.apps.pacedream.core.data.AccountSetupData
 import com.shourov.apps.pacedream.core.data.AccountSetupScreenData
 import com.shourov.apps.pacedream.core.data.dateOfBirthValid
 import com.shourov.apps.pacedream.core.data.userProfileDetailsValid
+import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 private const val HOBBIES_MAX_COUNT = 5
 
 @HiltViewModel
-class AccountSetupViewModel @Inject constructor() : ViewModel() {
+class AccountSetupViewModel @Inject constructor(
+    private val authSession: AuthSession
+) : ViewModel() {
+
+    private val _setupComplete = MutableStateFlow(false)
+    val setupComplete: StateFlow<Boolean> = _setupComplete.asStateFlow()
+
+    private val _isSubmitting = MutableStateFlow(false)
+    val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
+
+    private val _setupError = MutableStateFlow<String?>(null)
+    val setupError: StateFlow<String?> = _setupError.asStateFlow()
     private val accountSetupOrder: List<AccountCreationProcess> = listOf(
         AccountCreationProcess.PASSWORD_SETUP,
         AccountCreationProcess.USER_PROFILE_SETUP,
@@ -119,5 +137,40 @@ class AccountSetupViewModel @Inject constructor() : ViewModel() {
             shouldShowPreviousButton = accountSetupIndex > 0,
             shouldShowDoneButton = accountSetupIndex == accountSetupOrder.size - 1,
         )
+    }
+
+    /**
+     * Submit account setup data to backend
+     * Called when user clicks "Done" on the last setup step
+     */
+    fun onDoneClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val data = _accountSetupData
+
+        _isSubmitting.value = true
+        _setupError.value = null
+
+        viewModelScope.launch {
+            val result = authSession.updateProfile(
+                firstName = data.firstName,
+                lastName = data.lastName,
+                dateOfBirth = data.dateOfBirthMillis,
+                interests = data.hobbiesNInterest,
+            )
+            result.fold(
+                onSuccess = {
+                    _isSubmitting.value = false
+                    _setupComplete.value = true
+                    Timber.d("Account setup completed successfully")
+                    onSuccess()
+                },
+                onFailure = { error ->
+                    val errorMessage = error.message ?: "Failed to save profile"
+                    _isSubmitting.value = false
+                    _setupError.value = errorMessage
+                    Timber.e("Account setup failed: $errorMessage")
+                    onError(errorMessage)
+                }
+            )
+        }
     }
 }
