@@ -123,7 +123,6 @@ class HomeFeedViewModel @Inject constructor(
         val res = repo.getCuratedHourly()
         _state.update { s ->
             s.copy(
-                headerTitle = headerTitle(),
                 sections = s.sections.map { section ->
                     if (section.key != HomeSectionKey.HOURLY) section
                     else when (res) {
@@ -147,7 +146,6 @@ class HomeFeedViewModel @Inject constructor(
         val res = repo.getListingsShareTypePage(shareType = shareType, page1 = 1, limit = 24)
         _state.update { s ->
             s.copy(
-                headerTitle = headerTitle(),
                 sections = s.sections.map { section ->
                     if (section.key != key) section
                     else when (res) {
@@ -160,12 +158,6 @@ class HomeFeedViewModel @Inject constructor(
                 }
             )
         }
-    }
-
-    private fun headerTitle(): String {
-        val user = authSession.currentUser.value
-        return if (user != null) "Find your perfect stay, ${user.displayName}"
-        else "Find your perfect stay"
     }
 }
 
