@@ -162,22 +162,47 @@ fun EnhancedDashboardContent(
                 CategoryModel(
                     stringResource(R.string.feature_home_rest_room),
                     R.drawable.ic_rest_room,
-                    PaceDreamSecondary,
+                    Color(0xFF21BDF2),
                 ),
                 CategoryModel(
-                    stringResource(R.string.feature_home_ev_parking),
+                    stringResource(R.string.feature_home_nap_pod),
+                    R.drawable.ic_nap_pod,
+                    Color(0xFF8B5CF6),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_meeting_room),
+                    R.drawable.ic_meeting_room,
+                    Color(0xFF3B82F6),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_study_room),
+                    R.drawable.ic_study_room,
+                    Color(0xFF10B981),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_short_stay),
+                    R.drawable.ic_short_stay,
+                    Color(0xFFF59E0B),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_apartment),
+                    R.drawable.ic_apartment,
+                    Color(0xFFEF4444),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_luxury_room),
+                    R.drawable.ic_luxury_room,
+                    Color(0xFFEC4899),
+                ),
+                CategoryModel(
+                    stringResource(R.string.feature_home_parking),
                     R.drawable.ic_ev_parking,
-                    PaceDreamAccent,
+                    Color(0xCCB452DA),
                 ),
                 CategoryModel(
-                    stringResource(R.string.feature_home_storage_room),
+                    stringResource(R.string.feature_home_storage_space),
                     R.drawable.ic_storage_room,
-                    PaceDreamInfo,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_parking_spot),
-                    R.drawable.ic_ev_parking,
-                    PaceDreamSuccess,
+                    Color(0xCC5753FA),
                 ),
             )
             

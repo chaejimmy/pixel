@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -122,7 +123,9 @@ fun HomeFeedScreen(
                 item {
                     Header(
                         title = state.headerTitle,
-                        onSearchClick = { TabRouter.switchTo(DashboardDestination.SEARCH) }
+                        subtitle = state.headerSubtitle,
+                        onSearchClick = { TabRouter.switchTo(DashboardDestination.SEARCH) },
+                        onGetToKnowClick = { /* TODO: Navigate to about/intro screen */ }
                     )
                 }
 
@@ -201,11 +204,16 @@ private data class SectionContentState(
 )
 
 @Composable
-private fun Header(title: String, onSearchClick: () -> Unit) {
+private fun Header(
+    title: String,
+    subtitle: String,
+    onSearchClick: () -> Unit,
+    onGetToKnowClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
+            .height(280.dp)
             .statusBarsPadding()
             .background(
                 Brush.verticalGradient(
@@ -225,6 +233,42 @@ private fun Header(title: String, onSearchClick: () -> Unit) {
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = subtitle,
+                style = PaceDreamTypography.Body,
+                color = Color.White.copy(alpha = 0.95f),
+                fontWeight = FontWeight.Normal
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Get to know PaceDream CTA button
+            OutlinedButton(
+                onClick = onGetToKnowClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White.copy(alpha = 0.15f),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.MD)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Get to know PaceDream",
+                        style = PaceDreamTypography.Callout,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             HomeSearchPill(onClick = onSearchClick)
         }

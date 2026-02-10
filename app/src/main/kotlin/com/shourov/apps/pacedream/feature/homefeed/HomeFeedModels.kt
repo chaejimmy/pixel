@@ -24,7 +24,8 @@ data class HomeSection(
 
 data class HomeFeedState(
     val isRefreshing: Boolean = false,
-    val headerTitle: String = "Find your perfect stay",
+    val headerTitle: String = "One place to share it all",
+    val headerSubtitle: String = "Book, share, or split stays, time, and spaces—on one platform.",
     val sections: List<HomeSection> = listOf(
         HomeSection(HomeSectionKey.HOURLY, emptyList(), isLoading = true),
         HomeSection(HomeSectionKey.GEAR, emptyList(), isLoading = true),
