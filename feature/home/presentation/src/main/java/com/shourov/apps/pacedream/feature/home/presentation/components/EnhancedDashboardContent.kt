@@ -121,28 +121,31 @@ fun EnhancedDashboardContent(
             .background(PaceDreamBackground)
             .padding(PaceDreamSpacing.LG)
     ) {
-        // Metrics Cards Section
+        // Metrics Cards Section - derived from actual loaded data
         item {
+            val roomCount = roomsState.rooms.size
+            val gearCount = gearsState.rentedGears.size
+            val splitCount = splitStaysState.splitStays.size
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 PaceDreamMetricCard(
                     title = "Available Rooms",
-                    value = "24",
+                    value = if (roomsState.loading) "—" else roomCount.toString(),
                     icon = Icons.Default.Home,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Travel Partners",
-                    value = "18",
-                    icon = Icons.Default.People,
+                    title = "Rent Gear",
+                    value = if (gearsState.loading) "—" else gearCount.toString(),
+                    icon = Icons.Default.ShoppingBag,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Properties",
-                    value = "31",
-                    icon = Icons.Default.LocationOn,
+                    title = "Split Stays",
+                    value = if (splitStaysState.loading) "—" else splitCount.toString(),
+                    icon = Icons.Default.People,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -226,34 +229,8 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Recent Searches Section
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = "Recent Searches",
-                onViewAllClick = { onViewAllClick("recent") }
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            val recentSearches = listOf(
-                "New York, NY",
-                "San Francisco, CA",
-                "Miami, FL",
-                "Chicago, IL"
-            )
-            
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                items(recentSearches) { search ->
-                    PaceDreamRecentSearchItem(
-                        location = search,
-                        onClick = { /* Handle recent search click */ }
-                    )
-                }
-            }
-        }
+        // Recent Searches Section - starts empty until persistent history is wired
+        // No hardcoded seed data; actual search history will be populated from local storage
         
         // Browse by Destination Section
         item {
