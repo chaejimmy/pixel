@@ -482,17 +482,17 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onPrivacyPolicyClick = {
                                         try {
                                             val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
-                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/privacy"))
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/privacy-policy"))
                                         } catch (_: Exception) {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy")))
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy-policy")))
                                         }
                                     },
                                     onTermsOfServiceClick = {
                                         try {
                                             val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
-                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/terms"))
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/terms-of-service"))
                                         } catch (_: Exception) {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms")))
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms-of-service")))
                                         }
                                     },
                                     onLogoutClick = {
