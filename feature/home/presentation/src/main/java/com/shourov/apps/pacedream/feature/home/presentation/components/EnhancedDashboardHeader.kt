@@ -55,7 +55,7 @@ import com.shourov.apps.pacedream.feature.home.presentation.R
  */
 @Composable
 fun EnhancedDashboardHeader(
-    userName: String = "Darryl Rutledge",
+    userName: String = "",
     onSearchClick: () -> Unit = {},
     onFilterClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
@@ -107,12 +107,14 @@ fun EnhancedDashboardHeader(
                         // Greeting and Name - iOS 26 compact typography
                         val annotatedString = buildAnnotatedString {
                             append(stringResource(R.string.feature_home_good_morning))
-                            appendLine()
-                            withStyle(style = SpanStyle(
-                                fontSize = PaceDreamTypography.Headline.fontSize,
-                                fontWeight = FontWeight.SemiBold
-                            )) {
-                                append(userName)
+                            if (userName.isNotBlank()) {
+                                appendLine()
+                                withStyle(style = SpanStyle(
+                                    fontSize = PaceDreamTypography.Headline.fontSize,
+                                    fontWeight = FontWeight.SemiBold
+                                )) {
+                                    append(userName)
+                                }
                             }
                         }
 

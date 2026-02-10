@@ -48,6 +48,9 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.Consts.ROOM_TYPE
 import com.pacedream.common.util.Consts.TECH_GEAR_TYPE
+import android.content.Intent
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
 import com.shourov.apps.pacedream.feature.propertydetail.PropertyDetailScreen
@@ -461,6 +464,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 composable("profile_root") {
                                 val isHostMode by hostModeManager.isHostMode.collectAsState()
                                     var showAuthSheet by remember { mutableStateOf(false) }
+                                val context = androidx.compose.ui.platform.LocalContext.current
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
@@ -474,6 +478,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                     },
                                     onAboutClick = {
                                         // Navigate to about
+                                    },
+                                    onPrivacyPolicyClick = {
+                                        try {
+                                            val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/privacy"))
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy")))
+                                        }
+                                    },
+                                    onTermsOfServiceClick = {
+                                        try {
+                                            val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/terms"))
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms")))
+                                        }
                                     },
                                     onLogoutClick = {
                                         // Handle logout

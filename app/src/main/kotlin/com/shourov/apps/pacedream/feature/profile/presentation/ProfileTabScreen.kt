@@ -31,6 +31,8 @@ fun ProfileTabScreen(
     onSettingsClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onPrivacyPolicyClick: () -> Unit = {},
+    onTermsOfServiceClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onSwitchToHostMode: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
@@ -63,8 +65,8 @@ fun ProfileTabScreen(
                 items = listOf(
                     ProfileMenuItem("Settings", Icons.Default.Settings, onSettingsClick),
                     ProfileMenuItem("About", Icons.Default.Info, onAboutClick),
-                    ProfileMenuItem("Privacy Policy", Icons.Default.PrivacyTip, {}),
-                    ProfileMenuItem("Terms of Service", Icons.Default.Description, {})
+                    ProfileMenuItem("Privacy Policy", Icons.Default.PrivacyTip, onPrivacyPolicyClick),
+                    ProfileMenuItem("Terms of Service", Icons.Default.Description, onTermsOfServiceClick)
                 )
             )
         )

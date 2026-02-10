@@ -60,7 +60,9 @@ import com.pacedream.common.composables.theme.WhiteTextColor
 import com.shourov.apps.pacedream.feature.home.presentation.R
 
 @Composable
-fun DashboardHeader() {
+fun DashboardHeader(
+    userName: String = "",
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -93,9 +95,11 @@ fun DashboardHeader() {
                     )
                     val annotatedString = buildAnnotatedString {
                         append(stringResource(R.string.feature_home_good_morning))
-                        appendLine()
-                        withStyle(style = SpanStyle(fontSize = MediumText)) {
-                            append("Darryl Rutledge")
+                        if (userName.isNotBlank()) {
+                            appendLine()
+                            withStyle(style = SpanStyle(fontSize = MediumText)) {
+                                append(userName)
+                            }
                         }
                     }
                     HorizontalSpacer(20)

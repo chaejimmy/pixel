@@ -115,11 +115,13 @@ class BookingFormViewModel @Inject constructor(
     private fun calculateHours(startDate: String, endDate: String): Double {
         return try {
             val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            format.timeZone = TimeZone.getTimeZone("UTC")
             val start = format.parse(startDate)
             val end = format.parse(endDate)
-            
+
             if (start != null && end != null) {
                 val diffInMillis = end.time - start.time
+                if (diffInMillis < 0) return 1.0
                 val diffInHours = diffInMillis / (1000 * 60 * 60)
                 maxOf(1.0, diffInHours.toDouble())
             } else {
@@ -136,6 +138,11 @@ class BookingFormViewModel @Inject constructor(
             
             if (currentState.startDate.isEmpty() || currentState.endDate.isEmpty()) {
                 _uiState.value = currentState.copy(error = "Please select start and end dates")
+                return@launch
+            }
+
+            if (currentState.endDate < currentState.startDate) {
+                _uiState.value = currentState.copy(error = "End date must be on or after start date")
                 return@launch
             }
 
