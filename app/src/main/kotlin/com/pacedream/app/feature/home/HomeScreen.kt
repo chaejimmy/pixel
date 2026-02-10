@@ -26,6 +26,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamColors
 
 /**
  * HomeScreen - Main dashboard with 3 sections
@@ -180,15 +181,15 @@ private fun HeroSection(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Fallback gradient (can be replaced with actual hero image URL from API/config)
+            // Fallback gradient using PaceDream brand colors (matches iOS/web hero palette)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFF1E88E5),
-                                Color(0xFF1976D2)
+                                PaceDreamColors.Primary,
+                                PaceDreamColors.Accent
                             )
                         )
                     )
@@ -278,17 +279,20 @@ private fun SearchBarCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            // Entire pill is tappable, like iOS BlurredSearchBar
             .clickable(onClick = onSearchClick),
-        shape = RoundedCornerShape(16.dp),
+        // iOS uses a pill with 28 corner radius
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            // Semi-transparent white over blurred background, approximating .ultraThinMaterial
+            containerColor = Color.White.copy(alpha = 0.92f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -311,6 +315,7 @@ private fun SearchBarCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            // Trailing filter icon, visually matching the iOS home search bar
             IconButton(onClick = onFilterClick) {
                 Icon(
                     imageVector = Icons.Default.Menu,
