@@ -1,0 +1,9 @@
+{
+  "name": "pacedream-db-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Database maintenance scripts for PaceDream",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  }
+}
