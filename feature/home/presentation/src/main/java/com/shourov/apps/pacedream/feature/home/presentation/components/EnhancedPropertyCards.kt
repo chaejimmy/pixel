@@ -258,23 +258,31 @@ fun EnhancedPropertyCard(
                         tint = PaceDreamColors.Warning,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
+
                     Text(
-                        text = rating.toString(),
+                        text = String.format("%.1f", rating),
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.Medium
                     )
-                    
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
-                    Text(
-                        text = "• Excellent",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
+
+                    if (rating >= 4.5f) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "• Superb",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    } else if (rating >= 4.0f) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "• Excellent",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
                 }
                 
                 // Amenities

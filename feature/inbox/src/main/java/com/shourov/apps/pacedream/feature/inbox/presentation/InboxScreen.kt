@@ -489,7 +489,7 @@ private fun InboxSkeletonList(
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
-        items(8) {
+        items(5) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

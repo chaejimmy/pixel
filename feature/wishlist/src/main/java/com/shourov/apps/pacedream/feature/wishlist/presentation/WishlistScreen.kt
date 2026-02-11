@@ -385,24 +385,30 @@ private fun EmptyState() {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        ) {
             Icon(
                 imageVector = Icons.Default.FavoriteBorder,
                 contentDescription = "No favorites",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
                 text = "No favorites yet",
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                text = "Start exploring and save your favorite spaces!",
+                text = "Tap the heart on any listing to save it here for easy access later.",
                 style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -471,29 +477,35 @@ private fun RequiresAuthState(
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        ) {
             Icon(
                 imageVector = Icons.Default.Lock,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
                 text = "Sign in to view favorites",
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
                 text = "Save your favorite spaces and access them anywhere",
                 style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
+                color = PaceDreamColors.TextSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
             Button(
                 onClick = onSignIn,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
                 Text("Sign In", style = PaceDreamTypography.Headline)

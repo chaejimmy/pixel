@@ -62,7 +62,12 @@ fun AppBottomNavigation(
         windowInsets = NavigationBarDefaults.windowInsets,
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp),
+            .height(72.dp)
+            .border(
+                width = 0.5.dp,
+                color = PaceDreamColors.Border.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+            ),
         containerColor = PaceDreamColors.Background.copy(alpha = PaceDreamGlass.ThickAlpha),
         tonalElevation = 0.dp
     ) {

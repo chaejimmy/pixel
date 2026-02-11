@@ -143,12 +143,13 @@ fun HomeFeedScreen(
 
                 state.sections.forEach { section ->
                     item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                         PaceDreamSectionHeader(
                             title = section.key.displayTitle,
-                            onViewAllClick = { onSeeAll(section.key) }
+                            onViewAllClick = { onSeeAll(section.key) },
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
                         section.errorMessage?.takeIf { !section.isLoading }?.let { err ->
                             InlineErrorBanner(
@@ -213,36 +214,38 @@ private fun Header(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
             .statusBarsPadding()
+            .clip(RoundedCornerShape(bottomStart = PaceDreamRadius.XL, bottomEnd = PaceDreamRadius.XL))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamColors.Primary,
-                        PaceDreamColors.Primary.copy(alpha = 0.6f)
+                        PaceDreamColors.Primary.copy(alpha = 0.75f)
                     )
-                ),
-                RoundedCornerShape(bottomStart = PaceDreamRadius.LG, bottomEnd = PaceDreamRadius.LG)
+                )
             )
-            .padding(PaceDreamSpacing.LG)
+            .padding(
+                start = PaceDreamSpacing.LG,
+                end = PaceDreamSpacing.LG,
+                top = PaceDreamSpacing.LG,
+                bottom = PaceDreamSpacing.XL
+            )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column {
             Text(
                 text = title,
                 style = PaceDreamTypography.Title1,
                 color = Color.White,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 text = subtitle,
                 style = PaceDreamTypography.Body,
-                color = Color.White.copy(alpha = 0.95f),
-                fontWeight = FontWeight.Normal
+                color = Color.White.copy(alpha = 0.9f)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-            // Get to know PaceDream CTA button
             OutlinedButton(
                 onClick = onGetToKnowClick,
                 modifier = Modifier.fillMaxWidth(),
@@ -281,24 +284,24 @@ private fun HomeSearchPill(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                .height(48.dp)
+                .padding(horizontal = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
+                contentDescription = "Search",
+                tint = PaceDreamColors.Primary,
                 modifier = Modifier.size(20.dp)
             )
             Text(
