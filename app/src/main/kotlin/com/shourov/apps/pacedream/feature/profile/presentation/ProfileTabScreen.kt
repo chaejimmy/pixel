@@ -249,7 +249,7 @@ fun ProfileHeader(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = name.first().toString(),
+                    text = name.firstOrNull()?.uppercase() ?: "?",
                     style = PaceDreamTypography.LargeTitle,
                     color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.Bold
@@ -379,6 +379,7 @@ fun ProfileMenuRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = item.onClick)
             .padding(PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -407,7 +408,7 @@ fun ProfileMenuRow(
     }
     
     if (showDivider) {
-        Divider(
+        HorizontalDivider(
             color = PaceDreamColors.Border,
             thickness = 0.5.dp,
             modifier = Modifier.padding(start = 48.dp)

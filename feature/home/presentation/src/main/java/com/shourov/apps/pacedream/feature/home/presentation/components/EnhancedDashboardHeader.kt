@@ -132,7 +132,7 @@ fun EnhancedDashboardHeader(
                         modifier = Modifier
                             .size(PaceDreamButtonHeight.MD)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = PaceDreamGlass.BorderAlpha))
+                            .background(Color.White.copy(alpha = 0.2f))
                     ) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
@@ -184,7 +184,7 @@ fun EnhancedDashboardHeader(
                         onClick = onFilterClick,
                         modifier = Modifier
                             .size(PaceDreamButtonHeight.MD)
-                            .background(Color.White.copy(alpha = PaceDreamGlass.BorderAlpha), CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
