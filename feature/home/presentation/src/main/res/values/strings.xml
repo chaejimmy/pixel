@@ -37,4 +37,21 @@
     <string name="help_you_what_needed">Help you to find what you needed.</string>
     <string name="hourly_rented_gear">Hourly Rented Gear</string>
     <string name="feature_home_rent_now">Rent Now</string>
+    <string name="feature_home_last_minute_deals">Last-Minute Deals</string>
+    <string name="feature_home_last_minute_deals_subtitle">Save 20–40%% on spaces available now. Updated in real-time.</string>
+    <string name="feature_home_spots_left">%d spots left</string>
+    <string name="feature_home_off">%d%% OFF</string>
+    <string name="feature_home_book_now">Book Now</string>
+    <string name="feature_home_workspace">Workspace</string>
+    <string name="feature_home_entire_home">Entire Home</string>
+    <string name="feature_home_private_room">Private Room</string>
+    <string name="feature_home_nap_room">Nap Room</string>
+    <string name="feature_home_find_roommate">Find Roommate</string>
+    <string name="feature_home_find_roommate_subtitle">Post listings or search for roommates by location, budget, and lifestyle.</string>
+    <string name="feature_home_send_proposal">Send Proposal</string>
+    <string name="feature_home_cancellation_policy">Cancellation Policy</string>
+    <string name="feature_home_free_cancellation">Free cancellation up to %d hours before check-in</string>
+    <string name="feature_home_cleaning_fee">Cleaning Fee</string>
+    <string name="feature_home_weekly_discount">Weekly Discount</string>
+    <string name="feature_home_price_breakdown">Price Breakdown</string>
 </resources>

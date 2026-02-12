@@ -38,7 +38,9 @@ object NavRoutes {
     const val SETTINGS_HELP_SUPPORT = "profile/settings/help-support"
     const val IDENTITY_VERIFICATION = "profile/identity-verification"
     const val FAQ = "profile/faq"
-    
+    const val ABOUT_US = "profile/about"
+    const val ROOMMATE_FINDER = "roommate-finder"
+
     // Webflow / Booking routes
     const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased"
     const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear"

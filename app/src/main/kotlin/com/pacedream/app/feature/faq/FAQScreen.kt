@@ -42,23 +42,43 @@ fun FAQScreen(
             ),
             FAQItem(
                 question = "What types of spaces can I book?",
-                answer = "You can book various types of spaces including meeting rooms, nap pods, study rooms, restrooms, storage spaces, parking spots, apartments, and luxury rooms. We offer flexible options for every need."
+                answer = "You can book various types of spaces including entire homes, private rooms, nap rooms, meeting rooms, workspaces, restrooms, EV parking, nap pods, study rooms, storage spaces, parking spots, apartments, and luxury rooms. We offer flexible options for every need."
+            ),
+            FAQItem(
+                question = "What are Last-Minute Deals?",
+                answer = "Last-Minute Deals offer discounted rates on available spaces that haven't been booked. These deals are perfect for spontaneous needs and can save you 20-40% off regular prices. Deals are updated in real-time and can be booked instantly for immediate use."
+            ),
+            FAQItem(
+                question = "How does the Roommate Finder work?",
+                answer = "Our Roommate Finder helps you connect with potential roommates. You can post listings for available rooms or search for roommates based on preferences like location, budget, lifestyle, and move-in dates. The platform facilitates safe connections with verified users."
+            ),
+            FAQItem(
+                question = "How do I send a proposal to a host?",
+                answer = "On any listing detail page, tap the 'Propose' button to send a custom proposal to the host. You can include your preferred price, duration, and a message explaining your needs. The host will review and respond through the messaging system."
             ),
             FAQItem(
                 question = "Is there a cancellation policy?",
-                answer = "Yes, we have a flexible cancellation policy. You can cancel most bookings up to 24 hours before the scheduled time for a full refund. Some bookings may have different terms, which will be clearly stated at the time of booking."
+                answer = "Yes, we have flexible cancellation policies. Most hourly rentals allow free cancellation up to 2 hours before the scheduled time. For roommate arrangements, cancellation policies are set by the host and clearly displayed in the listing details."
+            ),
+            FAQItem(
+                question = "What is the cleaning fee?",
+                answer = "Some listings include a one-time cleaning fee that is added to your booking total. The cleaning fee amount varies by listing and is shown in the price breakdown before you confirm your booking."
+            ),
+            FAQItem(
+                question = "Are there weekly discounts?",
+                answer = "Yes! Many hosts offer weekly discounts for longer bookings. When available, the discount percentage is shown in the price breakdown on the listing detail page. Discounts are automatically applied at checkout."
             ),
             FAQItem(
                 question = "How do I contact support?",
                 answer = "You can contact our support team 24/7 through the app's messaging feature, or send us a direct email. Our support team is always ready to help with any questions or issues you may have."
             ),
             FAQItem(
-                question = "Are there any membership benefits?",
-                answer = "Yes! Members enjoy exclusive benefits including priority booking, special discounts, early access to new spaces, and dedicated customer support. Check your profile for current membership status and benefits."
-            ),
-            FAQItem(
                 question = "How do I become a host?",
                 answer = "Becoming a host is easy! Simply go to your profile, select 'Switch to Host Mode', and follow the simple onboarding process. You can list your space, set your availability, and start earning by sharing your space with others."
+            ),
+            FAQItem(
+                question = "Can I rent gear and equipment?",
+                answer = "Yes! PaceDream offers gear rentals by the hour for your adventures. Browse our gear categories including tech gear, music gear, photography equipment, and fashion items. Simply select what you need and book it instantly."
             )
         )
     }

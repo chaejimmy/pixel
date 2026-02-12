@@ -45,7 +45,8 @@ fun ProfileScreen(
     onEditProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onIdentityVerificationClick: () -> Unit = {},
-    onHelpClick: () -> Unit = {}
+    onHelpClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -114,6 +115,7 @@ fun ProfileScreen(
                     ProfileMenuSection(
                         onSettingsClick = onSettingsClick,
                         onHelpClick = onHelpClick,
+                        onAboutClick = onAboutClick,
                         onLogoutClick = { viewModel.logout() }
                     )
                 }
@@ -324,6 +326,7 @@ private fun HostModeCard(
 private fun ProfileMenuSection(
     onSettingsClick: () -> Unit,
     onHelpClick: () -> Unit,
+    onAboutClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     Card(
@@ -355,7 +358,7 @@ private fun ProfileMenuSection(
                 icon = Icons.Default.Info,
                 title = "About",
                 subtitle = "App information and legal",
-                onClick = { /* TODO */ }
+                onClick = onAboutClick
             )
 
             HorizontalDivider(color = PaceDreamColors.Border)

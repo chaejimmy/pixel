@@ -60,6 +60,8 @@ import com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen
 import com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen
 import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
+import com.pacedream.app.feature.about.AboutUsScreen
+import com.pacedream.app.feature.roommate.RoommateFinderScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -133,7 +135,10 @@ fun MainNavHost(
                 composable(NavRoutes.HOME) {
                     HomeScreen(
                         onSectionViewAll = { sectionType ->
-                            navController.navigate(NavRoutes.homeSectionList(sectionType))
+                            when (sectionType) {
+                                "roommate" -> navController.navigate(NavRoutes.ROOMMATE_FINDER)
+                                else -> navController.navigate(NavRoutes.homeSectionList(sectionType))
+                            }
                         },
                         onListingClick = { item ->
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
@@ -284,6 +289,9 @@ fun MainNavHost(
                         },
                         onHelpClick = {
                             navController.navigate(NavRoutes.FAQ)
+                        },
+                        onAboutClick = {
+                            navController.navigate(NavRoutes.ABOUT_US)
                         }
                     )
                 }
@@ -365,7 +373,24 @@ fun MainNavHost(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
-                
+
+                // About Us Screen
+                composable(NavRoutes.ABOUT_US) {
+                    AboutUsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                // Roommate Finder Screen
+                composable(NavRoutes.ROOMMATE_FINDER) {
+                    RoommateFinderScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        }
+                    )
+                }
+
                 // Identity Verification Screen
                 composable(NavRoutes.IDENTITY_VERIFICATION) {
                     com.pacedream.app.feature.verification.IdentityVerificationScreen(

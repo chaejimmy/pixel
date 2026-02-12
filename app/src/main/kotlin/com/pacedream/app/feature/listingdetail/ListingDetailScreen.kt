@@ -68,6 +68,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Send
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
 import java.time.Instant
@@ -92,6 +95,7 @@ fun ListingDetailScreen(
     var showAmenitiesSheet by remember { mutableStateOf(false) }
     var showReviewsSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
+    var showProposalSheet by remember { mutableStateOf(false) }
 
     val listing = uiState.listing
 
@@ -99,7 +103,8 @@ fun ListingDetailScreen(
         bottomBar = {
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
-                onReserveClick = { showReserveSheet = true }
+                onReserveClick = { showReserveSheet = true },
+                onSendProposalClick = { showProposalSheet = true }
             )
         }
     ) { padding ->
@@ -213,6 +218,30 @@ fun ListingDetailScreen(
 
                     item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
 
+                    // Cancellation Policy Section (Web parity)
+                    item {
+                        SectionCancellationPolicy(
+                            cancellationPolicy = listing?.cancellationPolicy,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                        )
+                    }
+
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+
+                    // Pricing Breakdown Section (Web parity: cleaning fee, weekly discount)
+                    item {
+                        SectionPricingBreakdown(
+                            pricing = listing?.pricing,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                        )
+                    }
+
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+
                     item {
                         SectionLocation(
                             location = listing?.location,
@@ -307,6 +336,22 @@ fun ListingDetailScreen(
                         showReserveSheet = false
                         onConfirmReserve(draft)
                     }
+                )
+                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
+            }
+        }
+
+        if (showProposalSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showProposalSheet = false },
+                sheetState = sheetState
+            ) {
+                ProposalSheet(
+                    listingTitle = listing?.title.orEmpty(),
+                    hostName = listing?.host?.name,
+                    onClose = { showProposalSheet = false },
+                    onSend = { showProposalSheet = false }
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -449,7 +494,8 @@ private fun Long.toLocalDate(): LocalDate {
 @Composable
 private fun BookingBar(
     pricingLabel: String?,
-    onReserveClick: () -> Unit
+    onReserveClick: () -> Unit,
+    onSendProposalClick: () -> Unit
 ) {
     Surface(shadowElevation = 8.dp) {
         Row(
@@ -471,6 +517,18 @@ private fun BookingBar(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            OutlinedButton(
+                onClick = onSendProposalClick,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Propose")
             }
             Button(onClick = onReserveClick) {
                 Text(if (pricingLabel != null) "Reserve" else "Select time")
@@ -1003,6 +1061,260 @@ private fun SkeletonLine(widthFraction: Float, height: androidx.compose.ui.unit.
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     )
+}
+
+@Composable
+private fun SectionCancellationPolicy(
+    cancellationPolicy: CancellationPolicy?,
+    modifier: Modifier = Modifier
+) {
+    val policy = cancellationPolicy ?: CancellationPolicy()
+    Column(modifier = modifier) {
+        Text(
+            "Cancellation Policy",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF10B981).copy(alpha = 0.08f)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = when (policy.type) {
+                            "flexible" -> "Flexible"
+                            "moderate" -> "Moderate"
+                            "strict" -> "Strict"
+                            else -> "Standard"
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF10B981)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = policy.displayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionPricingBreakdown(
+    pricing: ListingPricing?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            "Price Details",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                val rate = pricing?.hourlyFrom ?: pricing?.basePrice
+                val symbol = when ((pricing?.currency ?: "USD").uppercase()) {
+                    "USD" -> "$"
+                    else -> "$"
+                }
+                val freq = pricing?.frequencyLabel?.lowercase()
+                    ?: if (pricing?.hourlyFrom != null) "hr" else "night"
+
+                if (rate != null) {
+                    PricingRow(
+                        label = "Base rate",
+                        value = "$symbol${rate.toLong()}/$freq"
+                    )
+                }
+
+                pricing?.cleaningFee?.let { fee ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PricingRow(
+                        label = "Cleaning fee",
+                        value = "$symbol${fee.toLong()}"
+                    )
+                }
+
+                pricing?.weeklyDiscountPercent?.let { discount ->
+                    if (discount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PricingRow(
+                            label = "Weekly discount",
+                            value = "-$discount%",
+                            valueColor = Color(0xFF10B981)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Taxes & fees",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Calculated at checkout",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PricingRow(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProposalSheet(
+    listingTitle: String,
+    hostName: String?,
+    onClose: () -> Unit,
+    onSend: () -> Unit
+) {
+    var message by remember { mutableStateOf("") }
+    var proposedPrice by remember { mutableStateOf("") }
+    var proposedDuration by remember { mutableStateOf("") }
+
+    BottomSheetHeader(title = "Send Proposal", onClose = onClose)
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = "Send a proposal to ${hostName ?: "the host"} for \"$listingTitle\"",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Your offer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = proposedPrice,
+            onValueChange = { proposedPrice = it },
+            label = { Text("Proposed price (e.g. \$25/hr)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = proposedDuration,
+            onValueChange = { proposedDuration = it },
+            label = { Text("Duration (e.g. 3 hours, 1 week)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("Message", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            label = { Text("Describe your needs, special requests...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "The host will review your proposal and respond through the messaging system.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = onSend,
+            enabled = message.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Send Proposal")
+        }
+    }
 }
 
 @Composable
