@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -89,7 +90,7 @@ fun AboutUsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(PaceDreamSpacing.LG)
@@ -116,7 +117,7 @@ fun AboutUsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(PaceDreamSpacing.LG)
@@ -158,7 +159,7 @@ fun AboutUsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(PaceDreamSpacing.LG)
@@ -231,7 +232,7 @@ private fun AboutFeatureItem(
             style = PaceDreamTypography.CalloutBold,
             color = PaceDreamColors.Primary
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
         Text(
             text = description,
             style = PaceDreamTypography.Callout,
@@ -246,27 +247,34 @@ private fun AboutLinkItem(
     title: String,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = PaceDreamColors.Primary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-        Text(
-            text = title,
-            style = PaceDreamTypography.Callout,
-            color = PaceDreamColors.TextPrimary,
-            modifier = Modifier.weight(1f)
-        )
-        TextButton(onClick = onClick) {
-            Text("Open", color = PaceDreamColors.Primary)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Text(
+                text = title,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "Open",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.Primary
+            )
         }
     }
 }

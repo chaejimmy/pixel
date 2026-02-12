@@ -54,6 +54,9 @@ import com.pacedream.common.composables.theme.HeadlineColor
 import com.pacedream.common.composables.theme.LargePadding
 import com.pacedream.common.composables.theme.MediumPadding
 import com.pacedream.common.composables.theme.NormalPadding
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.ViewAllColor
 import com.pacedream.common.util.toCurrencySymbol
 import com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel
@@ -89,9 +92,9 @@ fun DealsCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(8.dp)
-                            .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(PaceDreamSpacing.SM)
+                            .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -187,13 +190,13 @@ fun LastMinuteDealCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(PaceDreamSpacing.SM)
+                        .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
+                        .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocalFireDepartment,
@@ -214,9 +217,9 @@ fun LastMinuteDealCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(8.dp)
-                            .background(Color(0xFFF59E0B), RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(PaceDreamSpacing.SM)
+                            .background(PaceDreamColors.Warning, RoundedCornerShape(PaceDreamRadius.XS))
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     ) {
                         Text(
                             text = stringResource(R.string.feature_home_spots_left, spotsLeft),
@@ -256,10 +259,10 @@ fun LastMinuteDealCard(
                         fontSize = 12.sp,
                         textDecoration = TextDecoration.LineThrough,
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                     MediumTitleText(
                         text = "${price?.currency?.ifBlank { "USD" }?.toCurrencySymbol()}$discountedAmount",
-                        color = Color(0xFFEF4444),
+                        color = PaceDreamColors.Error,
                     )
                     SmallTitleText(
                         text = "/ ${price?.frequency}",

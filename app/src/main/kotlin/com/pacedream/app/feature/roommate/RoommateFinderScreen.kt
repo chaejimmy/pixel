@@ -88,7 +88,7 @@ fun RoommateFinderScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
                     singleLine = true
                 )
             }

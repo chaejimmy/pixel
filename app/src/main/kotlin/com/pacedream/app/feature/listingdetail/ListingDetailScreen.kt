@@ -1070,32 +1070,33 @@ private fun SectionCancellationPolicy(
     modifier: Modifier = Modifier
 ) {
     val policy = cancellationPolicy ?: CancellationPolicy()
+    val successColor = MaterialTheme.colorScheme.tertiary
     Column(modifier = modifier) {
         Text(
             "Cancellation Policy",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Card(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF10B981).copy(alpha = 0.08f)
+                containerColor = successColor.copy(alpha = 0.08f)
             )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF10B981),
+                    tint = successColor,
                     modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when (policy.type) {
@@ -1106,9 +1107,9 @@ private fun SectionCancellationPolicy(
                         },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF10B981)
+                        color = successColor
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = policy.displayText,
                         style = MaterialTheme.typography.bodyMedium,
@@ -1131,12 +1132,12 @@ private fun SectionPricingBreakdown(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         Card(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 val rate = pricing?.hourlyFrom ?: pricing?.basePrice
                 val symbol = when ((pricing?.currency ?: "USD").uppercase()) {
                     "USD" -> "$"
@@ -1166,14 +1167,14 @@ private fun SectionPricingBreakdown(
                         PricingRow(
                             label = "Weekly discount",
                             value = "-$discount%",
-                            valueColor = Color(0xFF10B981)
+                            valueColor = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider()
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1234,22 +1235,23 @@ private fun ProposalSheet(
 
     BottomSheetHeader(title = "Send Proposal", onClose = onClose)
 
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
             text = "Send a proposal to ${hostName ?: "the host"} for \"$listingTitle\"",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text("Your offer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = proposedPrice,
             onValueChange = { proposedPrice = it },
             label = { Text("Proposed price (e.g. \$25/hr)") },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
             singleLine = true
         )
 
@@ -1260,13 +1262,14 @@ private fun ProposalSheet(
             onValueChange = { proposedDuration = it },
             label = { Text("Duration (e.g. 3 hours, 1 week)") },
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text("Message", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = message,
             onValueChange = { message = it },
@@ -1274,13 +1277,14 @@ private fun ProposalSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
+            shape = RoundedCornerShape(12.dp),
             maxLines = 5
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Card(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
             )
@@ -1304,17 +1308,22 @@ private fun ProposalSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = onSend,
             enabled = message.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Send Proposal")
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
