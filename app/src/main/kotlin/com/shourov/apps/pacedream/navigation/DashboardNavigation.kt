@@ -1,9 +1,7 @@
 package com.shourov.apps.pacedream.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -208,51 +206,42 @@ fun NavGraphBuilder.DashboardNavigation(
                     ) {
                         val bottomPadding = it.calculateBottomPadding()
 
+                        // iOS 26 parity: 200ms easeInOut for all transitions
+                        val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+
                         NavHost(
                             navController = navController,
                             startDestination = DashboardDestination.HOME.name,
                             modifier = Modifier.padding(bottom = bottomPadding),
                             enterTransition = {
                                 fadeIn(
-                                    animationSpec = tween(
-                                        250,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideIntoContainer(
-                                    animationSpec = tween(250, easing = EaseIn),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                                 )
                             },
                             exitTransition = {
                                 fadeOut(
-                                    animationSpec = tween(
-                                        200,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = EaseOut),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.End,
                                 )
                             },
                             popEnterTransition = {
                                 fadeIn(
-                                    animationSpec = tween(
-                                        250,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideIntoContainer(
-                                    animationSpec = tween(250, easing = EaseIn),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.End,
                                 )
                             },
                             popExitTransition = {
                                 fadeOut(
-                                    animationSpec = tween(
-                                        200,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = EaseOut),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                                 )
                             },
@@ -476,6 +465,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onHelpClick = {
                                         // Navigate to help
                                     },
+                                    onFaqClick = {
+                                        navController.navigate("faq")
+                                    },
                                     onAboutClick = {
                                         // Navigate to about
                                     },
@@ -517,7 +509,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                     }
                                 }
                             }
-                            
+
+                            // FAQ Screen
+                            composable("faq") {
+                                com.shourov.apps.pacedream.feature.help.FaqScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
                             // Property Detail Screen
                             composable(
                                 route = "${PropertyDestination.DETAIL.name}/{propertyId}",

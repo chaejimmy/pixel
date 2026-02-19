@@ -167,7 +167,7 @@ fun HomeFeedScreen(
                                 isEmpty = section.items.isEmpty(),
                             ),
                             transitionSpec = {
-                                fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                                fadeIn(tween(200)) togetherWith fadeOut(tween(200))
                             },
                             label = "section_content"
                         ) { contentState ->
@@ -401,8 +401,8 @@ private fun ListingCard(
                     AnimatedContent(
                         targetState = isFavorited,
                         transitionSpec = {
-                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
-                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.85f, animationSpec = tween(200))) togetherWith
+                                (fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200)))
                         },
                         label = "favorite_toggle"
                     ) { favored ->
