@@ -33,11 +33,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -81,18 +87,69 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
- * iOS-style multi-step Create Listing screen
- * Follows Apple HIG grouped inset form pattern with step-by-step wizard flow
+ * Listing mode determines which categories and flow to show.
+ * SHARE / BORROW: item-based listings (Tools, Games, Toys, Micromobility, Other)
+ * USE: space-based listings (Apartment, Office, Event Space, etc.)
  */
+enum class ListingMode(val displayName: String) {
+    SHARE("Share"),
+    BORROW("Borrow"),
+    USE("Use"),
+}
 
-private const val TOTAL_STEPS = 5
+/**
+ * Duration options for Schedule & Availability.
+ * Platform-optimized for short-term sharing and borrowing.
+ */
+private data class DurationOption(
+    val id: String,
+    val label: String,
+    val description: String,
+)
 
+private val SHARE_BORROW_DURATIONS = listOf(
+    DurationOption("1h", "1 hour", "Quick use"),
+    DurationOption("2h", "2 hours", "Short session"),
+    DurationOption("4h", "4 hours", "Half day"),
+    DurationOption("12h", "12 hours", "Half day+"),
+    DurationOption("24h", "24 hours", "Full day"),
+    DurationOption("2d", "2 days", "Weekend"),
+    DurationOption("3d", "3 days", "Long weekend"),
+    DurationOption("1w", "1 week", "Weekly"),
+    DurationOption("2w", "2 weeks", "Bi-weekly"),
+    DurationOption("1m", "1 month", "Monthly"),
+)
+
+private val USE_DURATIONS = listOf(
+    DurationOption("1h", "1 hour", "Quick use"),
+    DurationOption("2h", "2 hours", "Short session"),
+    DurationOption("4h", "4 hours", "Half day"),
+    DurationOption("12h", "12 hours", "Half day+"),
+    DurationOption("24h", "24 hours", "Full day"),
+    DurationOption("2d", "2 days", "Weekend"),
+    DurationOption("3d", "3 days", "Long weekend"),
+    DurationOption("1w", "1 week", "Weekly"),
+    DurationOption("1m", "1 month", "Monthly"),
+)
+
+/**
+ * iOS-style multi-step Create Listing screen
+ * Follows Apple HIG grouped inset form pattern with step-by-step wizard flow.
+ *
+ * Flow for SHARE / BORROW (items):
+ *   1. Category  →  2. Details & Photos  →  3. Pricing & Schedule  →  4. Review
+ *
+ * Flow for USE (spaces):
+ *   1. Property Type  →  2. Location  →  3. Details & Photos  →  4. Pricing & Schedule  →  5. Review
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateListingScreen(
+    listingMode: ListingMode = ListingMode.SHARE,
     onBackClick: () -> Unit = {},
     onPublishSuccess: (String) -> Unit = {}
 ) {
+    val totalSteps = if (listingMode == ListingMode.USE) 5 else 4
     var currentStep by remember { mutableIntStateOf(0) }
 
     // Form state
@@ -106,20 +163,18 @@ fun CreateListingScreen(
     var zipCode by remember { mutableStateOf("") }
     var basePrice by remember { mutableStateOf("") }
     var currency by remember { mutableStateOf("USD") }
-    var isHourly by remember { mutableStateOf(true) }
-    val selectedAmenities = remember { mutableStateListOf<String>() }
-    var maxGuests by remember { mutableStateOf("") }
     var isInstantBook by remember { mutableStateOf(false) }
+    var itemCondition by remember { mutableStateOf("") }
+    val selectedDurations = remember { mutableStateListOf<String>() }
+    var showMoreDurations by remember { mutableStateOf(false) }
 
-    val stepTitles = listOf(
-        "Property Type",
-        "Location",
-        "Details",
-        "Amenities & Pricing",
-        "Review & Publish"
-    )
+    val stepTitles = if (listingMode == ListingMode.USE) {
+        listOf("Property Type", "Location", "Details & Photos", "Pricing & Schedule", "Review")
+    } else {
+        listOf("Category", "Details & Photos", "Pricing & Schedule", "Review")
+    }
 
-    val progress = (currentStep + 1).toFloat() / TOTAL_STEPS
+    val progress = (currentStep + 1).toFloat() / totalSteps
 
     Scaffold(
         topBar = {
@@ -142,7 +197,7 @@ fun CreateListingScreen(
                 },
                 actions = {
                     Text(
-                        text = "Step ${currentStep + 1} of $TOTAL_STEPS",
+                        text = "Step ${currentStep + 1} of $totalSteps",
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary,
                         modifier = Modifier.padding(end = PaceDreamSpacing.MD)
@@ -156,18 +211,28 @@ fun CreateListingScreen(
         bottomBar = {
             CreateListingBottomBar(
                 currentStep = currentStep,
-                totalSteps = TOTAL_STEPS,
-                canProceed = when (currentStep) {
-                    0 -> propertyType.isNotBlank()
-                    1 -> city.isNotBlank() && country.isNotBlank()
-                    2 -> title.isNotBlank() && description.isNotBlank()
-                    3 -> basePrice.isNotBlank()
-                    4 -> true
+                totalSteps = totalSteps,
+                canProceed = when {
+                    // Step 0 is always Category/Property Type selection
+                    currentStep == 0 -> propertyType.isNotBlank()
+                    // USE mode has Location as step 1
+                    listingMode == ListingMode.USE && currentStep == 1 ->
+                        city.isNotBlank() && country.isNotBlank()
+                    // Details step: USE=2, SHARE/BORROW=1
+                    (listingMode == ListingMode.USE && currentStep == 2) ||
+                    (listingMode != ListingMode.USE && currentStep == 1) ->
+                        title.isNotBlank() && description.isNotBlank()
+                    // Pricing & Schedule step: USE=3, SHARE/BORROW=2
+                    (listingMode == ListingMode.USE && currentStep == 3) ||
+                    (listingMode != ListingMode.USE && currentStep == 2) ->
+                        basePrice.isNotBlank() && selectedDurations.isNotEmpty()
+                    // Review step is always last
+                    currentStep == totalSteps - 1 -> true
                     else -> false
                 },
                 onBack = { if (currentStep > 0) currentStep-- },
                 onNext = {
-                    if (currentStep < TOTAL_STEPS - 1) {
+                    if (currentStep < totalSteps - 1) {
                         currentStep++
                     } else {
                         onPublishSuccess("new-listing-id")
@@ -205,79 +270,151 @@ fun CreateListingScreen(
                 },
                 label = "step_transition"
             ) { step ->
-                when (step) {
-                    0 -> PropertyTypeStep(
-                        selectedType = propertyType,
-                        onTypeSelected = { propertyType = it }
-                    )
-                    1 -> LocationStep(
-                        address = address,
-                        city = city,
-                        state = state,
-                        country = country,
-                        zipCode = zipCode,
-                        onAddressChange = { address = it },
-                        onCityChange = { city = it },
-                        onStateChange = { state = it },
-                        onCountryChange = { country = it },
-                        onZipCodeChange = { zipCode = it },
-                    )
-                    2 -> DetailsStep(
-                        title = title,
-                        description = description,
-                        maxGuests = maxGuests,
-                        onTitleChange = { title = it },
-                        onDescriptionChange = { description = it },
-                        onMaxGuestsChange = { maxGuests = it },
-                    )
-                    3 -> AmenitiesPricingStep(
-                        selectedAmenities = selectedAmenities,
-                        onToggleAmenity = { amenity ->
-                            if (selectedAmenities.contains(amenity)) selectedAmenities.remove(amenity)
-                            else selectedAmenities.add(amenity)
-                        },
-                        basePrice = basePrice,
-                        currency = currency,
-                        isHourly = isHourly,
-                        isInstantBook = isInstantBook,
-                        onBasePriceChange = { basePrice = it },
-                        onCurrencyChange = { currency = it },
-                        onHourlyChange = { isHourly = it },
-                        onInstantBookChange = { isInstantBook = it },
-                    )
-                    4 -> ReviewStep(
-                        title = title,
-                        propertyType = propertyType,
-                        location = "$city, $state, $country",
-                        price = basePrice,
-                        currency = currency,
-                        isHourly = isHourly,
-                        amenities = selectedAmenities,
-                        isInstantBook = isInstantBook,
-                    )
+                if (listingMode == ListingMode.USE) {
+                    // USE mode: 5-step flow
+                    when (step) {
+                        0 -> PropertyTypeStep(
+                            listingMode = listingMode,
+                            selectedType = propertyType,
+                            onTypeSelected = { propertyType = it }
+                        )
+                        1 -> LocationStep(
+                            address = address,
+                            city = city,
+                            state = state,
+                            country = country,
+                            zipCode = zipCode,
+                            onAddressChange = { address = it },
+                            onCityChange = { city = it },
+                            onStateChange = { state = it },
+                            onCountryChange = { country = it },
+                            onZipCodeChange = { zipCode = it },
+                        )
+                        2 -> DetailsStep(
+                            listingMode = listingMode,
+                            title = title,
+                            description = description,
+                            itemCondition = itemCondition,
+                            onTitleChange = { title = it },
+                            onDescriptionChange = { description = it },
+                            onItemConditionChange = { itemCondition = it },
+                        )
+                        3 -> PricingScheduleStep(
+                            listingMode = listingMode,
+                            basePrice = basePrice,
+                            currency = currency,
+                            isInstantBook = isInstantBook,
+                            selectedDurations = selectedDurations,
+                            showMoreDurations = showMoreDurations,
+                            onBasePriceChange = { basePrice = it },
+                            onCurrencyChange = { currency = it },
+                            onInstantBookChange = { isInstantBook = it },
+                            onToggleDuration = { id ->
+                                if (selectedDurations.contains(id)) selectedDurations.remove(id)
+                                else selectedDurations.add(id)
+                            },
+                            onShowMoreDurations = { showMoreDurations = true },
+                        )
+                        4 -> ReviewStep(
+                            listingMode = listingMode,
+                            title = title,
+                            propertyType = propertyType,
+                            location = "$city, $state, $country",
+                            price = basePrice,
+                            currency = currency,
+                            selectedDurations = selectedDurations,
+                            isInstantBook = isInstantBook,
+                            itemCondition = itemCondition,
+                        )
+                    }
+                } else {
+                    // SHARE / BORROW mode: 4-step flow
+                    when (step) {
+                        0 -> PropertyTypeStep(
+                            listingMode = listingMode,
+                            selectedType = propertyType,
+                            onTypeSelected = { propertyType = it }
+                        )
+                        1 -> DetailsStep(
+                            listingMode = listingMode,
+                            title = title,
+                            description = description,
+                            itemCondition = itemCondition,
+                            onTitleChange = { title = it },
+                            onDescriptionChange = { description = it },
+                            onItemConditionChange = { itemCondition = it },
+                        )
+                        2 -> PricingScheduleStep(
+                            listingMode = listingMode,
+                            basePrice = basePrice,
+                            currency = currency,
+                            isInstantBook = isInstantBook,
+                            selectedDurations = selectedDurations,
+                            showMoreDurations = showMoreDurations,
+                            onBasePriceChange = { basePrice = it },
+                            onCurrencyChange = { currency = it },
+                            onInstantBookChange = { isInstantBook = it },
+                            onToggleDuration = { id ->
+                                if (selectedDurations.contains(id)) selectedDurations.remove(id)
+                                else selectedDurations.add(id)
+                            },
+                            onShowMoreDurations = { showMoreDurations = true },
+                        )
+                        3 -> ReviewStep(
+                            listingMode = listingMode,
+                            title = title,
+                            propertyType = propertyType,
+                            location = if (city.isNotBlank()) "$city, $state, $country" else "",
+                            price = basePrice,
+                            currency = currency,
+                            selectedDurations = selectedDurations,
+                            isInstantBook = isInstantBook,
+                            itemCondition = itemCondition,
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// ── Step 1: Property Type ──────────────────────────────────────
+// ── Step 1: Category / Property Type ─────────────────────────
 
 @Composable
 private fun PropertyTypeStep(
+    listingMode: ListingMode,
     selectedType: String,
     onTypeSelected: (String) -> Unit
 ) {
-    val types = listOf(
-        PropertyTypeOption("Apartment", Icons.Default.Home, "A unit within a building"),
-        PropertyTypeOption("House", Icons.Default.Home, "An entire house"),
-        PropertyTypeOption("Studio", Icons.Default.Home, "A single-room dwelling"),
-        PropertyTypeOption("Loft", Icons.Default.Home, "An open-plan space"),
-        PropertyTypeOption("Villa", Icons.Default.Home, "A luxury standalone"),
-        PropertyTypeOption("Office", Icons.Default.Home, "A workspace for rent"),
-        PropertyTypeOption("Event Space", Icons.Default.Home, "A venue for events"),
-        PropertyTypeOption("Parking", Icons.Default.Home, "A parking spot"),
-    )
+    val types = when (listingMode) {
+        ListingMode.SHARE, ListingMode.BORROW -> listOf(
+            PropertyTypeOption("Tools", Icons.Default.Build, "Power tools, hand tools, garden equipment"),
+            PropertyTypeOption("Games", Icons.Default.SportsEsports, "Board games, video games, consoles"),
+            PropertyTypeOption("Toys", Icons.Default.SmartToy, "Kids toys, outdoor play, collectibles"),
+            PropertyTypeOption("Micromobility", Icons.Default.DirectionsBike, "E-scooters, bikes, skateboards"),
+            PropertyTypeOption("Other", Icons.Default.MoreHoriz, "Anything else you want to list"),
+        )
+        ListingMode.USE -> listOf(
+            PropertyTypeOption("Apartment", Icons.Default.Home, "A unit within a building"),
+            PropertyTypeOption("House", Icons.Default.Home, "An entire house"),
+            PropertyTypeOption("Studio", Icons.Default.Home, "A single-room dwelling"),
+            PropertyTypeOption("Loft", Icons.Default.Home, "An open-plan space"),
+            PropertyTypeOption("Office", Icons.Default.Home, "A workspace for rent"),
+            PropertyTypeOption("Event Space", Icons.Default.Home, "A venue for events"),
+            PropertyTypeOption("Parking", Icons.Default.Home, "A parking spot"),
+        )
+    }
+
+    val headerText = when (listingMode) {
+        ListingMode.SHARE -> "What are you sharing?"
+        ListingMode.BORROW -> "What can people borrow?"
+        ListingMode.USE -> "What type of space are you listing?"
+    }
+
+    val subtitleText = when (listingMode) {
+        ListingMode.SHARE, ListingMode.BORROW -> "Pick the category that best fits your item."
+        ListingMode.USE -> "Choose the category that best describes your space."
+    }
 
     Column(
         modifier = Modifier
@@ -286,13 +423,13 @@ private fun PropertyTypeStep(
             .padding(PaceDreamSpacing.LG)
     ) {
         Text(
-            text = "What type of property are you listing?",
+            text = headerText,
             style = PaceDreamTypography.Title2,
             color = PaceDreamColors.TextPrimary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
-            text = "Choose the category that best describes your space.",
+            text = subtitleText,
             style = PaceDreamTypography.Body,
             color = PaceDreamColors.TextSecondary,
         )
@@ -369,7 +506,7 @@ private fun PropertyTypeStep(
     }
 }
 
-// ── Step 2: Location ───────────────────────────────────────────
+// ── Location Step (USE mode only) ────────────────────────────
 
 @Composable
 private fun LocationStep(
@@ -403,7 +540,6 @@ private fun LocationStep(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        // iOS grouped inset form style
         FormSection(title = "Address") {
             FormTextField(
                 value = address,
@@ -474,17 +610,20 @@ private fun LocationStep(
     }
 }
 
-// ── Step 3: Details ────────────────────────────────────────────
+// ── Details & Photos Step ────────────────────────────────────
 
 @Composable
 private fun DetailsStep(
+    listingMode: ListingMode,
     title: String,
     description: String,
-    maxGuests: String,
+    itemCondition: String,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onMaxGuestsChange: (String) -> Unit,
+    onItemConditionChange: (String) -> Unit,
 ) {
+    val isItemListing = listingMode == ListingMode.SHARE || listingMode == ListingMode.BORROW
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -492,13 +631,16 @@ private fun DetailsStep(
             .padding(PaceDreamSpacing.LG)
     ) {
         Text(
-            text = "Tell us about your space",
+            text = if (isItemListing) "Describe your item" else "Tell us about your space",
             style = PaceDreamTypography.Title2,
             color = PaceDreamColors.TextPrimary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
-            text = "A great title and description help guests find your listing.",
+            text = if (isItemListing)
+                "A clear title and description help people find your listing."
+            else
+                "A great title and description help guests find your listing.",
             style = PaceDreamTypography.Body,
             color = PaceDreamColors.TextSecondary,
         )
@@ -509,13 +651,21 @@ private fun DetailsStep(
                 value = title,
                 onValueChange = onTitleChange,
                 label = "Title",
-                placeholder = "e.g. Cozy Downtown Studio",
+                placeholder = if (isItemListing) "e.g. DeWalt Power Drill Set" else "e.g. Cozy Downtown Studio",
             )
             OutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
                 label = { Text("Description", style = PaceDreamTypography.Callout) },
-                placeholder = { Text("Describe what makes your space special...", style = PaceDreamTypography.Body) },
+                placeholder = {
+                    Text(
+                        if (isItemListing)
+                            "Describe the item, what's included, and any usage notes..."
+                        else
+                            "Describe what makes your space special...",
+                        style = PaceDreamTypography.Body
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 8,
@@ -525,13 +675,14 @@ private fun DetailsStep(
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
-            FormTextField(
-                value = maxGuests,
-                onValueChange = onMaxGuestsChange,
-                label = "Maximum guests",
-                keyboardType = KeyboardType.Number,
-                placeholder = "e.g. 4",
-            )
+
+            // Item condition (share/borrow only)
+            if (isItemListing) {
+                ItemConditionSelector(
+                    selectedCondition = itemCondition,
+                    onConditionSelected = onItemConditionChange,
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
@@ -539,7 +690,10 @@ private fun DetailsStep(
         // Photo upload section
         FormSection(title = "Photos") {
             Text(
-                "Add at least 5 photos to showcase your space.",
+                if (isItemListing)
+                    "Add photos from different angles to show condition."
+                else
+                    "Add at least 5 photos to showcase your space.",
                 style = PaceDreamTypography.Callout,
                 color = PaceDreamColors.TextSecondary,
             )
@@ -547,10 +701,7 @@ private fun DetailsStep(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
-                // Upload button
-                PhotoUploadPlaceholder(
-                    onClick = { /* TODO: open image picker */ }
-                )
+                PhotoUploadPlaceholder(onClick = { /* TODO: open image picker */ })
                 PhotoUploadPlaceholder(onClick = {})
                 PhotoUploadPlaceholder(onClick = {})
             }
@@ -558,101 +709,32 @@ private fun DetailsStep(
     }
 }
 
-// ── Step 4: Amenities & Pricing ────────────────────────────────
+// ── Item Condition Selector ──────────────────────────────────
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AmenitiesPricingStep(
-    selectedAmenities: List<String>,
-    onToggleAmenity: (String) -> Unit,
-    basePrice: String,
-    currency: String,
-    isHourly: Boolean,
-    isInstantBook: Boolean,
-    onBasePriceChange: (String) -> Unit,
-    onCurrencyChange: (String) -> Unit,
-    onHourlyChange: (Boolean) -> Unit,
-    onInstantBookChange: (Boolean) -> Unit,
+private fun ItemConditionSelector(
+    selectedCondition: String,
+    onConditionSelected: (String) -> Unit,
 ) {
-    val allAmenities = listOf(
-        "Wi-Fi", "Air Conditioning", "Heating", "Kitchen",
-        "Washer", "Dryer", "Free Parking", "Pool",
-        "Hot Tub", "Gym", "Elevator", "Smoke Detector",
-        "First Aid Kit", "Fire Extinguisher", "TV", "Workspace",
-        "Pet Friendly", "EV Charger", "Security Camera", "Doorman"
-    )
+    val conditions = listOf("New", "Like New", "Good", "Fair")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
-    ) {
-        // Pricing
+    Column {
         Text(
-            text = "Set your price",
-            style = PaceDreamTypography.Title2,
+            text = "Condition",
+            style = PaceDreamTypography.Body,
             color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        FormSection(title = "Pricing") {
-            FormTextField(
-                value = basePrice,
-                onValueChange = onBasePriceChange,
-                label = "Base price ($currency)",
-                keyboardType = KeyboardType.Decimal,
-                placeholder = "0.00",
-            )
-
-            // Hourly vs Daily toggle - iOS grouped row style
-            FormToggleRow(
-                title = "Hourly pricing",
-                subtitle = "Charge guests per hour instead of per day",
-                checked = isHourly,
-                onCheckedChange = onHourlyChange,
-            )
-
-            FormToggleRow(
-                title = "Instant Book",
-                subtitle = "Guests can book without waiting for approval",
-                checked = isInstantBook,
-                onCheckedChange = onInstantBookChange,
-            )
-        }
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        // Amenities
-        Text(
-            text = "What amenities do you offer?",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Select all that apply.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            allAmenities.forEach { amenity ->
-                val isSelected = selectedAmenities.contains(amenity)
+            conditions.forEach { condition ->
+                val isSelected = selectedCondition == condition
                 FilterChip(
                     selected = isSelected,
-                    onClick = { onToggleAmenity(amenity) },
-                    label = {
-                        Text(
-                            amenity,
-                            style = PaceDreamTypography.Callout,
-                        )
-                    },
+                    onClick = { onConditionSelected(condition) },
+                    label = { Text(condition, style = PaceDreamTypography.Callout) },
                     leadingIcon = if (isSelected) {
                         {
                             Icon(
@@ -682,19 +764,195 @@ private fun AmenitiesPricingStep(
     }
 }
 
-// ── Step 5: Review ─────────────────────────────────────────────
+// ── Pricing & Schedule Step ──────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PricingScheduleStep(
+    listingMode: ListingMode,
+    basePrice: String,
+    currency: String,
+    isInstantBook: Boolean,
+    selectedDurations: List<String>,
+    showMoreDurations: Boolean,
+    onBasePriceChange: (String) -> Unit,
+    onCurrencyChange: (String) -> Unit,
+    onInstantBookChange: (Boolean) -> Unit,
+    onToggleDuration: (String) -> Unit,
+    onShowMoreDurations: () -> Unit,
+) {
+    val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
+    // Show first 5 by default, all when expanded
+    val visibleDurations = if (showMoreDurations) allDurations else allDurations.take(5)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(PaceDreamSpacing.LG)
+    ) {
+        // Pricing
+        Text(
+            text = "Set your price",
+            style = PaceDreamTypography.Title2,
+            color = PaceDreamColors.TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        FormSection(title = "Pricing") {
+            FormTextField(
+                value = basePrice,
+                onValueChange = onBasePriceChange,
+                label = "Base price ($currency)",
+                keyboardType = KeyboardType.Decimal,
+                placeholder = "0.00",
+            )
+
+            FormToggleRow(
+                title = "Instant Book",
+                subtitle = "People can book without waiting for approval",
+                checked = isInstantBook,
+                onCheckedChange = onInstantBookChange,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // Schedule & Availability
+        Text(
+            text = "Schedule & Availability",
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Select the durations you want to offer. You can set different prices for each later.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            visibleDurations.forEach { duration ->
+                val isSelected = selectedDurations.contains(duration.id)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onToggleDuration(duration.id) },
+                    label = {
+                        Column {
+                            Text(
+                                duration.label,
+                                style = PaceDreamTypography.Callout,
+                            )
+                        }
+                    },
+                    leadingIcon = if (isSelected) {
+                        {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else null,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PaceDreamColors.Primary,
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White,
+                        containerColor = PaceDreamColors.Card,
+                        labelColor = PaceDreamColors.TextPrimary,
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = PaceDreamColors.Border,
+                        selectedBorderColor = PaceDreamColors.Primary,
+                        enabled = true,
+                        selected = isSelected,
+                    ),
+                )
+            }
+        }
+
+        // "+ More durations" button
+        if (!showMoreDurations) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            TextButton(onClick = onShowMoreDurations) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = PaceDreamColors.Primary,
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "More durations",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+
+        if (selectedDurations.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(
+                    containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    Text(
+                        text = "Selected durations",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    val selectedLabels = allDurations
+                        .filter { selectedDurations.contains(it.id) }
+                        .joinToString(" · ") { it.label }
+                    Text(
+                        text = selectedLabels,
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Review Step ──────────────────────────────────────────────
 
 @Composable
 private fun ReviewStep(
+    listingMode: ListingMode,
     title: String,
     propertyType: String,
     location: String,
     price: String,
     currency: String,
-    isHourly: Boolean,
-    amenities: List<String>,
+    selectedDurations: List<String>,
     isInstantBook: Boolean,
+    itemCondition: String,
 ) {
+    val isItemListing = listingMode == ListingMode.SHARE || listingMode == ListingMode.BORROW
+    val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
+    val durationLabels = allDurations
+        .filter { selectedDurations.contains(it.id) }
+        .joinToString(" · ") { it.label }
+
+    // Determine the shortest duration for price display
+    val shortestDuration = allDurations
+        .firstOrNull { selectedDurations.contains(it.id) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -754,7 +1012,11 @@ private fun ReviewStep(
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
-                    text = "$propertyType · $location",
+                    text = buildString {
+                        append(propertyType)
+                        if (location.isNotBlank()) append(" · $location")
+                        if (isItemListing && itemCondition.isNotBlank()) append(" · $itemCondition")
+                    },
                     style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextSecondary,
                 )
@@ -767,24 +1029,37 @@ private fun ReviewStep(
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        text = if (isHourly) " / hour" else " / day",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextSecondary,
-                    )
+                    if (shortestDuration != null) {
+                        Text(
+                            text = " / ${shortestDuration.label}",
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        // Summary sections
-        ReviewSummarySection(title = "Amenities") {
-            if (amenities.isEmpty()) {
-                Text("No amenities selected", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary)
+        // Duration summary
+        ReviewSummarySection(title = "Available Durations") {
+            if (durationLabels.isBlank()) {
+                Text("No durations selected", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary)
             } else {
                 Text(
-                    text = amenities.joinToString(" · "),
+                    text = durationLabels,
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextPrimary,
+                )
+            }
+        }
+
+        // Condition (item listings only)
+        if (isItemListing && itemCondition.isNotBlank()) {
+            ReviewSummarySection(title = "Condition") {
+                Text(
+                    text = itemCondition,
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextPrimary,
                 )
@@ -799,6 +1074,15 @@ private fun ReviewStep(
                     color = PaceDreamColors.TextPrimary,
                 )
             }
+        }
+
+        // Listing type badge
+        ReviewSummarySection(title = "Listing Type") {
+            Text(
+                text = listingMode.displayName,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+            )
         }
     }
 }

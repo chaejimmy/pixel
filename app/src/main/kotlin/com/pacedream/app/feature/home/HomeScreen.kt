@@ -339,7 +339,6 @@ private fun CategoryFilterButtons(
         "Study Room" to Icons.Default.School,
         "Short Stay" to Icons.Default.Hotel,
         "Apartment" to Icons.Default.Apartment,
-        "Luxury Room" to Icons.Default.Star,
         "Parking" to Icons.Default.LocalParking,
         "Storage Space" to Icons.Default.Storage
     )

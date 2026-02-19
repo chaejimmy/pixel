@@ -101,11 +101,6 @@ fun DashboardContent(
                 Color(0xFFEF4444),
             ),
             CategoryModel(
-                stringResource(R.string.feature_home_luxury_room),
-                R.drawable.ic_luxury_room,
-                Color(0xFFEC4899),
-            ),
-            CategoryModel(
                 stringResource(R.string.feature_home_parking),
                 R.drawable.ic_ev_parking,
                 Color(0xCCB452DA),
