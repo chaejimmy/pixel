@@ -30,6 +30,7 @@ fun ProfileTabScreen(
     onEditProfileClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
+    onFaqClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     onPrivacyPolicyClick: () -> Unit = {},
     onTermsOfServiceClick: () -> Unit = {},
@@ -40,7 +41,7 @@ fun ProfileTabScreen(
 ) {
     val viewModel: ProfileTabViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
-    
+
     val menuSections = remember {
         listOf(
             ProfileMenuSection(
@@ -56,6 +57,7 @@ fun ProfileTabScreen(
                 title = "Support",
                 items = listOf(
                     ProfileMenuItem("Help Center", Icons.Default.Help, onHelpClick),
+                    ProfileMenuItem("FAQ", Icons.Default.QuestionAnswer, onFaqClick),
                     ProfileMenuItem("Contact Us", Icons.Default.Email, {}),
                     ProfileMenuItem("Report a Problem", Icons.Default.Report, {})
                 )

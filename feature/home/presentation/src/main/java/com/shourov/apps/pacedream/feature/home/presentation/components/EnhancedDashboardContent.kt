@@ -234,6 +234,11 @@ fun EnhancedDashboardContent(
                     Color(0xFF6366F1),
                 ),
                 CategoryModel(
+                    stringResource(R.string.feature_home_luxury_room),
+                    R.drawable.ic_luxury_room,
+                    Color(0xFFD97706),
+                ),
+                CategoryModel(
                     stringResource(R.string.feature_home_storage_space),
                     R.drawable.ic_storage_room,
                     Color(0xCC5753FA),

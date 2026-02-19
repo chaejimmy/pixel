@@ -1,9 +1,7 @@
 package com.shourov.apps.pacedream.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,27 +19,26 @@ fun PaceDreamNavHost(
 ) {
     val navController = appState.navController
 
+    // iOS 26 parity: 200ms easeInOut for all transitions
+    val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
             fadeIn(
-                animationSpec = tween(
-                    300, easing = LinearEasing,
-                ),
+                animationSpec = tween(200, easing = iOSEaseInOut),
             ) + slideIntoContainer(
-                animationSpec = tween(300, easing = EaseIn),
+                animationSpec = tween(200, easing = iOSEaseInOut),
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
             )
         },
         exitTransition = {
             fadeOut(
-                animationSpec = tween(
-                    300, easing = LinearEasing,
-                ),
+                animationSpec = tween(200, easing = iOSEaseInOut),
             ) + slideOutOfContainer(
-                animationSpec = tween(200, easing = EaseOut),
+                animationSpec = tween(200, easing = iOSEaseInOut),
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
             )
         },

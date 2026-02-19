@@ -44,8 +44,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -71,6 +69,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamSearchBar
@@ -103,7 +102,7 @@ fun SearchScreen(
     val authState by viewModel.authState.collectAsState()
     val favoriteIds by viewModel.favoriteIds.collectAsState()
     var mapMode by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
@@ -133,18 +132,16 @@ fun SearchScreen(
                     if (address != null) {
                         viewModel.onQueryChanged(address)
                         viewModel.updateSearchParams(city = address)
-                        snackbarHostState.showSnackbar("Location set: $address")
+                        inlineBannerMessage = ("Location set: $address")
                     } else {
-                        snackbarHostState.showSnackbar("Could not determine address")
+                        inlineBannerMessage = ("Could not determine address")
                     }
                 } else {
-                    snackbarHostState.showSnackbar("Location unavailable")
+                    inlineBannerMessage = ("Location unavailable")
                 }
             }
         } else {
-            scope.launch {
-                snackbarHostState.showSnackbar("Location permission denied")
-            }
+            inlineBannerMessage = "Location permission denied"
         }
     }
 
@@ -158,7 +155,6 @@ fun SearchScreen(
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Search", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
@@ -180,6 +176,13 @@ fun SearchScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // iOS-parity: inline banner instead of Snackbar
+                InlineErrorBanner(
+                    message = inlineBannerMessage ?: "",
+                    isVisible = inlineBannerMessage != null,
+                    onDismiss = { inlineBannerMessage = null },
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM)
+                )
                 // Enhanced Search Bar with tabs and multi-field search
                 var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.USE) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
@@ -242,12 +245,12 @@ fun SearchScreen(
                                         whereQuery = address
                                         viewModel.onQueryChanged(address)
                                         viewModel.updateSearchParams(city = address)
-                                        snackbarHostState.showSnackbar("Location set: $address")
+                                        inlineBannerMessage = ("Location set: $address")
                                     } else {
-                                        snackbarHostState.showSnackbar("Could not determine address")
+                                        inlineBannerMessage = ("Could not determine address")
                                     }
                                 } else {
-                                    snackbarHostState.showSnackbar("Location unavailable")
+                                    inlineBannerMessage = ("Location unavailable")
                                 }
                             }
                         }
@@ -318,12 +321,12 @@ fun SearchScreen(
                                     scope.launch {
                                         val wasFavorited = favoriteIds.contains(listingId)
                                         when (val res = viewModel.toggleFavorite(listingId)) {
-                                            is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                            is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
                                             is ApiResult.Failure -> {
                                                 if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
                                                     onShowAuthSheet()
                                                 } else {
-                                                    snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                                                    inlineBannerMessage = (res.error.message ?: "Failed to save")
                                                 }
                                             }
                                         }
@@ -614,8 +617,8 @@ private fun SearchResultCard(
                     AnimatedContent(
                         targetState = isFavorited,
                         transitionSpec = {
-                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
-                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.85f, animationSpec = tween(200))) togetherWith
+                                (fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200)))
                         },
                         label = "favorite_toggle"
                     ) { favored ->
