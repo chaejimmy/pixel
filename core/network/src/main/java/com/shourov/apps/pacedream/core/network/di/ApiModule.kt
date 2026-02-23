@@ -40,7 +40,11 @@ object ApiModule {
     @Provides
     fun providesHttpLoggingInterceptor() = HttpLoggingInterceptor()
         .apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
 
     @Singleton
@@ -54,12 +58,9 @@ object ApiModule {
             .Builder()
             .addInterceptor(httpLoggingInterceptor)
             .addInterceptor(keyInterceptor)
-            .connectTimeout(
-                3000,
-                TimeUnit.MINUTES,
-            ) //  timeout increased for sensor data sent for request size greater than 1 mb
-            .writeTimeout(3000, TimeUnit.MINUTES)
-            .readTimeout(3000, TimeUnit.MINUTES)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
             .build()
 
     @Singleton
@@ -102,7 +103,7 @@ object ApiModule {
         Interceptor {
             val request =
                 it.request().newBuilder()
-                    .addHeader("Accept", "*/*")
+                    .addHeader("Accept", "application/json")
                     .build()
             it.proceed(request)
         }

@@ -6,8 +6,10 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
@@ -48,14 +50,12 @@ class BookingRepository @Inject constructor(
     ): ApiResult<CheckoutResult> {
         val url = appConfig.buildApiUrl("properties", "bookings", "timebased")
         
-        val body = """
-            {
-                "itemId": "$itemId",
-                "start_time": "$startTime",
-                "end_time": "$endTime",
-                "amount": $amount
-            }
-        """.trimIndent()
+        val body = buildJsonObject {
+            put("itemId", itemId)
+            put("start_time", startTime)
+            put("end_time", endTime)
+            put("amount", amount)
+        }.toString()
         
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
@@ -91,17 +91,16 @@ class BookingRepository @Inject constructor(
     ): ApiResult<CheckoutResult> {
         val url = appConfig.buildApiUrl("gear-rentals", "book")
         
-        val bodyBuilder = StringBuilder()
-        bodyBuilder.append("{")
-        bodyBuilder.append("\"gearId\": \"$gearId\",")
-        bodyBuilder.append("\"startDate\": \"$startDate\",")
-        bodyBuilder.append("\"endDate\": \"$endDate\",")
-        startTime?.let { bodyBuilder.append("\"startTime\": \"$it\",") }
-        endTime?.let { bodyBuilder.append("\"endTime\": \"$it\",") }
-        bodyBuilder.append("\"amount\": $amount")
-        bodyBuilder.append("}")
-        
-        return when (val result = apiClient.post(url, bodyBuilder.toString(), includeAuth = true)) {
+        val body = buildJsonObject {
+            put("gearId", gearId)
+            put("startDate", startDate)
+            put("endDate", endDate)
+            startTime?.let { put("startTime", it) }
+            endTime?.let { put("endTime", it) }
+            put("amount", amount)
+        }.toString()
+
+        return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
                     val checkoutResult = parseCheckoutResponse(result.data, BookingType.GEAR)

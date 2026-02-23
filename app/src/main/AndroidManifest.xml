@@ -21,12 +21,13 @@
 
     <application
         android:name=".PaceDreamApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/pacedream_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/pacedream_launcher_round"
         android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.PaceDream.Splash"
         >
         <!-- Google Maps API key (map preview on listing detail). Set via resources for each build. -->
@@ -35,7 +36,7 @@
             android:value="@string/google_maps_key" />
 
         <profileable
-            android:shell="true"
+            android:shell="false"
             tools:targetApi="q" />
 
         <activity

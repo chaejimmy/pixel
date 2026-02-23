@@ -36,11 +36,9 @@ class OTPReceiver : BroadcastReceiver() {
                 CommonStatusCodes.SUCCESS -> {
                     // Get SMS message contents
                     val msg = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE) as String
-                    Log.e("OTPReceiver", "SMS Received in OTPReceiver: $msg")
 
                     // extract the 6-digit code from the SMS
                     val smsCode = msg.let { "[0-9]{6}".toRegex().find(it) }
-                    Log.e("OTPReceiver", "OTP fetched from SMS in OTPReceiver: $smsCode")
 
                     smsCode?.value?.let { otpReceiveListener?.onOTPReceived(it) }
                 }
@@ -62,9 +60,9 @@ fun startSMSRetrieverClient(context: Context) {
     val client: SmsRetrieverClient = SmsRetriever.getClient(context)
     val smsRetrieverTask = client.startSmsRetriever()
     smsRetrieverTask.addOnSuccessListener {
-        Log.e(OTP_RECEIVER_TAG, "startSMSRetrieverClient addOnSuccessListener")
+        // SMS retriever started successfully
     }
     smsRetrieverTask.addOnFailureListener { e ->
-        Log.e(OTP_RECEIVER_TAG, "startSMSRetrieverClient addOnFailureListener" + e.stackTrace)
+        Log.e(OTP_RECEIVER_TAG, "startSMSRetrieverClient failed", e)
     }
 }
