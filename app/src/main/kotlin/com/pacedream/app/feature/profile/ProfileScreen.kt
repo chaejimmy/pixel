@@ -46,7 +46,8 @@ fun ProfileScreen(
     onSettingsClick: () -> Unit,
     onIdentityVerificationClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
-    onAboutClick: () -> Unit = {}
+    onAboutClick: () -> Unit = {},
+    onMyListsClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -107,6 +108,22 @@ fun ProfileScreen(
                             title = "Identity Verification",
                             subtitle = "Verify your identity for a trusted experience",
                             onClick = onIdentityVerificationClick
+                        )
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        ProfileMenuItem(
+                            icon = Icons.Default.List,
+                            title = "My Lists",
+                            subtitle = "Create and manage your curated lists",
+                            onClick = onMyListsClick
                         )
                     }
                 }

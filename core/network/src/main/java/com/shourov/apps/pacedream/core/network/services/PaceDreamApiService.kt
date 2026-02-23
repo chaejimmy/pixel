@@ -243,6 +243,42 @@ interface PaceDreamApiService {
     @GET(ApiEndPoints.GET_USER_REVIEWS_BY_ID)
     suspend fun getUserReviewsById(@Path("userId") userId: String): Response<Any>
 
+    // ── Collections / Lists APIs (Web parity) ──────────────
+    @GET(ApiEndPoints.GET_COLLECTIONS)
+    suspend fun getCollections(@Header("Authorization") token: String): Response<Any>
+
+    @POST(ApiEndPoints.CREATE_COLLECTION)
+    suspend fun createCollection(
+        @Header("Authorization") token: String,
+        @Body data: Map<String, Any>
+    ): Response<Any>
+
+    @GET(ApiEndPoints.GET_COLLECTION_BY_ID)
+    suspend fun getCollectionById(
+        @Header("Authorization") token: String,
+        @Path("collectionId") collectionId: String
+    ): Response<Any>
+
+    @DELETE(ApiEndPoints.DELETE_COLLECTION)
+    suspend fun deleteCollection(
+        @Header("Authorization") token: String,
+        @Path("collectionId") collectionId: String
+    ): Response<Any>
+
+    @POST(ApiEndPoints.ADD_TO_COLLECTION)
+    suspend fun addToCollection(
+        @Header("Authorization") token: String,
+        @Path("collectionId") collectionId: String,
+        @Body data: Map<String, String>
+    ): Response<Any>
+
+    @DELETE(ApiEndPoints.REMOVE_FROM_COLLECTION)
+    suspend fun removeFromCollection(
+        @Header("Authorization") token: String,
+        @Path("collectionId") collectionId: String,
+        @Path("itemId") itemId: String
+    ): Response<Any>
+
     // ── Analytics and Tracking APIs ────────────────────────────
     @POST(ApiEndPoints.TRACK_EVENT)
     suspend fun trackEvent(@Body eventData: Map<String, Any>): Response<Any>

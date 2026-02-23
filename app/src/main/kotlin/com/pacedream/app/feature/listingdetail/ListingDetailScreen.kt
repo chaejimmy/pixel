@@ -68,9 +68,17 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableDoubleStateOf
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
 import java.time.Instant
@@ -89,11 +97,14 @@ fun ListingDetailScreen(
     onShare: () -> Unit,
     onContactHost: () -> Unit,
     onOpenInMaps: () -> Unit,
-    onConfirmReserve: (BookingDraft) -> Unit
+    onConfirmReserve: (BookingDraft) -> Unit,
+    onSubmitReview: (Double, String, CategoryRatings?) -> Unit = { _, _, _ -> },
+    onLoadReviews: () -> Unit = {}
 ) {
     var showAboutSheet by remember { mutableStateOf(false) }
     var showAmenitiesSheet by remember { mutableStateOf(false) }
     var showReviewsSheet by remember { mutableStateOf(false) }
+    var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
     var showProposalSheet by remember { mutableStateOf(false) }
 
@@ -207,9 +218,13 @@ fun ListingDetailScreen(
 
                     item {
                         SectionReviews(
-                            rating = listing?.rating,
-                            reviewCount = listing?.reviewCount,
+                            rating = uiState.reviewSummary?.averageRating ?: listing?.rating,
+                            reviewCount = uiState.reviewSummary?.totalCount ?: listing?.reviewCount,
+                            reviews = uiState.reviews,
+                            reviewSummary = uiState.reviewSummary,
+                            isLoadingReviews = uiState.isLoadingReviews,
                             onSeeAll = { showReviewsSheet = true },
+                            onWriteReview = { showWriteReviewSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
@@ -302,21 +317,81 @@ fun ListingDetailScreen(
                 sheetState = sheetState
             ) {
                 BottomSheetHeader(title = "Reviews", onClose = { showReviewsSheet = false })
-                Column(modifier = Modifier.padding(16.dp)) {
-                    val rating = listing?.rating
-                    val count = listing?.reviewCount
-                    if (rating == null || count == null || count == 0) {
-                        Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = "Rating", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("$rating ($count reviews)", style = MaterialTheme.typography.titleMedium)
+                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                    val summary = uiState.reviewSummary
+                    val reviews = uiState.reviews
+
+                    // Rating summary header
+                    item {
+                        if (summary != null && summary.totalCount > 0) {
+                            ReviewSummaryHeader(summary = summary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Review list is coming soon on Android.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    // Write review button
+                    item {
+                        Button(
+                            onClick = {
+                                showReviewsSheet = false
+                                showWriteReviewSheet = true
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Write a Review")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    if (reviews.isEmpty() && !uiState.isLoadingReviews) {
+                        item {
+                            Text(
+                                "No reviews yet. Be the first to share your experience!",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    items(reviews.size) { index ->
+                        ReviewCard(review = reviews[index])
+                        if (index < reviews.size - 1) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    if (uiState.isLoadingReviews) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
+            }
+        }
+
+        if (showWriteReviewSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showWriteReviewSheet = false },
+                sheetState = sheetState
+            ) {
+                WriteReviewSheet(
+                    isSubmitting = uiState.isSubmittingReview,
+                    onClose = { showWriteReviewSheet = false },
+                    onSubmit = { rating, comment, catRatings ->
+                        onSubmitReview(rating, comment, catRatings)
+                        showWriteReviewSheet = false
+                    }
+                )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
         }
@@ -842,7 +917,11 @@ private fun SectionAmenities(
 private fun SectionReviews(
     rating: Double?,
     reviewCount: Int?,
+    reviews: List<ReviewModel>,
+    reviewSummary: ReviewSummary?,
+    isLoadingReviews: Boolean,
     onSeeAll: () -> Unit,
+    onWriteReview: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -858,40 +937,495 @@ private fun SectionReviews(
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (rating == null || reviewCount == null || reviewCount == 0) {
+        val displayRating = rating ?: reviewSummary?.averageRating
+        val displayCount = reviewCount ?: reviewSummary?.totalCount
+
+        if (displayRating == null || displayCount == null || displayCount == 0) {
             Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(onClick = onWriteReview) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Write a Review")
+            }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = String.format("%.1f", rating),
+                    text = String.format("%.1f", displayRating),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("($reviewCount reviews)", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("($displayCount reviews)", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(modifier = Modifier.height(12.dp))
 
-            // Preview cards placeholder until backend reviews exist.
-            ReviewPreviewPlaceholder()
+            // Category ratings bar (if available)
+            reviewSummary?.categoryAverages?.let { cats ->
+                Spacer(modifier = Modifier.height(14.dp))
+                CategoryRatingBars(categoryRatings = cats)
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (isLoadingReviews) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            } else if (reviews.isNotEmpty()) {
+                // Horizontal scrollable review preview cards (max 3)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(reviews.take(3)) { review ->
+                        ReviewPreviewCard(review = review)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onWriteReview) {
+                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Write a Review")
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ReviewPreviewPlaceholder() {
+private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
+    val categories = listOfNotNull(
+        categoryRatings.cleanliness?.let { "Cleanliness" to it },
+        categoryRatings.accuracy?.let { "Accuracy" to it },
+        categoryRatings.communication?.let { "Communication" to it },
+        categoryRatings.location?.let { "Location" to it },
+        categoryRatings.checkIn?.let { "Check-in" to it },
+        categoryRatings.value?.let { "Value" to it }
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        categories.forEach { (label, value) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.width(100.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LinearProgressIndicator(
+                    progress = { (value / 5.0).toFloat().coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = Color(0xFFFFB400),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = String.format("%.1f", value),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewPreviewCard(review: ReviewModel) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.width(280.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Avatar
+                if (!review.userAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = review.userAvatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    val initials = review.userName.trim().split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .mapNotNull { it.firstOrNull()?.toString() }
+                        .joinToString("")
+                        .uppercase()
+                        .ifBlank { "G" }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            initials,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = review.userName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { idx ->
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        review.createdAt?.let { date ->
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = formatReviewDate(date),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            if (review.comment.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCard(review: ReviewModel) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!review.userAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = review.userAvatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    val initials = review.userName.trim().split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .mapNotNull { it.firstOrNull()?.toString() }
+                        .joinToString("")
+                        .uppercase()
+                        .ifBlank { "G" }
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            initials,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = review.userName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { idx ->
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = String.format("%.1f", review.rating),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                review.createdAt?.let { date ->
+                    Text(
+                        text = formatReviewDate(date),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (review.comment.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewSummaryHeader(summary: ReviewSummary) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = Color(0xFFFFB400),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Review previews are coming soon on Android.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = String.format("%.1f", summary.averageRating),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${summary.totalCount} reviews",
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        // Rating distribution bars
+        if (summary.ratingDistribution.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (star in 5 downTo 1) {
+                    val count = summary.ratingDistribution[star] ?: 0
+                    val fraction = if (summary.totalCount > 0) count.toFloat() / summary.totalCount else 0f
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$star",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.width(16.dp)
+                        )
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB400),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        LinearProgressIndicator(
+                            progress = { fraction },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = Color(0xFFFFB400),
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$count",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Category averages
+        summary.categoryAverages?.let { cats ->
+            Spacer(modifier = Modifier.height(14.dp))
+            CategoryRatingBars(categoryRatings = cats)
+        }
+    }
+}
+
+@Composable
+private fun WriteReviewSheet(
+    isSubmitting: Boolean,
+    onClose: () -> Unit,
+    onSubmit: (rating: Double, comment: String, categoryRatings: CategoryRatings?) -> Unit
+) {
+    var rating by remember { mutableDoubleStateOf(0.0) }
+    var comment by remember { mutableStateOf("") }
+    var cleanlinessRating by remember { mutableDoubleStateOf(0.0) }
+    var accuracyRating by remember { mutableDoubleStateOf(0.0) }
+    var communicationRating by remember { mutableDoubleStateOf(0.0) }
+    var locationRating by remember { mutableDoubleStateOf(0.0) }
+    var checkInRating by remember { mutableDoubleStateOf(0.0) }
+    var valueRating by remember { mutableDoubleStateOf(0.0) }
+
+    BottomSheetHeader(title = "Write a Review", onClose = onClose)
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Overall rating
+        Text("Overall Rating", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        StarRatingInput(
+            rating = rating,
+            onRatingChanged = { rating = it },
+            starSize = 36.dp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Category ratings
+        Text("Rate Categories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CategoryRatingInput("Cleanliness", cleanlinessRating) { cleanlinessRating = it }
+        CategoryRatingInput("Accuracy", accuracyRating) { accuracyRating = it }
+        CategoryRatingInput("Communication", communicationRating) { communicationRating = it }
+        CategoryRatingInput("Location", locationRating) { locationRating = it }
+        CategoryRatingInput("Check-in", checkInRating) { checkInRating = it }
+        CategoryRatingInput("Value", valueRating) { valueRating = it }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Comment
+        Text("Your Review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = comment,
+            onValueChange = { comment = it },
+            label = { Text("Share your experience...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val hasCategoryRatings = listOf(
+            cleanlinessRating, accuracyRating, communicationRating,
+            locationRating, checkInRating, valueRating
+        ).any { it > 0 }
+
+        Button(
+            onClick = {
+                val catRatings = if (hasCategoryRatings) CategoryRatings(
+                    cleanliness = cleanlinessRating.takeIf { it > 0 },
+                    accuracy = accuracyRating.takeIf { it > 0 },
+                    communication = communicationRating.takeIf { it > 0 },
+                    location = locationRating.takeIf { it > 0 },
+                    checkIn = checkInRating.takeIf { it > 0 },
+                    value = valueRating.takeIf { it > 0 }
+                ) else null
+                onSubmit(rating, comment, catRatings)
+            },
+            enabled = rating > 0 && comment.isNotBlank() && !isSubmitting,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text("Submit Review")
+        }
+    }
+}
+
+@Composable
+private fun StarRatingInput(
+    rating: Double,
+    onRatingChanged: (Double) -> Unit,
+    starSize: androidx.compose.ui.unit.Dp = 28.dp
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (star in 1..5) {
+            Icon(
+                Icons.Default.Star,
+                contentDescription = "Rate $star stars",
+                tint = if (star <= rating.toInt()) Color(0xFFFFB400)
+                else MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier
+                    .size(starSize)
+                    .clickable { onRatingChanged(star.toDouble()) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryRatingInput(
+    label: String,
+    rating: Double,
+    onRatingChanged: (Double) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(110.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        StarRatingInput(
+            rating = rating,
+            onRatingChanged = onRatingChanged,
+            starSize = 22.dp
+        )
+    }
+}
+
+private fun formatReviewDate(dateString: String): String {
+    return try {
+        val instant = Instant.parse(dateString)
+        val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        localDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+    } catch (_: Exception) {
+        try {
+            val localDate = LocalDate.parse(dateString.take(10))
+            localDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        } catch (_: Exception) {
+            dateString.take(10)
         }
     }
 }

@@ -61,7 +61,9 @@ import com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen
 import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
+import com.pacedream.app.feature.collections.CollectionsScreen
 import com.pacedream.app.feature.roommate.RoommateFinderScreen
+import com.pacedream.app.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -193,9 +195,22 @@ fun MainNavHost(
                     )
                 }
                 
-                // Search Tab (placeholder)
+                // Search Tab
                 composable(NavRoutes.SEARCH) {
-                    SearchPlaceholderScreen()
+                    SearchScreen(
+                        onListingClick = { item ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_id", item.id)
+                                set("listing_initial_title", item.title)
+                                set("listing_initial_imageUrl", item.imageUrl)
+                                set("listing_initial_location", item.location)
+                                set("listing_initial_price", item.price)
+                                set("listing_initial_rating", item.rating)
+                                set("listing_initial_type", item.type)
+                            }
+                            navController.navigate(NavRoutes.listingDetail(item.id))
+                        }
+                    )
                 }
                 
                 // Favorites/Wishlist Tab
@@ -292,6 +307,9 @@ fun MainNavHost(
                         },
                         onAboutClick = {
                             navController.navigate(NavRoutes.ABOUT_US)
+                        },
+                        onMyListsClick = {
+                            navController.navigate(NavRoutes.COLLECTIONS)
                         }
                     )
                 }
@@ -397,7 +415,21 @@ fun MainNavHost(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
-                
+
+                // Collections / My Lists Screen
+                composable(NavRoutes.COLLECTIONS) {
+                    CollectionsScreen(
+                        onCollectionClick = { collectionId ->
+                            navController.navigate(NavRoutes.collectionDetail(collectionId))
+                        },
+                        onLoginRequired = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to create and manage your lists."
+                            showAuthSheet = true
+                        }
+                    )
+                }
+
                 // Listing Detail (stub)
                 composable(
                     route = NavRoutes.LISTING_DETAIL,
