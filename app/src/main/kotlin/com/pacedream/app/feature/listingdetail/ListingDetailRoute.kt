@@ -83,7 +83,11 @@ fun ListingDetailRoute(
                 onOpenInMaps = { viewModel.openInMaps() },
                 onConfirmReserve = { draft ->
                     onNavigateToCheckout(draft)
-                }
+                },
+                onSubmitReview = { rating, comment, catRatings ->
+                    viewModel.submitReview(rating, comment, catRatings)
+                },
+                onLoadReviews = { viewModel.loadReviews() }
             )
         }
     }

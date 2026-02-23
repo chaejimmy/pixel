@@ -77,6 +77,14 @@ object ApiEndPoints {
     const val GET_PROPERTY_REVIEWS = "reviews/property/{propertyId}"
     const val GET_USER_REVIEWS_BY_ID = "reviews/user/{userId}"
 
+    // ── Collections / Lists (Web parity) ──────────────────
+    const val GET_COLLECTIONS = "collections"
+    const val CREATE_COLLECTION = "collections"
+    const val GET_COLLECTION_BY_ID = "collections/{collectionId}"
+    const val DELETE_COLLECTION = "collections/{collectionId}"
+    const val ADD_TO_COLLECTION = "collections/{collectionId}/items"
+    const val REMOVE_FROM_COLLECTION = "collections/{collectionId}/items/{itemId}"
+
     // ── Host (iOS parity) ─────────────────────────────────
     const val HOST_GET_LISTINGS = "host/listings"
     const val HOST_CREATE_LISTING = "host/listings"
