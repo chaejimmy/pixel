@@ -25,7 +25,7 @@ class TokenStorage @Inject constructor(
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
-            
+
             EncryptedSharedPreferences.create(
                 context,
                 PREFS_NAME,
@@ -34,9 +34,24 @@ class TokenStorage @Inject constructor(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
-            Timber.e(e, "Failed to create encrypted prefs, falling back to regular prefs")
-            // Fallback to regular SharedPreferences (less secure but functional)
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            Timber.e(e, "Failed to create encrypted prefs, deleting corrupt prefs and retrying")
+            // Delete potentially corrupt encrypted prefs file and retry once
+            context.deleteSharedPreferences(PREFS_NAME)
+            try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
+                EncryptedSharedPreferences.create(
+                    context,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (retryException: Exception) {
+                Timber.e(retryException, "EncryptedSharedPreferences retry also failed")
+                throw retryException
+            }
         }
     }
     

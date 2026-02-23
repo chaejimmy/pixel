@@ -40,8 +40,21 @@ class TokenStorage @Inject constructor(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
-            Timber.e(e, "Failed to create EncryptedSharedPreferences, falling back to regular prefs")
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            Timber.e(e, "Failed to create EncryptedSharedPreferences, deleting corrupt prefs and retrying")
+            // Delete potentially corrupt encrypted prefs file and retry once
+            context.deleteSharedPreferences(PREFS_NAME)
+            try {
+                EncryptedSharedPreferences.create(
+                    context,
+                    PREFS_NAME,
+                    masterKey,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                )
+            } catch (retryException: Exception) {
+                Timber.e(retryException, "EncryptedSharedPreferences retry also failed")
+                throw retryException
+            }
         }
     }
     
