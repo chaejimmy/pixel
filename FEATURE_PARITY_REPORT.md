@@ -1,15 +1,16 @@
 # PaceDream Feature Parity Report
 
 **Date**: 2026-02-24
-**Platforms Analyzed**: Web (pacedream.com), Android (this repo), iOS (reference — no codebase access)
-**Report Version**: 1.0
+**Platforms Analyzed**: Web (pacedream.com), Android (`chaejimmy/pixel`), iOS (`chaejimmy/studious-happiness`)
+**Report Version**: 2.0
 
 ---
 
 ## Important Notes
 
 - **Web repo** (`chaejimmy/pacedream-platform`) returns 404 — not accessible. Web features are inferred from: Android proxy endpoints that call the web frontend, the `UI_UX_COMPARISON.md` doc (which was written by comparing pacedream.com against the Android app), and backend API endpoint contracts.
-- **iOS repo** is not present in this workspace. The workspace contains the **Android** app. iOS is treated as the "reference" platform since the Android app's README states it was "built to mirror the iOS app."
+- **iOS repo** found at `chaejimmy/studious-happiness` (the `bug-free-goggles` directory). Cloned and fully analyzed (393 Swift files).
+- **CRITICAL FINDING**: The iOS app is an **earlier-generation "Totel" codebase** with a DIFFERENT backend (`https://utotel.herokuapp.com/v1`), DIFFERENT API endpoints (`user/*` prefix vs `/v1/*` RESTful), DIFFERENT auth flow (phone+OTP + Google Sign-In, NOT Auth0), and largely **hardcoded mock data** for messaging, notifications, and wishlist. The Android app is the **more mature platform** that has already been migrated to the PaceDream backend, Auth0, Stripe checkout, and live API integration.
 - **Android repo** is this workspace (`chaejimmy/pixel`). Fully analyzed.
 
 ---
@@ -366,23 +367,203 @@
 
 # C) iOS FEATURE MAP
 
-> **Status: iOS codebase is NOT accessible in this workspace.**
+> Source: Full codebase analysis of `chaejimmy/studious-happiness` → `bug-free-goggles/` directory (393 Swift files).
+> **App Name in Code**: "Totel" (predecessor to PaceDream)
+> **Base URL**: `https://utotel.herokuapp.com/v1` (DIFFERENT from Android/Web)
+> **Architecture**: SwiftUI + MVVM with ObservableObject singletons
 
-The Android README states: *"Android port of the PaceDream iOS app, built with Kotlin and Jetpack Compose. This app mirrors the iOS app's UI/UX, backend API behavior, and feature set."*
+## C1. Authentication
 
-The `ANDROID_IOS_PARITY_PLAN.md` confirms iOS is the reference platform. The Android app's networking layer is explicitly labeled "iOS Parity" in code comments and documentation.
+| Item | Detail |
+|------|--------|
+| **Screen** | `SignInView` (phone-first), `NotLoggedInView` (email/phone toggle), `VerificationView` (OTP), `SetPasswordView`, `BasicSetUpView` (4-step setup wizard) |
+| **User Actions** | Phone+OTP signup, email/password login, phone/password login, Google Sign-In (via GIDSignIn SDK) |
+| **API Endpoints** | `POST auth/sendotp`, `POST auth/verify-otp`, `POST auth/signup`, `POST auth/login`, `POST auth/google` (defined but NEVER called) |
+| **Auth Required** | No |
+| **Key UX** | Phone-first flow ("Let's start with phone"), country picker, 6-digit OTP entry, email/phone toggle. **OTP verification is BYPASSED** (commented out). Google token obtained but never sent to backend. |
+| **Token Storage** | `UserDefaults` (NOT Keychain — insecure) |
+| **Missing vs Android** | No Auth0, no Apple Sign-In, no token refresh, no 401 handling, no EncryptedSharedPreferences equivalent |
+| **Files** | `Views/Onboarding/SignInView.swift`, `Views/Main/Home/NotLoggedInView.swift`, `Views/Onboarding/VerificationView.swift`, `Views/Onboarding/SetPasswordView.swift`, `Views/Onboarding/BasicSetup/BasicSetUpView.swift`, `Views/Onboarding/UserAuthService.swift`, `Services/AuthNetworkService.swift` |
 
-**What we know about iOS** (from Android code references):
-- Uses the same backend endpoints
-- Has Auth0 integration
-- Has the same token refresh + fallback strategy
-- Has the same retry logic (GET-only, 2 retries, backoff)
-- Has the same HTML hardening
-- Has the same in-flight request deduplication
-- Is the visual reference for the Android app's design system
-- Uses the same API contracts (tolerant parsing handles both platforms' responses)
+## C2. Home Feed
 
-**To complete the iOS Feature Map**: Provide the iOS repo URL or path and I will scan it with the same thoroughness.
+| Item | Detail |
+|------|--------|
+| **Screen** | `HomeView` |
+| **User Actions** | Search ("Where to?"), browse categories (13 BookedType), view hourly rooms, find roommates |
+| **API Endpoints** | `GET /hotel` (all hosts), `GET user/get_all_bookings`, `GET /user/get_all_rooms`, `GET user/get_all_roomates` |
+| **Auth Required** | No |
+| **Key UX** | Single search bar "Where to?" / "Anywhere • Any week • Add guests", horizontal category scroll with 13 types, filter sheet opens SearchView |
+| **Missing vs Web** | NO hero section ("One place to share it all"), NO "Get to know PaceDream" CTA, NO Use/Borrow/Split tabs |
+| **Files** | `Views/Main/Home/HomeView.swift`, `ViewModels/HomeViewModel.swift` |
+
+## C3. Search
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `SearchView` (modal sheet), `SearchResultView` (inline) |
+| **User Actions** | Switch Stay/Hourly/Find Roommate tabs, enter Where (destinations), When (date range), Who (adults/children/infants) |
+| **API Endpoints** | None — search UI exists but no search API call implemented |
+| **Key UX** | 3 collapsible sections (Where/When/Who), SearchType tabs (Stay, Hourly, Find Roommate — NOT Use/Borrow/Split), date range picker, guest counter, popular destinations list, "Search" button with magnifying glass |
+| **Missing vs Android** | No autocomplete, no debounce, no API integration, different tab names |
+| **Files** | `Views/Main/Home/SearchView.swift`, `Views/Main/Home/SearchResultView.swift`, `ViewModels/SearchViewModel.swift`, `Models/SearchType.swift` |
+
+## C4. Listing Detail / Hourly Booking
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `HourlyBookingView`, `BookedDetailsView`, `HotelBookingDetailScreen`, `CleaningClearingView` |
+| **User Actions** | View room details, select hour/day duration, view on map, book |
+| **API Endpoints** | `POST user/add_booking` (implied) |
+| **Key UX** | Hour/day toggle, duration selector, rent rate display, "Drops" toast for success notification, room location map |
+| **Files** | `Views/Main/Home/HourlyRoom/HourlyBookingView.swift`, `Views/Main/Home/BookingDetail/BookedDetailsView.swift`, `Views/Main/HotelBookingDetail/HotelBookingDetailScreen.swift` |
+
+## C5. Reviews
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `ReviewItemView`, `ReviewUploadView`, `ReviewView` (host), `ReviewCard` (host) |
+| **User Actions** | View reviews, add review, update review, soft/permanent delete review |
+| **API Endpoints** | `GET user/get-reviews-ratings`, `POST user/add_review`, `PUT user/update_review`, `PUT user/soft_del_review`, `DELETE user/perm_del_review` |
+| **Key UX** | iOS has **full review CRUD** including update and both soft/permanent delete — Android is missing edit/delete |
+| **Files** | `Services/ReviewNetworkService.swift`, `ViewModels/ReviewViewModel.swift`, `Views/Main/Profile/ReviewItemView.swift` |
+
+## C6. Bookings
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `BookingView` (list), `BookedDetailsView`, `ReScheduleView`, `NewTimeReschedulingView` |
+| **User Actions** | View all bookings, view detail, reschedule booking (time picker) |
+| **API Endpoints** | `GET user/get_all_bookings`, `GET user/get_user_bookings`, `POST user/add_booking`, `PUT user/update_booking`, `DELETE user/delete_booking` |
+| **Key UX** | Booking list with cards, reschedule with time picker. **No Stripe checkout** — no payment integration at all |
+| **Missing vs Android** | No Stripe, no deep links for booking-success/cancelled, no session persistence |
+| **Files** | `Views/Main/Bookings/BookingView.swift`, `Views/Main/Home/BookingDetail/BookedDetailsView.swift`, `ViewModels/BookingsViewModel.swift`, `Services/BookingNetworkService.swift` |
+
+## C7. Messaging / Inbox
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `InboxView` (segmented: Notifications/Messages), `MessagesScreen`, `ChatView`, `NotificationView` |
+| **User Actions** | View notifications, view messages, chat |
+| **API Endpoints** | NONE wired — **ALL data is hardcoded mock** |
+| **Key UX** | Segmented picker (Notifications/Messages), notification items grouped by date (Today/This Week/Earlier), message thread list with unread badges, chat bubbles. All static data. |
+| **Missing vs Android** | No API integration whatsoever. Android has full REST inbox with threads, send, archive, unread counts. |
+| **Files** | `Views/Main/Inbox/InboxView.swift`, `Views/Main/Inbox/Messages/MessagesScreen.swift`, `Views/Main/Inbox/Messages/ChatView.swift`, `Views/Main/Inbox/Notification/NotificationView.swift`, `ViewModels/InboxViewModel.swift` |
+
+## C8. Wishlist
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `WishListView` |
+| **User Actions** | View wishlist items in grid |
+| **API Endpoints** | `GET user/get_wishlist`, `POST user/add-wishlist`, `POST user/delete-wishlist` (defined but WishListView uses **hardcoded mock data**) |
+| **Key UX** | Grid layout with ListingCardView, "No wishlists yet" empty state. WishlistNetworkService exists and is wired to API but the view uses static `Home` array. |
+| **Missing vs Android** | No optimistic remove, no filter tabs, no type-based routing, view uses mock data |
+| **Files** | `Views/Main/Bookings/WishList/WishListView.swift`, `Services/WishlistNetworkService.swift` |
+
+## C9. Notifications (In-App List)
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `NotificationView` (inside Inbox tab), `NotificationItemView` |
+| **User Actions** | View categorized notifications (Today/This Week/Month/Earlier) |
+| **API Endpoints** | `GET user/get_user_notifications` (defined but view uses **mock data from ViewModel**) |
+| **Key UX** | Notification items grouped by time period, tap to navigate to detail. iOS HAS an in-app notification list UI — Android does NOT. |
+| **Files** | `Views/Main/Inbox/Notification/NotificationView.swift`, `Views/Main/Inbox/Notification/NotificationItemView.swift`, `ViewModels/InboxViewModel.swift` |
+
+## C10. Host Dashboard
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `HostSettingView`, `HostTab`, `HostingTabView` |
+| **User Actions** | Switch to host mode, manage bookings, manage inbox, manage space, view business/earnings, post space, logout |
+| **API Endpoints** | None specific to host — reuses same booking/room endpoints |
+| **Key UX** | Guest/Host mode toggle (via `AppState.hostMode`), host sections: Bookings, Inbox, Space, Business. "Post your space" button opens full-screen `PostHostingView`. |
+| **Files** | `Views/HostSettings/HostSettingView.swift`, `App/Tabs/HostTab.swift`, `Views/HostingMode/HostingTabView.swift`, `ViewModels/AppState.swift` |
+
+## C11. Listing Creation (Host)
+
+| Item | Detail |
+|------|--------|
+| **Screen** | Multi-step hosting flow: `GiveATitleView` → `UploadImageView` → `HostAddressSelectionView` → `AddressDescribeView` → `AmenitiesDetailView` → `SharableRoomDetailsView` → `GiveYourAvailability` → `GiveYourPricingView` → `SelectCheckoutOffers` |
+| **User Actions** | Title, photos, address (map), describe, amenities, room details, availability, pricing, early/late checkout |
+| **API Endpoints** | `POST /v1/add_room` (implied, via RoomEndpoint) |
+| **Key UX** | Full multi-step wizard with map-based address selection, amenity grid, stepper for room details (beds, baths, guests), day/hour availability picker, pricing per day. **iOS has a COMPLETE listing creation flow — Android is missing this.** |
+| **Files** | `Views/Hosting/GiveATitle/GiveATitleView.swift`, `Views/Hosting/UploadImages/UploadImageView.swift`, `Views/Hosting/AddressSelection/HostAddressSelectionView.swift`, `Views/Hosting/AmenitiesDetails/AmenitiesDetailView.swift`, `Views/Hosting/SharableRoomDetails/SharableRoomDetailsView.swift`, `Views/Hosting/GiveYourAvailability/GiveYourAvailability.swift`, `Views/Hosting/GiveYourPricingView/GiveYourPricingView.swift`, `Views/Hosting/HostingViewModel.swift` |
+
+## C12. Settings
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `SettingView`, `ProfileSettingView`, `NotificationSettingView`, `SecuritySettingView`, `ChangePasswordView`, `EditProfileView` |
+| **User Actions** | Edit profile, payment info, notification prefs, security, currency, help, version, terms, privacy, switch to host mode, sign out |
+| **Settings Items** | My Account (Profile, Payment Information, Notification, Security, Currency), Information (Help, Version, Terms of Service, Privacy Policy) |
+| **Key UX** | Switch host mode button, version update sheet ("Using Now V 1.2.3.0"), sign out confirmation sheet. **Sign out does NOT clear tokens or session state — this is a bug.** |
+| **Files** | `Views/Main/Profile/Setting/SettingView.swift`, `Views/Main/Profile/Setting/ProfileSettingView.swift`, `Views/Main/Profile/Setting/NotificationSettingView.swift` |
+
+## C13. Roommate Finder
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `RoommateListView`, `PersonPagesView`, `PersonCard`, `DestinationView`, `LocationView`, `LookForView`, `WalletView` |
+| **User Actions** | Browse roommate listings, view person card carousel, find roommates by destination/location |
+| **API Endpoints** | `GET user/get_all_roomates`, `POST user/add_roomate` |
+| **Files** | `Views/FindRoommate/*.swift`, `Views/Main/Home/FindRoommate/RoommateListView.swift` |
+
+## C14. Onboarding
+
+| Item | Detail |
+|------|--------|
+| **Screen** | `OnboardingView` (3-page carousel), `BasicSetUpView` (4-step wizard) |
+| **User Actions** | Skip onboarding, complete 4-step profile setup (Name → DOB/Gender → Photo → Hobbies) |
+| **Key UX** | 3 onboarding slides ("Shared living space", "Find places around you"), skip button, 11 hobby options for profile, gender selection (Male/Female/Prefer not to say) |
+| **Files** | `Views/Onboarding/OnboardingView.swift`, `Views/Onboarding/BasicSetup/BasicSetUpView.swift`, `ViewModels/OnboardingViewModel.swift`, `ViewModels/BasicSetUpViewModel.swift` |
+
+## C15. Design System
+
+| Item | Detail |
+|------|--------|
+| **Primary Color** | `appPrimary` = `#0057FF` (BLUE — NOT purple like PaceDream's `#5527D7`) |
+| **Accent Color** | `darkIndigo` = `#574EFA` |
+| **Error Color** | `appRed` = `#FD5E49` |
+| **Success Color** | `darkGreen` = `#2D8A39` |
+| **Grays** | primaryGray `#787880`, secondaryGray `#3C3C43`, darkGray `#5F6D7E`, gray700 `#272D37` |
+| **Surfaces** | darkWhite `#F2F2F7`, darkWhite1 `#F5F8FE`, darkWhite2 `#F7F7F8` |
+| **Custom Fonts** | Circular Std (Black, Bold, Book, Light, Medium), Inter |
+| **Corner Radii** | 10dp (search), 12dp (cards, inputs), 14dp (search button), 20dp (settings card), 25-30dp (capsule buttons) |
+| **Files** | `Extensions/Colors.swift`, `Extensions/Font+Inter.swift` |
+
+## C16. Navigation
+
+| Item | Detail |
+|------|--------|
+| **Tab Bar (logged out)** | Home, Profile |
+| **Tab Bar (logged in)** | Home, Bookings, Inbox, Profile |
+| **Tab Bar (host mode)** | Home, Bookings, Host, Inbox, Profile |
+| **Router** | `RouterPath` with `Route` enum, `NavigationStack`-based |
+| **Files** | `App/Tabs.swift`, `Views/Navigation/Route.swift`, `App/Router.swift`, `App/AppRouter.swift` |
+
+## C17. Networking Layer
+
+| Item | Detail |
+|------|--------|
+| **HTTP Client** | `NetworkUtility` singleton wrapping `URLSession.shared` |
+| **Retry Logic** | NONE |
+| **HTML Hardening** | NONE |
+| **Token Refresh** | NONE (no 401 handling) |
+| **Request Deduplication** | NONE |
+| **Auth Interceptor** | NONE — token is stored but NEVER sent on API requests |
+| **Timeout Config** | Default URLSession (no customization) |
+| **Files** | `Utilities/NetworkUtility.swift`, `Models/Networking/Endpoints/Endpoint.swift` |
+
+## iOS Critical Bugs Found
+
+1. **Bearer token never sent** — token stored after login but no service method passes it in Headers
+2. **OTP verification bypassed** — `vm.verifyOtp()` commented out, directly sets `isLoggedIn = true`
+3. **Sign-out doesn't clear session** — navigates away but never resets `isLoggedIn` or clears stored tokens
+4. **Google Sign-In token discarded** — `auth/google` endpoint exists but token is never sent to backend
+5. **RoomEndpoint path bugs** — leading `/v1/` or `/` causes double-prefix URLs (`/v1/v1/add_room`)
+6. **Tokens in UserDefaults** — insecure storage, should use Keychain
 
 ---
 
@@ -581,9 +762,187 @@ The `ANDROID_IOS_PARITY_PLAN.md` confirms iOS is the reference platform. The And
 
 ---
 
+# D-iOS) GAP REPORT — iOS vs Android / Web
+
+> The iOS app ("Totel" at `chaejimmy/studious-happiness`) is a fundamentally **earlier generation** than the Android app. The gaps below are ordered by severity.
+
+## iOS-P0: Architecture-Level Gaps (Must Migrate Before Feature Work)
+
+### iOS-P0-1. Backend Migration (Totel → PaceDream)
+
+| Field | Detail |
+|-------|--------|
+| **Gap Type** | Infrastructure — different backend entirely |
+| **iOS** | Base URL: `https://utotel.herokuapp.com/v1` (Heroku) |
+| **Android/Web** | Base URL: `https://pacedream-backend.onrender.com/v1` (Render) |
+| **Impact** | iOS is talking to a completely different backend. All data is isolated. |
+| **Fix** | Change `Endpoint.baseURL` to `https://pacedream-backend.onrender.com/v1`, migrate all endpoint paths to new `/v1/*` RESTful format |
+
+### iOS-P0-2. API Contract Migration (user/* → /v1/*)
+
+| Field | Detail |
+|-------|--------|
+| **Gap Type** | All endpoint paths differ |
+| **iOS Endpoints** | `user/get_all_bookings`, `user/add_booking`, `user/get_wishlist`, `user/add-wishlist`, `user/get-reviews-ratings`, `auth/login`, `auth/signup`, `auth/sendotp` |
+| **Android Endpoints** | `/v1/bookings/mine`, `/v1/properties/bookings/timebased`, `/v1/account/wishlist`, `/v1/account/wishlist/toggle`, `/v1/reviews/property/{id}`, `/v1/auth/login/email`, `/v1/auth/signup/email`, `/v1/auth/auth0/callback` |
+| **Impact** | Every single API call in iOS points to the wrong endpoint |
+| **Fix** | Rewrite all Endpoint enums to match Android/Web contract. Estimated: 8 endpoint files, ~40 endpoint cases. |
+
+### iOS-P0-3. Auth System Migration (Phone+OTP → Auth0)
+
+| Field | Detail |
+|-------|--------|
+| **Gap Type** | Completely different auth architecture |
+| **iOS** | Phone+OTP (OTP currently BYPASSED), email/password, Google Sign-In via GIDSignIn SDK (token NEVER sent to backend) |
+| **Android** | Auth0 Universal Login (Google, Apple), email/password, AuthFlowSheet chooser modal |
+| **Impact** | iOS auth is non-functional: OTP bypassed, Google token discarded, no Apple Sign-In |
+| **Fix** | Replace GIDSignIn with Auth0.swift SDK, implement AuthFlowSheet equivalent, add Apple Sign-In, replace phone+OTP with Auth0 hosted login |
+
+### iOS-P0-4. Networking Layer Overhaul
+
+| Field | Detail |
+|-------|--------|
+| **Gap Type** | Missing critical networking features |
+| **iOS** | Basic `URLSession.shared` wrapper, no retry, no 401 handling, no HTML hardening, no auth interceptor, **Bearer token never sent on requests** |
+| **Android** | Full OkHttp pipeline: auth interceptor, 401→refresh→retry, GET-only retry (2x, 0.4s/0.8s backoff), HTML hardening, request dedup, 30s/60s timeouts |
+| **Impact** | iOS will break on any auth-required endpoint, cannot recover from token expiry, vulnerable to HTML error responses |
+| **Fix** | Implement auth interceptor that reads stored token, add 401→refresh→retry, add retry for GET, add HTML detection, add request dedup |
+
+### iOS-P0-5. Token Security
+
+| Field | Detail |
+|-------|--------|
+| **Gap Type** | Insecure token storage |
+| **iOS** | Tokens stored in `UserDefaults` (unencrypted, accessible via device backup) |
+| **Android** | `EncryptedSharedPreferences` with MasterKey |
+| **Fix** | Migrate to Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` |
+
+## iOS-P1: Feature Gaps (iOS Missing Features Android Has)
+
+### iOS-P1-1. Stripe Checkout
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | NO payment integration at all |
+| **Android** | Full Stripe checkout via Chrome Custom Tabs, deep links for success/cancel, session persistence |
+| **Fix** | Implement Stripe checkout via SFSafariViewController, add Universal Links for booking-success/cancelled |
+
+### iOS-P1-2. Live Messaging/Inbox
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | ALL inbox/message data is hardcoded mock (static arrays in ViewModel) |
+| **Android** | Full REST integration: threads, messages, send, archive, unread counts, cursor pagination |
+| **Fix** | Wire InboxViewModel to new `/v1/inbox/*` endpoints, replace mock data |
+
+### iOS-P1-3. Collections
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | Not implemented at all |
+| **Android** | Full CRUD: create collection, add/remove items, public/private toggle |
+| **Fix** | Create CollectionsView, CollectionsViewModel, wire to `/v1/collections/*` endpoints |
+
+### iOS-P1-4. Identity Verification
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | Not implemented |
+| **Android** | Phone OTP verification, ID upload, multi-step verification flow |
+| **Fix** | Create verification flow views, wire to `/v1/users/verification/*` endpoints |
+
+### iOS-P1-5. Payment Methods Management
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | "Payment Information" exists as settings menu item but no implementation |
+| **Android** | Full Stripe SetupIntent flow: view cards, add new, set default, delete |
+| **Fix** | Create PaymentMethodsView, wire to `www.pacedream.com/api/proxy/account/payment-methods/*` |
+
+### iOS-P1-6. Push Notifications (FCM/APNs)
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | No push notification integration (no Firebase, no APNs setup) |
+| **Android** | Full FCM integration with device registration, notification preferences |
+| **Fix** | Add Firebase/APNs, implement device registration via `/v1/notifications/register-device` |
+
+### iOS-P1-7. Deep Links
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | No Universal Links / deep link handling |
+| **Android** | Handles `booking-success`, `booking-cancelled` deep links |
+| **Fix** | Add Universal Links for PaceDream domain, handle booking flow callbacks |
+
+### iOS-P1-8. Sign-Out Bug
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | Sign-out navigates away but DOES NOT clear `isLoggedIn`, tokens, or call backend logout |
+| **Android** | Proper sign-out: clears tokens, resets auth state |
+| **Fix** | Clear `@AppStorage("isLoggedIn")`, remove `UserAuth` from UserDefaults, call `GIDSignIn.sharedInstance.signOut()` |
+
+## iOS-P2: UI/UX Alignment Gaps
+
+### iOS-P2-1. Branding (Totel → PaceDream)
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | App still references "Totel" in Terms text, uses blue primary `#0057FF` |
+| **Android/Web** | PaceDream branding, purple primary `#5527D7` |
+| **Fix** | Update all "Totel" references, change primary color to `#5527D7`, update app icon and assets |
+
+### iOS-P2-2. Category System
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | 13 categories: Hourly Room, Travel Roommate, Event Spaces, Parking, Storage, Education, Business, Electric Charging, Pet Care, Daytime Room, Personal Fitness, Gaming Arcades, Nighttime Room |
+| **Android/Web** | 9 categories: Restroom, Nap Pod, Meeting Room, Study Room, Short Stay, Apartment, Luxury Room, Parking, Storage Space |
+| **Fix** | Replace BookedType enum with PaceDream categories |
+
+### iOS-P2-3. Search Tab Naming
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | Stay / Hourly / Find Roommate |
+| **Web** | Use / Borrow / Split |
+| **Fix** | Rename SearchType to match web naming |
+
+### iOS-P2-4. Auth UI (Phone-First → Chooser Sheet)
+
+| Field | Detail |
+|-------|--------|
+| **iOS** | Phone number entry as primary auth, full-screen navigation |
+| **Android** | AuthFlowSheet modal: Chooser → SignIn/SignUp with Sign in, Create account, Google, Apple, Not now |
+| **Fix** | Replace SignInView with AuthFlowSheet equivalent |
+
+## iOS Feature Parity Summary
+
+| Feature | iOS Status | Android Status | Gap Severity |
+|---------|-----------|---------------|-------------|
+| Auth (Auth0) | Missing | Complete | P0 |
+| Backend (PaceDream) | Wrong backend | Complete | P0 |
+| Networking (retry/refresh) | Missing | Complete | P0 |
+| Token Security | UserDefaults | Encrypted | P0 |
+| Stripe Checkout | Missing | Complete | P1 |
+| Live Messaging | Mock data | Complete | P1 |
+| Collections | Missing | Complete | P1 |
+| Verification | Missing | Complete | P1 |
+| Payment Methods | Missing | Complete | P1 |
+| Push Notifications | Missing | Complete | P1 |
+| Deep Links | Missing | Complete | P1 |
+| Listing Creation | **EXISTS** | Missing | iOS ahead |
+| Review Edit/Delete | **EXISTS** | Missing | iOS ahead |
+| Notification List UI | **EXISTS** (mock) | Missing | iOS ahead |
+| Roommate Finder | Complete | Complete | Parity |
+| Host Mode Toggle | Complete | Complete | Parity |
+
+---
+
 # E) IMPLEMENTATION PLAN — P0 & P1 (Android)
 
-> **Note**: iOS codebase is not available. When provided, a parallel iOS plan will be created. The plan below covers Android only.
+> The plan below covers Android. For iOS implementation plan, see Section F.
 
 ---
 
@@ -870,17 +1229,132 @@ The `ANDROID_IOS_PARITY_PLAN.md` confirms iOS is the reference platform. The And
 
 ---
 
-## iOS Implementation Plan
+## F) iOS IMPLEMENTATION PLAN
 
-**Status**: Cannot be created — no iOS codebase access.
+> Source: Full analysis of `chaejimmy/studious-happiness` (bug-free-goggles). The iOS app requires a ground-up migration from the legacy Totel backend to PaceDream.
 
-**What I need to proceed**:
-- iOS repo URL (GitHub link) or local path
-- Once provided, I will:
-  1. Scan the full Swift/SwiftUI codebase
-  2. Create an iOS Feature Map in the same format as Android above
-  3. Create an iOS-specific Gap Report
-  4. Create an iOS Implementation Plan with file-level actions
+### Phase 1: Infrastructure (Backend + Networking + Auth)
+
+#### PR iOS-1: Backend Migration + Networking Overhaul
+
+**Scope**: Switch base URL, rewrite all endpoints, add auth interceptor, retry, HTML hardening.
+
+**Files to Modify**:
+- `Models/Networking/Endpoints/Endpoint.swift` — Change `baseURL` to `https://pacedream-backend.onrender.com/v1`
+- `Models/Networking/Endpoints/AuthEndpoint.swift` — Rewrite: `auth/login` → `auth/login/email`, `auth/signup` → `auth/signup/email`, add `auth/auth0/callback`, `auth/refresh-token`
+- `Models/Networking/Endpoints/BookingEndpoint.swift` — Rewrite: `user/get_all_bookings` → `bookings/mine`, `user/add_booking` → `properties/bookings/timebased`, etc.
+- `Models/Networking/Endpoints/WishlistEndpoint.swift` — Rewrite: `user/get_wishlist` → `account/wishlist`, `user/add-wishlist` → `account/wishlist/toggle`
+- `Models/Networking/Endpoints/ReviewEndpoint.swift` — Rewrite: `user/get-reviews-ratings` → `reviews/property/{id}`, `user/add_review` → `reviews`
+- `Models/Networking/Endpoints/RoomEndpoint.swift` — Rewrite all paths, fix leading `/` bugs
+- `Models/Networking/Endpoints/NotificationEndpoint.swift` — Rewrite to `/v1/notifications/*`
+- `Models/Networking/Endpoints/UserEndpoint.swift` — Rewrite to `/v1/account/*`
+- `Utilities/NetworkUtility.swift` — Add: auth interceptor (read token from Keychain, add Bearer header), 401→refresh→retry, GET retry (2x, 0.4s/0.8s), HTML response detection, request timeout (30s request, 60s resource)
+
+**Files to Create**:
+- `Services/TokenManager.swift` — Keychain-based token storage (access + refresh), token validation (JWT 3-segment check)
+- `Services/SessionManager.swift` — Bootstrap, refresh, sign-out logic. StateFlow equivalent via `@Published`
+
+#### PR iOS-2: Auth0 Migration
+
+**Scope**: Replace phone+OTP + GIDSignIn with Auth0 Universal Login.
+
+**Files to Modify**:
+- `Views/Onboarding/SignInView.swift` — Replace with AuthFlowSheet equivalent (Chooser/SignIn/SignUp modes)
+- `Views/Onboarding/UserAuthService.swift` — Replace GIDSignIn with Auth0.swift SDK
+- `Views/Main/Home/NotLoggedInView.swift` — Replace with AuthFlowSheet presentation
+- `ViewModels/OnboardingViewModel.swift` — Rewrite auth state management, remove OTP logic
+
+**Files to Create**:
+- `Views/Auth/AuthFlowSheet.swift` — Modal sheet with Chooser → Sign In / Sign Up
+- `Views/Auth/AuthViewModel.swift` — AuthUiState (mode, email, password, loading, error), drive Auth0 + email flows
+- `Services/Auth0Service.swift` — Auth0 WebAuth for Google (`google-oauth2`) and Apple (`apple`) connections
+
+**Files to Delete**:
+- `Views/Onboarding/VerificationView.swift` (OTP is not used in PaceDream)
+- `Models/Networking/Requests/SendOtpRequest.swift`
+- `Models/Networking/Requests/VerifyOtpRequest.swift`
+
+#### PR iOS-3: Token Security + Session Bootstrap
+
+**Scope**: Migrate from UserDefaults to Keychain, fix sign-out.
+
+**Files to Modify**:
+- `Utilities/UserDefaultsCodable.swift` — Replace with KeychainCodable using Security framework
+- `Views/Main/Profile/Setting/SignOutSheet.swift` — Actually clear `@AppStorage("isLoggedIn")`, clear Keychain tokens, call Auth0 logout
+- `Views/ContentView.swift` — Add bootstrap: validate token on launch, fetch profile from `/v1/account/me`
+
+### Phase 2: Feature Completion (Wire Mock Data to API)
+
+#### PR iOS-4: Live Messaging/Inbox
+
+**Scope**: Replace hardcoded mock data with API calls.
+
+**Files to Modify**:
+- `ViewModels/InboxViewModel.swift` — Replace static arrays with API calls to `/v1/inbox/threads`, `/v1/inbox/unread-counts`
+- `Views/Main/Inbox/Messages/MessagesScreen.swift` — Wire to `/v1/inbox/threads/{id}/messages`
+- `Views/Main/Inbox/Messages/ChatView.swift` — Add send message via `POST /v1/inbox/threads/{id}/messages`
+
+**Files to Create**:
+- `Services/InboxNetworkService.swift` — Thread list, messages, send, archive
+- `Models/Networking/Endpoints/InboxEndpoint.swift` — All `/v1/inbox/*` endpoints
+
+#### PR iOS-5: Live Wishlist
+
+**Scope**: Replace mock Home array with API calls.
+
+**Files to Modify**:
+- `Views/Main/Bookings/WishList/WishListView.swift` — Wire to `GET /v1/account/wishlist`, add optimistic remove
+- `Services/WishlistNetworkService.swift` — Update to new endpoints
+
+#### PR iOS-6: Stripe Checkout + Deep Links
+
+**Scope**: Add payment flow.
+
+**Files to Create**:
+- `Views/Checkout/CheckoutView.swift` — Open Stripe checkout URL in SFSafariViewController
+- `Views/Checkout/BookingConfirmationView.swift` — Handle success callback
+- `Services/CheckoutService.swift` — `POST /v1/properties/bookings/timebased`, `GET /v1/.../success/checkout?session_id=...`
+
+**Files to Modify**:
+- `Info.plist` — Add Universal Links for `www.pacedream.com`
+- `App/bug_free_gogglesApp.swift` — Handle incoming deep links
+
+### Phase 3: New Features
+
+#### PR iOS-7: Collections, Verification, Payment Methods
+
+**Files to Create**:
+- `Views/Collections/CollectionsView.swift`, `CollectionDetailView.swift`
+- `Views/Verification/PhoneVerificationView.swift`, `IDVerificationView.swift`
+- `Views/Settings/PaymentMethodsView.swift`
+- `Services/CollectionsNetworkService.swift`, `VerificationNetworkService.swift`, `PaymentMethodsNetworkService.swift`
+
+### Phase 4: UI/UX Alignment
+
+#### PR iOS-8: PaceDream Branding
+
+**Files to Modify**:
+- `Extensions/Colors.swift` — Change `appPrimary` from `#0057FF` (blue) to `#5527D7` (purple)
+- `Models/BookedType.swift` — Replace 13 Totel categories with 9 PaceDream categories
+- `Models/SearchType.swift` — Rename Stay/Hourly/FindRoommate → Use/Borrow/Split
+- All "Totel" string references → "PaceDream"
+
+### iOS Implementation Summary
+
+| Phase | PRs | Scope | Priority |
+|-------|-----|-------|----------|
+| Phase 1 | iOS-1, iOS-2, iOS-3 | Infrastructure | P0 — Must complete first |
+| Phase 2 | iOS-4, iOS-5, iOS-6 | Wire to live API | P0/P1 |
+| Phase 3 | iOS-7 | New features | P1 |
+| Phase 4 | iOS-8 | Branding/UI | P1 |
+
+### Key Insight: iOS Has Features Android Lacks
+
+While iOS is behind on infrastructure, it has three features Android should port:
+
+1. **Listing Creation Flow** (multi-step wizard in `Views/Hosting/`) — Android's `HostApiService.kt` has endpoints but NO create/edit UI
+2. **Review Edit/Delete** (full CRUD in `ReviewNetworkService.swift`) — Android only has create/view
+3. **In-App Notification List** (`NotificationView.swift`) — Android has endpoints but no UI screen
 
 ---
 
