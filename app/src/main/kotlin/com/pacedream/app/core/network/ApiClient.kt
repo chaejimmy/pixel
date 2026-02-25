@@ -14,6 +14,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
+import com.shourov.apps.pacedream.BuildConfig
 import okhttp3.logging.HttpLoggingInterceptor
 import timber.log.Timber
 import java.io.IOException
@@ -59,18 +60,22 @@ class ApiClient @Inject constructor(
             .build()
     }
     
+    companion object {
+        private val BEARER_REGEX = Regex("Bearer [A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+")
+        private val TOKEN_FIELD_REGEX = Regex("\"(access_?[Tt]oken|refresh_?[Tt]oken|id_?[Tt]oken)\"\\s*:\\s*\"[^\"]+\"")
+    }
+
     /**
      * Create logging interceptor with token redaction
      */
     private fun createLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor { message ->
-            // Redact tokens in logs
             val redacted = message
-                .replace(Regex("Bearer [A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+"), "Bearer [REDACTED]")
-                .replace(Regex("\"(access_?[Tt]oken|refresh_?[Tt]oken|id_?[Tt]oken)\"\\s*:\\s*\"[^\"]+\""), "\"$1\": \"[REDACTED]\"")
+                .replace(BEARER_REGEX, "Bearer [REDACTED]")
+                .replace(TOKEN_FIELD_REGEX, "\"$1\": \"[REDACTED]\"")
             Timber.d(redacted)
         }.apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
         }
     }
     

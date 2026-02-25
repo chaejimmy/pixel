@@ -277,9 +277,11 @@ class BookingRepository @Inject constructor(
     }
     
     private fun extractSessionIdFromUrl(url: String): String? {
-        // Try to extract session_id query parameter
-        val regex = "[?&]session_id=([^&]+)".toRegex()
-        return regex.find(url)?.groupValues?.getOrNull(1)
+        return SESSION_ID_REGEX.find(url)?.groupValues?.getOrNull(1)
+    }
+
+    companion object {
+        private val SESSION_ID_REGEX = "[?&]session_id=([^&]+)".toRegex()
     }
 }
 

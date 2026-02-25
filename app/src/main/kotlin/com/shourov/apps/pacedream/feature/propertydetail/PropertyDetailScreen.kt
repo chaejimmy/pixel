@@ -46,7 +46,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,9 +84,9 @@ fun PropertyDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: PropertyDetailViewModel = hiltViewModel()
 ) {
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
