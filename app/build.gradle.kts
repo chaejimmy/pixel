@@ -28,6 +28,8 @@ android {
         manifestPlaceholders["auth0Scheme"] = "pacedream"
         // Stripe publishable key (set in local.properties or CI as stripePublishableKey)
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${(project.findProperty("stripePublishableKey") as? String) ?: ""}\"")
+        // Auth0 client ID – MUST be set in local.properties or CI as auth0ClientId
+        buildConfigField("String", "AUTH0_CLIENT_ID", "\"${(project.findProperty("auth0ClientId") as? String) ?: ""}\"")
     }
 
     buildTypes {
