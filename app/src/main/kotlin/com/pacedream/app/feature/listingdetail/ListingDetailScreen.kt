@@ -71,10 +71,18 @@ import com.google.android.gms.maps.model.CameraPosition
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Bed
+import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
@@ -182,6 +190,23 @@ fun ListingDetailScreen(
                         )
                     }
 
+                    // Property details (bedrooms, beds, bathrooms, guests)
+                    if (listing?.hasPropertyDetails == true) {
+                        item {
+                            PropertyDetailsRow(
+                                propertyType = listing.propertyType,
+                                maxGuests = listing.maxGuests,
+                                bedrooms = listing.bedrooms,
+                                beds = listing.beds,
+                                bathrooms = listing.bathrooms,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    }
+
                     item {
                         HostCard(
                             host = listing?.host,
@@ -212,6 +237,34 @@ fun ListingDetailScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
                         )
+                    }
+
+                    // House Rules Section
+                    if (listing != null && (listing.houseRules.isNotEmpty() || listing.checkInTime != null || listing.checkOutTime != null)) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item {
+                            SectionHouseRules(
+                                houseRules = listing.houseRules,
+                                checkInTime = listing.checkInTime,
+                                checkOutTime = listing.checkOutTime,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
+                    // Safety Features Section
+                    if (listing != null && listing.safetyFeatures.isNotEmpty()) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item {
+                            SectionSafetyFeatures(
+                                features = listing.safetyFeatures,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                            )
+                        }
                     }
 
                     item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
@@ -787,56 +840,198 @@ private fun HostCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(14.dp)
         ) {
-            val initials = (host?.name ?: "Host")
-                .trim()
-                .split(" ")
-                .filter { it.isNotBlank() }
-                .take(2)
-                .mapNotNull { it.firstOrNull()?.toString() }
-                .joinToString("")
-                .uppercase()
-                .ifBlank { "H" }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val initials = (host?.name ?: "Host")
+                    .trim()
+                    .split(" ")
+                    .filter { it.isNotBlank() }
+                    .take(2)
+                    .mapNotNull { it.firstOrNull()?.toString() }
+                    .joinToString("")
+                    .uppercase()
+                    .ifBlank { "H" }
 
-            if (!host?.avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = host?.avatarUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(initials, fontWeight = FontWeight.SemiBold)
+                // Host avatar
+                Box {
+                    if (!host?.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = host?.avatarUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(initials, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                    // Superhost badge
+                    if (host?.isSuperhost == true) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = "Superhost",
+                                tint = Color.White,
+                                modifier = Modifier.padding(3.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            host?.name ?: "Host",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (host?.isVerified == true || host?.verifications?.isNotEmpty() == true) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                Icons.Default.Verified,
+                                contentDescription = "Verified",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    if (host?.isSuperhost == true) {
+                        Text(
+                            "Superhost",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                OutlinedButton(onClick = onContact) {
+                    Text("Contact")
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            // Host details row (response rate, response time, joined)
+            val hasDetails = host?.responseRate != null || host?.responseTime != null || host?.joinedDate != null
+            if (hasDetails) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    host?.responseRate?.let { rate ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "$rate%",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Response rate",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    host?.responseTime?.let { time ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                time,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Response time",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    host?.listingCount?.let { count ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "$count",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Listings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Host bio
+            host?.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    host?.name ?: "Host",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = bio.trim(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            OutlinedButton(onClick = onContact) {
-                Text("Contact")
+            // Verification badges
+            if (host?.verifications?.isNotEmpty() == true) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    host.verifications.take(4).forEach { verification ->
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = verification.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1693,11 +1888,30 @@ private fun SectionPricingBreakdown(
                     )
                 }
 
+                pricing?.serviceFee?.let { fee ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PricingRow(
+                        label = "Service fee",
+                        value = "$symbol${fee.toLong()}"
+                    )
+                }
+
                 pricing?.weeklyDiscountPercent?.let { discount ->
                     if (discount > 0) {
                         Spacer(modifier = Modifier.height(8.dp))
                         PricingRow(
                             label = "Weekly discount",
+                            value = "-$discount%",
+                            valueColor = Color(0xFF10B981)
+                        )
+                    }
+                }
+
+                pricing?.monthlyDiscountPercent?.let { discount ->
+                    if (discount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PricingRow(
+                            label = "Monthly discount",
                             value = "-$discount%",
                             valueColor = Color(0xFF10B981)
                         )
@@ -1847,6 +2061,218 @@ private fun ProposalSheet(
             Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Send Proposal")
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Property Details Row (bedrooms, beds, bathrooms, guests)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PropertyDetailsRow(
+    propertyType: String?,
+    maxGuests: Int?,
+    bedrooms: Int?,
+    beds: Int?,
+    bathrooms: Int?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        // Property type header
+        propertyType?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it.replaceFirstChar { c -> c.uppercase() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Details chips
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            maxGuests?.let {
+                PropertyDetailItem(
+                    icon = Icons.Default.Group,
+                    value = "$it",
+                    label = if (it == 1) "guest" else "guests"
+                )
+            }
+            bedrooms?.let {
+                PropertyDetailItem(
+                    icon = Icons.Default.Home,
+                    value = "$it",
+                    label = if (it == 1) "bedroom" else "bedrooms"
+                )
+            }
+            beds?.let {
+                PropertyDetailItem(
+                    icon = Icons.Default.Bed,
+                    value = "$it",
+                    label = if (it == 1) "bed" else "beds"
+                )
+            }
+            bathrooms?.let {
+                PropertyDetailItem(
+                    icon = Icons.Default.Bathtub,
+                    value = "$it",
+                    label = if (it == 1) "bath" else "baths"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyDetailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "$value $label",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// House Rules Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionHouseRules(
+    houseRules: List<String>,
+    checkInTime: String?,
+    checkOutTime: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Rule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("House Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Check-in / Check-out times
+        if (checkInTime != null || checkOutTime != null) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    checkInTime?.let {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Check-in", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    checkOutTime?.let {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Check-out", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+            if (houseRules.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        // Rules list
+        houseRules.forEach { rule ->
+            Row(
+                modifier = Modifier.padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(rule, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Safety Features Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SectionSafetyFeatures(
+    features: List<String>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Security,
+                contentDescription = null,
+                tint = Color(0xFF10B981),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Safety & Property", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            features.forEach { feature ->
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = feature,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+            }
         }
     }
 }

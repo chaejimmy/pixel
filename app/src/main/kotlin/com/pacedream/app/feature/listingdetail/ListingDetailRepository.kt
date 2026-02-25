@@ -72,7 +72,10 @@ class ListingDetailRepository @Inject constructor(
                 state = locationObj?.string("state") ?: listing.string("state"),
                 address = locationObj?.string("address", "street") ?: listing.string("address"),
                 latitude = locationObj?.double("latitude", "lat") ?: listing.double("latitude", "lat"),
-                longitude = locationObj?.double("longitude", "lng", "lon") ?: listing.double("longitude", "lng", "lon")
+                longitude = locationObj?.double("longitude", "lng", "lon") ?: listing.double("longitude", "lng", "lon"),
+                country = locationObj?.string("country") ?: listing.string("country"),
+                zipCode = locationObj?.string("zipCode", "zip_code", "postalCode", "postal_code") ?: listing.string("zipCode", "zip_code"),
+                neighborhood = locationObj?.string("neighborhood", "neighbourhood", "area") ?: listing.string("neighborhood")
             )
 
             val pricing = parsePricing(listing)
@@ -81,13 +84,32 @@ class ListingDetailRepository @Inject constructor(
                 ?: listing["user"]?.asObjectOrNull()
                 ?: listing["owner"]?.asObjectOrNull()
             val host = hostObj?.let {
+                val verifications = buildList {
+                    it["verifications"]?.asArrayOrNull()?.forEach { v ->
+                        v.asStringOrNull()?.let { s -> add(s) }
+                        v.asObjectOrNull()?.string("type", "method")?.let { s -> add(s) }
+                    }
+                    // Also check flat boolean fields
+                    if (it.boolean("emailVerified", "email_verified") == true) add("email")
+                    if (it.boolean("phoneVerified", "phone_verified") == true) add("phone")
+                    if (it.boolean("identityVerified", "identity_verified") == true) add("identity")
+                }.distinct()
+
                 ListingHost(
                     id = it.string("id", "_id"),
                     name = it.string("name") ?: listOfNotNull(
                         it.string("firstName", "first_name"),
                         it.string("lastName", "last_name")
                     ).joinToString(" ").ifBlank { null },
-                    avatarUrl = it.string("avatarUrl", "avatar", "profileImage", "profile_image")
+                    avatarUrl = it.string("avatarUrl", "avatar", "profileImage", "profile_image"),
+                    bio = it.string("bio", "about", "description"),
+                    isSuperhost = it.boolean("isSuperhost", "is_superhost", "superhost"),
+                    isVerified = it.boolean("isVerified", "is_verified", "verified"),
+                    responseRate = it.int("responseRate", "response_rate"),
+                    responseTime = it.string("responseTime", "response_time"),
+                    listingCount = it.int("listingCount", "listing_count", "listingsCount"),
+                    joinedDate = it.string("joinedDate", "joined_date", "createdAt", "created_at"),
+                    verifications = verifications
                 )
             }
 
@@ -98,6 +120,36 @@ class ListingDetailRepository @Inject constructor(
                 ?: listing["reviews"]?.asObjectOrNull()?.int("count")
 
             val isFavorite = listing.boolean("liked", "isLiked", "isFavorited", "is_wishlisted")
+
+            // Property details
+            val propertyType = listing.string("propertyType", "property_type", "type", "spaceType", "space_type")
+            val maxGuests = listing.int("maxGuests", "max_guests", "guests", "capacity")
+            val bedrooms = listing.int("bedrooms", "bedroom_count")
+            val beds = listing.int("beds", "bed_count")
+            val bathrooms = listing.int("bathrooms", "bathroom_count")
+
+            // House rules
+            val houseRules = parseStringList(listing, "houseRules", "house_rules", "rules")
+            val checkInTime = listing.string("checkInTime", "check_in_time", "checkIn")
+            val checkOutTime = listing.string("checkOutTime", "check_out_time", "checkOut")
+
+            // Safety features
+            val safetyFeatures = parseStringList(listing, "safetyFeatures", "safety_features", "safety")
+
+            // Status
+            val available = listing.boolean("available", "is_available", "isAvailable")
+            val instantBook = listing.boolean("instantBook", "instant_book", "instantBooking")
+
+            // Cancellation policy
+            val cancellationObj = listing["cancellationPolicy"]?.asObjectOrNull()
+                ?: listing["cancellation_policy"]?.asObjectOrNull()
+            val cancellationPolicy = cancellationObj?.let {
+                CancellationPolicy(
+                    type = it.string("type") ?: "flexible",
+                    freeHoursBefore = it.int("freeHoursBefore", "free_hours_before") ?: 2,
+                    description = it.string("description")
+                )
+            }
 
             ListingDetailModel(
                 id = id,
@@ -110,7 +162,20 @@ class ListingDetailRepository @Inject constructor(
                 amenities = amenities,
                 rating = rating,
                 reviewCount = reviewCount,
-                isFavorite = isFavorite
+                isFavorite = isFavorite,
+                cancellationPolicy = cancellationPolicy,
+                category = listing.string("category"),
+                propertyType = propertyType,
+                maxGuests = maxGuests,
+                bedrooms = bedrooms,
+                beds = beds,
+                bathrooms = bathrooms,
+                houseRules = houseRules,
+                checkInTime = checkInTime,
+                checkOutTime = checkOutTime,
+                safetyFeatures = safetyFeatures,
+                available = available,
+                instantBook = instantBook
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse listing detail")
@@ -136,11 +201,24 @@ class ListingDetailRepository @Inject constructor(
                 pricingObj?.string("frequency", "unit", "frequencyLabel")
                     ?: listing.string("frequency", "unit", "frequencyLabel")
 
+            val cleaningFee = pricingObj?.double("cleaningFee", "cleaning_fee")
+                ?: listing.double("cleaningFee", "cleaning_fee")
+            val weeklyDiscount = pricingObj?.int("weeklyDiscount", "weekly_discount", "weeklyDiscountPercent")
+                ?: listing.int("weeklyDiscount", "weekly_discount")
+            val serviceFee = pricingObj?.double("serviceFee", "service_fee")
+                ?: listing.double("serviceFee", "service_fee")
+            val monthlyDiscount = pricingObj?.int("monthlyDiscount", "monthly_discount", "monthlyDiscountPercent")
+                ?: listing.int("monthlyDiscount", "monthly_discount")
+
             ListingPricing(
                 hourlyFrom = hourlyFrom,
                 basePrice = basePrice,
                 currency = currency,
-                frequencyLabel = frequency
+                frequencyLabel = frequency,
+                cleaningFee = cleaningFee,
+                weeklyDiscountPercent = weeklyDiscount,
+                serviceFee = serviceFee,
+                monthlyDiscountPercent = monthlyDiscount
             ).takeIf { it.hourlyFrom != null || it.basePrice != null }
         } catch (_: Exception) {
             null
@@ -153,6 +231,15 @@ class ListingDetailRepository @Inject constructor(
         return array.mapNotNull { el ->
             el.asStringOrNull()
                 ?: el.asObjectOrNull()?.string("name", "title", "label")
+        }.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+    }
+
+    private fun parseStringList(obj: JsonObject, vararg keys: String): List<String> {
+        val raw = keys.firstNotNullOfOrNull { obj[it] } ?: return emptyList()
+        val array = raw.asArrayOrNull() ?: return emptyList()
+        return array.mapNotNull { el ->
+            el.asStringOrNull()
+                ?: el.asObjectOrNull()?.string("name", "title", "label", "text")
         }.map { it.trim() }.filter { it.isNotBlank() }.distinct()
     }
 }
