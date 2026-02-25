@@ -7,8 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -426,7 +425,7 @@ fun RecentTransactionsSection(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Receipt,
+                        imageVector = PaceDreamIcons.Receipt,
                         contentDescription = "No transactions",
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(48.dp)
@@ -485,9 +484,9 @@ fun TransactionCard(
             ) {
                 Icon(
                     imageVector = when (transaction.type) {
-                        com.shourov.apps.pacedream.feature.host.data.TransactionType.BOOKING -> Icons.Default.CalendarToday
-                        com.shourov.apps.pacedream.feature.host.data.TransactionType.WITHDRAWAL -> Icons.Default.AttachMoney
-                        com.shourov.apps.pacedream.feature.host.data.TransactionType.FEE -> Icons.Default.Receipt
+                        com.shourov.apps.pacedream.feature.host.data.TransactionType.BOOKING -> PaceDreamIcons.CalendarToday
+                        com.shourov.apps.pacedream.feature.host.data.TransactionType.WITHDRAWAL -> PaceDreamIcons.AttachMoney
+                        com.shourov.apps.pacedream.feature.host.data.TransactionType.FEE -> PaceDreamIcons.Receipt
                     },
                     contentDescription = transaction.type.name,
                     tint = when (transaction.type) {

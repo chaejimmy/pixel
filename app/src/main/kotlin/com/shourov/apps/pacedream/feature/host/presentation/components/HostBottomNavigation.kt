@@ -3,8 +3,7 @@ package com.shourov.apps.pacedream.feature.host.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,11 +21,11 @@ fun HostBottomNavigation(
     onNavigate: (String) -> Unit
 ) {
     val hostScreens = listOf(
-        HostScreenItem("host_dashboard", "Dashboard", Icons.Default.Dashboard),
-        HostScreenItem("host_listings", "Listings", Icons.Default.Home),
-        HostScreenItem("host_bookings", "Bookings", Icons.Default.CalendarToday),
-        HostScreenItem("host_earnings", "Earnings", Icons.Default.AttachMoney),
-        HostScreenItem("host_analytics", "Analytics", Icons.Default.Analytics)
+        HostScreenItem("host_dashboard", "Dashboard", PaceDreamIcons.Dashboard),
+        HostScreenItem("host_listings", "Listings", PaceDreamIcons.Home),
+        HostScreenItem("host_bookings", "Bookings", PaceDreamIcons.CalendarToday),
+        HostScreenItem("host_earnings", "Earnings", PaceDreamIcons.AttachMoney),
+        HostScreenItem("host_analytics", "Analytics", PaceDreamIcons.Analytics)
     )
 
     NavigationBar(

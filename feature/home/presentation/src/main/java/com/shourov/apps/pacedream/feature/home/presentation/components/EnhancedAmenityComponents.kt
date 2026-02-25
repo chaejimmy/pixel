@@ -21,8 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -86,21 +85,21 @@ fun AmenityList(
     modifier: Modifier = Modifier
 ) {
     val amenityIcons = mapOf(
-        "WiFi" to Icons.Default.Wifi,
-        "Parking" to Icons.Default.LocalParking,
-        "Pool" to Icons.Default.Pool,
-        "Gym" to Icons.Default.FitnessCenter,
-        "Kitchen" to Icons.Default.Kitchen,
-        "AC" to Icons.Default.Air,
-        "TV" to Icons.Default.Tv,
-        "Pet Friendly" to Icons.Default.Pets,
-        "Balcony" to Icons.Default.Balcony,
-        "Garden" to Icons.Default.Yard,
-        "Security" to Icons.Default.Security,
-        "Elevator" to Icons.Default.Elevator,
-        "Laundry" to Icons.Default.LocalLaundryService,
-        "Heating" to Icons.Default.Thermostat,
-        "Breakfast" to Icons.Default.Restaurant
+        "WiFi" to PaceDreamIcons.Wifi,
+        "Parking" to PaceDreamIcons.LocalParking,
+        "Pool" to PaceDreamIcons.Pool,
+        "Gym" to PaceDreamIcons.FitnessCenter,
+        "Kitchen" to PaceDreamIcons.Kitchen,
+        "AC" to PaceDreamIcons.Air,
+        "TV" to PaceDreamIcons.Tv,
+        "Pet Friendly" to PaceDreamIcons.Pets,
+        "Balcony" to PaceDreamIcons.Balcony,
+        "Garden" to PaceDreamIcons.Yard,
+        "Security" to PaceDreamIcons.Security,
+        "Elevator" to PaceDreamIcons.Elevator,
+        "Laundry" to PaceDreamIcons.LocalLaundryService,
+        "Heating" to PaceDreamIcons.Thermostat,
+        "Breakfast" to PaceDreamIcons.Restaurant
     )
     
     LazyRow(
@@ -110,7 +109,7 @@ fun AmenityList(
         items(amenities) { amenity ->
             AmenityChip(
                 amenity = amenity,
-                icon = amenityIcons[amenity] ?: Icons.Default.Star,
+                icon = amenityIcons[amenity] ?: PaceDreamIcons.Star,
                 isSelected = selectedAmenities.contains(amenity),
                 onClick = { onAmenityClick(amenity) }
             )
@@ -155,7 +154,7 @@ fun HostCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
+                            imageVector = PaceDreamIcons.Person,
                             contentDescription = "Host avatar",
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(PaceDreamIconSize.LG)
@@ -214,7 +213,7 @@ fun HostCard(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Message,
+                        imageVector = PaceDreamIcons.Message,
                         contentDescription = "Contact host",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -235,7 +234,7 @@ fun HostCard(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = PaceDreamIcons.Star,
                         contentDescription = null,
                         tint = PaceDreamColors.Warning,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -261,7 +260,7 @@ fun HostCard(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        imageVector = PaceDreamIcons.Schedule,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -331,7 +330,7 @@ fun CompactHostCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = PaceDreamIcons.Person,
                         contentDescription = "Host avatar",
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -356,7 +355,7 @@ fun CompactHostCard(
                     
                     if (isSuperhost) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = "Superhost",
                             tint = PaceDreamColors.Warning,
                             modifier = Modifier.size(12.dp)
@@ -369,7 +368,7 @@ fun CompactHostCard(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = PaceDreamIcons.Star,
                         contentDescription = null,
                         tint = PaceDreamColors.Warning,
                         modifier = Modifier.size(10.dp)
@@ -385,7 +384,7 @@ fun CompactHostCard(
             
             // Contact Icon
             Icon(
-                imageVector = Icons.Default.Message,
+                imageVector = PaceDreamIcons.Message,
                 contentDescription = "Contact host",
                 tint = PaceDreamColors.Primary,
                 modifier = Modifier.size(PaceDreamIconSize.SM)

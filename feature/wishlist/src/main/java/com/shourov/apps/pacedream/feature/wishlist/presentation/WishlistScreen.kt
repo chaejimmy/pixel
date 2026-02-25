@@ -25,12 +25,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Star
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -279,7 +274,7 @@ private fun WishlistItemCard(
                         .background(Color.White.copy(alpha = 0.9f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
+                        imageVector = PaceDreamIcons.Favorite,
                         contentDescription = "Remove from favorites",
                         tint = PaceDreamColors.Error,
                         modifier = Modifier.size(20.dp)
@@ -349,7 +344,7 @@ private fun WishlistItemCard(
                     item.rating?.let { rating ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = PaceDreamIcons.Star,
                                 contentDescription = null,
                                 tint = PaceDreamColors.Warning,
                                 modifier = Modifier.size(14.dp)
@@ -390,7 +385,7 @@ private fun EmptyState() {
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
         ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
+                imageVector = PaceDreamIcons.FavoriteBorder,
                 contentDescription = "No favorites",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
@@ -424,7 +419,7 @@ private fun EmptyFilteredState(filter: WishlistFilter) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
+                imageVector = PaceDreamIcons.FavoriteBorder,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(48.dp)
@@ -482,7 +477,7 @@ private fun RequiresAuthState(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
         ) {
             Icon(
-                imageVector = Icons.Default.Lock,
+                imageVector = PaceDreamIcons.Lock,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)

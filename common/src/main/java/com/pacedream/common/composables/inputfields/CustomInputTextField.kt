@@ -25,9 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Clear
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -110,7 +108,7 @@ fun CustomInputTextField(
                     onValueChange("")
                 }) {
                     Icon(
-                        imageVector = Icons.Filled.Cancel,
+                        imageVector = PaceDreamIcons.Cancel,
                         contentDescription = "clear text",
                         modifier = Modifier.size(24.dp),
                         tint = color

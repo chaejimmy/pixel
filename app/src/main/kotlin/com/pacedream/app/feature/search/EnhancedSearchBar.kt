@@ -3,8 +3,7 @@ package com.pacedream.app.feature.search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,7 +77,7 @@ fun EnhancedSearchBar(
                 value = whatQuery,
                 onValueChange = onWhatQueryChange,
                 placeholder = "Search or type keywords (e.g., meeting rooms, nap pods)",
-                leadingIcon = Icons.Default.Search,
+                leadingIcon = PaceDreamIcons.Search,
                 modifier = Modifier.fillMaxWidth()
             )
             
@@ -94,7 +93,7 @@ fun EnhancedSearchBar(
                     value = whereQuery,
                     onValueChange = onWhereQueryChange,
                     placeholder = "City, address, landmark",
-                    leadingIcon = Icons.Default.LocationOn,
+                    leadingIcon = PaceDreamIcons.LocationOn,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(
@@ -102,7 +101,7 @@ fun EnhancedSearchBar(
                     modifier = Modifier.align(Alignment.Bottom)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MyLocation,
+                        imageVector = PaceDreamIcons.MyLocation,
                         contentDescription = "Use my location",
                         modifier = Modifier.size(18.dp)
                     )
@@ -122,7 +121,7 @@ fun EnhancedSearchBar(
                 value = selectedDate ?: "",
                 onValueChange = { /* Read-only, opens date picker */ },
                 placeholder = "Add dates",
-                leadingIcon = Icons.Default.CalendarToday,
+                leadingIcon = PaceDreamIcons.CalendarToday,
                 readOnly = true,
                 onClick = onDateClick,
                 modifier = Modifier.fillMaxWidth()
@@ -142,7 +141,7 @@ fun EnhancedSearchBar(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Search,
+                    imageVector = PaceDreamIcons.Search,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )

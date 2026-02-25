@@ -12,15 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tune
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,7 +66,7 @@ fun SettingsRootScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -102,7 +94,7 @@ fun SettingsRootScreen(
             ) {
                 Column {
                     SettingsRow(
-                        icon = Icons.Filled.Person,
+                        icon = PaceDreamIcons.Person,
                         title = "Personal Information",
                         subtitle = "Name, email, and phone",
                         onClick = onPersonalInfoClick
@@ -110,7 +102,7 @@ fun SettingsRootScreen(
                     HorizontalDivider(color = PaceDreamColors.Border)
 
                     SettingsRow(
-                        icon = Icons.Filled.Lock,
+                        icon = PaceDreamIcons.Lock,
                         title = "Login & Security",
                         subtitle = "Password and authentication",
                         onClick = onLoginSecurityClick
@@ -118,7 +110,7 @@ fun SettingsRootScreen(
                     HorizontalDivider(color = PaceDreamColors.Border)
 
                     SettingsRow(
-                        icon = Icons.Filled.Notifications,
+                        icon = PaceDreamIcons.Notifications,
                         title = "Notifications",
                         subtitle = "Push and email preferences",
                         onClick = onNotificationsClick
@@ -133,7 +125,7 @@ fun SettingsRootScreen(
             ) {
                 Column {
                     SettingsRow(
-                        icon = Icons.Filled.Tune,
+                        icon = PaceDreamIcons.Tune,
                         title = "Preferences",
                         subtitle = "Language and region",
                         onClick = onPreferencesClick
@@ -141,7 +133,7 @@ fun SettingsRootScreen(
                     HorizontalDivider(color = PaceDreamColors.Border)
 
                     SettingsRow(
-                        icon = Icons.Filled.CreditCard,
+                        icon = PaceDreamIcons.CreditCard,
                         title = "Payment Methods",
                         subtitle = "Saved cards and billing",
                         onClick = onPaymentMethodsClick
@@ -155,7 +147,7 @@ fun SettingsRootScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 SettingsRow(
-                    icon = Icons.Filled.HelpOutline,
+                    icon = PaceDreamIcons.HelpOutline,
                     title = "Help & Support",
                     subtitle = "FAQs, contact, and feedback",
                     onClick = onHelpSupportClick
@@ -204,7 +196,7 @@ private fun SettingsRow(
         }
 
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            imageVector = PaceDreamIcons.ArrowForward,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
             modifier = Modifier.size(18.dp)

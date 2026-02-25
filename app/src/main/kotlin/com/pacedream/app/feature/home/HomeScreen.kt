@@ -10,9 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -302,7 +300,7 @@ private fun FloatingSearchBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = PaceDreamIcons.Search,
                 contentDescription = "Search",
                 tint = Color(0xFF222222),
                 modifier = Modifier.size(22.dp)
@@ -344,7 +342,7 @@ private fun FloatingSearchBar(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Tune,
+                    imageVector = PaceDreamIcons.Tune,
                     contentDescription = "Filters",
                     tint = Color(0xFF222222),
                     modifier = Modifier.size(18.dp)
@@ -365,20 +363,20 @@ private fun CategoryFilterTabs(
     modifier: Modifier = Modifier
 ) {
     val categories = listOf(
-        Triple("All", Icons.Outlined.Apps, Icons.Default.Apps),
-        Triple("Entire Home", Icons.Outlined.Home, Icons.Default.Home),
-        Triple("Private Room", Icons.Outlined.MeetingRoom, Icons.Default.MeetingRoom),
-        Triple("Restroom", Icons.Outlined.Wc, Icons.Default.Wc),
-        Triple("Nap Pod", Icons.Outlined.Bed, Icons.Default.Bed),
-        Triple("Meeting Room", Icons.Outlined.Business, Icons.Default.Business),
-        Triple("Workspace", Icons.Outlined.Laptop, Icons.Default.Laptop),
-        Triple("EV Parking", Icons.Outlined.ElectricCar, Icons.Default.ElectricCar),
-        Triple("Study Room", Icons.Outlined.School, Icons.Default.School),
-        Triple("Short Stay", Icons.Outlined.Hotel, Icons.Default.Hotel),
-        Triple("Apartment", Icons.Outlined.Apartment, Icons.Default.Apartment),
-        Triple("Parking", Icons.Outlined.LocalParking, Icons.Default.LocalParking),
-        Triple("Luxury Room", Icons.Outlined.Star, Icons.Default.Star),
-        Triple("Storage", Icons.Outlined.Storage, Icons.Default.Storage)
+        Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
+        Triple("Entire Home", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
+        Triple("Private Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
+        Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
+        Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
+        Triple("Meeting Room", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business),
+        Triple("Workspace", PaceDreamIcons.LaptopOutlined, PaceDreamIcons.Laptop),
+        Triple("EV Parking", PaceDreamIcons.ElectricCarOutlined, PaceDreamIcons.ElectricCar),
+        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
+        Triple("Short Stay", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
+        Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
+        Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
+        Triple("Luxury Room", PaceDreamIcons.StarOutlined, PaceDreamIcons.Star),
+        Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
     )
 
     LazyRow(
@@ -574,67 +572,67 @@ private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
         CategoryCardData(
             name = "Entire Home",
-            icon = Icons.Default.Home,
+            icon = PaceDreamIcons.Home,
             gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626))
         ),
         CategoryCardData(
             name = "Private Room",
-            icon = Icons.Default.MeetingRoom,
+            icon = PaceDreamIcons.MeetingRoom,
             gradientColors = listOf(Color(0xFFEC4899), Color(0xFFDB2777))
         ),
         CategoryCardData(
             name = "Restroom",
-            icon = Icons.Default.Wc,
+            icon = PaceDreamIcons.Wc,
             gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
         ),
         CategoryCardData(
             name = "Nap Pod",
-            icon = Icons.Default.Bed,
+            icon = PaceDreamIcons.Bed,
             gradientColors = listOf(Color(0xFF8B5CF6), Color(0xFF7C3AED))
         ),
         CategoryCardData(
             name = "Meeting Room",
-            icon = Icons.Default.Business,
+            icon = PaceDreamIcons.Business,
             gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF2563EB))
         ),
         CategoryCardData(
             name = "Workspace",
-            icon = Icons.Default.Laptop,
+            icon = PaceDreamIcons.Laptop,
             gradientColors = listOf(Color(0xFF10B981), Color(0xFF059669))
         ),
         CategoryCardData(
             name = "EV Parking",
-            icon = Icons.Default.ElectricCar,
+            icon = PaceDreamIcons.ElectricCar,
             gradientColors = listOf(Color(0xFFa855f7), Color(0xFF7c3aed))
         ),
         CategoryCardData(
             name = "Study Room",
-            icon = Icons.Default.School,
+            icon = PaceDreamIcons.School,
             gradientColors = listOf(Color(0xFF059669), Color(0xFF047857))
         ),
         CategoryCardData(
             name = "Short Stay",
-            icon = Icons.Default.Hotel,
+            icon = PaceDreamIcons.Hotel,
             gradientColors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
         ),
         CategoryCardData(
             name = "Apartment",
-            icon = Icons.Default.Apartment,
+            icon = PaceDreamIcons.Apartment,
             gradientColors = listOf(Color(0xFFDC2626), Color(0xFFB91C1C))
         ),
         CategoryCardData(
             name = "Parking",
-            icon = Icons.Default.LocalParking,
+            icon = PaceDreamIcons.LocalParking,
             gradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
         ),
         CategoryCardData(
             name = "Luxury Room",
-            icon = Icons.Default.Star,
+            icon = PaceDreamIcons.Star,
             gradientColors = listOf(Color(0xFFD97706), Color(0xFFB45309))
         ),
         CategoryCardData(
             name = "Storage Space",
-            icon = Icons.Default.Storage,
+            icon = PaceDreamIcons.Storage,
             gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
         )
     )
@@ -663,7 +661,7 @@ private fun WarningBanner(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Warning,
+                imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error
             )
@@ -747,7 +745,7 @@ private fun HomeSection(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = PaceDreamIcons.ArrowForward,
                     contentDescription = null,
                     tint = Color(0xFF222222),
                     modifier = Modifier.size(16.dp)
@@ -824,7 +822,7 @@ private fun ListingCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = Color(0xFF222222),
                             modifier = Modifier.size(12.dp)

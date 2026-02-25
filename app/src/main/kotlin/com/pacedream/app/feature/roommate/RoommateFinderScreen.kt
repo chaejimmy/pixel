@@ -8,12 +8,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -54,7 +49,7 @@ fun RoommateFinderScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -80,11 +75,11 @@ fun RoommateFinderScreen(
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search by location, budget...") },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null)
+                        Icon(PaceDreamIcons.Search, contentDescription = null)
                     },
                     trailingIcon = {
                         IconButton(onClick = { /* TODO: Open advanced filters */ }) {
-                            Icon(Icons.Default.FilterList, contentDescription = "Filters")
+                            Icon(PaceDreamIcons.FilterList, contentDescription = "Filters")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -126,7 +121,7 @@ fun RoommateFinderScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.People,
+                            imageVector = PaceDreamIcons.People,
                             contentDescription = null,
                             tint = PaceDreamColors.Primary,
                             modifier = Modifier.size(32.dp)
@@ -215,7 +210,7 @@ fun RoommateFinderScreen(
                     ),
                     contentPadding = PaddingValues(vertical = 14.dp)
                 ) {
-                    Icon(Icons.Default.People, contentDescription = null)
+                    Icon(PaceDreamIcons.People, contentDescription = null)
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text("Post a Roommate Listing", style = PaceDreamTypography.Button)
                 }
@@ -280,7 +275,7 @@ private fun RoommateListingCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.People,
+                    imageVector = PaceDreamIcons.People,
                     contentDescription = null,
                     tint = PaceDreamColors.Primary,
                     modifier = Modifier.size(28.dp)
@@ -303,7 +298,7 @@ private fun RoommateListingCard(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.LocationOn,
+                        PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = PaceDreamColors.TextSecondary

@@ -9,8 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -128,7 +127,7 @@ fun PaceDreamHeroHeader(
                         .background(Color.White.copy(alpha = 0.20f))
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Notifications,
+                        imageVector = PaceDreamIcons.Notifications,
                         contentDescription = "Notifications",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -162,7 +161,7 @@ fun PaceDreamSearchBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.Search,
+            imageVector = PaceDreamIcons.Search,
             contentDescription = "Search",
             tint = PaceDreamTextSecondary,
             modifier = Modifier.size(PaceDreamSearchBar.IconSize)
@@ -198,7 +197,7 @@ fun PaceDreamSearchBar(
             modifier = Modifier.size(PaceDreamButtonHeight.SM)
         ) {
             Icon(
-                imageVector = Icons.Default.FilterList,
+                imageVector = PaceDreamIcons.FilterList,
                 contentDescription = "Filter",
                 tint = PaceDreamPrimary,
                 modifier = Modifier.size(PaceDreamSearchBar.IconSize)
@@ -387,7 +386,7 @@ fun PaceDreamPropertyCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamTextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -420,7 +419,7 @@ fun PaceDreamPropertyCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = PaceDreamWarning,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -475,7 +474,7 @@ fun PaceDreamDestinationCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (imageUrl != null) Icons.Default.Image else Icons.Default.LocationOn,
+                        imageVector = if (imageUrl != null) PaceDreamIcons.Image else PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamTextTertiary,
                         modifier = Modifier.size(PaceDreamIconSize.LG)
@@ -525,7 +524,7 @@ fun PaceDreamRecentSearchItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.LocationOn,
+                imageVector = PaceDreamIcons.LocationOn,
                 contentDescription = null,
                 tint = PaceDreamTextSecondary,
                 modifier = Modifier.size(PaceDreamRecentSearchItem.IconSize)
@@ -626,7 +625,7 @@ fun PaceDreamShimmerCard(
 fun PaceDreamEmptyState(
     title: String,
     description: String,
-    icon: ImageVector = Icons.Default.Search,
+    icon: ImageVector = PaceDreamIcons.Search,
     actionText: String? = null,
     onActionClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -709,7 +708,7 @@ fun PaceDreamErrorState(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.Error,
+                imageVector = PaceDreamIcons.Error,
                 contentDescription = null,
                 tint = PaceDreamError,
                 modifier = Modifier.size(PaceDreamErrorState.IconSize)

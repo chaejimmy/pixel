@@ -9,22 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -649,12 +636,12 @@ fun PaceDreamBottomBar(
     currentRoute: String?
 ) {
     val tabs = listOf(
-        TabItem(NavRoutes.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home),
-        TabItem(NavRoutes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search),
-        TabItem(NavRoutes.FAVORITES, "Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
-        TabItem(NavRoutes.BOOKINGS, "Bookings", Icons.Filled.DateRange, Icons.Outlined.DateRange),
-        TabItem(NavRoutes.INBOX, "Inbox", Icons.Filled.Mail, Icons.Outlined.MailOutline),
-        TabItem(NavRoutes.PROFILE, "Profile", Icons.Filled.Person, Icons.Outlined.Person)
+        TabItem(NavRoutes.HOME, "Home", PaceDreamIcons.Home, PaceDreamIcons.HomeOutlined),
+        TabItem(NavRoutes.SEARCH, "Search", PaceDreamIcons.Search, PaceDreamIcons.SearchOutlined),
+        TabItem(NavRoutes.FAVORITES, "Favorites", PaceDreamIcons.Favorite, PaceDreamIcons.FavoriteBorderOutlined),
+        TabItem(NavRoutes.BOOKINGS, "Bookings", PaceDreamIcons.DateRange, PaceDreamIcons.DateRangeOutlined),
+        TabItem(NavRoutes.INBOX, "Inbox", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
+        TabItem(NavRoutes.PROFILE, "Profile", PaceDreamIcons.Person, PaceDreamIcons.PersonOutlined)
     )
     
     NavigationBar {
@@ -712,7 +699,7 @@ fun LockedScreen(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(PaceDreamIcons.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(16.dp))
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))

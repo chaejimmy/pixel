@@ -13,12 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Payment
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -71,7 +66,7 @@ fun BookingConfirmationScreen(
                 title = { Text("Booking") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(PaceDreamIcons.Close, contentDescription = "Close")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -145,7 +140,7 @@ private fun SuccessState(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = PaceDreamIcons.Check,
                 contentDescription = "Success",
                 tint = PaceDreamColors.Success,
                 modifier = Modifier.size(48.dp)
@@ -196,7 +191,7 @@ private fun SuccessState(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CalendarMonth,
+                            imageVector = PaceDreamIcons.Calendar,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(20.dp)
@@ -223,7 +218,7 @@ private fun SuccessState(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Payment,
+                            imageVector = PaceDreamIcons.Payment,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(20.dp)
@@ -290,7 +285,7 @@ private fun ErrorState(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Error,
+                imageVector = PaceDreamIcons.Error,
                 contentDescription = "Error",
                 tint = PaceDreamColors.Error,
                 modifier = Modifier.size(48.dp)
@@ -367,7 +362,7 @@ fun BookingCancelledScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = PaceDreamIcons.Close,
                     contentDescription = "Cancelled",
                     tint = PaceDreamColors.Warning,
                     modifier = Modifier.size(48.dp)

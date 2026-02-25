@@ -14,11 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Warning
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -170,7 +166,7 @@ private fun SettingsPaymentMethodsContent(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -310,7 +306,7 @@ private fun EmptyPaymentMethodsState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Filled.CreditCard,
+            imageVector = PaceDreamIcons.CreditCard,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.height(48.dp)
@@ -365,7 +361,7 @@ private fun StripeMissingWarning() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Filled.Warning,
+                imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -403,7 +399,7 @@ private fun PaymentMethodCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Filled.CreditCard,
+                    imageVector = PaceDreamIcons.CreditCard,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -464,7 +460,7 @@ private fun PaymentMethodCard(
                     modifier = Modifier.clickable(onClick = onDelete)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
+                        imageVector = PaceDreamIcons.Delete,
                         contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.error
                     )

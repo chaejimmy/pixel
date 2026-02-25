@@ -30,20 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DirectionsBike
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.SmartToy
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -190,7 +177,7 @@ fun CreateListingScreen(
                         if (currentStep > 0) currentStep-- else onBackClick()
                     }) {
                         Icon(
-                            imageVector = if (currentStep > 0) Icons.Default.ArrowBack else Icons.Default.Close,
+                            imageVector = if (currentStep > 0) PaceDreamIcons.ArrowBack else PaceDreamIcons.Close,
                             contentDescription = if (currentStep > 0) "Back" else "Close"
                         )
                     }
@@ -388,20 +375,20 @@ private fun PropertyTypeStep(
 ) {
     val types = when (listingMode) {
         ListingMode.SHARE, ListingMode.BORROW -> listOf(
-            PropertyTypeOption("Tools", Icons.Default.Build, "Power tools, hand tools, garden equipment"),
-            PropertyTypeOption("Games", Icons.Default.SportsEsports, "Board games, video games, consoles"),
-            PropertyTypeOption("Toys", Icons.Default.SmartToy, "Kids toys, outdoor play, collectibles"),
-            PropertyTypeOption("Micromobility", Icons.Default.DirectionsBike, "E-scooters, bikes, skateboards"),
-            PropertyTypeOption("Other", Icons.Default.MoreHoriz, "Anything else you want to list"),
+            PropertyTypeOption("Tools", PaceDreamIcons.Build, "Power tools, hand tools, garden equipment"),
+            PropertyTypeOption("Games", PaceDreamIcons.SportsEsports, "Board games, video games, consoles"),
+            PropertyTypeOption("Toys", PaceDreamIcons.SmartToy, "Kids toys, outdoor play, collectibles"),
+            PropertyTypeOption("Micromobility", PaceDreamIcons.DirectionsBike, "E-scooters, bikes, skateboards"),
+            PropertyTypeOption("Other", PaceDreamIcons.MoreHoriz, "Anything else you want to list"),
         )
         ListingMode.USE -> listOf(
-            PropertyTypeOption("Apartment", Icons.Default.Home, "A unit within a building"),
-            PropertyTypeOption("House", Icons.Default.Home, "An entire house"),
-            PropertyTypeOption("Studio", Icons.Default.Home, "A single-room dwelling"),
-            PropertyTypeOption("Loft", Icons.Default.Home, "An open-plan space"),
-            PropertyTypeOption("Office", Icons.Default.Home, "A workspace for rent"),
-            PropertyTypeOption("Event Space", Icons.Default.Home, "A venue for events"),
-            PropertyTypeOption("Parking", Icons.Default.Home, "A parking spot"),
+            PropertyTypeOption("Apartment", PaceDreamIcons.Home, "A unit within a building"),
+            PropertyTypeOption("House", PaceDreamIcons.Home, "An entire house"),
+            PropertyTypeOption("Studio", PaceDreamIcons.Home, "A single-room dwelling"),
+            PropertyTypeOption("Loft", PaceDreamIcons.Home, "An open-plan space"),
+            PropertyTypeOption("Office", PaceDreamIcons.Home, "A workspace for rent"),
+            PropertyTypeOption("Event Space", PaceDreamIcons.Home, "A venue for events"),
+            PropertyTypeOption("Parking", PaceDreamIcons.Home, "A parking spot"),
         )
     }
 
@@ -494,7 +481,7 @@ private fun PropertyTypeStep(
                     }
                     if (isSelected) {
                         Icon(
-                            Icons.Default.Check,
+                            PaceDreamIcons.Check,
                             contentDescription = "Selected",
                             tint = PaceDreamColors.Primary,
                             modifier = Modifier.size(22.dp)
@@ -593,7 +580,7 @@ private fun LocationStep(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.LocationOn,
+                        PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(32.dp)
@@ -738,7 +725,7 @@ private fun ItemConditionSelector(
                     leadingIcon = if (isSelected) {
                         {
                             Icon(
-                                Icons.Default.Check,
+                                PaceDreamIcons.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -853,7 +840,7 @@ private fun PricingScheduleStep(
                     leadingIcon = if (isSelected) {
                         {
                             Icon(
-                                Icons.Default.Check,
+                                PaceDreamIcons.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -882,7 +869,7 @@ private fun PricingScheduleStep(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             TextButton(onClick = onShowMoreDurations) {
                 Icon(
-                    Icons.Default.Add,
+                    PaceDreamIcons.Add,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = PaceDreamColors.Primary,
@@ -989,7 +976,7 @@ private fun ReviewStep(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        Icons.Default.CameraAlt,
+                        PaceDreamIcons.CameraAlt,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(32.dp)
@@ -1256,7 +1243,7 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Icon(
-                Icons.Default.Add,
+                PaceDreamIcons.Add,
                 contentDescription = "Add photo",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(28.dp)

@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.ErrorOutline
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -84,7 +82,7 @@ fun BookingsScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.ErrorOutline,
+                                imageVector = PaceDreamIcons.ErrorOutline,
                                 contentDescription = null,
                                 tint = PaceDreamColors.Error,
                                 modifier = Modifier.size(48.dp)
@@ -113,7 +111,7 @@ fun BookingsScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.Default.CalendarToday,
+                                imageVector = PaceDreamIcons.CalendarToday,
                                 contentDescription = null,
                                 tint = PaceDreamColors.TextSecondary,
                                 modifier = Modifier.size(48.dp)

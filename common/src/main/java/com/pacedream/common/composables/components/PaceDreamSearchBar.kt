@@ -23,8 +23,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,7 +63,7 @@ fun PaceDreamSearchBar(
         ) {
             // Search Icon
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = PaceDreamIcons.Search,
                 contentDescription = "Search",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -102,7 +101,7 @@ fun PaceDreamSearchBar(
                     enabled = isEnabled
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Mic,
+                        imageVector = PaceDreamIcons.Mic,
                         contentDescription = "Voice search",
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -117,7 +116,7 @@ fun PaceDreamSearchBar(
                     enabled = isEnabled
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FilterList,
+                        imageVector = PaceDreamIcons.FilterList,
                         contentDescription = "Filter",
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -149,7 +148,7 @@ fun CompactSearchBar(
         modifier = modifier.fillMaxWidth(),
         leadingIcon = {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = PaceDreamIcons.Search,
                 contentDescription = "Search",
                 tint = PaceDreamColors.TextSecondary
             )
@@ -157,7 +156,7 @@ fun CompactSearchBar(
         trailingIcon = {
             IconButton(onClick = onSearchClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = PaceDreamIcons.ArrowForward,
                     contentDescription = "Search",
                     tint = PaceDreamColors.Primary
                 )
@@ -225,7 +224,7 @@ fun SearchBarWithSuggestions(
                             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.History,
+                                imageVector = PaceDreamIcons.History,
                                 contentDescription = null,
                                 tint = PaceDreamColors.TextSecondary,
                                 modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -343,7 +342,7 @@ fun SearchResultItem(
             }
             
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = PaceDreamIcons.ArrowForward,
                 contentDescription = "View details",
                 tint = PaceDreamColors.TextTertiary,
                 modifier = Modifier.size(PaceDreamIconSize.SM)

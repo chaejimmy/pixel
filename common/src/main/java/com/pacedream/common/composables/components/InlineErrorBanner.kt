@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -70,7 +68,7 @@ fun InlineErrorBanner(
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
+                    imageVector = PaceDreamIcons.Warning,
                     contentDescription = null,
                     tint = PaceDreamColors.Warning,
                     modifier = Modifier.size(20.dp)
@@ -104,7 +102,7 @@ fun InlineErrorBanner(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = PaceDreamIcons.Close,
                             contentDescription = "Dismiss",
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(16.dp)
@@ -168,7 +166,7 @@ fun NetworkErrorBanner(
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
+                    imageVector = PaceDreamIcons.Warning,
                     contentDescription = null,
                     tint = PaceDreamColors.Error,
                     modifier = Modifier.size(20.dp)
