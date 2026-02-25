@@ -36,47 +36,55 @@ class DeepLinkHandler @Inject constructor(
     fun parseUri(uri: Uri): DeepLinkResult? {
         val host = uri.host?.lowercase() ?: return null
         val path = uri.path?.lowercase() ?: return null
-        
-        Timber.d("Parsing deep link: $uri")
-        
+
+        Timber.d("Parsing deep link for host: %s, path: %s", host, path)
+
         // Check if this is a PaceDream URL
         if (!host.contains("pacedream.com")) {
             return null
         }
-        
+
         return when {
             path.contains("booking-success") -> {
                 val sessionId = uri.getQueryParameter("session_id")
-                if (sessionId != null) {
+                if (sessionId != null && isValidId(sessionId)) {
                     DeepLinkResult.BookingSuccess(sessionId)
                 } else {
                     // Check stored session
                     checkStoredCheckout()
                 }
             }
-            
+
             path.contains("booking-cancelled") -> {
                 bookingRepository.handleBookingCancelled()
                 DeepLinkResult.BookingCancelled
             }
-            
+
             // Could add more deep link patterns here
             path.contains("listing") || path.contains("property") -> {
                 val listingId = uri.lastPathSegment
-                if (listingId != null) {
+                if (listingId != null && isValidId(listingId)) {
                     DeepLinkResult.ListingDetail(listingId)
                 } else null
             }
-            
+
             path.contains("gear") -> {
                 val gearId = uri.lastPathSegment
-                if (gearId != null) {
+                if (gearId != null && isValidId(gearId)) {
                     DeepLinkResult.GearDetail(gearId)
                 } else null
             }
-            
+
             else -> null
         }
+    }
+
+    /**
+     * Validate that an ID from a deep link is safe to use.
+     * Allows alphanumeric characters, hyphens, and underscores (covers UUIDs, MongoDB ObjectIds, Stripe session IDs).
+     */
+    private fun isValidId(id: String): Boolean {
+        return id.length in 1..256 && id.matches(VALID_ID_PATTERN)
     }
     
     /**
@@ -89,6 +97,10 @@ class DeepLinkHandler @Inject constructor(
         }
     }
     
+    companion object {
+        private val VALID_ID_PATTERN = Regex("^[a-zA-Z0-9_\\-]+$")
+    }
+
     /**
      * Determine booking type from stored session or context
      */

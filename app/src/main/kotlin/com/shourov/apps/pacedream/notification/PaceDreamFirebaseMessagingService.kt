@@ -1,9 +1,9 @@
 package com.shourov.apps.pacedream.notification
 
-import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -15,8 +15,8 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
         
-        Log.d("PaceDreamFCM", "From: ${remoteMessage.from}")
-        Log.d("PaceDreamFCM", "Message data payload: ${remoteMessage.data}")
+        Timber.d("FCM message received from: %s", remoteMessage.from)
+        Timber.d("FCM message type: %s", remoteMessage.data["type"] ?: "unknown")
 
         // Handle data payload
         remoteMessage.data.let { data ->
@@ -92,8 +92,8 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("PaceDreamFCM", "Refreshed token: $token")
-        
+        Timber.d("FCM token refreshed")
+
         // Send token to your server
         sendTokenToServer(token)
     }
@@ -101,6 +101,6 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     private fun sendTokenToServer(token: String) {
         // TODO: Implement token sending to your server
         // This could be done through your API service
-        Log.d("PaceDreamFCM", "Token sent to server: $token")
+        Timber.d("FCM token sent to server")
     }
 }
