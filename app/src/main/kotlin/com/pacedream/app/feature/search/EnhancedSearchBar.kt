@@ -21,14 +21,6 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Enhanced Search Bar with tabs and multi-field search
- * Matches website design: Use/Borrow/Split tabs + WHAT/WHERE/DATES fields
- */
-enum class SearchTab {
-    USE, BORROW, SPLIT
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedSearchBar(
@@ -164,18 +156,12 @@ private fun TabButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tabText = when (tab) {
-        SearchTab.USE -> "Use"
-        SearchTab.BORROW -> "Borrow"
-        SearchTab.SPLIT -> "Split"
-    }
-    
     FilterChip(
         selected = isSelected,
         onClick = onClick,
         label = {
             Text(
-                text = tabText,
+                text = tab.label,
                 style = PaceDreamTypography.Body,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
             )
