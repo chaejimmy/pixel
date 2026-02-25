@@ -85,7 +85,9 @@ fun DealsCard(
                         .clip(RoundedCornerShape(LargePadding)),
                 )
                 // Discount badge (for last-minute deals)
-                if (!roomModel.price.isNullOrEmpty() && !roomModel.price[0].discounts.isNullOrEmpty()) {
+                val priceList = roomModel.price
+                val firstPrice = priceList?.firstOrNull()
+                if (firstPrice != null && !firstPrice.discounts.isNullOrEmpty()) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
@@ -104,7 +106,7 @@ fun DealsCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = roomModel.price[0].discounts?.firstOrNull() ?: "DEAL",
+                                text = firstPrice.discounts?.firstOrNull() ?: "DEAL",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
