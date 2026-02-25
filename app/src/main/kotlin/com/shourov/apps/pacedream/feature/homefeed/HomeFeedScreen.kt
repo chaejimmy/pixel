@@ -40,7 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -78,9 +78,9 @@ fun HomeFeedScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 

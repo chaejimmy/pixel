@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.profile.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -39,7 +40,7 @@ fun ProfileTabScreen(
     isHostMode: Boolean = false
 ) {
     val viewModel: ProfileTabViewModel = hiltViewModel()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val menuSections = remember {
         listOf(

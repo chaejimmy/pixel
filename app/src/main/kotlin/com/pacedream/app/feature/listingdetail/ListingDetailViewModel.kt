@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
@@ -268,11 +270,11 @@ class ListingDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isGeocoding = true) }
             try {
                 Timber.d("Geocoding address: $address")
-                val geocoder = Geocoder(context, Locale.getDefault())
-                
-                @Suppress("DEPRECATION")
-                val results = geocoder.getFromLocationName(address, 1)
-                val first = results?.firstOrNull()
+                val first = withContext(Dispatchers.IO) {
+                    val geocoder = Geocoder(context, Locale.getDefault())
+                    @Suppress("DEPRECATION")
+                    geocoder.getFromLocationName(address, 1)?.firstOrNull()
+                }
                 if (first != null) {
                     Timber.d("Geocoding successful: lat=${first.latitude}, lng=${first.longitude}")
                     _uiState.update {

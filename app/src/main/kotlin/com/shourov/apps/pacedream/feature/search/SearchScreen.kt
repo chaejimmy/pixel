@@ -46,7 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,9 +94,9 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     var mapMode by remember { mutableStateOf(false) }
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()

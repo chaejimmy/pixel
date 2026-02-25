@@ -30,7 +30,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,7 +59,7 @@ fun StartWithEmailOrPhoneScreen(
     onAuthSuccess: () -> Unit = {},
 ) {
     val authViewModel: EmailSignInViewModel = hiltViewModel()
-    val uiState by authViewModel.uiState.collectAsState()
+    val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as Activity
 

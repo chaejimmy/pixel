@@ -25,6 +25,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -44,7 +45,7 @@ fun BookingFormScreen(
     viewModel: BookingFormViewModel = hiltViewModel(),
     onBookingCreated: (String) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(propertyId) {
         viewModel.loadProperty(propertyId)

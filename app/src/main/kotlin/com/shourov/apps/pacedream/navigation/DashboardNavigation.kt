@@ -17,7 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -452,7 +452,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 route = DashboardDestination.PROFILE.name
                             ) {
                                 composable("profile_root") {
-                                val isHostMode by hostModeManager.isHostMode.collectAsState()
+                                val isHostMode by hostModeManager.isHostMode.collectAsStateWithLifecycle()
                                     var showAuthSheet by remember { mutableStateOf(false) }
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 ProfileTabScreen(
@@ -537,7 +537,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         showAuthSheet = true
                                     },
                                     onNavigateToInbox = {
-                                        navigateToTab(navController, DashboardDestination.MESSAGES.name)
+                                        navigateToTab(navController, DashboardDestination.INBOX.name)
                                     },
                                     onNavigateToCheckout = { draft ->
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
