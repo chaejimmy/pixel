@@ -51,7 +51,8 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
-import com.shourov.apps.pacedream.feature.propertydetail.PropertyDetailScreen
+import com.pacedream.app.feature.listingdetail.ListingDetailRoute
+import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
@@ -517,7 +518,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
-                            // Property Detail Screen
+                            // Property Detail Screen – replaced with new ListingDetailRoute
                             composable(
                                 route = "${PropertyDestination.DETAIL.name}/{propertyId}",
                                 arguments = listOf(
@@ -527,21 +528,24 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             ) { backStackEntry ->
                                 val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
-                                val authGate = hiltViewModel<AuthGateViewModel>()
-                                val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
-                                PropertyDetailScreen(
-                                    propertyId = propertyId,
+
+                                ListingDetailRoute(
+                                    listingId = propertyId,
                                     onBackClick = { navController.popBackStack() },
-                                    onBookClick = { 
-                                        if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
-                                            showAuthSheet = true
-                                        } else {
-                                            navController.navigate("${BookingDestination.BOOKING_FORM.name}/$propertyId")
-                                        }
+                                    onLoginRequired = {
+                                        showAuthSheet = true
                                     },
-                                    onShareClick = { /* Handle share */ },
-                                    onShowAuthSheet = { showAuthSheet = true }
+                                    onNavigateToInbox = {
+                                        navigateToTab(navController, DashboardDestination.MESSAGES.name)
+                                    },
+                                    onNavigateToCheckout = { draft ->
+                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                            "booking_draft_json_${draft.listingId}",
+                                            BookingDraftCodec.encode(draft)
+                                        )
+                                        navController.navigate("${BookingDestination.BOOKING_FORM.name}/${draft.listingId}")
+                                    }
                                 )
 
                                 if (showAuthSheet) {

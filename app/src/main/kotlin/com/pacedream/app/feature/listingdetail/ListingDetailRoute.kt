@@ -2,17 +2,11 @@ package com.pacedream.app.feature.listingdetail
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,39 +51,28 @@ fun ListingDetailRoute(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            ListingDetailScreen(
-                uiState = uiState,
-                onBackClick = onBackClick,
-                onRetry = { viewModel.refresh() },
-                onToggleFavorite = { viewModel.toggleFavorite() },
-                onShare = { viewModel.share() },
-                onContactHost = {
-                    // Spec: unauth → route to Inbox tab + show Auth sheet.
-                    if (!viewModel.isAuthenticated()) {
-                        onNavigateToInbox()
-                        onLoginRequired()
-                    } else {
-                        onNavigateToInbox()
-                    }
-                },
-                onOpenInMaps = { viewModel.openInMaps() },
-                onConfirmReserve = { draft ->
-                    onNavigateToCheckout(draft)
-                },
-                onSubmitReview = { rating, comment, catRatings ->
-                    viewModel.submitReview(rating, comment, catRatings)
-                },
-                onLoadReviews = { viewModel.loadReviews() }
-            )
-        }
-    }
+    ListingDetailScreen(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onBackClick = onBackClick,
+        onRetry = { viewModel.refresh() },
+        onToggleFavorite = { viewModel.toggleFavorite() },
+        onShare = { viewModel.share() },
+        onContactHost = {
+            if (!viewModel.isAuthenticated()) {
+                onNavigateToInbox()
+                onLoginRequired()
+            } else {
+                onNavigateToInbox()
+            }
+        },
+        onOpenInMaps = { viewModel.openInMaps() },
+        onConfirmReserve = { draft ->
+            onNavigateToCheckout(draft)
+        },
+        onSubmitReview = { rating, comment, catRatings ->
+            viewModel.submitReview(rating, comment, catRatings)
+        },
+        onLoadReviews = { viewModel.loadReviews() }
+    )
 }
-

@@ -67,7 +67,7 @@ class ListingDetailViewModel @Inject constructor(
         }
 
         refresh()
-        loadReviews()
+        // Reviews are lazy-loaded only when user opens the reviews sheet (iOS parity)
     }
 
     fun refresh() {
