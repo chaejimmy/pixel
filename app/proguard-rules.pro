@@ -17,3 +17,46 @@
 # kept. Suspend functions are wrapped in continuations where the type argument
 # is used.
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# ── kotlinx.serialization ────────────────────────────────────────────────────
+# R8 full mode strips @Serializable metadata; keep the serializer and companion
+# objects so that Json.decodeFromString / encodeToString work in release builds.
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault
+
+# Keep @Serializable classes and their generated serializers
+-if @kotlinx.serialization.Serializable class **
+-keepclassmembers class <1> {
+    static <1>$Companion Companion;
+}
+
+-if @kotlinx.serialization.Serializable class ** {
+    static **$Companion Companion;
+}
+-keepclassmembers class <2>$Companion {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep `INSTANCE.serializer()` of serializable objects
+-if @kotlinx.serialization.Serializable class ** {
+    public static ** INSTANCE;
+}
+-keepclassmembers class <1> {
+    public static <1> INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep generated serializers referenced by name
+-keepnames class <1>$$serializer {
+    static <1>$$serializer INSTANCE;
+}
+
+# ── Moshi (used by core:model response types) ────────────────────────────────
+-keep,allowobfuscation,allowshrinking class com.squareup.moshi.JsonAdapter
+
+# ── Auth0 SDK ────────────────────────────────────────────────────────────────
+-keep class com.auth0.** { *; }
+-dontwarn com.auth0.**
+
+# ── Stripe SDK ───────────────────────────────────────────────────────────────
+-keep class com.stripe.android.** { *; }
+-dontwarn com.stripe.android.**

@@ -1,16 +1,20 @@
 package com.shourov.apps.pacedream.notification
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.shourov.apps.pacedream.MainActivity
 import com.shourov.apps.pacedream.R
 import dagger.hilt.android.qualifiers.ApplicationContext
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +26,7 @@ class PaceDreamNotificationService @Inject constructor(
         const val CHANNEL_ID_MESSAGES = "messages"
         const val CHANNEL_ID_BOOKINGS = "bookings"
         const val CHANNEL_ID_GENERAL = "general"
-        
+
         const val NOTIFICATION_ID_MESSAGE = 1000
         const val NOTIFICATION_ID_BOOKING = 2000
         const val NOTIFICATION_ID_GENERAL = 3000
@@ -72,12 +76,32 @@ class PaceDreamNotificationService @Inject constructor(
         }
     }
 
+    /**
+     * Check if POST_NOTIFICATIONS permission is granted (required on Android 13+).
+     * On older API levels this always returns true.
+     */
+    private fun hasNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
     fun showMessageNotification(
         chatId: String,
         senderName: String,
         message: String,
         chatName: String? = null
     ) {
+        if (!hasNotificationPermission()) {
+            Timber.w("POST_NOTIFICATIONS permission not granted; dropping message notification")
+            return
+        }
+
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("chat_id", chatId)
@@ -111,6 +135,11 @@ class PaceDreamNotificationService @Inject constructor(
         message: String,
         propertyName: String
     ) {
+        if (!hasNotificationPermission()) {
+            Timber.w("POST_NOTIFICATIONS permission not granted; dropping booking notification")
+            return
+        }
+
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("booking_id", bookingId)
@@ -143,6 +172,11 @@ class PaceDreamNotificationService @Inject constructor(
         message: String,
         actionIntent: Intent? = null
     ) {
+        if (!hasNotificationPermission()) {
+            Timber.w("POST_NOTIFICATIONS permission not granted; dropping general notification")
+            return
+        }
+
         val intent = actionIntent ?: Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
