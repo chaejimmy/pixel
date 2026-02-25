@@ -42,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -99,6 +101,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ListingDetailScreen(
     uiState: ListingDetailUiState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onToggleFavorite: () -> Unit,
@@ -119,6 +122,7 @@ fun ListingDetailScreen(
     val listing = uiState.listing
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
@@ -364,6 +368,9 @@ fun ListingDetailScreen(
         }
 
         if (showReviewsSheet) {
+            // Lazy-load reviews when sheet is opened (iOS parity)
+            androidx.compose.runtime.LaunchedEffect(Unit) { onLoadReviews() }
+
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showReviewsSheet = false },
