@@ -21,8 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -135,7 +134,7 @@ fun EnhancedDashboardHeader(
                             .background(Color.White.copy(alpha = 0.2f))
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Notifications,
+                            imageVector = PaceDreamIcons.Notifications,
                             contentDescription = "Notifications",
                             tint = Color.White,
                             modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -187,7 +186,7 @@ fun EnhancedDashboardHeader(
                             .background(Color.White.copy(alpha = 0.2f), CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.FilterList,
+                            imageVector = PaceDreamIcons.FilterList,
                             contentDescription = "Filter",
                             tint = Color.White,
                             modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -240,7 +239,7 @@ fun CompactDashboardHeader(
                     modifier = Modifier.size(PaceDreamButtonHeight.MD)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        imageVector = PaceDreamIcons.Search,
                         contentDescription = "Search",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -252,7 +251,7 @@ fun CompactDashboardHeader(
                     modifier = Modifier.size(PaceDreamButtonHeight.MD)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Notifications,
+                        imageVector = PaceDreamIcons.Notifications,
                         contentDescription = "Notifications",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -297,7 +296,7 @@ fun MinimalDashboardHeader(
                     modifier = Modifier.size(PaceDreamButtonHeight.MD)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Back",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -331,7 +330,7 @@ fun MinimalDashboardHeader(
                     modifier = Modifier.size(PaceDreamButtonHeight.MD)
                 ) {
                     actionIcon?.invoke() ?: Icon(
-                        imageVector = Icons.Default.MoreVert,
+                        imageVector = PaceDreamIcons.MoreVert,
                         contentDescription = "More",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.MD)

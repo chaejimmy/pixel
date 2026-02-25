@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -112,7 +111,7 @@ fun InboxTabScreen(
                     .background(PaceDreamColors.Primary)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = PaceDreamIcons.Add,
                     contentDescription = "New Message",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -136,7 +135,7 @@ fun InboxTabScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Search,
+                    imageVector = PaceDreamIcons.Search,
                     contentDescription = "Search",
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(20.dp)
@@ -157,7 +156,7 @@ fun InboxTabScreen(
         // Chats List
         if (chats.isEmpty()) {
             PaceDreamEmptyState(
-                icon = Icons.Default.Message,
+                icon = PaceDreamIcons.Message,
                 title = "No messages yet",
                 subtitle = "Start a conversation with your guests or hosts",
                 actionText = "Start Chatting",

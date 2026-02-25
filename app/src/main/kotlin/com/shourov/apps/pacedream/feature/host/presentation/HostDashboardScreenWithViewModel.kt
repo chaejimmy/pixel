@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -147,7 +146,7 @@ private fun HostHeader(
                 
                 IconButton(onClick = onProfileClick) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = PaceDreamIcons.Person,
                         contentDescription = "Profile",
                         tint = PaceDreamColors.Primary
                     )
@@ -163,13 +162,13 @@ private fun HostHeader(
                 QuickStatCard(
                     title = "Total Earnings",
                     value = "$${String.format("%.0f", totalEarnings)}",
-                    icon = Icons.Default.AttachMoney,
+                    icon = PaceDreamIcons.AttachMoney,
                     color = PaceDreamColors.Success
                 )
                 QuickStatCard(
                     title = "Active Listings",
                     value = activeListings.toString(),
-                    icon = Icons.Default.Home,
+                    icon = PaceDreamIcons.Home,
                     color = PaceDreamColors.Primary
                 )
             }
@@ -201,21 +200,21 @@ private fun QuickActionsSection(
             item {
                 QuickActionCard(
                     title = "Add Listing",
-                    icon = Icons.Default.AddHome,
+                    icon = PaceDreamIcons.AddHome,
                     onClick = onAddListingClick
                 )
             }
             item {
                 QuickActionCard(
                     title = "Earnings",
-                    icon = Icons.Default.AttachMoney,
+                    icon = PaceDreamIcons.AttachMoney,
                     onClick = onEarningsClick
                 )
             }
             item {
                 QuickActionCard(
                     title = "Analytics",
-                    icon = Icons.Default.Analytics,
+                    icon = PaceDreamIcons.Analytics,
                     onClick = onAnalyticsClick
                 )
             }
@@ -287,14 +286,14 @@ private fun PerformanceMetricsSectionVM(
             PerformanceMetricCard(
                 title = "Total Earnings",
                 value = "$${String.format("%.0f", totalEarnings)}",
-                icon = Icons.Default.AttachMoney,
+                icon = PaceDreamIcons.AttachMoney,
                 color = PaceDreamColors.Success,
                 modifier = Modifier.weight(1f)
             )
             PerformanceMetricCard(
                 title = "Total Bookings",
                 value = totalBookings.toString(),
-                icon = Icons.Default.CalendarMonth,
+                icon = PaceDreamIcons.Calendar,
                 color = PaceDreamColors.Primary,
                 modifier = Modifier.weight(1f)
             )
@@ -309,14 +308,14 @@ private fun PerformanceMetricsSectionVM(
             PerformanceMetricCard(
                 title = "Occupancy Rate",
                 value = "${String.format("%.0f", occupancyRate)}%",
-                icon = Icons.Default.TrendingUp,
+                icon = PaceDreamIcons.TrendingUp,
                 color = PaceDreamColors.Warning,
                 modifier = Modifier.weight(1f)
             )
             PerformanceMetricCard(
                 title = "Average Rating",
                 value = String.format("%.1f", averageRating),
-                icon = Icons.Default.Star,
+                icon = PaceDreamIcons.Star,
                 color = PaceDreamColors.Info,
                 modifier = Modifier.weight(1f)
             )

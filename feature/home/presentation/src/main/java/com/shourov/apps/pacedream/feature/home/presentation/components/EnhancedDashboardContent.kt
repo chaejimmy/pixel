@@ -22,18 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.ElectricCar
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.LocalParking
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Bed
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -82,7 +71,7 @@ fun SectionWarningBanner(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Icon(
-                imageVector = Icons.Default.Warning,
+                imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
                 tint = PaceDreamWarning,
                 modifier = Modifier.size(20.dp)
@@ -144,19 +133,19 @@ fun EnhancedDashboardContent(
                 PaceDreamMetricCard(
                     title = "Available Rooms",
                     value = if (roomsState.loading) "—" else roomCount.toString(),
-                    icon = Icons.Default.Home,
+                    icon = PaceDreamIcons.Home,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
                     title = "Rent Gear",
                     value = if (gearsState.loading) "—" else gearCount.toString(),
-                    icon = Icons.Default.ShoppingBag,
+                    icon = PaceDreamIcons.ShoppingBag,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
                     title = "Split Stays",
                     value = if (splitStaysState.loading) "—" else splitCount.toString(),
-                    icon = Icons.Default.People,
+                    icon = PaceDreamIcons.People,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -252,11 +241,11 @@ fun EnhancedDashboardContent(
                     PaceDreamCategoryPill(
                         title = category.title,
                         icon = when (category.title) {
-                            stringResource(R.string.feature_home_rest_room) -> Icons.Default.Bed
-                            stringResource(R.string.feature_home_ev_parking) -> Icons.Default.ElectricCar
-                            stringResource(R.string.feature_home_storage_room) -> Icons.Default.Storage
-                            stringResource(R.string.feature_home_parking_spot) -> Icons.Default.LocalParking
-                            else -> Icons.Default.Category
+                            stringResource(R.string.feature_home_rest_room) -> PaceDreamIcons.Bed
+                            stringResource(R.string.feature_home_ev_parking) -> PaceDreamIcons.ElectricCar
+                            stringResource(R.string.feature_home_storage_room) -> PaceDreamIcons.Storage
+                            stringResource(R.string.feature_home_parking_spot) -> PaceDreamIcons.LocalParking
+                            else -> PaceDreamIcons.Category
                         },
                         isSelected = false,
                         onClick = { onCategoryClick(category.title) }
@@ -353,7 +342,7 @@ fun EnhancedDashboardContent(
                 PaceDreamEmptyState(
                     title = "No Deals Right Now",
                     description = "Check back later for last-minute deals on available spaces.",
-                    icon = Icons.Default.LocalOffer
+                    icon = PaceDreamIcons.LocalOffer
                 )
             }
         }
@@ -413,7 +402,7 @@ fun EnhancedDashboardContent(
                 PaceDreamEmptyState(
                     title = "No Roommate Listings",
                     description = "Be the first to post a roommate listing, or check back later.",
-                    icon = Icons.Default.People
+                    icon = PaceDreamIcons.People
                 )
             }
         }
@@ -503,7 +492,7 @@ fun EnhancedDashboardContent(
                 PaceDreamEmptyState(
                     title = "No Properties Found",
                     description = "Try adjusting your search criteria or check back later.",
-                    icon = Icons.Default.Search
+                    icon = PaceDreamIcons.Search
                 )
             } else if (roomsState.rooms.isNotEmpty()) {
                 LazyRow(
@@ -609,7 +598,7 @@ fun EnhancedDashboardContent(
                 PaceDreamEmptyState(
                     title = "No Gear Available",
                     description = "Check back later for available rental gear.",
-                    icon = Icons.Default.ShoppingBag
+                    icon = PaceDreamIcons.ShoppingBag
                 )
             } else if (gearsState.rentedGears.isNotEmpty()) {
                 LazyRow(
@@ -669,7 +658,7 @@ fun EnhancedDashboardContent(
                 PaceDreamEmptyState(
                     title = "No Split Stays Available",
                     description = "Check back later for shared accommodation options.",
-                    icon = Icons.Default.People
+                    icon = PaceDreamIcons.People
                 )
             } else if (splitStaysState.splitStays.isNotEmpty()) {
                 LazyRow(

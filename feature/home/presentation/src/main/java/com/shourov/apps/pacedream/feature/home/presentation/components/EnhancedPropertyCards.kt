@@ -21,8 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -157,7 +156,7 @@ fun EnhancedPropertyCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = PaceDreamIcons.Image,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(40.dp)
@@ -177,7 +176,7 @@ fun EnhancedPropertyCard(
                         )
                 ) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                         contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                         tint = if (isFavorite) PaceDreamColors.Error else PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -228,7 +227,7 @@ fun EnhancedPropertyCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -253,7 +252,7 @@ fun EnhancedPropertyCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = PaceDreamIcons.Star,
                         contentDescription = null,
                         tint = PaceDreamColors.Warning,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -293,7 +292,7 @@ fun EnhancedPropertyCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.LocalHotel,
+                            imageVector = PaceDreamIcons.LocalHotel,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -358,7 +357,7 @@ fun CompactPropertyCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Image,
+                        imageVector = PaceDreamIcons.Image,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(28.dp)
@@ -408,7 +407,7 @@ fun CompactPropertyCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = PaceDreamColors.Warning,
                             modifier = Modifier.size(12.dp)
@@ -460,7 +459,7 @@ fun PropertyImageCarousel(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Image,
+                    imageVector = PaceDreamIcons.Image,
                     contentDescription = null,
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(40.dp)
@@ -504,7 +503,7 @@ fun PropertyImageCarousel(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Previous image",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -520,7 +519,7 @@ fun PropertyImageCarousel(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = PaceDreamIcons.ArrowForward,
                         contentDescription = "Next image",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.SM)

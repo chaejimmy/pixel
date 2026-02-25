@@ -7,8 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -141,7 +140,7 @@ private fun HostHeader(
                 QuickStatCard(
                     title = "Total Earnings",
                     value = "$${String.format("%.0f", totalEarnings)}",
-                    icon = Icons.Default.AttachMoney,
+                    icon = PaceDreamIcons.AttachMoney,
                     color = Color.White,
                     modifier = Modifier.weight(1f)
                 )
@@ -149,7 +148,7 @@ private fun HostHeader(
                 QuickStatCard(
                     title = "Active Listings",
                     value = activeListings.toString(),
-                    icon = Icons.Default.Home,
+                    icon = PaceDreamIcons.Home,
                     color = Color.White,
                     modifier = Modifier.weight(1f)
                 )
@@ -224,7 +223,7 @@ fun QuickActionsGrid(
         ) {
             item {
                 QuickActionCard(
-                    icon = Icons.Default.Add,
+                    icon = PaceDreamIcons.Add,
                     title = "Add Listing",
                     subtitle = "List your space",
                     onClick = onAddListing
@@ -232,7 +231,7 @@ fun QuickActionsGrid(
             }
             item {
                 QuickActionCard(
-                    icon = Icons.Default.Analytics,
+                    icon = PaceDreamIcons.Analytics,
                     title = "Analytics",
                     subtitle = "View insights",
                     onClick = onViewAnalytics
@@ -240,7 +239,7 @@ fun QuickActionsGrid(
             }
             item {
                 QuickActionCard(
-                    icon = Icons.Default.CalendarToday,
+                    icon = PaceDreamIcons.CalendarToday,
                     title = "Calendar",
                     subtitle = "Manage availability",
                     onClick = onManageCalendar
@@ -248,7 +247,7 @@ fun QuickActionsGrid(
             }
             item {
                 QuickActionCard(
-                    icon = Icons.Default.AttachMoney,
+                    icon = PaceDreamIcons.AttachMoney,
                     title = "Earnings",
                     subtitle = "Track income",
                     onClick = onViewEarnings
@@ -406,7 +405,7 @@ fun PerformanceMetricCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                    imageVector = if (isPositive) PaceDreamIcons.TrendingUp else PaceDreamIcons.TrendingDown,
                     contentDescription = "Trend",
                     tint = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
                     modifier = Modifier.size(12.dp)
@@ -467,7 +466,7 @@ private fun RecentBookingsSection(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CalendarToday,
+                        imageVector = PaceDreamIcons.CalendarToday,
                         contentDescription = "No bookings",
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(48.dp)
@@ -519,7 +518,7 @@ fun HostBookingPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = PaceDreamIcons.Person,
                     contentDescription = "Guest",
                     tint = PaceDreamColors.Primary,
                     modifier = Modifier.size(20.dp)
@@ -597,7 +596,7 @@ private fun MyListingsSection(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        imageVector = PaceDreamIcons.Home,
                         contentDescription = "No listings",
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(48.dp)
@@ -659,7 +658,7 @@ fun HostListingPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = PaceDreamIcons.Home,
                     contentDescription = "Property",
                     tint = PaceDreamColors.Primary,
                     modifier = Modifier.size(40.dp)

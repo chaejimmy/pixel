@@ -20,10 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.List
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -74,7 +71,7 @@ fun CollectionsScreen(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
-                    Icons.Default.List,
+                    PaceDreamIcons.ListIcon,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -111,7 +108,7 @@ fun CollectionsScreen(
             FloatingActionButton(
                 onClick = { showCreateSheet = true }
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Create List")
+                Icon(PaceDreamIcons.Add, contentDescription = "Create List")
             }
         }
     ) { padding ->
@@ -164,7 +161,7 @@ fun CollectionsScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.List,
+                            PaceDreamIcons.ListIcon,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -182,7 +179,7 @@ fun CollectionsScreen(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(onClick = { showCreateSheet = true }) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(PaceDreamIcons.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Create Your First List")
                         }
@@ -268,7 +265,7 @@ private fun CollectionCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.List,
+                            PaceDreamIcons.ListIcon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(28.dp)
@@ -306,7 +303,7 @@ private fun CollectionCard(
 
             IconButton(onClick = onDelete) {
                 Icon(
-                    Icons.Default.Delete,
+                    PaceDreamIcons.Delete,
                     contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                 )
@@ -462,7 +459,7 @@ fun AddToCollectionSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.List,
+                                PaceDreamIcons.ListIcon,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.primary
@@ -490,7 +487,7 @@ fun AddToCollectionSheet(
                 onClick = onCreateNew,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(PaceDreamIcons.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Create New List")
             }

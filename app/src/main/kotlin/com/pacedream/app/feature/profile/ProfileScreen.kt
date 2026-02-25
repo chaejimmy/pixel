@@ -6,11 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -104,7 +100,7 @@ fun ProfileScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         ProfileMenuItem(
-                            icon = Icons.Default.VerifiedUser,
+                            icon = PaceDreamIcons.VerifiedUser,
                             title = "Identity Verification",
                             subtitle = "Verify your identity for a trusted experience",
                             onClick = onIdentityVerificationClick
@@ -120,7 +116,7 @@ fun ProfileScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         ProfileMenuItem(
-                            icon = Icons.Default.List,
+                            icon = PaceDreamIcons.ListIcon,
                             title = "My Lists",
                             subtitle = "Create and manage your curated lists",
                             onClick = onMyListsClick
@@ -157,7 +153,7 @@ private fun LoggedOutSection(onLoginClick: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Person,
+                imageVector = PaceDreamIcons.Person,
                 contentDescription = "Profile",
                 modifier = Modifier.size(48.dp),
                 tint = PaceDreamColors.TextSecondary
@@ -237,7 +233,7 @@ private fun UserProfileHeader(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = PaceDreamIcons.Person,
                         contentDescription = userName,
                         modifier = Modifier.size(36.dp),
                         tint = PaceDreamColors.TextSecondary
@@ -266,7 +262,7 @@ private fun UserProfileHeader(
 
             IconButton(onClick = onEditClick) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
+                    imageVector = PaceDreamIcons.Edit,
                     contentDescription = "Edit profile",
                     tint = PaceDreamColors.Primary
                 )
@@ -330,7 +326,7 @@ private fun HostModeCard(
                     ),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Icon(Icons.Default.Home, contentDescription = null)
+                    Icon(PaceDreamIcons.Home, contentDescription = null)
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text("Go to Host Dashboard", style = PaceDreamTypography.Button)
                 }
@@ -354,7 +350,7 @@ private fun ProfileMenuSection(
     ) {
         Column {
             ProfileMenuItem(
-                icon = Icons.Default.Settings,
+                icon = PaceDreamIcons.Settings,
                 title = "Settings",
                 subtitle = "Account preferences and privacy",
                 onClick = onSettingsClick
@@ -363,7 +359,7 @@ private fun ProfileMenuSection(
             HorizontalDivider(color = PaceDreamColors.Border)
 
             ProfileMenuItem(
-                icon = Icons.AutoMirrored.Filled.Help,
+                icon = PaceDreamIcons.Help,
                 title = "Help & Support",
                 subtitle = "Get help with your account",
                 onClick = onHelpClick
@@ -372,7 +368,7 @@ private fun ProfileMenuSection(
             HorizontalDivider(color = PaceDreamColors.Border)
 
             ProfileMenuItem(
-                icon = Icons.Default.Info,
+                icon = PaceDreamIcons.Info,
                 title = "About",
                 subtitle = "App information and legal",
                 onClick = onAboutClick
@@ -381,7 +377,7 @@ private fun ProfileMenuSection(
             HorizontalDivider(color = PaceDreamColors.Border)
 
             ProfileMenuItem(
-                icon = Icons.AutoMirrored.Filled.Logout,
+                icon = PaceDreamIcons.Logout,
                 title = "Sign Out",
                 onClick = onLogoutClick,
                 tint = PaceDreamColors.Error
@@ -430,7 +426,7 @@ private fun ProfileMenuItem(
         }
 
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            imageVector = PaceDreamIcons.ArrowForward,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
             modifier = Modifier.size(18.dp)

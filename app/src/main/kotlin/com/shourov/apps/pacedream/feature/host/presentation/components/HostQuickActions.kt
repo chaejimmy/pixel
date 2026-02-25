@@ -5,8 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -136,7 +135,7 @@ fun HostActionGrid(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             HostActionButton(
-                icon = Icons.Default.Add,
+                icon = PaceDreamIcons.Add,
                 title = "Add Listing",
                 subtitle = "List your space",
                 onClick = onAddListing,
@@ -144,7 +143,7 @@ fun HostActionGrid(
             )
             
             HostActionButton(
-                icon = Icons.Default.Analytics,
+                icon = PaceDreamIcons.Analytics,
                 title = "Analytics",
                 subtitle = "View insights",
                 onClick = onViewAnalytics,
@@ -160,7 +159,7 @@ fun HostActionGrid(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             HostActionButton(
-                icon = Icons.Default.CalendarToday,
+                icon = PaceDreamIcons.CalendarToday,
                 title = "Calendar",
                 subtitle = "Manage availability",
                 onClick = onManageCalendar,
@@ -168,7 +167,7 @@ fun HostActionGrid(
             )
             
             HostActionButton(
-                icon = Icons.Default.AttachMoney,
+                icon = PaceDreamIcons.AttachMoney,
                 title = "Earnings",
                 subtitle = "Track income",
                 onClick = onViewEarnings,
@@ -184,7 +183,7 @@ fun HostActionGrid(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             HostActionButton(
-                icon = Icons.Default.CalendarMonth,
+                icon = PaceDreamIcons.Calendar,
                 title = "Bookings",
                 subtitle = "Manage reservations",
                 onClick = onViewBookings,
@@ -192,7 +191,7 @@ fun HostActionGrid(
             )
             
             HostActionButton(
-                icon = Icons.Default.Home,
+                icon = PaceDreamIcons.Home,
                 title = "Listings",
                 subtitle = "Manage properties",
                 onClick = onViewListings,
@@ -260,25 +259,25 @@ private data class QuickAction(
 private fun getQuickActions(): List<QuickAction> {
     return listOf(
         QuickAction(
-            icon = Icons.Default.Add,
+            icon = PaceDreamIcons.Add,
             title = "Add Listing",
             subtitle = "List your space",
             onClick = {}
         ),
         QuickAction(
-            icon = Icons.Default.Analytics,
+            icon = PaceDreamIcons.Analytics,
             title = "Analytics",
             subtitle = "View insights",
             onClick = {}
         ),
         QuickAction(
-            icon = Icons.Default.CalendarToday,
+            icon = PaceDreamIcons.CalendarToday,
             title = "Calendar",
             subtitle = "Manage availability",
             onClick = {}
         ),
         QuickAction(
-            icon = Icons.Default.AttachMoney,
+            icon = PaceDreamIcons.AttachMoney,
             title = "Earnings",
             subtitle = "Track income",
             onClick = {}

@@ -23,8 +23,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,7 +47,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.R
 import com.pacedream.common.composables.texts.TextFieldError
-import com.pacedream.common.icon.PaceDreamIcons
 
 enum class InputType {
     TEXT,
@@ -134,7 +132,7 @@ fun CustomInputField(
                 ) {
                     IconButton(onClick = onClear) {
                         Icon(
-                            imageVector = Icons.Filled.Clear,
+                            imageVector = PaceDreamIcons.Clear,
                             contentDescription = "clear text",
                             modifier = Modifier.size(24.dp),
                         )

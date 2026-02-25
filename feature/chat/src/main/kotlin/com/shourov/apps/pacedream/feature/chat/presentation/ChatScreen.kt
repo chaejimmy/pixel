@@ -23,8 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -101,7 +100,7 @@ private fun ChatHeader(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -135,7 +134,7 @@ private fun ChatHeader(
             
             IconButton(onClick = { /* Handle call */ }) {
                 Icon(
-                    imageVector = Icons.Default.Call,
+                    imageVector = PaceDreamIcons.Call,
                     contentDescription = "Call",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -143,7 +142,7 @@ private fun ChatHeader(
             
             IconButton(onClick = { /* Handle video call */ }) {
                 Icon(
-                    imageVector = Icons.Default.Videocam,
+                    imageVector = PaceDreamIcons.Videocam,
                     contentDescription = "Video call",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -284,7 +283,7 @@ private fun MessageInput(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = PaceDreamIcons.Send,
                         contentDescription = "Send message"
                     )
                 }

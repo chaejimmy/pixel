@@ -20,8 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -130,7 +129,7 @@ fun PaceDreamPropertyImage(
                     .padding(PaceDreamSpacing.SM)
             ) {
                 Icon(
-                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                     contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                     tint = Color.White,
                     modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -213,7 +212,7 @@ fun PaceDreamImagePlaceholder(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Image,
+            imageVector = PaceDreamIcons.Image,
             contentDescription = "Loading image",
             tint = PaceDreamColors.OnSurfaceVariant,
             modifier = Modifier.size(PaceDreamIconSize.LG)
@@ -235,7 +234,7 @@ fun PaceDreamImageError(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Error,
+                imageVector = PaceDreamIcons.Error,
                 contentDescription = "Error loading image",
                 tint = PaceDreamColors.OnErrorContainer,
                 modifier = Modifier.size(PaceDreamIconSize.MD)
@@ -260,7 +259,7 @@ fun PaceDreamAvatarPlaceholder(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Person,
+            imageVector = PaceDreamIcons.Person,
             contentDescription = "User avatar",
             tint = PaceDreamColors.OnSurfaceVariant,
             modifier = Modifier.size(PaceDreamIconSize.MD)

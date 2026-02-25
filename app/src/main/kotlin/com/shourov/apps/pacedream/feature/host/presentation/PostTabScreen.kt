@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,7 +90,7 @@ fun PostTabScreen(
                 ) {
                     item {
                         QuickActionCard(
-                            icon = Icons.Default.Add,
+                            icon = PaceDreamIcons.Add,
                             title = "Add Property",
                             subtitle = "List your space",
                             onClick = onAddPropertyClick
@@ -99,7 +98,7 @@ fun PostTabScreen(
                     }
                     item {
                         QuickActionCard(
-                            icon = Icons.Default.Analytics,
+                            icon = PaceDreamIcons.Analytics,
                             title = "Analytics",
                             subtitle = "View insights",
                             onClick = onAnalyticsClick
@@ -107,7 +106,7 @@ fun PostTabScreen(
                     }
                     item {
                         QuickActionCard(
-                            icon = Icons.Default.AttachMoney,
+                            icon = PaceDreamIcons.AttachMoney,
                             title = "Earnings",
                             subtitle = "Track income",
                             onClick = onEarningsClick
@@ -299,7 +298,7 @@ fun HostStatCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                    imageVector = if (isPositive) PaceDreamIcons.TrendingUp else PaceDreamIcons.TrendingDown,
                     contentDescription = "Trend",
                     tint = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
                     modifier = Modifier.size(12.dp)
@@ -344,7 +343,7 @@ fun RecentBookingCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = PaceDreamIcons.Home,
                     contentDescription = "Property",
                     tint = PaceDreamColors.Primary,
                     modifier = Modifier.size(20.dp)

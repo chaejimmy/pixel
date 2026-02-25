@@ -2,8 +2,7 @@ package com.shourov.apps.pacedream.feature.host.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,7 +30,7 @@ fun HostAnalyticsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back",
                             tint = PaceDreamColors.TextPrimary
                         )

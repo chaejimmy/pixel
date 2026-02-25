@@ -3,12 +3,7 @@ package com.pacedream.app.feature.about
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.Description
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,7 +39,7 @@ fun AboutUsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -172,25 +167,25 @@ fun AboutUsScreen(
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                         AboutLinkItem(
-                            icon = Icons.Default.Language,
+                            icon = PaceDreamIcons.Language,
                             title = "Website",
                             onClick = { uriHandler.openUri("https://www.pacedream.com") }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
-                            icon = Icons.Default.Description,
+                            icon = PaceDreamIcons.Description,
                             title = "Terms of Service",
                             onClick = { uriHandler.openUri("https://www.pacedream.com/terms") }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
-                            icon = Icons.Default.Policy,
+                            icon = PaceDreamIcons.Policy,
                             title = "Privacy Policy",
                             onClick = { uriHandler.openUri("https://www.pacedream.com/privacy") }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
-                            icon = Icons.Default.Email,
+                            icon = PaceDreamIcons.Email,
                             title = "Contact Us",
                             onClick = { uriHandler.openUri("mailto:support@pacedream.com") }
                         )

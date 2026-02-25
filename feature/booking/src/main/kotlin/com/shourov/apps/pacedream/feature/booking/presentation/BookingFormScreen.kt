@@ -21,8 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -245,7 +244,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
+                        Icon(PaceDreamIcons.CalendarToday, contentDescription = "Select date")
                     }
                 )
                 
@@ -256,7 +255,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
+                        Icon(PaceDreamIcons.CalendarToday, contentDescription = "Select date")
                     }
                 )
             }
@@ -275,7 +274,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.AccessTime, contentDescription = "Select time")
+                        Icon(PaceDreamIcons.AccessTime, contentDescription = "Select time")
                     }
                 )
                 
@@ -286,7 +285,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.AccessTime, contentDescription = "Select time")
+                        Icon(PaceDreamIcons.AccessTime, contentDescription = "Select time")
                     }
                 )
             }

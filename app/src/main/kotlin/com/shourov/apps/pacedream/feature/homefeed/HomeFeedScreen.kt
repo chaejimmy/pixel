@@ -26,11 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -260,7 +256,7 @@ private fun Header(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        imageVector = PaceDreamIcons.PlayArrow,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -299,7 +295,7 @@ private fun HomeSearchPill(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = PaceDreamIcons.Search,
                 contentDescription = "Search",
                 tint = PaceDreamColors.Primary,
                 modifier = Modifier.size(20.dp)
@@ -384,7 +380,7 @@ private fun ListingCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary
                         )
@@ -407,7 +403,7 @@ private fun ListingCard(
                         label = "favorite_toggle"
                     ) { favored ->
                         Icon(
-                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
                             tint = if (favored) PaceDreamColors.Error else Color.White
                         )
@@ -546,7 +542,7 @@ private fun EmptyInline(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+            Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
             Text(
                 message,
                 style = PaceDreamTypography.Body,

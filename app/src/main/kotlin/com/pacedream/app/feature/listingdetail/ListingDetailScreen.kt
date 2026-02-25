@@ -24,13 +24,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -73,18 +67,6 @@ import com.google.android.gms.maps.model.CameraPosition
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Bed
-import androidx.compose.material.icons.filled.Bathtub
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Rule
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
@@ -658,7 +640,7 @@ private fun BookingBar(
                 modifier = Modifier.padding(end = 8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = PaceDreamIcons.Send,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp)
                 )
@@ -718,7 +700,7 @@ private fun HeroGallery(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -734,13 +716,13 @@ private fun HeroGallery(
         ) {
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
                 IconButton(onClick = onShare) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                    Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = Color.White)
                 }
             }
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                         contentDescription = "Favorite",
                         tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White
                     )
@@ -787,7 +769,7 @@ private fun TitleMetaBlock(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Default.Star,
+                imageVector = PaceDreamIcons.Star,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(18.dp)
@@ -898,7 +880,7 @@ private fun HostCard(
                             color = MaterialTheme.colorScheme.primary
                         ) {
                             Icon(
-                                Icons.Default.Star,
+                                PaceDreamIcons.Star,
                                 contentDescription = "Superhost",
                                 tint = Color.White,
                                 modifier = Modifier.padding(3.dp)
@@ -920,7 +902,7 @@ private fun HostCard(
                         if (host?.isVerified == true || host?.verifications?.isNotEmpty() == true) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
-                                Icons.Default.Verified,
+                                PaceDreamIcons.Verified,
                                 contentDescription = "Verified",
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
@@ -1024,7 +1006,7 @@ private fun HostCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.CheckCircle,
+                                    PaceDreamIcons.CheckCircle,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(14.dp)
@@ -1146,13 +1128,13 @@ private fun SectionReviews(
             Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(onClick = onWriteReview) {
-                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Write a Review")
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
+                Icon(PaceDreamIcons.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = String.format("%.1f", displayRating),
@@ -1187,7 +1169,7 @@ private fun SectionReviews(
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onWriteReview) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Write a Review")
                 }
@@ -1291,7 +1273,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         repeat(5) { idx ->
                             Icon(
-                                Icons.Default.Star,
+                                PaceDreamIcons.Star,
                                 contentDescription = null,
                                 tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
                                 else MaterialTheme.colorScheme.outlineVariant,
@@ -1373,7 +1355,7 @@ private fun ReviewCard(review: ReviewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         repeat(5) { idx ->
                             Icon(
-                                Icons.Default.Star,
+                                PaceDreamIcons.Star,
                                 contentDescription = null,
                                 tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
                                 else MaterialTheme.colorScheme.outlineVariant,
@@ -1412,7 +1394,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Star,
+                PaceDreamIcons.Star,
                 contentDescription = null,
                 tint = Color(0xFFFFB400),
                 modifier = Modifier.size(24.dp)
@@ -1445,7 +1427,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                             modifier = Modifier.width(16.dp)
                         )
                         Icon(
-                            Icons.Default.Star,
+                            PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = Color(0xFFFFB400),
                             modifier = Modifier.size(12.dp)
@@ -1579,7 +1561,7 @@ private fun StarRatingInput(
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (star in 1..5) {
             Icon(
-                Icons.Default.Star,
+                PaceDreamIcons.Star,
                 contentDescription = "Rate $star stars",
                 tint = if (star <= rating.toInt()) Color(0xFFFFB400)
                 else MaterialTheme.colorScheme.outlineVariant,
@@ -1703,7 +1685,7 @@ private fun MapPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(PaceDreamIcons.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = when {
@@ -1825,7 +1807,7 @@ private fun SectionCancellationPolicy(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    PaceDreamIcons.CheckCircle,
                     contentDescription = null,
                     tint = Color(0xFF10B981),
                     modifier = Modifier.size(22.dp)
@@ -2044,7 +2026,7 @@ private fun ProposalSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Info,
+                    PaceDreamIcons.Info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
@@ -2065,7 +2047,7 @@ private fun ProposalSheet(
             enabled = message.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(PaceDreamIcons.Send, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Send Proposal")
         }
@@ -2104,28 +2086,28 @@ private fun PropertyDetailsRow(
         ) {
             maxGuests?.let {
                 PropertyDetailItem(
-                    icon = Icons.Default.Group,
+                    icon = PaceDreamIcons.Group,
                     value = "$it",
                     label = if (it == 1) "guest" else "guests"
                 )
             }
             bedrooms?.let {
                 PropertyDetailItem(
-                    icon = Icons.Default.Home,
+                    icon = PaceDreamIcons.Home,
                     value = "$it",
                     label = if (it == 1) "bedroom" else "bedrooms"
                 )
             }
             beds?.let {
                 PropertyDetailItem(
-                    icon = Icons.Default.Bed,
+                    icon = PaceDreamIcons.Bed,
                     value = "$it",
                     label = if (it == 1) "bed" else "beds"
                 )
             }
             bathrooms?.let {
                 PropertyDetailItem(
-                    icon = Icons.Default.Bathtub,
+                    icon = PaceDreamIcons.Bathtub,
                     value = "$it",
                     label = if (it == 1) "bath" else "baths"
                 )
@@ -2170,7 +2152,7 @@ private fun SectionHouseRules(
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Rule,
+                PaceDreamIcons.Rule,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
@@ -2194,7 +2176,7 @@ private fun SectionHouseRules(
                 ) {
                     checkInTime?.let {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("Check-in", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -2202,7 +2184,7 @@ private fun SectionHouseRules(
                     }
                     checkOutTime?.let {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                            Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("Check-out", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
@@ -2242,7 +2224,7 @@ private fun SectionSafetyFeatures(
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.Security,
+                PaceDreamIcons.Security,
                 contentDescription = null,
                 tint = Color(0xFF10B981),
                 modifier = Modifier.size(22.dp)
@@ -2266,7 +2248,7 @@ private fun SectionSafetyFeatures(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.CheckCircle,
+                            PaceDreamIcons.CheckCircle,
                             contentDescription = null,
                             tint = Color(0xFF10B981),
                             modifier = Modifier.size(16.dp)

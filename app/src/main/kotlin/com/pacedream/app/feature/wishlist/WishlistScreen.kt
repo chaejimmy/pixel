@@ -8,10 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Lock
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -231,7 +228,7 @@ private fun WishlistItemCard(
                     .padding(4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Favorite,
+                    imageVector = PaceDreamIcons.Favorite,
                     contentDescription = "Remove from favorites",
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -251,7 +248,7 @@ private fun LockedState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Lock,
+            imageVector = PaceDreamIcons.Lock,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -282,7 +279,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Favorite,
+            imageVector = PaceDreamIcons.Favorite,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant

@@ -21,8 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -137,17 +136,17 @@ fun FilterScreen(
                         AmenityChip(
                             amenity = amenity,
                             icon = when (amenity) {
-                                "WiFi" -> Icons.Default.Wifi
-                                "Parking" -> Icons.Default.LocalParking
-                                "Pool" -> Icons.Default.Pool
-                                "Gym" -> Icons.Default.FitnessCenter
-                                "Kitchen" -> Icons.Default.Kitchen
-                                "AC" -> Icons.Default.Air
-                                "TV" -> Icons.Default.Tv
-                                "Pet Friendly" -> Icons.Default.Pets
-                                "Balcony" -> Icons.Default.Balcony
-                                "Garden" -> Icons.Default.Yard
-                                else -> Icons.Default.Star
+                                "WiFi" -> PaceDreamIcons.Wifi
+                                "Parking" -> PaceDreamIcons.LocalParking
+                                "Pool" -> PaceDreamIcons.Pool
+                                "Gym" -> PaceDreamIcons.FitnessCenter
+                                "Kitchen" -> PaceDreamIcons.Kitchen
+                                "AC" -> PaceDreamIcons.Air
+                                "TV" -> PaceDreamIcons.Tv
+                                "Pet Friendly" -> PaceDreamIcons.Pets
+                                "Balcony" -> PaceDreamIcons.Balcony
+                                "Garden" -> PaceDreamIcons.Yard
+                                else -> PaceDreamIcons.Star
                             },
                             isSelected = selectedAmenities.contains(amenity),
                             onClick = {

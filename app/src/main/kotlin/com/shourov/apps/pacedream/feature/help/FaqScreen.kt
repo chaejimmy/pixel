@@ -21,9 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExpandMore
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -115,7 +113,7 @@ fun FaqScreen(
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Back"
                     )
                 }
@@ -197,7 +195,7 @@ private fun FaqExpandableItem(
                     modifier = Modifier.weight(1f)
                 )
                 Icon(
-                    imageVector = Icons.Default.ExpandMore,
+                    imageVector = PaceDreamIcons.ExpandMore,
                     contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier

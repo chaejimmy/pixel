@@ -27,11 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -160,7 +156,7 @@ fun SearchScreen(
                 title = { Text("Search", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { mapMode = !mapMode }) {
-                        Icon(Icons.Default.Map, contentDescription = "Map toggle")
+                        Icon(PaceDreamIcons.Map, contentDescription = "Map toggle")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
@@ -362,7 +358,7 @@ private fun SuggestionsList(
                     modifier = Modifier.padding(PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+                    Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(s.value, style = PaceDreamTypography.Body, color = PaceDreamColors.TextPrimary)
                 }
@@ -406,7 +402,7 @@ private fun IdleState() {
         PaceDreamEmptyState(
             title = "Start exploring",
             description = "Search for a city, neighborhood, or listing.",
-            icon = Icons.Default.Search,
+            icon = PaceDreamIcons.Search,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -423,7 +419,7 @@ private fun EmptyState() {
         PaceDreamEmptyState(
             title = "No results",
             description = "Try a different search or pull to refresh.",
-            icon = Icons.Default.Search,
+            icon = PaceDreamIcons.Search,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -592,7 +588,7 @@ private fun SearchResultCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary
                         )
@@ -623,7 +619,7 @@ private fun SearchResultCard(
                         label = "favorite_toggle"
                     ) { favored ->
                         Icon(
-                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
                             tint = if (favored) PaceDreamColors.Error else Color.White,
                             modifier = Modifier.size(16.dp)

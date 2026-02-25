@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -162,7 +161,7 @@ fun BookingTabScreen(
         // Content
         if (currentBookings.isEmpty()) {
             PaceDreamEmptyState(
-                icon = Icons.Default.CalendarToday,
+                icon = PaceDreamIcons.CalendarToday,
                 title = when (selectedTab) {
                     0 -> "No upcoming bookings"
                     1 -> "No past bookings"
@@ -243,7 +242,7 @@ fun BookingCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        imageVector = PaceDreamIcons.Home,
                         contentDescription = "Property",
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(24.dp)
@@ -324,7 +323,7 @@ fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = PaceDreamIcons.Person,
                     contentDescription = "Guests",
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(16.dp)

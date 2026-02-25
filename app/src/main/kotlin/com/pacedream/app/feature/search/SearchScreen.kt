@@ -23,10 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,12 +82,12 @@ fun SearchScreen(
                     onValueChange = { viewModel.onQueryChanged(it) },
                     placeholder = { Text("Search spaces, gear, stays...") },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                        Icon(PaceDreamIcons.Search, contentDescription = "Search")
                     },
                     trailingIcon = {
                         if (uiState.query.isNotBlank()) {
                             IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                                Icon(PaceDreamIcons.Close, contentDescription = "Clear")
                             }
                         }
                     },
@@ -220,7 +217,7 @@ fun SearchScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Default.Search,
+                            PaceDreamIcons.Search,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -364,7 +361,7 @@ private fun SearchResultCard(
                     item.rating?.let { rating ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Star,
+                                PaceDreamIcons.Star,
                                 contentDescription = null,
                                 tint = Color(0xFFFFB400),
                                 modifier = Modifier.size(14.dp)

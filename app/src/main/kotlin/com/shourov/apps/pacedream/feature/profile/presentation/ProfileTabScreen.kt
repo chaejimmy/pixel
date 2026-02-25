@@ -8,8 +8,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,28 +46,28 @@ fun ProfileTabScreen(
             ProfileMenuSection(
                 title = "Account",
                 items = listOf(
-                    ProfileMenuItem("Edit Profile", Icons.Default.Person, onEditProfileClick),
-                    ProfileMenuItem("Payment Methods", Icons.Default.Payment, {}),
-                    ProfileMenuItem("Addresses", Icons.Default.LocationOn, {}),
-                    ProfileMenuItem("Notifications", Icons.Default.Notifications, {})
+                    ProfileMenuItem("Edit Profile", PaceDreamIcons.Person, onEditProfileClick),
+                    ProfileMenuItem("Payment Methods", PaceDreamIcons.Payment, {}),
+                    ProfileMenuItem("Addresses", PaceDreamIcons.LocationOn, {}),
+                    ProfileMenuItem("Notifications", PaceDreamIcons.Notifications, {})
                 )
             ),
             ProfileMenuSection(
                 title = "Support",
                 items = listOf(
-                    ProfileMenuItem("Help Center", Icons.Default.Help, onHelpClick),
-                    ProfileMenuItem("FAQ", Icons.Default.QuestionAnswer, onFaqClick),
-                    ProfileMenuItem("Contact Us", Icons.Default.Email, {}),
-                    ProfileMenuItem("Report a Problem", Icons.Default.Report, {})
+                    ProfileMenuItem("Help Center", PaceDreamIcons.Help, onHelpClick),
+                    ProfileMenuItem("FAQ", PaceDreamIcons.QuestionAnswer, onFaqClick),
+                    ProfileMenuItem("Contact Us", PaceDreamIcons.Email, {}),
+                    ProfileMenuItem("Report a Problem", PaceDreamIcons.Report, {})
                 )
             ),
             ProfileMenuSection(
                 title = "App",
                 items = listOf(
-                    ProfileMenuItem("Settings", Icons.Default.Settings, onSettingsClick),
-                    ProfileMenuItem("About", Icons.Default.Info, onAboutClick),
-                    ProfileMenuItem("Privacy Policy", Icons.Default.PrivacyTip, onPrivacyPolicyClick),
-                    ProfileMenuItem("Terms of Service", Icons.Default.Description, onTermsOfServiceClick)
+                    ProfileMenuItem("Settings", PaceDreamIcons.Settings, onSettingsClick),
+                    ProfileMenuItem("About", PaceDreamIcons.Info, onAboutClick),
+                    ProfileMenuItem("Privacy Policy", PaceDreamIcons.PrivacyTip, onPrivacyPolicyClick),
+                    ProfileMenuItem("Terms of Service", PaceDreamIcons.Description, onTermsOfServiceClick)
                 )
             )
         )
@@ -159,7 +158,7 @@ fun ProfileTabScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ExitToApp,
+                                    imageVector = PaceDreamIcons.ExitToApp,
                                     contentDescription = "Logout",
                                     tint = PaceDreamColors.Error,
                                     modifier = Modifier.size(20.dp)
@@ -195,7 +194,7 @@ private fun RequiresAuthState(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.Lock,
+                imageVector = PaceDreamIcons.Lock,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
@@ -291,7 +290,7 @@ fun ProfileHeader(
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
+                    imageVector = PaceDreamIcons.Edit,
                     contentDescription = "Edit",
                     modifier = Modifier.size(16.dp)
                 )
@@ -402,7 +401,7 @@ fun ProfileMenuRow(
         )
         
         Icon(
-            imageVector = Icons.Default.ChevronRight,
+            imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = "Navigate",
             tint = PaceDreamColors.TextSecondary,
             modifier = Modifier.size(16.dp)
@@ -462,7 +461,7 @@ fun HostModeToggle(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = if (isHostMode) Icons.Default.Home else Icons.Default.Person,
+                    imageVector = if (isHostMode) PaceDreamIcons.Home else PaceDreamIcons.Person,
                     contentDescription = null,
                     tint = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Info,
                     modifier = Modifier.size(24.dp)

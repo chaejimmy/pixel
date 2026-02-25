@@ -21,8 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -197,7 +196,7 @@ private fun BookingCard(
                 }
 
                 Icon(
-                    imageVector = Icons.Default.ArrowForward,
+                    imageVector = PaceDreamIcons.ArrowForward,
                     contentDescription = null,
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(16.dp)
@@ -301,7 +300,7 @@ private fun BookingEmptyState() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.CalendarToday,
+                imageVector = PaceDreamIcons.CalendarToday,
                 contentDescription = "No bookings",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)

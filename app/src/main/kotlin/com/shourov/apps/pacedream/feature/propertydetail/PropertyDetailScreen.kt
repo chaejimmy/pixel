@@ -20,14 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Image
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -110,12 +103,12 @@ fun PropertyDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = onShareClick) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share")
+                        Icon(PaceDreamIcons.Share, contentDescription = "Share")
                     }
                     IconButton(
                         onClick = {
@@ -136,7 +129,7 @@ fun PropertyDetailScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (isFavorited) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (isFavorited) "Unfavorite" else "Favorite",
                             tint = if (isFavorited) PaceDreamColors.Error else PaceDreamColors.TextPrimary
                         )
@@ -222,7 +215,7 @@ fun PropertyDetailScreen(
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
+                        Icon(PaceDreamIcons.Star, contentDescription = null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = rating?.let { String.format("%.1f", it) } ?: "—",
@@ -373,7 +366,7 @@ fun PropertyDetailScreen(
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+                            Icon(PaceDreamIcons.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("Map preview (hooking up next)", color = PaceDreamColors.TextSecondary)
                         }
@@ -515,7 +508,7 @@ private fun HeroGallery(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = PaceDreamIcons.Image,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(28.dp)
