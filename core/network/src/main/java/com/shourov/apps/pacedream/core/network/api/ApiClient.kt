@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.core.network.api
 
+import com.shourov.apps.pacedream.core.network.auth.RefreshTokenRequest
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -314,7 +315,7 @@ class ApiClient @Inject constructor(
 
     private suspend fun performRefresh(refreshToken: String, tokenStorage: TokenStorage): Boolean {
         // No Authorization header on refresh endpoints (iOS parity)
-        val body = """{"refresh_token":"$refreshToken"}"""
+        val body = json.encodeToString(RefreshTokenRequest.serializer(), RefreshTokenRequest(refreshToken))
 
         return refreshWithFallback(
             primaryCall = {
