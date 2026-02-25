@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -419,10 +421,11 @@ class WishlistRepository @Inject constructor(
      * Build JSON body from map
      */
     private fun buildJsonBody(map: Map<String, String>): String {
-        val entries = map.entries.joinToString(",") { (key, value) ->
-            "\"$key\":\"$value\""
-        }
-        return "{$entries}"
+        return buildJsonObject {
+            for ((key, value) in map) {
+                put(key, value)
+            }
+        }.toString()
     }
 }
 

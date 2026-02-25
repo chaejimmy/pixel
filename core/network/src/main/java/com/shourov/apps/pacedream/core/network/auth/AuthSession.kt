@@ -470,17 +470,18 @@ class AuthSession @Inject constructor(
     
     /**
      * Parse user from JSON response
+     * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
-    private fun parseAndSetUser(responseBody: String) {
+    private fun parseAndSetUser(responseBody: String, fromCache: Boolean = false) {
         try {
             val jsonElement = json.parseToJsonElement(responseBody)
             val jsonObject = jsonElement.jsonObject
-            
+
             // Try to find user data in common locations
             val userData = jsonObject["data"]?.jsonObject
                 ?: jsonObject["user"]?.jsonObject
                 ?: jsonObject
-            
+
             val user = User(
                 id = userData["_id"]?.jsonPrimitive?.content
                     ?: userData["id"]?.jsonPrimitive?.content
@@ -495,25 +496,27 @@ class AuthSession @Inject constructor(
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
             )
-            
+
             _currentUser.value = user
             tokenStorage.userId = user.id
             tokenStorage.cachedUserSummary = responseBody
-            
+
             Timber.d("User set: ${user.displayName}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
-            loadCachedUser()
+            if (!fromCache) {
+                loadCachedUser()
+            }
         }
     }
-    
+
     /**
      * Load cached user from storage
      */
     private fun loadCachedUser() {
         tokenStorage.cachedUserSummary?.let { cached ->
             try {
-                parseAndSetUser(cached)
+                parseAndSetUser(cached, fromCache = true)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load cached user")
             }

@@ -30,15 +30,15 @@ class OTPReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (SmsRetriever.SMS_RETRIEVED_ACTION == intent?.action) {
             val extras: Bundle? = intent.extras
-            val status: Status = extras?.get(SmsRetriever.EXTRA_STATUS) as Status
+            val status = extras?.get(SmsRetriever.EXTRA_STATUS) as? Status ?: return
 
             when (status.statusCode) {
                 CommonStatusCodes.SUCCESS -> {
                     // Get SMS message contents
-                    val msg = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE) as String
+                    val msg = extras.getString(SmsRetriever.EXTRA_SMS_MESSAGE) ?: return
 
                     // extract the 6-digit code from the SMS
-                    val smsCode = msg.let { "[0-9]{6}".toRegex().find(it) }
+                    val smsCode = "[0-9]{6}".toRegex().find(msg)
 
                     smsCode?.value?.let { otpReceiveListener?.onOTPReceived(it) }
                 }

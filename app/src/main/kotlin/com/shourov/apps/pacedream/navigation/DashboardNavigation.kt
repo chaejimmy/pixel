@@ -537,7 +537,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         showAuthSheet = true
                                     },
                                     onNavigateToInbox = {
-                                        navigateToTab(navController, DashboardDestination.MESSAGES.name)
+                                        navigateToTab(navController, DashboardDestination.INBOX.name)
                                     },
                                     onNavigateToCheckout = { draft ->
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
