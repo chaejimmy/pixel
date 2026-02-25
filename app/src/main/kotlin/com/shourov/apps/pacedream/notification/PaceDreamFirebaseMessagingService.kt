@@ -3,7 +3,13 @@ package com.shourov.apps.pacedream.notification
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -12,11 +18,16 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var notificationService: PaceDreamNotificationService
 
+    @Inject
+    lateinit var apiService: PaceDreamApiService
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-        
-        Log.d("PaceDreamFCM", "From: ${remoteMessage.from}")
-        Log.d("PaceDreamFCM", "Message data payload: ${remoteMessage.data}")
+
+        Timber.d("From: ${remoteMessage.from}")
+        Timber.d("Message data payload: ${remoteMessage.data}")
 
         // Handle data payload
         remoteMessage.data.let { data ->
@@ -92,15 +103,28 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("PaceDreamFCM", "Refreshed token: $token")
-        
-        // Send token to your server
+        Timber.d("Refreshed FCM token: $token")
+
+        // Register push token with backend server
         sendTokenToServer(token)
     }
 
     private fun sendTokenToServer(token: String) {
-        // TODO: Implement token sending to your server
-        // This could be done through your API service
-        Log.d("PaceDreamFCM", "Token sent to server: $token")
+        serviceScope.launch {
+            try {
+                val tokenData = mapOf(
+                    "token" to token,
+                    "platform" to "android"
+                )
+                val response = apiService.registerPushToken(tokenData)
+                if (response.isSuccessful) {
+                    Timber.d("FCM token registered with server successfully")
+                } else {
+                    Timber.w("Failed to register FCM token: ${response.code()} ${response.message()}")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error registering FCM token with server")
+            }
+        }
     }
 }

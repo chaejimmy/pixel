@@ -52,18 +52,30 @@ object ApiEndPoints {
     const val CONFIRM_BOOKING = "bookings/{bookingId}/confirm"
     const val GET_BOOKING_AVAILABILITY = "bookings/availability/{propertyId}"
 
-    // ── Messaging / Chat ──────────────────────────────────
+    // ── Messaging / Chat (legacy Retrofit) ─────────────────
     const val GET_USER_CHATS = "chats/user/{userId}"
     const val GET_CHAT_MESSAGES = "chats/{chatId}/messages"
     const val CREATE_CHAT = "chats"
     const val SEND_MESSAGE = "chats/{chatId}/messages"
     const val MARK_MESSAGE_READ = "chats/{chatId}/messages/{messageId}/read"
 
+    // ── Inbox / Threads (iOS parity - ApiClient) ─────────
+    const val INBOX_GET_THREADS = "inbox/threads"
+    const val INBOX_GET_THREAD = "inbox/threads/{threadId}"
+    const val INBOX_GET_THREAD_MESSAGES = "inbox/threads/{threadId}/messages"
+    const val INBOX_SEND_MESSAGE = "inbox/threads/{threadId}/messages"
+    const val INBOX_ARCHIVE_THREAD = "inbox/threads/{threadId}/archive"
+    const val INBOX_CREATE_THREAD = "inbox/threads"
+    const val INBOX_UNREAD_COUNTS = "inbox/unread-counts"
+
     // ── Notifications ─────────────────────────────────────
     const val GET_USER_NOTIFICATIONS = "notifications/user/{userId}"
     const val MARK_NOTIFICATION_READ = "notifications/{notificationId}/read"
     const val MARK_ALL_NOTIFICATIONS_READ = "notifications/user/{userId}/read-all"
     const val REGISTER_PUSH_TOKEN = "notifications/register-device"
+    const val GET_NOTIFICATION_PREFERENCES = "notifications/preferences"
+    const val UPDATE_NOTIFICATION_PREFERENCES = "notifications/preferences"
+    const val DELETE_NOTIFICATION = "notifications/{notificationId}"
 
     // ── Payments ──────────────────────────────────────────
     const val CREATE_PAYMENT_INTENT = "payments/create-intent"

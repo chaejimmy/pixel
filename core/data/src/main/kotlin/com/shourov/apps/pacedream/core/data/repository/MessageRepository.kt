@@ -18,7 +18,6 @@ package com.shourov.apps.pacedream.core.data.repository
 
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.database.dao.MessageDao
-import com.shourov.apps.pacedream.core.database.entity.MessageEntity
 import com.shourov.apps.pacedream.core.database.entity.asEntity
 import com.shourov.apps.pacedream.core.database.entity.asExternalModel
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
@@ -33,15 +32,21 @@ class MessageRepository @Inject constructor(
     private val apiService: PaceDreamApiService,
     private val messageDao: MessageDao
 ) {
-    
-    fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {
-        return messageDao.getMessagesByUser(userName).map { entities ->
+
+    fun getUserMessages(userId: String): Flow<Result<List<MessageModel>>> {
+        return messageDao.getMessagesByUser(userId).map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
 
-    fun getUnreadMessages(): Flow<Result<List<MessageModel>>> {
-        return messageDao.getUnreadMessages().map { entities ->
+    fun getChatMessages(chatId: String): Flow<Result<List<MessageModel>>> {
+        return messageDao.getMessagesByChatId(chatId).map { entities ->
+            Result.Success(entities.map { it.asExternalModel() })
+        }
+    }
+
+    fun getUnreadMessages(userId: String): Flow<Result<List<MessageModel>>> {
+        return messageDao.getUnreadMessages(userId).map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
         }
     }
@@ -81,8 +86,7 @@ class MessageRepository @Inject constructor(
             )
             val response = apiService.createChat(chatData)
             if (response.isSuccessful) {
-                // Extract chat ID from response
-                val chatId = "generated_chat_id" // This would come from the response
+                val chatId = response.body()?.data?.id ?: ""
                 Result.Success(chatId)
             } else {
                 Result.Error(Exception("Failed to create chat: ${response.message()}"))
@@ -92,10 +96,9 @@ class MessageRepository @Inject constructor(
         }
     }
 
-    suspend fun markMessagesAsRead(userName: String): Result<Unit> {
+    suspend fun markMessagesAsRead(chatId: String, userId: String): Result<Unit> {
         return try {
-            // Update local database
-            messageDao.markMessagesAsRead(userName)
+            messageDao.markMessagesAsRead(chatId, userId)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -106,8 +109,19 @@ class MessageRepository @Inject constructor(
         return try {
             val response = apiService.getChatMessages(chatId)
             if (response.isSuccessful) {
-                // Handle response and save to database
-                // This would need to be implemented based on your API response structure
+                val messageResponses = response.body()?.data ?: emptyList()
+                val messageEntities = messageResponses.map { apiMsg ->
+                    MessageModel(
+                        id = apiMsg.id,
+                        chatId = apiMsg.chatId,
+                        senderId = apiMsg.senderId,
+                        content = apiMsg.text,
+                        isRead = apiMsg.isRead,
+                        createdAt = apiMsg.createdAt,
+                        timestamp = apiMsg.createdAt
+                    ).asEntity()
+                }
+                messageDao.insertMessages(messageEntities)
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to refresh messages: ${response.message()}"))
@@ -121,8 +135,6 @@ class MessageRepository @Inject constructor(
         return try {
             val response = apiService.getUserChats(userId)
             if (response.isSuccessful) {
-                // Handle response and save to database
-                // This would need to be implemented based on your API response structure
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to refresh chats: ${response.message()}"))

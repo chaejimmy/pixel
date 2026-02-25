@@ -49,6 +49,7 @@ import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
 import com.pacedream.app.feature.collections.CollectionsScreen
+import com.pacedream.app.feature.notifications.NotificationsScreen
 import com.pacedream.app.feature.roommate.RoommateFinderScreen
 import com.pacedream.app.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
@@ -153,6 +154,9 @@ fun MainNavHost(
                             // Filter listings by category (could update view model state)
                             // For now, navigate to search with filter
                             navController.navigate("${NavRoutes.SEARCH}?filter=$categoryFilter")
+                        },
+                        onNotificationsClick = {
+                            navController.navigate(NavRoutes.NOTIFICATIONS)
                         }
                     )
                 }
@@ -376,6 +380,25 @@ fun MainNavHost(
                 composable(NavRoutes.FAQ) {
                     com.pacedream.app.feature.faq.FAQScreen(
                         onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                // Notifications Screen
+                composable(NavRoutes.NOTIFICATIONS) {
+                    NotificationsScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNotificationClick = { notification ->
+                            // Navigate based on notification type
+                            when (notification.type) {
+                                "message" -> notification.actionId?.let { threadId ->
+                                    navController.navigate(NavRoutes.threadDetail(threadId))
+                                }
+                                "booking" -> notification.actionId?.let { bookingId ->
+                                    navController.navigate(NavRoutes.bookingDetail(bookingId))
+                                }
+                                else -> { /* no-op for general notifications */ }
+                            }
+                        }
                     )
                 }
 

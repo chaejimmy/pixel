@@ -24,6 +24,9 @@ object NavRoutes {
     
     // Inbox sub-routes
     const val THREAD_DETAIL = "inbox/thread/{threadId}"
+
+    // Notifications
+    const val NOTIFICATIONS = "notifications"
     
     // Profile sub-routes
     const val HOST_HOME = "profile/host"

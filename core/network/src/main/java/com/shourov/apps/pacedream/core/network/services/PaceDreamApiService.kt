@@ -276,6 +276,53 @@ interface PaceDreamApiService {
         @Path("messageId") messageId: String
     ): Response<ApiResponse<MessageResponse>>
 
+    // ── Inbox / Threads APIs (iOS parity) ───────────────────────
+    @GET(ApiEndPoints.INBOX_GET_THREADS)
+    suspend fun getInboxThreads(
+        @Header("Authorization") token: String,
+        @Query("mode") mode: String = "guest",
+        @Query("limit") limit: Int = 20,
+        @Query("cursor") cursor: String? = null
+    ): Response<ApiListResponse<ChatResponse>>
+
+    @GET(ApiEndPoints.INBOX_GET_THREAD)
+    suspend fun getInboxThread(
+        @Header("Authorization") token: String,
+        @Path("threadId") threadId: String
+    ): Response<ApiResponse<ChatResponse>>
+
+    @GET(ApiEndPoints.INBOX_GET_THREAD_MESSAGES)
+    suspend fun getInboxThreadMessages(
+        @Header("Authorization") token: String,
+        @Path("threadId") threadId: String,
+        @Query("limit") limit: Int = 50,
+        @Query("before") before: String? = null
+    ): Response<ApiListResponse<MessageResponse>>
+
+    @POST(ApiEndPoints.INBOX_SEND_MESSAGE)
+    suspend fun sendInboxMessage(
+        @Header("Authorization") token: String,
+        @Path("threadId") threadId: String,
+        @Body messageData: Map<String, Any>
+    ): Response<ApiResponse<MessageResponse>>
+
+    @POST(ApiEndPoints.INBOX_ARCHIVE_THREAD)
+    suspend fun archiveInboxThread(
+        @Header("Authorization") token: String,
+        @Path("threadId") threadId: String
+    ): Response<ApiResponse<Unit>>
+
+    @POST(ApiEndPoints.INBOX_CREATE_THREAD)
+    suspend fun createInboxThread(
+        @Header("Authorization") token: String,
+        @Body threadData: Map<String, String>
+    ): Response<ApiResponse<ChatResponse>>
+
+    @GET(ApiEndPoints.INBOX_UNREAD_COUNTS)
+    suspend fun getInboxUnreadCounts(
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<Map<String, Int>>>
+
     // ── Notification APIs ──────────────────────────────────────
     @GET(ApiEndPoints.GET_USER_NOTIFICATIONS)
     suspend fun getUserNotifications(@Path("userId") userId: String): Response<ApiListResponse<NotificationResponse>>
@@ -288,6 +335,12 @@ interface PaceDreamApiService {
 
     @POST(ApiEndPoints.REGISTER_PUSH_TOKEN)
     suspend fun registerPushToken(@Body tokenData: Map<String, String>): Response<ApiResponse<Unit>>
+
+    @DELETE(ApiEndPoints.DELETE_NOTIFICATION)
+    suspend fun deleteNotification(
+        @Header("Authorization") token: String,
+        @Path("notificationId") notificationId: String
+    ): Response<ApiResponse<Unit>>
 
     // ── Payment APIs ───────────────────────────────────────────
     @POST(ApiEndPoints.CREATE_PAYMENT_INTENT)

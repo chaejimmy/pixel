@@ -22,19 +22,22 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
-    @Query("SELECT * FROM messages WHERE id = :messageId")
-    fun getMessageById(messageId: Int): Flow<MessageEntity?>
+    @Query("SELECT * FROM messages WHERE messageId = :messageId")
+    fun getMessageById(messageId: String): Flow<MessageEntity?>
 
-    @Query("SELECT * FROM messages WHERE userName = :userName ORDER BY messageTime ASC")
-    fun getMessagesByUser(userName: String): Flow<List<MessageEntity>>
+    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY timestamp ASC")
+    fun getMessagesByChatId(chatId: String): Flow<List<MessageEntity>>
 
-    @Query("SELECT * FROM messages WHERE newMessageCount > 0 ORDER BY messageTime DESC")
-    fun getUnreadMessages(): Flow<List<MessageEntity>>
+    @Query("SELECT * FROM messages WHERE senderId = :userId OR receiverId = :userId ORDER BY timestamp ASC")
+    fun getMessagesByUser(userId: String): Flow<List<MessageEntity>>
 
-    @Query("SELECT * FROM messages ORDER BY messageTime DESC LIMIT 1")
+    @Query("SELECT * FROM messages WHERE isRead = 0 AND receiverId = :userId ORDER BY timestamp DESC")
+    fun getUnreadMessages(userId: String): Flow<List<MessageEntity>>
+
+    @Query("SELECT * FROM messages ORDER BY timestamp DESC LIMIT 1")
     fun getLastMessage(): Flow<MessageEntity?>
 
-    @Query("SELECT * FROM messages ORDER BY messageTime DESC")
+    @Query("SELECT * FROM messages ORDER BY timestamp DESC")
     fun getAllMessages(): Flow<List<MessageEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -49,14 +52,14 @@ interface MessageDao {
     @Delete
     suspend fun deleteMessage(message: MessageEntity)
 
-    @Query("DELETE FROM messages WHERE id = :messageId")
-    suspend fun deleteMessageById(messageId: Int)
+    @Query("DELETE FROM messages WHERE messageId = :messageId")
+    suspend fun deleteMessageById(messageId: String)
 
-    @Query("DELETE FROM messages WHERE userName = :userName")
-    suspend fun deleteMessagesByUser(userName: String)
+    @Query("DELETE FROM messages WHERE chatId = :chatId")
+    suspend fun deleteMessagesByChatId(chatId: String)
 
-    @Query("UPDATE messages SET newMessageCount = 0 WHERE userName = :userName")
-    suspend fun markMessagesAsRead(userName: String)
+    @Query("UPDATE messages SET isRead = 1 WHERE chatId = :chatId AND receiverId = :userId")
+    suspend fun markMessagesAsRead(chatId: String, userId: String)
 
     @Query("DELETE FROM messages")
     suspend fun deleteAllMessages()

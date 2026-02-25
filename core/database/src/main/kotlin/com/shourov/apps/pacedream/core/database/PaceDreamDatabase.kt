@@ -44,7 +44,7 @@ import com.shourov.apps.pacedream.core.database.entity.UserEntity
         CategoryEntity::class,
         ChatEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
+import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,16 +33,26 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-    
+
     fun loadMessages(chatId: String) {
+        val currentUserId = tokenStorage.userId ?: ""
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId)
-            
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                chatId = chatId,
+                currentUserId = currentUserId
+            )
+
+            // First, refresh from API
+            messageRepository.refreshChatMessages(chatId)
+
+            // Then observe local DB
             messageRepository.getChatMessages(chatId).collect { result ->
                 when (result) {
                     is Result.Success -> {
@@ -61,20 +72,20 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun onMessageChange(message: String) {
         _uiState.value = _uiState.value.copy(newMessage = message)
     }
-    
+
     fun sendMessage() {
         val currentState = _uiState.value
         val message = currentState.newMessage.trim()
-        
+
         if (message.isEmpty()) return
-        
+
         viewModelScope.launch {
             _uiState.value = currentState.copy(isSending = true)
-            
+
             val messageModel = MessageModel(
                 id = UUID.randomUUID().toString(),
                 chatId = currentState.chatId,
@@ -87,7 +98,7 @@ class ChatViewModel @Inject constructor(
                 timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date()),
                 createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
             )
-            
+
             when (val result = messageRepository.sendMessage(currentState.chatId, messageModel)) {
                 is Result.Success -> {
                     _uiState.value = currentState.copy(
@@ -104,7 +115,7 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
@@ -113,10 +124,10 @@ class ChatViewModel @Inject constructor(
 data class ChatUiState(
     val isLoading: Boolean = false,
     val chatId: String = "",
-    val currentUserId: String = "current_user_id", // This should come from user session
+    val currentUserId: String = "",
     val otherUserId: String = "",
-    val otherUserName: String = "Other User", // This should come from user data
-    val otherUserAvatar: String? = null, // This should come from user data
+    val otherUserName: String = "",
+    val otherUserAvatar: String? = null,
     val messages: List<MessageModel> = emptyList(),
     val newMessage: String = "",
     val isSending: Boolean = false,

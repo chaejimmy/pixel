@@ -51,7 +51,8 @@ fun HomeScreen(
     onListingClick: (HomeListingItem) -> Unit,
     onSearchClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
-    onCategoryFilterClick: (String) -> Unit = {}
+    onCategoryFilterClick: (String) -> Unit = {},
+    onNotificationsClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedCategoryFilter by remember { mutableStateOf("All") }
@@ -70,6 +71,7 @@ fun HomeScreen(
                 HeroSection(
                     onSearchClick = onSearchClick,
                     onFilterClick = { /* TODO: Open filters */ },
+                    onNotificationsClick = onNotificationsClick,
                     heroImageUrl = uiState.heroImageUrl
                 )
             }
@@ -169,6 +171,7 @@ fun HomeScreen(
 private fun HeroSection(
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
+    onNotificationsClick: () -> Unit = {},
     heroImageUrl: String? = null
 ) {
     Box(
@@ -218,6 +221,22 @@ private fun HeroSection(
                         )
                     )
             )
+
+            // Notification bell icon - top right
+            IconButton(
+                onClick = onNotificationsClick,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 40.dp, end = 12.dp)
+                    .zIndex(2f)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Notifications,
+                    contentDescription = "Notifications",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
             // Hero text content
             Column(

@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
+import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,19 +31,23 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ChatListUiState())
     val uiState: StateFlow<ChatListUiState> = _uiState.asStateFlow()
-    
+
     fun loadChats() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            // For now, using a mock user ID - this should come from user session
-            val userId = "current_user_id"
-            
+
+            val userId = tokenStorage.userId ?: ""
+
+            // First refresh from API
+            messageRepository.refreshUserChats(userId)
+
+            // Then observe local DB
             messageRepository.getUserMessages(userId).collect { result ->
                 when (result) {
                     is Result.Success -> {
@@ -63,15 +68,15 @@ class ChatListViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun groupMessagesIntoChats(messages: List<MessageModel>, currentUserId: String): List<ChatItem> {
         val chatMap = mutableMapOf<String, MutableList<MessageModel>>()
-        
+
         // Group messages by chat ID
         messages.forEach { message ->
             chatMap.getOrPut(message.chatId) { mutableListOf() }.add(message)
         }
-        
+
         // Convert to ChatItem list
         return chatMap.map { (chatId, messageList) ->
             val sortedMessages = messageList.sortedBy { it.timestamp }
@@ -81,19 +86,19 @@ class ChatListViewModel @Inject constructor(
             } else {
                 lastMessage?.senderId ?: ""
             }
-            
+
             ChatItem(
                 chatId = chatId,
                 otherUserId = otherUserId,
-                otherUserName = "User $otherUserId", // This should come from user data
-                otherUserAvatar = null, // This should come from user data
+                otherUserName = "User $otherUserId",
+                otherUserAvatar = null,
                 lastMessage = lastMessage?.content ?: "",
                 lastMessageTime = lastMessage?.timestamp ?: "",
                 unreadCount = messageList.count { !it.isRead && it.receiverId == currentUserId }
             )
         }.sortedByDescending { it.lastMessageTime }
     }
-    
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
