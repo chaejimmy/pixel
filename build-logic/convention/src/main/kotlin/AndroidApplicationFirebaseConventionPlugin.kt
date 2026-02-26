@@ -11,7 +11,11 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             with(pluginManager) {
-                apply("com.google.gms.google-services")
+                // Only apply when google-services.json exists; the file is
+                // gitignored so fresh clones / CI builds without it still succeed.
+                if (file("google-services.json").exists()) {
+                    apply("com.google.gms.google-services")
+                }
                 apply("com.google.firebase.firebase-perf")
                 apply("com.google.firebase.crashlytics")
             }
