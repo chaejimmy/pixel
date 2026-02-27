@@ -28,6 +28,27 @@
 
 ---
 
+## App icon (launcher)
+
+The app uses **PaceDream** branding: purple background `#5856D6` and the “pd” logo. The adaptive icon (API 26+) is correct; the **legacy** icons in `mipmap-*dpi` (`.webp`) can show a wrong icon on the launcher if they were left from a template.
+
+**If the launcher shows a blue circle or wrong icon:**
+
+1. In Android Studio, right‑click **`app/src/main/res`** → **New** → **Image Asset**.
+2. **Icon type:** Launcher Icons (Adaptive and Legacy).
+3. **Foreground:** Image → set path to  
+   `app/src/main/res/mipmap-anydpi-v26/pacedream_launcher_foreground.png`  
+   (or your 1024×1024 “pd” logo with transparent background).
+4. **Background:** Color → `#5856D6`.
+5. **Resize** the foreground so the “pd” fits inside the safe zone (≈80%).
+6. Click **Next** → **Finish** so it overwrites existing launcher assets.
+7. Clean and reinstall:  
+   `./gradlew clean` then run the app on the emulator again.
+
+This regenerates `pacedream_launcher.webp` and `pacedream_launcher_round.webp` in all density folders so the home screen shows the correct icon.
+
+---
+
 ## Build Steps
 
 ### 1. Configure local.properties
