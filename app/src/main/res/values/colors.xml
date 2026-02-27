@@ -13,4 +13,7 @@
     <color name="system_blue">#007AFF</color>
     <color name="system_background">#FFFFFF</color>
     <color name="system_grouped_background">#F2F2F7</color>
+
+    <!-- Splash / brand background to match launcher/app icon -->
+    <color name="pacedream_splash_background">#5856D6</color>
 </resources>
