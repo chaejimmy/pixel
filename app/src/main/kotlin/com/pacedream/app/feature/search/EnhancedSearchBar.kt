@@ -24,10 +24,6 @@ import java.util.*
  * Enhanced Search Bar with tabs and multi-field search
  * Matches website design: Use/Borrow/Split tabs + WHAT/WHERE/DATES fields
  */
-enum class SearchTab {
-    USE, BORROW, SPLIT
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedSearchBar(
