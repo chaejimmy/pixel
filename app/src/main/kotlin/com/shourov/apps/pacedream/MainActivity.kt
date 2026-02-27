@@ -17,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
-import com.google.firebase.FirebaseApp
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
@@ -60,9 +59,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        // Initialize Firebase
-        FirebaseApp.initializeApp(this)
 
         // Turn off the decor fitting system windows, which allows us to handle insets,
         // including IME animations, and go edge-to-edge
