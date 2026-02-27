@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +52,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedCategoryFilter by remember { mutableStateOf("All") }
+    var searchText by rememberSaveable { mutableStateOf("") }
     
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
@@ -61,12 +63,13 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Hero Section
+            // Header + search row (iOS-style Home header)
             item {
-                HeroSection(
+                HomeHeaderSection(
+                    searchText = searchText,
+                    onSearchTextChange = { searchText = it },
                     onSearchClick = onSearchClick,
-                    onFilterClick = { /* TODO: Open filters */ },
-                    heroImageUrl = uiState.heroImageUrl
+                    onFilterClick = { /* TODO: Open filters sheet */ },
                 )
             }
             
@@ -108,6 +111,7 @@ fun HomeScreen(
                         title = "Hourly Spaces",
                         subtitle = "Find flexible spaces for short stays",
                         items = uiState.hourlySpaces,
+                        searchQuery = searchText,
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick
@@ -122,6 +126,7 @@ fun HomeScreen(
                         title = "Rent Gear",
                         subtitle = "Equipment and tools for every need",
                         items = uiState.rentGear,
+                        searchQuery = searchText,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick
@@ -136,6 +141,7 @@ fun HomeScreen(
                         title = "Split Stays",
                         subtitle = "Flexible long-term rentals",
                         items = uiState.splitStays,
+                        searchQuery = searchText,
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },
                         onItemClick = onListingClick
@@ -158,171 +164,111 @@ fun HomeScreen(
 }
 
 /**
- * Hero Section with background image, overlay text, and search bar
- * Matches iOS design
+ * iOS-style Home header with "Explore" text and inline search row.
  */
 @Composable
-private fun HeroSection(
+private fun HomeHeaderSection(
+    searchText: String,
+    onSearchTextChange: (String) -> Unit,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
-    heroImageUrl: String? = null
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-        // Background Image - use actual image if provided, otherwise use gradient
-        if (heroImageUrl != null) {
-            AsyncImage(
-                model = heroImageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            // Fallback gradient using PaceDream brand colors (matches iOS/web hero palette)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                PaceDreamColors.Primary,
-                                PaceDreamColors.Accent
-                            )
-                        )
-                    )
-            )
-        }
-        
-        // Dark overlay for better text readability
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.3f),
-                            Color.Black.copy(alpha = 0.5f)
-                        )
-                    )
-                )
+        Text(
+            text = "Explore",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
-        
-        // Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 60.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Hero Text
-            Column {
-                Text(
-                    text = "One place to share it all",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    lineHeight = MaterialTheme.typography.displaySmall.lineHeight
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Book, share, or split stays, time, and spaces—on one platform.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                // Get to know PaceDream CTA Button
-                Button(
-                    onClick = { /* TODO: Navigate to about/onboarding */ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF5527D7), // PaceDream Primary
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Get to know PaceDream",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-            
-            // Search Bar
-            SearchBarCard(
-                onSearchClick = onSearchClick,
-                onFilterClick = onFilterClick
-            )
-        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Hourly spaces, gear, and split stays.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = PaceDreamColors.TextSecondary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        HomeSearchRow(
+            searchText = searchText,
+            onSearchTextChange = onSearchTextChange,
+            onSearchClick = onSearchClick,
+            onFilterClick = onFilterClick
+        )
     }
 }
 
 /**
- * Search Bar Card
+ * Search row matching iOS Home search layout:
+ * - Rounded surface search field with magnifying glass
+ * - Trailing filters button with slider icon
  */
 @Composable
-private fun SearchBarCard(
+private fun HomeSearchRow(
+    searchText: String,
+    onSearchTextChange: (String) -> Unit,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            // Entire pill is tappable, like iOS BlurredSearchBar
-            .clickable(onClick = onSearchClick),
-        // iOS uses a pill with 28 corner radius
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            // Semi-transparent white over blurred background, approximating .ultraThinMaterial
-            containerColor = Color.White.copy(alpha = 0.92f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Search field
+        Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .weight(1f)
+                .clickable(onClick = onSearchClick),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = PaceDreamColors.Surface
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = if (searchText.isEmpty()) "Search" else searchText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (searchText.isEmpty()) {
+                        PaceDreamColors.TextSecondary
+                    } else {
+                        PaceDreamColors.TextPrimary
+                    }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Filters button
+        IconButton(
+            onClick = onFilterClick,
+            modifier = Modifier
+                .size(44.dp)
+                .background(
+                    color = PaceDreamColors.Primary,
+                    shape = RoundedCornerShape(14.dp)
+                )
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
+                imageVector = Icons.Default.Menu,
+                contentDescription = null,
+                tint = Color.White
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Search anywhere",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Share • Borrow • Split",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            // Trailing filter icon, visually matching the iOS home search bar
-            IconButton(onClick = onFilterClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Filters",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -556,10 +502,23 @@ private fun HomeSection(
     title: String,
     subtitle: String,
     items: List<HomeListingItem>,
+    searchQuery: String,
     isLoading: Boolean,
     onViewAllClick: () -> Unit,
     onItemClick: (HomeListingItem) -> Unit
 ) {
+    val filteredItems = remember(items, searchQuery) {
+        val query = searchQuery.trim().lowercase()
+        if (query.isEmpty()) {
+            items
+        } else {
+            items.filter { item ->
+                item.title.lowercase().contains(query) ||
+                    (item.location?.lowercase()?.contains(query) == true)
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -620,7 +579,7 @@ private fun HomeSection(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(items) { item ->
+                items(filteredItems) { item ->
                     ListingCard(
                         item = item,
                         onClick = { onItemClick(item) }

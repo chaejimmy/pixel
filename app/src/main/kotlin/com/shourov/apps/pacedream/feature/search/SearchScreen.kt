@@ -27,8 +27,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -162,7 +167,9 @@ fun SearchScreen(
                 title = { Text("Search", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { mapMode = !mapMode }) {
-                        Icon(Icons.Default.Map, contentDescription = "Map toggle")
+                        val icon = if (mapMode) Icons.Default.List else Icons.Default.Map
+                        val description = if (mapMode) "Show list" else "Show map"
+                        Icon(icon, contentDescription = description)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
@@ -377,14 +384,51 @@ private fun FiltersRow() {
     ) {
         FilterChip(
             selected = false,
-            onClick = { /* TODO */ },
-            label = { Text("Sort", style = PaceDreamTypography.Caption) },
-            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PaceDreamColors.Primary)
+            onClick = { /* TODO: Time quick filter */ },
+            label = { Text("Any time", style = PaceDreamTypography.Caption) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary
+                )
+            }
         )
         FilterChip(
             selected = false,
-            onClick = { /* TODO */ },
-            label = { Text("Filters", style = PaceDreamTypography.Caption) }
+            onClick = { /* TODO: Distance quick filter */ },
+            label = { Text("Any distance", style = PaceDreamTypography.Caption) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary
+                )
+            }
+        )
+        FilterChip(
+            selected = false,
+            onClick = { /* TODO: Price quick filter */ },
+            label = { Text("Any price", style = PaceDreamTypography.Caption) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.AttachMoney,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary
+                )
+            }
+        )
+        FilterChip(
+            selected = false,
+            onClick = { /* TODO: Instant book quick filter */ },
+            label = { Text("Instant book", style = PaceDreamTypography.Caption) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary
+                )
+            }
         )
     }
     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
