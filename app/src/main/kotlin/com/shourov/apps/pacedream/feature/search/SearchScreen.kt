@@ -1,23 +1,25 @@
 package com.shourov.apps.pacedream.feature.search
 
 import android.Manifest
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
@@ -40,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -68,9 +72,9 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
-import com.pacedream.common.composables.components.PaceDreamSearchBar
 import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
@@ -101,22 +105,20 @@ fun SearchScreen(
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    
-    // Get LocationService via Hilt entry point
+
     val locationService = remember {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
             LocationServiceEntryPoint::class.java
         ).locationService()
     }
-    
-    // Location permission launcher
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val hasPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        
+
         if (hasPermission) {
             scope.launch {
                 val location = locationService.getCurrentLocation()
@@ -153,13 +155,32 @@ fun SearchScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Search", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Explore",
+                        style = PaceDreamTypography.Title1,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 actions = {
-                    IconButton(onClick = { mapMode = !mapMode }) {
-                        Icon(PaceDreamIcons.Map, contentDescription = "Map toggle")
+                    // Map toggle button with modern pill shape
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        color = if (mapMode) PaceDreamColors.Primary.copy(alpha = 0.12f) else Color.Transparent,
+                        modifier = Modifier.padding(end = PaceDreamSpacing.SM)
+                    ) {
+                        IconButton(onClick = { mapMode = !mapMode }) {
+                            Icon(
+                                PaceDreamIcons.Map,
+                                contentDescription = "Map toggle",
+                                tint = if (mapMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
+                            )
+                        }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                )
             )
         },
         containerColor = PaceDreamColors.Background
@@ -172,20 +193,20 @@ fun SearchScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // iOS-parity: inline banner instead of Snackbar
+                // Inline banner
                 InlineErrorBanner(
                     message = inlineBannerMessage ?: "",
                     isVisible = inlineBannerMessage != null,
                     onDismiss = { inlineBannerMessage = null },
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM)
                 )
-                // Enhanced Search Bar with tabs and multi-field search
+
+                // Enhanced Search Bar
                 var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.USE) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
-                
-                // Sync local state with ViewModel state
+
                 LaunchedEffect(state.shareType) {
                     selectedTab = when (state.shareType?.uppercase()) {
                         "USE" -> com.pacedream.app.feature.search.SearchTab.USE
@@ -194,7 +215,7 @@ fun SearchScreen(
                         else -> com.pacedream.app.feature.search.SearchTab.USE
                     }
                 }
-                
+
                 com.pacedream.app.feature.search.EnhancedSearchBar(
                     selectedTab = selectedTab,
                     onTabSelected = { tab ->
@@ -207,21 +228,20 @@ fun SearchScreen(
                         viewModel.updateSearchParams(shareType = shareType)
                     },
                     whatQuery = whatQuery,
-                    onWhatQueryChange = { 
+                    onWhatQueryChange = {
                         whatQuery = it
                         viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
                     },
                     whereQuery = whereQuery,
-                    onWhereQueryChange = { 
+                    onWhereQueryChange = {
                         whereQuery = it
                         viewModel.onQueryChanged(it)
                         viewModel.updateSearchParams(city = it.takeIf { it.isNotBlank() })
                     },
                     selectedDate = selectedDateDisplay,
                     onDateClick = openDatePicker,
-                    onUseMyLocation = { 
+                    onUseMyLocation = {
                         if (!locationService.hasLocationPermission()) {
-                            // Request permission
                             locationPermissionLauncher.launch(
                                 arrayOf(
                                     Manifest.permission.ACCESS_FINE_LOCATION,
@@ -229,7 +249,6 @@ fun SearchScreen(
                                 )
                             )
                         } else {
-                            // Permission already granted, get location
                             scope.launch {
                                 val location = locationService.getCurrentLocation()
                                 if (location != null) {
@@ -251,8 +270,7 @@ fun SearchScreen(
                             }
                         }
                     },
-                    onSearchClick = { 
-                        // Update ViewModel with all search parameters
+                    onSearchClick = {
                         viewModel.updateSearchParams(
                             shareType = when (selectedTab) {
                                 com.pacedream.app.feature.search.SearchTab.USE -> "USE"
@@ -262,16 +280,16 @@ fun SearchScreen(
                             whatQuery = whatQuery.takeIf { it.isNotBlank() },
                             city = whereQuery.takeIf { it.isNotBlank() },
                             startDate = selectedDateISO,
-                            endDate = selectedDateISO // For now, use same date for start/end
+                            endDate = selectedDateISO
                         )
                         viewModel.submitSearch()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
                 )
 
-                // Autocomplete suggestions (simple list)
+                // Autocomplete suggestions
                 if (state.suggestions.isNotEmpty() && state.query.length >= 2 && state.phase == SearchPhase.Idle) {
                     SuggestionsList(
                         suggestions = state.suggestions,
@@ -283,7 +301,7 @@ fun SearchScreen(
                     return@PullToRefreshBox
                 }
 
-                // Smoothly crossfade between list UI and map placeholder
+                // Map/List toggle
                 Crossfade(
                     targetState = mapMode,
                     label = "search_map_mode"
@@ -291,44 +309,46 @@ fun SearchScreen(
                     if (isMap) {
                         MapPlaceholder()
                     } else {
-                        // Filters row (UI scaffold; can be wired later)
-                        FiltersRow()
+                        Column {
+                            // Modern filters row
+                            FiltersRow()
 
-                        when (state.phase) {
-                            SearchPhase.Idle -> IdleState()
-                            SearchPhase.Loading -> SearchSkeleton()
-                            SearchPhase.Error -> ErrorState(
-                                message = state.errorMessage ?: "Search failed",
-                                onRetry = { viewModel.submitSearch() }
-                            )
-                            SearchPhase.Empty -> EmptyState()
-                            SearchPhase.Success, SearchPhase.LoadingMore -> ResultsList(
-                                items = state.items,
-                                isLoadingMore = state.phase == SearchPhase.LoadingMore,
-                                hasMore = state.hasMore,
-                                onLoadMore = { viewModel.loadMoreIfNeeded() },
-                                onItemClick = onListingClick,
-                                favoriteIds = favoriteIds,
-                                onFavoriteClick = { listingId ->
-                                    if (authState == AuthState.Unauthenticated) {
-                                        onShowAuthSheet()
-                                        return@ResultsList
-                                    }
-                                    scope.launch {
-                                        val wasFavorited = favoriteIds.contains(listingId)
-                                        when (val res = viewModel.toggleFavorite(listingId)) {
-                                            is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                                            is ApiResult.Failure -> {
-                                                if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                                                    onShowAuthSheet()
-                                                } else {
-                                                    inlineBannerMessage = (res.error.message ?: "Failed to save")
+                            when (state.phase) {
+                                SearchPhase.Idle -> IdleState()
+                                SearchPhase.Loading -> SearchSkeleton()
+                                SearchPhase.Error -> ErrorState(
+                                    message = state.errorMessage ?: "Search failed",
+                                    onRetry = { viewModel.submitSearch() }
+                                )
+                                SearchPhase.Empty -> EmptyState()
+                                SearchPhase.Success, SearchPhase.LoadingMore -> ResultsList(
+                                    items = state.items,
+                                    isLoadingMore = state.phase == SearchPhase.LoadingMore,
+                                    hasMore = state.hasMore,
+                                    onLoadMore = { viewModel.loadMoreIfNeeded() },
+                                    onItemClick = onListingClick,
+                                    favoriteIds = favoriteIds,
+                                    onFavoriteClick = { listingId ->
+                                        if (authState == AuthState.Unauthenticated) {
+                                            onShowAuthSheet()
+                                            return@ResultsList
+                                        }
+                                        scope.launch {
+                                            val wasFavorited = favoriteIds.contains(listingId)
+                                            when (val res = viewModel.toggleFavorite(listingId)) {
+                                                is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                                is ApiResult.Failure -> {
+                                                    if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                                                        onShowAuthSheet()
+                                                    } else {
+                                                        inlineBannerMessage = (res.error.message ?: "Failed to save")
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -344,26 +364,44 @@ private fun SuggestionsList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM)
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
     ) {
         items(suggestions, key = { it.value }) { s ->
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onClick(s) },
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                color = PaceDreamColors.Card,
+                tonalElevation = 0.dp
             ) {
                 Row(
                     modifier = Modifier.padding(PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text(s.value, style = PaceDreamTypography.Body, color = PaceDreamColors.TextPrimary)
+                    Surface(
+                        shape = CircleShape,
+                        color = PaceDreamColors.Surface,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                PaceDreamIcons.Search,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                    Text(
+                        s.value,
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
     }
 }
@@ -373,22 +411,46 @@ private fun FiltersRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         FilterChip(
             selected = false,
             onClick = { /* TODO */ },
-            label = { Text("Sort", style = PaceDreamTypography.Caption) },
-            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PaceDreamColors.Primary)
+            label = { Text("Sort", style = PaceDreamTypography.Subheadline) },
+            leadingIcon = {
+                Icon(
+                    PaceDreamIcons.Tune,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                containerColor = PaceDreamColors.Surface,
+                selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f)
+            ),
+            shape = RoundedCornerShape(PaceDreamRadius.Round),
+            border = null
         )
         FilterChip(
             selected = false,
             onClick = { /* TODO */ },
-            label = { Text("Filters", style = PaceDreamTypography.Caption) }
+            label = { Text("Filters", style = PaceDreamTypography.Subheadline) },
+            leadingIcon = {
+                Icon(
+                    PaceDreamIcons.FilterList,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                containerColor = PaceDreamColors.Surface,
+                selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f)
+            ),
+            shape = RoundedCornerShape(PaceDreamRadius.Round),
+            border = null
         )
     }
-    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 }
 
 @Composable
@@ -446,45 +508,56 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 private fun SearchSkeleton() {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
     ) {
-        items(8) { _ ->
-            Card(
+        items(6) { _ ->
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card)
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                color = PaceDreamColors.Card
             ) {
-                Row(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                Column {
+                    // Image skeleton
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                            .background(PaceDreamColors.Border.copy(alpha = 0.35f))
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .background(PaceDreamColors.Surface)
                             .shimmerEffect()
                     )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                    Column(modifier = Modifier.weight(1f)) {
+                    // Content skeleton
+                    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.7f)
+                                .fillMaxWidth(0.65f)
                                 .height(16.dp)
-                                .background(PaceDreamColors.Border.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                .background(
+                                    PaceDreamColors.Surface,
+                                    RoundedCornerShape(PaceDreamRadius.XS)
+                                )
                                 .shimmerEffect()
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.5f)
+                                .fillMaxWidth(0.45f)
                                 .height(12.dp)
-                                .background(PaceDreamColors.Border.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                .background(
+                                    PaceDreamColors.Surface,
+                                    RoundedCornerShape(PaceDreamRadius.XS)
+                                )
                                 .shimmerEffect()
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.35f)
-                                .height(12.dp)
-                                .background(PaceDreamColors.Border.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                .fillMaxWidth(0.3f)
+                                .height(14.dp)
+                                .background(
+                                    PaceDreamColors.Surface,
+                                    RoundedCornerShape(PaceDreamRadius.XS)
+                                )
                                 .shimmerEffect()
                         )
                     }
@@ -507,11 +580,11 @@ private fun ResultsList(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
     ) {
         items(items, key = { it.id }) { item ->
-            SearchResultCard(
+            ModernSearchResultCard(
                 item = item,
                 onClick = { onItemClick(item.id) },
                 isFavorited = favoriteIds.contains(item.id),
@@ -528,7 +601,11 @@ private fun ResultsList(
                         .padding(PaceDreamSpacing.MD),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PaceDreamColors.Primary, modifier = Modifier.size(22.dp))
+                    CircularProgressIndicator(
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
                 }
                 LaunchedEffect(Unit) { onLoadMore() }
             }
@@ -540,22 +617,29 @@ private fun ResultsList(
                         .padding(PaceDreamSpacing.MD),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PaceDreamColors.Primary, modifier = Modifier.size(22.dp))
+                    CircularProgressIndicator(
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
                 }
             }
         }
     }
 }
 
+/**
+ * Modernized result card with full-width image, overlaid info, and glass-style badges.
+ */
 @Composable
-private fun SearchResultCard(
+private fun ModernSearchResultCard(
     item: SearchResultItem,
     isFavorited: Boolean,
     onClick: () -> Unit,
     onFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = {
@@ -571,26 +655,31 @@ private fun SearchResultCard(
                 )
                 onClick()
             }),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = PaceDreamColors.Card,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp
     ) {
-        Row(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+        Column {
+            // Full-width image with overlay elements
             Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 10f)
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
             ) {
                 if (item.imageUrl.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(PaceDreamColors.Border.copy(alpha = 0.25f)),
+                            .background(PaceDreamColors.Surface),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
-                            tint = PaceDreamColors.TextSecondary
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 } else {
@@ -601,47 +690,96 @@ private fun SearchResultCard(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                IconButton(
-                    onClick = onFavorite,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                        .background(Color.Black.copy(alpha = 0.25f))
-                        .size(28.dp)
-                ) {
-                    AnimatedContent(
-                        targetState = isFavorited,
-                        transitionSpec = {
-                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.85f, animationSpec = tween(200))) togetherWith
-                                (fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200)))
-                        },
-                        label = "favorite_toggle"
-                    ) { favored ->
-                        Icon(
-                            imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
-                            contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
-                            tint = if (favored) PaceDreamColors.Error else Color.White,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+
+                // Bottom gradient overlay for readability
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(42.dp)
+                        .height(60.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.3f)
+                                )
                             )
                         )
                 )
+
+                // Favorite button - glass style
+                Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.3f),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(PaceDreamSpacing.SM)
+                        .size(36.dp)
+                ) {
+                    IconButton(
+                        onClick = onFavorite,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        AnimatedContent(
+                            targetState = isFavorited,
+                            transitionSpec = {
+                                (fadeIn(tween(200)) + scaleIn(
+                                    initialScale = 0.85f,
+                                    animationSpec = tween(200)
+                                )) togetherWith
+                                    (fadeOut(tween(200)) + scaleOut(
+                                        targetScale = 0.9f,
+                                        animationSpec = tween(200)
+                                    ))
+                            },
+                            label = "favorite_toggle"
+                        ) { favored ->
+                            Icon(
+                                imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
+                                contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
+                                tint = if (favored) PaceDreamColors.Error else Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Rating badge - bottom left
+                item.rating?.let { r ->
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        color = Color.Black.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(PaceDreamSpacing.SM)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(
+                                horizontal = PaceDreamSpacing.SM,
+                                vertical = PaceDreamSpacing.XS
+                            )
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFCC00),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                            Text(
+                                text = String.format("%.1f", r),
+                                style = PaceDreamTypography.Caption,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-
-            Column(modifier = Modifier.weight(1f)) {
+            // Content section below image
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 Text(
                     text = item.title.ifBlank { "Listing" },
                     style = PaceDreamTypography.Headline,
@@ -650,28 +788,36 @@ private fun SearchResultCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+
                 item.location?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary, maxLines = 1)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    val price = item.priceText?.takeIf { it.isNotBlank() }
-                    Text(
-                        text = price ?: "Price unavailable",
-                        style = PaceDreamTypography.Caption,
-                        color = if (price != null) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-                        fontWeight = if (price != null) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.weight(1f)
-                    )
-                    item.rating?.let { r ->
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
-                            text = String.format("%.1f", r),
+                            it,
                             style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary
+                            color = PaceDreamColors.TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                val price = item.priceText?.takeIf { it.isNotBlank() }
+                Text(
+                    text = price ?: "Price unavailable",
+                    style = PaceDreamTypography.Callout,
+                    color = if (price != null) PaceDreamColors.Primary else PaceDreamColors.TextTertiary,
+                    fontWeight = if (price != null) FontWeight.Bold else FontWeight.Normal
+                )
             }
         }
     }
@@ -685,11 +831,19 @@ private fun MapPlaceholder() {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Map view (coming next)",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                PaceDreamIcons.Map,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Text(
+                text = "Map view coming soon",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
     }
 }
-
