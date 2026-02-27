@@ -10,14 +10,19 @@ import org.gradle.kotlin.dsl.dependencies
 class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
+            val hasGoogleServices = file("google-services.json").exists()
+
             with(pluginManager) {
-                // Only apply when google-services.json exists; the file is
-                // gitignored so fresh clones / CI builds without it still succeed.
-                if (file("google-services.json").exists()) {
+                // Only apply Firebase plugins when google-services.json exists; the
+                // file is gitignored so fresh clones / CI builds without it still
+                // succeed.  The firebase-perf plugin instruments OkHttp at bytecode
+                // level, so applying it without a configured FirebaseApp causes a
+                // fatal NoClassDefFoundError at runtime.
+                if (hasGoogleServices) {
                     apply("com.google.gms.google-services")
+                    apply("com.google.firebase.firebase-perf")
+                    apply("com.google.firebase.crashlytics")
                 }
-                apply("com.google.firebase.firebase-perf")
-                apply("com.google.firebase.crashlytics")
             }
 
             dependencies {
@@ -28,13 +33,15 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
                 "implementation"(libs.findLibrary("firebase.crashlytics").get())
             }
 
-            extensions.configure<ApplicationExtension> {
-                buildTypes.configureEach {
-                    // Disable the Crashlytics mapping file upload. This feature should only be
-                    // enabled if a Firebase backend is available and configured in
-                    // google-services.json.
-                    configure<CrashlyticsExtension> {
-                        mappingFileUploadEnabled = false
+            if (hasGoogleServices) {
+                extensions.configure<ApplicationExtension> {
+                    buildTypes.configureEach {
+                        // Disable the Crashlytics mapping file upload. This feature should only
+                        // be enabled if a Firebase backend is available and configured in
+                        // google-services.json.
+                        configure<CrashlyticsExtension> {
+                            mappingFileUploadEnabled = false
+                        }
                     }
                 }
             }
