@@ -9,6 +9,7 @@ import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -29,7 +30,11 @@ class PaceDreamApplication : Application() {
         // Initialize Firebase before any network calls. The firebase-perf gradle plugin
         // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
         // prior to any OkHttpClient.execute() call (including those in authSession.initialize()).
-        FirebaseApp.initializeApp(this)
+        try {
+            FirebaseApp.initializeApp(this)
+        } catch (e: Exception) {
+            Timber.e(e, "Firebase initialization failed; continuing without Firebase services")
+        }
 
         profileVerifierLogger()
 
