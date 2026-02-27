@@ -236,6 +236,15 @@ class ApiClient @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Unexpected error for: ${redactUrl(url)}")
             ApiResult.Failure(mapException(e))
+        } catch (e: ExceptionInInitializerError) {
+            // Firebase Performance bytecode instrumentation wraps OkHttp calls
+            // through FirebasePerfOkHttpClient which triggers a static initializer
+            // that calls FirebaseApp.getInstance(). When Firebase is not configured
+            // (e.g. debug builds without matching google-services.json) this throws
+            // ExceptionInInitializerError (an Error, not Exception). Treat it as a
+            // transient network-layer failure rather than crashing the app.
+            Timber.e(e, "Static initializer error (likely Firebase perf) for: ${redactUrl(url)}")
+            ApiResult.Failure(ApiError.Unknown("Firebase initialization error", underlyingCause = e))
         }
     }
 
