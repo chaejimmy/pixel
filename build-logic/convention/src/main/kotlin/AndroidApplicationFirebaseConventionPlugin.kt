@@ -1,6 +1,7 @@
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import com.google.firebase.perf.plugin.FirebasePerfExtension
 import com.shourov.apps.pacedream.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -41,6 +42,17 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
                         // google-services.json.
                         configure<CrashlyticsExtension> {
                             mappingFileUploadEnabled = false
+                        }
+                    }
+
+                    // Disable Firebase Performance bytecode instrumentation for debug
+                    // builds.  The debug variant uses applicationIdSuffix ".debug" which
+                    // google-services.json typically does not cover, so FirebaseApp
+                    // cannot initialise and the instrumented OkHttp calls crash with
+                    // ExceptionInInitializerError at runtime.
+                    buildTypes.getByName("debug") {
+                        configure<FirebasePerfExtension> {
+                            setInstrumentationEnabled(false)
                         }
                     }
                 }
