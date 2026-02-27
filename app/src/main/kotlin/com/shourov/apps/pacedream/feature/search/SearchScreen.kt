@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.search
 
+import android.Manifest
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -26,16 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,15 +40,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +65,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamSearchBar
@@ -103,11 +94,11 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     var mapMode by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
@@ -135,19 +126,18 @@ fun SearchScreen(
                         location.longitude
                     )
                     if (address != null) {
-                        whereQuery = address
                         viewModel.onQueryChanged(address)
                         viewModel.updateSearchParams(city = address)
-                        snackbarHostState.showSnackbar("Location set: $address")
+                        inlineBannerMessage = ("Location set: $address")
                     } else {
-                        snackbarHostState.showSnackbar("Could not determine address")
+                        inlineBannerMessage = ("Could not determine address")
                     }
                 } else {
-                    snackbarHostState.showSnackbar("Location unavailable")
+                    inlineBannerMessage = ("Location unavailable")
                 }
             }
         } else {
-            snackbarHostState.showSnackbar("Location permission denied")
+            inlineBannerMessage = "Location permission denied"
         }
     }
 
@@ -161,15 +151,12 @@ fun SearchScreen(
 
     Scaffold(
         modifier = modifier,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Search", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { mapMode = !mapMode }) {
-                        val icon = if (mapMode) Icons.Default.List else Icons.Default.Map
-                        val description = if (mapMode) "Show list" else "Show map"
-                        Icon(icon, contentDescription = description)
+                        Icon(PaceDreamIcons.Map, contentDescription = "Map toggle")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
@@ -185,6 +172,13 @@ fun SearchScreen(
                 .padding(padding)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // iOS-parity: inline banner instead of Snackbar
+                InlineErrorBanner(
+                    message = inlineBannerMessage ?: "",
+                    isVisible = inlineBannerMessage != null,
+                    onDismiss = { inlineBannerMessage = null },
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM)
+                )
                 // Enhanced Search Bar with tabs and multi-field search
                 var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.USE) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
@@ -247,12 +241,12 @@ fun SearchScreen(
                                         whereQuery = address
                                         viewModel.onQueryChanged(address)
                                         viewModel.updateSearchParams(city = address)
-                                        snackbarHostState.showSnackbar("Location set: $address")
+                                        inlineBannerMessage = ("Location set: $address")
                                     } else {
-                                        snackbarHostState.showSnackbar("Could not determine address")
+                                        inlineBannerMessage = ("Could not determine address")
                                     }
                                 } else {
-                                    snackbarHostState.showSnackbar("Location unavailable")
+                                    inlineBannerMessage = ("Location unavailable")
                                 }
                             }
                         }
@@ -323,12 +317,12 @@ fun SearchScreen(
                                     scope.launch {
                                         val wasFavorited = favoriteIds.contains(listingId)
                                         when (val res = viewModel.toggleFavorite(listingId)) {
-                                            is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                            is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
                                             is ApiResult.Failure -> {
                                                 if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
                                                     onShowAuthSheet()
                                                 } else {
-                                                    snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                                                    inlineBannerMessage = (res.error.message ?: "Failed to save")
                                                 }
                                             }
                                         }
@@ -364,7 +358,7 @@ private fun SuggestionsList(
                     modifier = Modifier.padding(PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+                    Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(s.value, style = PaceDreamTypography.Body, color = PaceDreamColors.TextPrimary)
                 }
@@ -384,51 +378,14 @@ private fun FiltersRow() {
     ) {
         FilterChip(
             selected = false,
-            onClick = { /* TODO: Time quick filter */ },
-            label = { Text("Any time", style = PaceDreamTypography.Caption) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary
-                )
-            }
+            onClick = { /* TODO */ },
+            label = { Text("Sort", style = PaceDreamTypography.Caption) },
+            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PaceDreamColors.Primary)
         )
         FilterChip(
             selected = false,
-            onClick = { /* TODO: Distance quick filter */ },
-            label = { Text("Any distance", style = PaceDreamTypography.Caption) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary
-                )
-            }
-        )
-        FilterChip(
-            selected = false,
-            onClick = { /* TODO: Price quick filter */ },
-            label = { Text("Any price", style = PaceDreamTypography.Caption) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.AttachMoney,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary
-                )
-            }
-        )
-        FilterChip(
-            selected = false,
-            onClick = { /* TODO: Instant book quick filter */ },
-            label = { Text("Instant book", style = PaceDreamTypography.Caption) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Bolt,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary
-                )
-            }
+            onClick = { /* TODO */ },
+            label = { Text("Filters", style = PaceDreamTypography.Caption) }
         )
     }
     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -445,7 +402,7 @@ private fun IdleState() {
         PaceDreamEmptyState(
             title = "Start exploring",
             description = "Search for a city, neighborhood, or listing.",
-            icon = Icons.Default.Search,
+            icon = PaceDreamIcons.Search,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -462,7 +419,7 @@ private fun EmptyState() {
         PaceDreamEmptyState(
             title = "No results",
             description = "Try a different search or pull to refresh.",
-            icon = Icons.Default.Search,
+            icon = PaceDreamIcons.Search,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -631,7 +588,7 @@ private fun SearchResultCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary
                         )
@@ -656,13 +613,13 @@ private fun SearchResultCard(
                     AnimatedContent(
                         targetState = isFavorited,
                         transitionSpec = {
-                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
-                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.85f, animationSpec = tween(200))) togetherWith
+                                (fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200)))
                         },
                         label = "favorite_toggle"
                     ) { favored ->
                         Icon(
-                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
                             tint = if (favored) PaceDreamColors.Error else Color.White,
                             modifier = Modifier.size(16.dp)

@@ -7,7 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -31,7 +31,7 @@ fun PaceDreamApp(
 ) {
     val showTopBar = appState.showTopBar
     val navController = appState.navController
-    val isHostMode by appState.isHostMode.collectAsState()
+    val isHostMode by appState.isHostMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
     // Handle pending deep links from MainActivity

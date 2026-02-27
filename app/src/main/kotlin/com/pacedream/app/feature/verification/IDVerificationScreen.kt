@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package com.pacedream.app.feature.verification
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -5,8 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import android.net.Uri
 import coil.compose.AsyncImage
 import com.shourov.apps.pacedream.core.network.model.verification.VerificationStatusResponse
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IDVerificationContent(
     status: VerificationStatusResponse.VerificationStatusData.IDStatus?,
@@ -118,7 +120,7 @@ fun IDVerificationContent(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Schedule, contentDescription = null)
+                    Icon(PaceDreamIcons.Schedule, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Pending Review")
                 }
@@ -176,7 +178,7 @@ fun IDTypePicker(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                idTypes.forEach { (label, value) ->
+                for ((label, value) in idTypes) {
                     DropdownMenuItem(
                         text = { Text(label) },
                         onClick = {
@@ -300,7 +302,7 @@ fun ImagePickerButton(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                Icons.Default.AddPhotoAlternate,
+                PaceDreamIcons.AddPhotoAlternate,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp)
             )

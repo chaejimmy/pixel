@@ -21,8 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.home.domain.models.DestinationModel
 import com.shourov.apps.pacedream.feature.home.presentation.R
@@ -138,14 +138,31 @@ fun EnhancedPropertyCard(
                     .height(180.dp)
             ) {
                 // Property Image
-                Image(
-                    painter = painterResource(R.drawable.ic_dummy_user), // Replace with actual image
-                    contentDescription = propertyName,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG)),
-                    contentScale = ContentScale.Crop
-                )
+                if (!imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = propertyName,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
+                            .background(PaceDreamColors.Gray100),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Image,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
                 
                 // Favorite Button
                 IconButton(
@@ -159,7 +176,7 @@ fun EnhancedPropertyCard(
                         )
                 ) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                         contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                         tint = if (isFavorite) PaceDreamColors.Error else PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -210,7 +227,7 @@ fun EnhancedPropertyCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = PaceDreamIcons.LocationOn,
                         contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -235,28 +252,36 @@ fun EnhancedPropertyCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = PaceDreamIcons.Star,
                         contentDescription = null,
                         tint = PaceDreamColors.Warning,
                         modifier = Modifier.size(PaceDreamIconSize.XS)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
+
                     Text(
-                        text = rating.toString(),
+                        text = String.format("%.1f", rating),
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.Medium
                     )
-                    
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
-                    Text(
-                        text = "• Excellent",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
+
+                    if (rating >= 4.5f) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "• Superb",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    } else if (rating >= 4.0f) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "• Excellent",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
                 }
                 
                 // Amenities
@@ -267,7 +292,7 @@ fun EnhancedPropertyCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.LocalHotel,
+                            imageVector = PaceDreamIcons.LocalHotel,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
@@ -312,15 +337,33 @@ fun CompactPropertyCard(
             modifier = Modifier.fillMaxSize()
         ) {
             // Image
-            Image(
-                painter = painterResource(R.drawable.ic_dummy_user), // Replace with actual image
-                contentDescription = propertyName,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD)),
-                contentScale = ContentScale.Crop
-            )
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = propertyName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
+                        .background(PaceDreamColors.Gray100),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Image,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
             
             // Content
             Column(
@@ -364,7 +407,7 @@ fun CompactPropertyCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = PaceDreamColors.Warning,
                             modifier = Modifier.size(12.dp)
@@ -397,14 +440,32 @@ fun PropertyImageCarousel(
             .height(200.dp)
     ) {
         // Main Image
-        Image(
-            painter = painterResource(R.drawable.ic_dummy_user), // Replace with actual image
-            contentDescription = "Property image",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-            contentScale = ContentScale.Crop
-        )
+        val currentUrl = images.getOrNull(currentImageIndex)
+        if (!currentUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = currentUrl,
+                contentDescription = "Property image",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Gray100),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Image,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
         
         // Image Counter
         Card(
@@ -442,7 +503,7 @@ fun PropertyImageCarousel(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Previous image",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -458,7 +519,7 @@ fun PropertyImageCarousel(
                         )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = PaceDreamIcons.ArrowForward,
                         contentDescription = "Next image",
                         tint = Color.White,
                         modifier = Modifier.size(PaceDreamIconSize.SM)

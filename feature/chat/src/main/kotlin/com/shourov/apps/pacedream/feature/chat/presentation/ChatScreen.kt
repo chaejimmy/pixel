@@ -23,11 +23,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -47,7 +47,7 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(chatId) {
         viewModel.loadMessages(chatId)
@@ -101,7 +101,7 @@ private fun ChatHeader(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -125,9 +125,9 @@ private fun ChatHeader(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Online",
+                    text = "Active now",
                     style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
-                    color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.7f)
+                    color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.6f)
                 )
             }
             
@@ -135,7 +135,7 @@ private fun ChatHeader(
             
             IconButton(onClick = { /* Handle call */ }) {
                 Icon(
-                    imageVector = Icons.Default.Call,
+                    imageVector = PaceDreamIcons.Call,
                     contentDescription = "Call",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -143,7 +143,7 @@ private fun ChatHeader(
             
             IconButton(onClick = { /* Handle video call */ }) {
                 Icon(
-                    imageVector = Icons.Default.Videocam,
+                    imageVector = PaceDreamIcons.Videocam,
                     contentDescription = "Video call",
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
@@ -159,7 +159,14 @@ private fun MessagesList(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    
+
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
     LazyColumn(
         modifier = modifier,
         state = listState,
@@ -264,7 +271,7 @@ private fun MessageInput(
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))
             
             FloatingActionButton(
-                onClick = onSendMessage,
+                onClick = { if (message.isNotBlank()) onSendMessage() },
                 modifier = Modifier.size(48.dp),
                 containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
                 contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
@@ -277,7 +284,7 @@ private fun MessageInput(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = PaceDreamIcons.Send,
                         contentDescription = "Send message"
                     )
                 }

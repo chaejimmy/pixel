@@ -1,7 +1,6 @@
 package com.shourov.apps.pacedream.feature.host.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class HostScreen(
@@ -9,12 +8,12 @@ sealed class HostScreen(
     val title: String, 
     val icon: ImageVector
 ) {
-    object Dashboard : HostScreen("host_dashboard", "Dashboard", Icons.Default.Dashboard)
-    object Listings : HostScreen("host_listings", "My Listings", Icons.Default.Home)
-    object Bookings : HostScreen("host_bookings", "Bookings", Icons.Default.CalendarToday)
-    object Earnings : HostScreen("host_earnings", "Earnings", Icons.Default.AttachMoney)
-    object Analytics : HostScreen("host_analytics", "Analytics", Icons.Default.Analytics)
-    object Settings : HostScreen("host_settings", "Settings", Icons.Default.Settings)
+    object Dashboard : HostScreen("host_dashboard", "Dashboard", PaceDreamIcons.Dashboard)
+    object Listings : HostScreen("host_listings", "My Listings", PaceDreamIcons.Home)
+    object Bookings : HostScreen("host_bookings", "Bookings", PaceDreamIcons.CalendarToday)
+    object Earnings : HostScreen("host_earnings", "Earnings", PaceDreamIcons.AttachMoney)
+    object Analytics : HostScreen("host_analytics", "Analytics", PaceDreamIcons.Analytics)
+    object Settings : HostScreen("host_settings", "Settings", PaceDreamIcons.Settings)
 }
 
 object HostNavigationDestinations {

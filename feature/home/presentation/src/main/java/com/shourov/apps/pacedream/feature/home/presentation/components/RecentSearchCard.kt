@@ -57,8 +57,8 @@ import com.shourov.apps.pacedream.feature.home.presentation.R
 @Composable
 fun RecentSearchCard(
     modifier: Modifier,
-    location: String = "The Lakes inn",
-    address: String = "Neko0sa, Wisconsin, USA",
+    location: String = "",
+    address: String = "",
     onViewAllClick: () -> Unit,
 ) {
     Row(

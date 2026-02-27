@@ -5,8 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Circle
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -147,7 +146,7 @@ private fun ThreadItem(
             // Unread indicator
             if (thread.isUnread) {
                 Icon(
-                    imageVector = Icons.Default.Circle,
+                    imageVector = PaceDreamIcons.Circle,
                     contentDescription = "Unread",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier

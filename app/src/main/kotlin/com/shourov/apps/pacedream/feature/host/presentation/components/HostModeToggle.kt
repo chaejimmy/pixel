@@ -3,8 +3,7 @@ package com.shourov.apps.pacedream.feature.host.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,7 +28,7 @@ fun HostModeToggle(
         colors = CardDefaults.cardColors(
             containerColor = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Card
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -42,7 +41,7 @@ fun HostModeToggle(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (isHostMode) Icons.Default.Home else Icons.Default.Person,
+                    imageVector = if (isHostMode) PaceDreamIcons.Home else PaceDreamIcons.Person,
                     contentDescription = if (isHostMode) "Host Mode" else "Guest Mode",
                     tint = if (isHostMode) Color.White else PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(24.dp)
@@ -90,7 +89,7 @@ fun HostModeIndicator(
             modifier = modifier
                 .clip(RoundedCornerShape(PaceDreamRadius.SM)),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary),
-            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
                 modifier = Modifier.padding(
@@ -100,7 +99,7 @@ fun HostModeIndicator(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = PaceDreamIcons.Home,
                     contentDescription = "Host Mode",
                     tint = Color.White,
                     modifier = Modifier.size(12.dp)
@@ -145,7 +144,7 @@ fun HostModeBanner(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        imageVector = PaceDreamIcons.Home,
                         contentDescription = "Host Mode",
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(20.dp)
@@ -192,7 +191,7 @@ fun HostModeBanner(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = PaceDreamIcons.Person,
                         contentDescription = "Guest Mode",
                         tint = PaceDreamColors.Info,
                         modifier = Modifier.size(20.dp)

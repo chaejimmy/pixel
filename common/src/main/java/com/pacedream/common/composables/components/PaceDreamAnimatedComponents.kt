@@ -24,8 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -217,7 +216,7 @@ fun AnimatedLoadingState(
 fun AnimatedEmptyState(
     title: String,
     subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Search,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = PaceDreamIcons.Search,
     modifier: Modifier = Modifier
 ) {
     Box(

@@ -13,13 +13,35 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 /**
- * Light default theme color scheme
+ * iOS 26 Liquid Glass theme configuration for PaceDream.
+ *
+ * Provides glass-aware color tokens via [LocalGlassTheme] alongside
+ * the standard Material 3 color scheme mapped from Apple's system colors.
  */
+
+// ============================================================================
+// Liquid Glass Theme Data
+// ============================================================================
+@Immutable
+data class GlassTheme(
+    val surfaceColor: Color = Color.Unspecified,
+    val borderColor: Color = Color.Unspecified,
+    val highlightColor: Color = Color.Unspecified,
+    val surfaceAlpha: Float = PaceDreamGlass.RegularAlpha,
+    val isDark: Boolean = false,
+)
+
+val LocalGlassTheme = staticCompositionLocalOf { GlassTheme() }
+
+// ============================================================================
+// Light default theme color scheme (iOS 26 system colors)
+// ============================================================================
 @VisibleForTesting
 val LightDefaultColorScheme = lightColorScheme(
     primary = primaryLight,
@@ -60,7 +82,7 @@ val LightDefaultColorScheme = lightColorScheme(
 )
 
 /**
- * Dark default theme color scheme
+ * Dark default theme color scheme (iOS 26 dark mode)
  */
 @VisibleForTesting
 val DarkDefaultColorScheme = darkColorScheme(
@@ -242,7 +264,7 @@ val extendedDarkHighContrast = ExtendedColorScheme(
         successDarkHighContrast,
         onSuccessDarkHighContrast,
         successContainerDarkHighContrast,
-        onSuccessContainerDarkHighContrast,
+        onSuccessDarkHighContrast,
     ),
 )
 
@@ -277,7 +299,7 @@ val DarkAndroidGradientColors = GradientColors(container = Color.Black)
 /**
  * Light Android background theme
  */
-val LightAndroidBackgroundTheme = BackgroundTheme(color = surfaceDark)
+val LightAndroidBackgroundTheme = BackgroundTheme(color = surfaceLight)
 
 /**
  * Dark Android background theme
@@ -289,11 +311,11 @@ const val slightlyDeemphasizedAlpha = 0.87f
 const val extremelyDeemphasizedAlpha = 0.32f
 
 /**
- * Now in Android theme.
+ * PaceDream Theme - iOS 26 Liquid Glass Design
  *
  * @param darkTheme Whether the theme should use a dark color scheme (follows system by default).
- * @param androidTheme Whether the theme should use the Android theme color scheme instead of the
- *        default theme.
+ * @param androidTheme Whether the theme should use the Android theme color scheme instead of
+ *        the default theme.
  * @param disableDynamicTheming If `true`, disables the use of dynamic theming, even when it is
  *        supported. This parameter has no effect if [androidTheme] is `true`.
  */
@@ -340,11 +362,32 @@ fun PaceDreamTheme(
         !disableDynamicTheming && supportsDynamicTheming() -> TintTheme(colorScheme.primary)
         else -> TintTheme()
     }
+
+    // Liquid Glass theme tokens
+    val glassTheme = if (darkTheme) {
+        GlassTheme(
+            surfaceColor = PaceDreamColors.GlassSurfaceDark,
+            borderColor = PaceDreamColors.GlassBorderDark,
+            highlightColor = PaceDreamColors.GlassHighlight,
+            surfaceAlpha = PaceDreamGlass.RegularAlpha,
+            isDark = true,
+        )
+    } else {
+        GlassTheme(
+            surfaceColor = PaceDreamColors.GlassSurface,
+            borderColor = PaceDreamColors.GlassBorder,
+            highlightColor = PaceDreamColors.GlassHighlight,
+            surfaceAlpha = PaceDreamGlass.RegularAlpha,
+            isDark = false,
+        )
+    }
+
     // Composition locals
     CompositionLocalProvider(
         LocalGradientColors provides gradientColors,
         LocalBackgroundTheme provides backgroundTheme,
         LocalTintTheme provides tintTheme,
+        LocalGlassTheme provides glassTheme,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

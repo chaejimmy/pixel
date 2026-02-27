@@ -6,8 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -118,7 +117,7 @@ fun ListingsHeader(
                 contentColor = PaceDreamColors.Primary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = PaceDreamIcons.Add,
                     contentDescription = "Add Listing"
                 )
             }
@@ -222,14 +221,14 @@ fun EmptyListingsState(
             .padding(horizontal = PaceDreamSpacing.LG)
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.XXXL),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.Home,
+                imageVector = PaceDreamIcons.Home,
                 contentDescription = "No listings",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(80.dp)
@@ -315,7 +314,7 @@ fun HostListingCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column {
             // Property Image
@@ -327,7 +326,7 @@ fun HostListingCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = PaceDreamIcons.Home,
                     contentDescription = "Property",
                     tint = PaceDreamColors.Primary,
                     modifier = Modifier.size(60.dp)
@@ -359,7 +358,7 @@ fun HostListingCard(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Edit,
+                                imageVector = PaceDreamIcons.Edit,
                                 contentDescription = "Edit",
                                 tint = PaceDreamColors.Primary,
                                 modifier = Modifier.size(16.dp)
@@ -371,7 +370,7 @@ fun HostListingCard(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Delete,
+                                imageVector = PaceDreamIcons.Delete,
                                 contentDescription = "Delete",
                                 tint = PaceDreamColors.Error,
                                 modifier = Modifier.size(16.dp)
@@ -387,7 +386,7 @@ fun HostListingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.LocationOn,
+                        imageVector = PaceDreamIcons.LocationOn,
                         contentDescription = "Location",
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(16.dp)
@@ -423,7 +422,7 @@ fun HostListingCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = "Rating",
                             tint = PaceDreamColors.Warning,
                             modifier = Modifier.size(16.dp)

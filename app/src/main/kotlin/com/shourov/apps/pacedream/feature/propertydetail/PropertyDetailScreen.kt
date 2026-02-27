@@ -8,23 +8,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Image
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -43,7 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,9 +55,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
@@ -78,9 +77,9 @@ fun PropertyDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: PropertyDetailViewModel = hiltViewModel()
 ) {
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -98,18 +97,18 @@ fun PropertyDetailScreen(
                 title = {
                     Text(
                         text = detail?.title ?: preview?.title ?: "Listing",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = PaceDreamTypography.Headline,
                         maxLines = 1
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = onShareClick) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share")
+                        Icon(PaceDreamIcons.Share, contentDescription = "Share")
                     }
                     IconButton(
                         onClick = {
@@ -130,7 +129,7 @@ fun PropertyDetailScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (isFavorited) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (isFavorited) "Unfavorite" else "Favorite",
                             tint = if (isFavorited) PaceDreamColors.Error else PaceDreamColors.TextPrimary
                         )
@@ -152,14 +151,16 @@ fun PropertyDetailScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         uiState.errorMessage ?: "Unable to load listing details.",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = PaceDreamTypography.Body,
                         color = PaceDreamColors.TextSecondary
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                     Button(
                         onClick = { viewModel.refreshDetail() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
-                    ) { Text("Retry") }
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    ) { Text("Retry", style = PaceDreamTypography.Button) }
                 }
             }
             return@Scaffold
@@ -208,31 +209,30 @@ fun PropertyDetailScreen(
                 Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        style = PaceDreamTypography.Title2,
                         color = PaceDreamColors.TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(PaceDreamIcons.Star, contentDescription = null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = rating?.let { String.format("%.1f", it) } ?: "—",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaceDreamTypography.Callout,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = detail?.reviewCount?.let { "($it)" } ?: "(No reviews yet)",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaceDreamTypography.Callout,
                             color = PaceDreamColors.TextSecondary
                         )
                         if (!locationText.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = "· $locationText",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = PaceDreamTypography.Callout,
                                 color = PaceDreamColors.TextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -242,19 +242,20 @@ fun PropertyDetailScreen(
 
                     val hourlyFrom = detail?.hourlyFrom
                     if (hourlyFrom != null) {
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         val symbol = when ((detail.currency ?: "USD").uppercase()) {
                             "USD" -> "$"
                             else -> "$"
                         }
                         Card(
-                            shape = RoundedCornerShape(999.dp),
-                            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100)
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
+                            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Text(
                                 text = "From $symbol${String.format("%.0f", hourlyFrom)} / hour",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                                style = PaceDreamTypography.Footnote,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -280,17 +281,17 @@ fun PropertyDetailScreen(
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 Text(
                     text = "About",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = PaceDreamTypography.Title3,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 val desc = detail?.description?.trim().orEmpty()
                 if (desc.isBlank()) {
                     Text(
                         text = "No description available.",
                         color = PaceDreamColors.TextSecondary,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = PaceDreamTypography.Body,
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                     )
                 } else {
@@ -298,7 +299,7 @@ fun PropertyDetailScreen(
                         text = desc,
                         maxLines = 5,
                         overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = PaceDreamTypography.Body,
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -330,7 +331,7 @@ fun PropertyDetailScreen(
                         .padding(horizontal = PaceDreamSpacing.LG),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Reviews", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Reviews", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { /* TODO */ }) { Text("See all", color = PaceDreamColors.Primary) }
                 }
@@ -351,7 +352,7 @@ fun PropertyDetailScreen(
                         .padding(horizontal = PaceDreamSpacing.LG),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Location", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Location", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { /* TODO open maps */ }) { Text("Open in Maps", color = PaceDreamColors.Primary) }
                 }
@@ -365,7 +366,7 @@ fun PropertyDetailScreen(
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+                            Icon(PaceDreamIcons.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("Map preview (hooking up next)", color = PaceDreamColors.TextSecondary)
                         }
@@ -382,33 +383,35 @@ fun PropertyDetailScreen(
             }
         }
 
-            // Sticky bottom booking bar (iOS-like)
+            // Sticky bottom booking bar - iOS 26 Liquid Glass style
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(PaceDreamSpacing.LG),
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                    .padding(WindowInsets.navigationBars.asPaddingValues())
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                shape = RoundedCornerShape(PaceDreamGlass.CardRadius),
+                colors = CardDefaults.cardColors(
+                    containerColor = PaceDreamColors.Card.copy(alpha = PaceDreamGlass.ThickAlpha)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(PaceDreamSpacing.LG),
+                        .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column {
                         Text(
                             text = priceText ?: "Select time",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = PaceDreamTypography.Headline,
                             color = if (priceText != null) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
-                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             "Taxes shown at checkout",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = PaceDreamTypography.Caption,
                             color = PaceDreamColors.TextSecondary
                         )
                     }
@@ -418,25 +421,40 @@ fun PropertyDetailScreen(
                             if (authState == AuthState.Unauthenticated) onShowAuthSheet() else onBookClick()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp)
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM),
+                        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     ) {
-                        Text(if (priceText != null) "Reserve" else "Select time", fontWeight = FontWeight.Bold)
+                        Text(
+                            if (priceText != null) "Reserve" else "Select time",
+                            style = PaceDreamTypography.Button,
+                        )
                     }
                 }
             }
         }
 
         if (showAboutSheet) {
-            ModalBottomSheet(onDismissRequest = { showAboutSheet = false }) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            ModalBottomSheet(
+                onDismissRequest = { showAboutSheet = false },
+                containerColor = PaceDreamColors.Background,
+                shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("About", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                        Text("About", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showAboutSheet = false }) { Text("Done") }
+                        TextButton(onClick = { showAboutSheet = false }) {
+                            Text("Done", style = PaceDreamTypography.Callout, color = PaceDreamColors.Primary)
+                        }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(detail?.description?.trim().orEmpty().ifBlank { "No description available." })
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    Text(
+                        detail?.description?.trim().orEmpty().ifBlank { "No description available." },
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                 }
             }
         }
@@ -446,16 +464,17 @@ fun PropertyDetailScreen(
 @Composable
 private fun ChipPill(text: String) {
     Card(
-        shape = RoundedCornerShape(999.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.5f))
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = PaceDreamGlass.ThinAlpha)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall,
+                style = PaceDreamTypography.Caption2,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
@@ -474,9 +493,9 @@ private fun HeroGallery(
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        shape = RoundedCornerShape(PaceDreamRadius.XL),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             HorizontalPager(state = pagerState) { page ->
@@ -489,7 +508,7 @@ private fun HeroGallery(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = PaceDreamIcons.Image,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary,
                             modifier = Modifier.size(28.dp)
@@ -539,7 +558,7 @@ private fun HostCard(
         modifier = modifier,
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -554,31 +573,33 @@ private fun HostCard(
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(44.dp)
-                        .background(PaceDreamColors.Gray100, shape = RoundedCornerShape(999.dp))
+                        .size(PaceDreamButtonHeight.MD)
+                        .background(PaceDreamColors.Gray100, shape = RoundedCornerShape(PaceDreamRadius.Round))
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
-                        .background(PaceDreamColors.Gray100, shape = RoundedCornerShape(999.dp)),
+                        .size(PaceDreamButtonHeight.MD)
+                        .background(PaceDreamColors.Gray100, shape = RoundedCornerShape(PaceDreamRadius.Round)),
                     contentAlignment = Alignment.Center
                 ) {
                     val initials = name.split(" ").filter { it.isNotBlank() }.take(2).map { it.first().toString() }.joinToString("").uppercase()
-                    Text(initials.ifBlank { "H" }, fontWeight = FontWeight.SemiBold)
+                    Text(initials.ifBlank { "H" }, style = PaceDreamTypography.Headline)
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Hosted by", style = MaterialTheme.typography.labelMedium, color = PaceDreamColors.TextSecondary)
-                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Hosted by", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
+                Text(name, style = PaceDreamTypography.Headline)
             }
             Button(
                 onClick = onContact,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Gray100),
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM),
+                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
-                Text("Contact", color = PaceDreamColors.Primary, fontWeight = FontWeight.SemiBold)
+                Text("Contact", color = PaceDreamColors.Primary, style = PaceDreamTypography.Callout, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -599,9 +620,9 @@ private fun InlineError(message: String, onRetry: () -> Unit, modifier: Modifier
                 text = message,
                 modifier = Modifier.weight(1f),
                 color = PaceDreamColors.TextPrimary,
-                style = MaterialTheme.typography.bodyMedium
+                style = PaceDreamTypography.Callout
             )
-            TextButton(onClick = onRetry) { Text("Retry", color = PaceDreamColors.Primary) }
+            TextButton(onClick = onRetry) { Text("Retry", color = PaceDreamColors.Primary, style = PaceDreamTypography.Callout) }
         }
     }
 }
@@ -610,7 +631,7 @@ private fun InlineError(message: String, onRetry: () -> Unit, modifier: Modifier
 private fun SectionChips(title: String, items: List<String>, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(title, style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = { /* TODO */ }, enabled = items.isNotEmpty()) { Text("See all", color = PaceDreamColors.Primary) }
         }
@@ -632,13 +653,14 @@ private fun SectionChips(title: String, items: List<String>, modifier: Modifier 
 @Composable
 private fun Chip(text: String) {
     Card(
-        shape = RoundedCornerShape(999.dp),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100)
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Text(
             text = text,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            style = PaceDreamTypography.Footnote,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

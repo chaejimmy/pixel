@@ -20,8 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,7 +67,7 @@ fun RecentSearchesScreen(
                     PaceDreamEmptyState(
                         title = "No Recent Searches",
                         description = "Search for a city or listing and it will appear here.",
-                        icon = Icons.Default.Search
+                        icon = PaceDreamIcons.Search
                     )
                 }
             } else {
@@ -123,7 +122,7 @@ private fun RecentSearchItem(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 Icon(
-                    imageVector = Icons.Default.History,
+                    imageVector = PaceDreamIcons.History,
                     contentDescription = null,
                     tint = PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -141,7 +140,7 @@ private fun RecentSearchItem(
                 modifier = Modifier.size(24.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = PaceDreamIcons.Close,
                     contentDescription = "Remove search",
                     tint = PaceDreamColors.TextTertiary,
                     modifier = Modifier.size(PaceDreamIconSize.XS)

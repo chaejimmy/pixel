@@ -3,6 +3,8 @@ package com.shourov.apps.pacedream.feature.host.navigation
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
+import com.shourov.apps.pacedream.feature.host.presentation.ListingMode
 import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostBookingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel
@@ -61,6 +63,33 @@ fun NavGraphBuilder.HostNavigationGraph(
     composable(HostScreen.Settings.route) {
         HostSettingsScreen(
             onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    composable("${HostNavigationDestinations.ADD_LISTING}?type={type}") { backStackEntry ->
+        val typeParam = backStackEntry.arguments?.getString("type") ?: "share"
+        val listingMode = when (typeParam.lowercase()) {
+            "borrow" -> ListingMode.BORROW
+            "use" -> ListingMode.USE
+            else -> ListingMode.SHARE
+        }
+        CreateListingScreen(
+            listingMode = listingMode,
+            onBackClick = { navController.popBackStack() },
+            onPublishSuccess = { listingId ->
+                navController.popBackStack()
+            }
+        )
+    }
+
+    // Keep backward-compatible route without type param (defaults to SHARE)
+    composable(HostNavigationDestinations.ADD_LISTING) {
+        CreateListingScreen(
+            listingMode = ListingMode.SHARE,
+            onBackClick = { navController.popBackStack() },
+            onPublishSuccess = { listingId ->
+                navController.popBackStack()
+            }
         )
     }
 }

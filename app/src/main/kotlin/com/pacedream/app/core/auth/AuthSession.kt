@@ -367,7 +367,7 @@ class SessionManager @Inject constructor(
     private fun extractStringByPaths(root: JsonElement, paths: List<List<String>>): String? {
         for (path in paths) {
             val value = root.navigate(path)
-            // Avoid `jsonPrimitive` throwing if this path points to a non-primitive (tolerant parsing).
+            // Avoid `jsonPrimitive` throwing    if this path points to a non-primitive (tolerant parsing).
             val text = (value as? JsonPrimitive)?.content
             if (!text.isNullOrBlank()) return text
         }
@@ -385,17 +385,18 @@ class SessionManager @Inject constructor(
     
     /**
      * Parse user from JSON response (tolerant parsing)
+     * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
-    private fun parseAndSetUser(responseBody: String) {
+    private fun parseAndSetUser(responseBody: String, fromCache: Boolean = false) {
         try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
+
             // Find user data in common locations
             val userData = obj["data"]?.jsonObject
                 ?: obj["user"]?.jsonObject
                 ?: obj
-            
+
             val user = User(
                 id = userData["_id"]?.jsonPrimitive?.content
                     ?: userData["id"]?.jsonPrimitive?.content
@@ -410,25 +411,27 @@ class SessionManager @Inject constructor(
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
             )
-            
+
             _currentUser.value = user
             tokenStorage.userId = user.id
             tokenStorage.cachedUserSummary = responseBody
-            
+
             Timber.d("User set: ${user.displayName}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
-            loadCachedUser()
+            if (!fromCache) {
+                loadCachedUser()
+            }
         }
     }
-    
+
     /**
      * Load cached user from storage
      */
     private fun loadCachedUser() {
         tokenStorage.cachedUserSummary?.let { cached ->
             try {
-                parseAndSetUser(cached)
+                parseAndSetUser(cached, fromCache = true)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load cached user")
             }

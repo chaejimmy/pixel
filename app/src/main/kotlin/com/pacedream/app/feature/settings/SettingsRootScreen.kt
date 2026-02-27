@@ -1,6 +1,5 @@
 package com.pacedream.app.feature.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,19 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Divider
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -31,6 +27,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
  * SettingsRootScreen
@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
  * - Payment Methods
  * - Help & Support
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsRootScreen(
     onBackClick: () -> Unit,
@@ -56,68 +57,102 @@ fun SettingsRootScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Settings") },
+                title = {
+                    Text(
+                        text = "Settings",
+                        style = PaceDreamTypography.Title2
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = PaceDreamColors.Background
                 )
             )
-        }
+        },
+        containerColor = PaceDreamColors.Background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
         ) {
-            SettingsRow(
-                icon = Icons.Filled.Person,
-                title = "Personal Information",
-                onClick = onPersonalInfoClick
-            )
-            Divider()
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-            SettingsRow(
-                icon = Icons.Filled.Lock,
-                title = "Login & Security",
-                onClick = onLoginSecurityClick
-            )
-            Divider()
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column {
+                    SettingsRow(
+                        icon = PaceDreamIcons.Person,
+                        title = "Personal Information",
+                        subtitle = "Name, email, and phone",
+                        onClick = onPersonalInfoClick
+                    )
+                    HorizontalDivider(color = PaceDreamColors.Border)
 
-            SettingsRow(
-                icon = Icons.Filled.Notifications,
-                title = "Notifications",
-                onClick = onNotificationsClick
-            )
-            Divider()
+                    SettingsRow(
+                        icon = PaceDreamIcons.Lock,
+                        title = "Login & Security",
+                        subtitle = "Password and authentication",
+                        onClick = onLoginSecurityClick
+                    )
+                    HorizontalDivider(color = PaceDreamColors.Border)
 
-            SettingsRow(
-                icon = Icons.Filled.Tune,
-                title = "Preferences",
-                onClick = onPreferencesClick
-            )
-            Divider()
+                    SettingsRow(
+                        icon = PaceDreamIcons.Notifications,
+                        title = "Notifications",
+                        subtitle = "Push and email preferences",
+                        onClick = onNotificationsClick
+                    )
+                }
+            }
 
-            SettingsRow(
-                icon = Icons.Filled.CreditCard,
-                title = "Payment Methods",
-                onClick = onPaymentMethodsClick
-            )
-            Divider()
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column {
+                    SettingsRow(
+                        icon = PaceDreamIcons.Tune,
+                        title = "Preferences",
+                        subtitle = "Language and region",
+                        onClick = onPreferencesClick
+                    )
+                    HorizontalDivider(color = PaceDreamColors.Border)
 
-            SettingsRow(
-                icon = Icons.Filled.HelpOutline,
-                title = "Help & Support",
-                onClick = onHelpSupportClick
-            )
-            Divider()
+                    SettingsRow(
+                        icon = PaceDreamIcons.CreditCard,
+                        title = "Payment Methods",
+                        subtitle = "Saved cards and billing",
+                        onClick = onPaymentMethodsClick
+                    )
+                }
+            }
+
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                SettingsRow(
+                    icon = PaceDreamIcons.HelpOutline,
+                    title = "Help & Support",
+                    subtitle = "FAQs, contact, and feedback",
+                    onClick = onHelpSupportClick
+                )
+            }
         }
     }
 }
@@ -126,35 +161,45 @@ fun SettingsRootScreen(
 private fun SettingsRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
+    subtitle: String? = null,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = MaterialTheme.colorScheme.primary
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier.size(24.dp)
         )
 
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f)
-        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+        }
 
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            imageVector = PaceDreamIcons.ArrowForward,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            tint = PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(18.dp)
         )
     }
-
-    Spacer(modifier = Modifier.height(4.dp))
 }
-

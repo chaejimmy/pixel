@@ -21,11 +21,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -45,7 +45,7 @@ fun BookingFormScreen(
     viewModel: BookingFormViewModel = hiltViewModel(),
     onBookingCreated: (String) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(propertyId) {
         viewModel.loadProperty(propertyId)
@@ -132,16 +132,17 @@ private fun BookingFormContent(
         
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
-        // Book Now Button
+        // Book Now Button - iOS 26 style
         Button(
             onClick = onBookNow,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(PaceDreamButtonHeight.LG),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PaceDreamColors.Primary
             ),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
+            shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
             Text(
                 text = "Book Now - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}",
@@ -162,7 +163,7 @@ private fun PropertySummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Row(
@@ -217,7 +218,7 @@ private fun BookingDetailsForm(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(
@@ -244,7 +245,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
+                        Icon(PaceDreamIcons.CalendarToday, contentDescription = "Select date")
                     }
                 )
                 
@@ -255,7 +256,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.CalendarToday, contentDescription = "Select date")
+                        Icon(PaceDreamIcons.CalendarToday, contentDescription = "Select date")
                     }
                 )
             }
@@ -274,7 +275,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.AccessTime, contentDescription = "Select time")
+                        Icon(PaceDreamIcons.AccessTime, contentDescription = "Select time")
                     }
                 )
                 
@@ -285,7 +286,7 @@ private fun BookingDetailsForm(
                     modifier = Modifier.weight(1f),
                     readOnly = true,
                     trailingIcon = {
-                        Icon(Icons.Default.AccessTime, contentDescription = "Select time")
+                        Icon(PaceDreamIcons.AccessTime, contentDescription = "Select time")
                     }
                 )
             }
@@ -314,7 +315,7 @@ private fun PriceSummaryCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Column(

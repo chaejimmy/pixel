@@ -1,9 +1,7 @@
 package com.shourov.apps.pacedream.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,7 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,9 +46,13 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.Consts.ROOM_TYPE
 import com.pacedream.common.util.Consts.TECH_GEAR_TYPE
+import android.content.Intent
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
-import com.shourov.apps.pacedream.feature.propertydetail.PropertyDetailScreen
+import com.pacedream.app.feature.listingdetail.ListingDetailRoute
+import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
@@ -205,51 +207,42 @@ fun NavGraphBuilder.DashboardNavigation(
                     ) {
                         val bottomPadding = it.calculateBottomPadding()
 
+                        // iOS 26 parity: 200ms easeInOut for all transitions
+                        val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+
                         NavHost(
                             navController = navController,
                             startDestination = DashboardDestination.HOME.name,
                             modifier = Modifier.padding(bottom = bottomPadding),
                             enterTransition = {
                                 fadeIn(
-                                    animationSpec = tween(
-                                        250,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideIntoContainer(
-                                    animationSpec = tween(250, easing = EaseIn),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                                 )
                             },
                             exitTransition = {
                                 fadeOut(
-                                    animationSpec = tween(
-                                        200,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = EaseOut),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.End,
                                 )
                             },
                             popEnterTransition = {
                                 fadeIn(
-                                    animationSpec = tween(
-                                        250,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideIntoContainer(
-                                    animationSpec = tween(250, easing = EaseIn),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.End,
                                 )
                             },
                             popExitTransition = {
                                 fadeOut(
-                                    animationSpec = tween(
-                                        200,
-                                        easing = LinearEasing,
-                                    ),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                 ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = EaseOut),
+                                    animationSpec = tween(200, easing = iOSEaseInOut),
                                     towards = AnimatedContentTransitionScope.SlideDirection.Start,
                                 )
                             },
@@ -459,8 +452,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                 route = DashboardDestination.PROFILE.name
                             ) {
                                 composable("profile_root") {
-                                val isHostMode by hostModeManager.isHostMode.collectAsState()
+                                val isHostMode by hostModeManager.isHostMode.collectAsStateWithLifecycle()
                                     var showAuthSheet by remember { mutableStateOf(false) }
+                                val context = androidx.compose.ui.platform.LocalContext.current
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
@@ -472,8 +466,27 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onHelpClick = {
                                         // Navigate to help
                                     },
+                                    onFaqClick = {
+                                        navController.navigate("faq")
+                                    },
                                     onAboutClick = {
                                         // Navigate to about
+                                    },
+                                    onPrivacyPolicyClick = {
+                                        try {
+                                            val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/privacy"))
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy")))
+                                        }
+                                    },
+                                    onTermsOfServiceClick = {
+                                        try {
+                                            val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
+                                            intent.launchUrl(context, Uri.parse("https://www.pacedream.com/terms"))
+                                        } catch (_: Exception) {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms")))
+                                        }
                                     },
                                     onLogoutClick = {
                                         // Handle logout
@@ -497,8 +510,15 @@ fun NavGraphBuilder.DashboardNavigation(
                                     }
                                 }
                             }
-                            
-                            // Property Detail Screen
+
+                            // FAQ Screen
+                            composable("faq") {
+                                com.shourov.apps.pacedream.feature.help.FaqScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Property Detail Screen – replaced with new ListingDetailRoute
                             composable(
                                 route = "${PropertyDestination.DETAIL.name}/{propertyId}",
                                 arguments = listOf(
@@ -508,21 +528,24 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             ) { backStackEntry ->
                                 val propertyId = backStackEntry.arguments?.getString("propertyId") ?: ""
-                                val authGate = hiltViewModel<AuthGateViewModel>()
-                                val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
-                                PropertyDetailScreen(
-                                    propertyId = propertyId,
+
+                                ListingDetailRoute(
+                                    listingId = propertyId,
                                     onBackClick = { navController.popBackStack() },
-                                    onBookClick = { 
-                                        if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
-                                            showAuthSheet = true
-                                        } else {
-                                            navController.navigate("${BookingDestination.BOOKING_FORM.name}/$propertyId")
-                                        }
+                                    onLoginRequired = {
+                                        showAuthSheet = true
                                     },
-                                    onShareClick = { /* Handle share */ },
-                                    onShowAuthSheet = { showAuthSheet = true }
+                                    onNavigateToInbox = {
+                                        navigateToTab(navController, DashboardDestination.INBOX.name)
+                                    },
+                                    onNavigateToCheckout = { draft ->
+                                        navController.currentBackStackEntry?.savedStateHandle?.set(
+                                            "booking_draft_json_${draft.listingId}",
+                                            BookingDraftCodec.encode(draft)
+                                        )
+                                        navController.navigate("${BookingDestination.BOOKING_FORM.name}/${draft.listingId}")
+                                    }
                                 )
 
                                 if (showAuthSheet) {

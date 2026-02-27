@@ -12,11 +12,14 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
+import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -183,6 +186,18 @@ class WishlistRepository @Inject constructor(
         }
     }
     
+    @VisibleForTesting
+    internal fun parseWishlistResponseForTest(responseBody: String): List<WishlistItem> =
+        parseWishlistsEndpointResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun parseToggleResponseForTest(responseBody: String): ToggleResult =
+        parseToggleResponse(responseBody)
+
+    @VisibleForTesting
+    internal fun isSuccessResponseForTest(responseBody: String): Boolean =
+        isSuccessResponse(responseBody)
+
     /**
      * Parse wishlist response with tolerant path finding
      * Looks for items array in: items, data.items, data.data.items
@@ -406,10 +421,11 @@ class WishlistRepository @Inject constructor(
      * Build JSON body from map
      */
     private fun buildJsonBody(map: Map<String, String>): String {
-        val entries = map.entries.joinToString(",") { (key, value) ->
-            "\"$key\":\"$value\""
-        }
-        return "{$entries}"
+        return buildJsonObject {
+            for ((key, value) in map) {
+                put(key, value)
+            }
+        }.toString()
     }
 }
 

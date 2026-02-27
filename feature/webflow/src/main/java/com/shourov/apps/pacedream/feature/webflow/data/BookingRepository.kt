@@ -6,9 +6,12 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import timber.log.Timber
+import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,14 +50,12 @@ class BookingRepository @Inject constructor(
     ): ApiResult<CheckoutResult> {
         val url = appConfig.buildApiUrl("properties", "bookings", "timebased")
         
-        val body = """
-            {
-                "itemId": "$itemId",
-                "start_time": "$startTime",
-                "end_time": "$endTime",
-                "amount": $amount
-            }
-        """.trimIndent()
+        val body = buildJsonObject {
+            put("itemId", itemId)
+            put("start_time", startTime)
+            put("end_time", endTime)
+            put("amount", amount)
+        }.toString()
         
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
@@ -90,17 +91,16 @@ class BookingRepository @Inject constructor(
     ): ApiResult<CheckoutResult> {
         val url = appConfig.buildApiUrl("gear-rentals", "book")
         
-        val bodyBuilder = StringBuilder()
-        bodyBuilder.append("{")
-        bodyBuilder.append("\"gearId\": \"$gearId\",")
-        bodyBuilder.append("\"startDate\": \"$startDate\",")
-        bodyBuilder.append("\"endDate\": \"$endDate\",")
-        startTime?.let { bodyBuilder.append("\"startTime\": \"$it\",") }
-        endTime?.let { bodyBuilder.append("\"endTime\": \"$it\",") }
-        bodyBuilder.append("\"amount\": $amount")
-        bodyBuilder.append("}")
-        
-        return when (val result = apiClient.post(url, bodyBuilder.toString(), includeAuth = true)) {
+        val body = buildJsonObject {
+            put("gearId", gearId)
+            put("startDate", startDate)
+            put("endDate", endDate)
+            startTime?.let { put("startTime", it) }
+            endTime?.let { put("endTime", it) }
+            put("amount", amount)
+        }.toString()
+
+        return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
                     val checkoutResult = parseCheckoutResponse(result.data, BookingType.GEAR)
@@ -196,8 +196,20 @@ class BookingRepository @Inject constructor(
         clearStoredCheckout()
     }
     
+    @VisibleForTesting
+    internal fun parseCheckoutResponseForTest(responseBody: String, type: BookingType): CheckoutResult =
+        parseCheckoutResponse(responseBody, type)
+
+    @VisibleForTesting
+    internal fun parseBookingConfirmationForTest(responseBody: String, type: BookingType): BookingConfirmation =
+        parseBookingConfirmation(responseBody, type)
+
+    @VisibleForTesting
+    internal fun extractSessionIdFromUrlForTest(url: String): String? =
+        extractSessionIdFromUrl(url)
+
     // Parsing methods
-    
+
     private fun parseCheckoutResponse(responseBody: String, type: BookingType): CheckoutResult {
         val jsonElement = json.parseToJsonElement(responseBody)
         val jsonObject = jsonElement.jsonObject
@@ -265,9 +277,11 @@ class BookingRepository @Inject constructor(
     }
     
     private fun extractSessionIdFromUrl(url: String): String? {
-        // Try to extract session_id query parameter
-        val regex = "[?&]session_id=([^&]+)".toRegex()
-        return regex.find(url)?.groupValues?.getOrNull(1)
+        return SESSION_ID_REGEX.find(url)?.groupValues?.getOrNull(1)
+    }
+
+    companion object {
+        private val SESSION_ID_REGEX = "[?&]session_id=([^&]+)".toRegex()
     }
 }
 

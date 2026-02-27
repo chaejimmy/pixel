@@ -25,12 +25,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Star
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,7 +46,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -85,7 +80,7 @@ fun WishlistScreen(
     onShowAuthSheet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     
     // Handle navigation events
@@ -275,14 +270,14 @@ private fun WishlistItemCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.XS)
-                        .size(32.dp)
+                        .size(36.dp)
                         .background(Color.White.copy(alpha = 0.9f), CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
+                        imageVector = PaceDreamIcons.Favorite,
                         contentDescription = "Remove from favorites",
                         tint = PaceDreamColors.Error,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 
@@ -349,7 +344,7 @@ private fun WishlistItemCard(
                     item.rating?.let { rating ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Star,
+                                imageVector = PaceDreamIcons.Star,
                                 contentDescription = null,
                                 tint = PaceDreamColors.Warning,
                                 modifier = Modifier.size(14.dp)
@@ -385,24 +380,30 @@ private fun EmptyState() {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
-                contentDescription = null,
+                imageVector = PaceDreamIcons.FavoriteBorder,
+                contentDescription = "No favorites",
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
                 text = "No favorites yet",
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                text = "Start exploring and save your favorite spaces!",
+                text = "Tap the heart on any listing to save it here for easy access later.",
                 style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -418,7 +419,7 @@ private fun EmptyFilteredState(filter: WishlistFilter) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
+                imageVector = PaceDreamIcons.FavoriteBorder,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(48.dp)
@@ -471,29 +472,35 @@ private fun RequiresAuthState(
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        ) {
             Icon(
-                imageVector = Icons.Default.Lock,
+                imageVector = PaceDreamIcons.Lock,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
                 text = "Sign in to view favorites",
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
                 text = "Save your favorite spaces and access them anywhere",
                 style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
+                color = PaceDreamColors.TextSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
             Button(
                 onClick = onSignIn,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
                 Text("Sign In", style = PaceDreamTypography.Headline)

@@ -50,6 +50,7 @@ fun EnhancedDashboardScreen(
     gearsState: HomeScreenRentedGearsState,
     splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
     isRefreshing: Boolean = false,
+    userName: String = "",
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
     onSplitStaysRetry: () -> Unit = {},
@@ -63,7 +64,7 @@ fun EnhancedDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -82,7 +83,7 @@ fun EnhancedDashboardScreen(
         ) {
             // Enhanced Header
             EnhancedDashboardHeader(
-                userName = "Darryl Rutledge",
+                userName = userName,
                 onSearchClick = onSearchClick,
                 onFilterClick = onFilterClick,
                 onNotificationClick = onNotificationClick

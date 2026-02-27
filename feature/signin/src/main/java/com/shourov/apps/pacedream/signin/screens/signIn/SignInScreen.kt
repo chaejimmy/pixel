@@ -1,42 +1,29 @@
-/*
- * Copyright 2024 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.shourov.apps.pacedream.signin.screens.signIn
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Password
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pacedream.common.R
 import com.pacedream.common.composables.VerticalSpacer
@@ -47,20 +34,30 @@ import com.pacedream.common.composables.inputfields.CustomInputTextField
 import com.pacedream.common.composables.inputfields.CustomPasswordField
 import com.pacedream.common.composables.texts.ClickableText
 import com.pacedream.common.composables.texts.TitleText
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.signin.navigation.SignInRoutes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignIn(
-navController: NavController
+    navController: NavController
 ) {
+    val viewModel: SignInViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            snackbarHostState.showSnackbar(error)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-
-                },
+                title = { },
                 navigationIcon = {
                     RoundIconButton(
                         icon = PaceDreamIcons.ArrowBack,
@@ -69,20 +66,25 @@ navController: NavController
                         }
                     )
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                ),
             )
         },
-    ){
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = PaceDreamColors.Background,
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it),
-            color = MaterialTheme.colorScheme.background
+            color = PaceDreamColors.Background
         ) {
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 6.dp, end = 6.dp, top = 6.dp),
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TitleText(
@@ -92,7 +94,7 @@ navController: NavController
                 VerticalSpacer(height = 5)
                 ClickableText(
                     modifier = Modifier.fillMaxWidth(),
-                    nonClickPart = stringResource(id = R.string.core_ui_have_account_question,  "Don't"),
+                    nonClickPart = stringResource(id = R.string.core_ui_have_account_question, "Don't"),
                     clickablePart = stringResource(id = R.string.core_ui_create_account),
                     onClick = {
                         navController.navigate(route = SignInRoutes.START_EMAIL_PHONE.name)
@@ -102,15 +104,15 @@ navController: NavController
                 VerticalSpacer(height = 10)
 
                 CustomInputTextField(
-                    //enter email
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Email,
+                            imageVector = PaceDreamIcons.Email,
                             contentDescription = "Email"
                         )
                     },
-                    onValueChange = {
+                    onValueChange = { email ->
+                        viewModel.updateEmail(email)
                     },
                 )
                 VerticalSpacer(height = 10)
@@ -118,35 +120,49 @@ navController: NavController
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Password,
+                            imageVector = PaceDreamIcons.Password,
                             contentDescription = "Password"
                         )
                     },
-                    onValueChange = {
-
+                    onValueChange = { password ->
+                        viewModel.updatePassword(password)
                     },
                 )
 
                 PrimaryTextButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(id = R.string.core_ui_forgot_password),
-                    onClick = {/*TODO implement forgot password*/ },
+                    onClick = {
+                        viewModel.forgotPassword(
+                            onSuccess = { message ->
+                                // Show success via snackbar (handled by LaunchedEffect)
+                            }
+                        )
+                    },
                 )
 
                 ProcessButton(
-                    onClick = { /*TODO*/ },
+                    onClick = {
+                        viewModel.login(
+                            onSuccess = {
+                                navController.navigate(route = SignInRoutes.CREATE_ACCOUNT.name)
+                            }
+                        )
+                    },
                     text = stringResource(id = R.string.core_ui_continue_button),
-                    isEnabled = true,
+                    isEnabled = uiState.email.isNotBlank() && uiState.password.isNotBlank() && !uiState.isLoading,
+                    isProcessing = uiState.isLoading,
+                )
 
+                if (uiState.error != null) {
+                    VerticalSpacer(height = 8)
+                    Text(
+                        text = uiState.error!!,
+                        color = PaceDreamColors.Error,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-
+                }
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun SignInPrev(){
-    //SignIn()
 }

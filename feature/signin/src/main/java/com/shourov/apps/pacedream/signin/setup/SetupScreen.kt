@@ -43,7 +43,9 @@ import com.shourov.apps.pacedream.core.data.AccountCreationProcess.USER_PROFILE_
 private const val CONTENT_ANIMATION_DURATION = 300
 
 @Composable
-fun SetupScreen() {
+fun SetupScreen(
+    onSetupComplete: () -> Unit = {},
+) {
 
     val setupViewModel: AccountSetupViewModel = hiltViewModel()
     val accountSetupScreenData = setupViewModel.accountSetupScreenData
@@ -58,7 +60,10 @@ fun SetupScreen() {
             onContinueClick = setupViewModel::onContinueClicked,
             onHelpClick = {},
             onDoneClick = {
-                //TODO on done action i.e register the user to back end
+                setupViewModel.onDoneClicked(
+                    onSuccess = { onSetupComplete() },
+                    onError = { /* Error handled via setupError state */ }
+                )
             },
             content = {
                 AnimatedContent(

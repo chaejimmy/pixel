@@ -14,11 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Warning
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,13 +30,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,25 +45,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.app.core.auth.TokenStorage
-import com.shourov.apps.pacedream.BuildConfig
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsPaymentMethodsScreen(
     onBackClick: () -> Unit,
     viewModel: PaymentMethodsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val context = LocalContext.current
     val publishableKey = remember { StripePublishableKeyProvider.getPublishableKey() }
     val isStripeConfigured = !publishableKey.isNullOrBlank()
 
@@ -94,10 +93,10 @@ fun SettingsPaymentMethodsScreen(
         }
     )
 
-    LaunchedEffect(publishableKey) {
+    LaunchedEffect(publishableKey, context) {
         if (isStripeConfigured) {
             PaymentConfiguration.init(
-                context = androidx.compose.ui.platform.LocalContext.current,
+                context = context,
                 publishableKey = publishableKey!!
             )
         } else {
@@ -147,6 +146,7 @@ fun SettingsPaymentMethodsScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsPaymentMethodsContent(
     uiState: PaymentMethodsUiState,
@@ -166,7 +166,7 @@ private fun SettingsPaymentMethodsContent(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -306,7 +306,7 @@ private fun EmptyPaymentMethodsState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Filled.CreditCard,
+            imageVector = PaceDreamIcons.CreditCard,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.height(48.dp)
@@ -361,7 +361,7 @@ private fun StripeMissingWarning() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Filled.Warning,
+                imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -399,7 +399,7 @@ private fun PaymentMethodCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Filled.CreditCard,
+                    imageVector = PaceDreamIcons.CreditCard,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -460,7 +460,7 @@ private fun PaymentMethodCard(
                     modifier = Modifier.clickable(onClick = onDelete)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
+                        imageVector = PaceDreamIcons.Delete,
                         contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -490,9 +490,8 @@ private fun formatExpiry(expMonth: Int?, expYear: Int?): String {
 object StripePublishableKeyProvider {
     fun getPublishableKey(): String? {
         return try {
-            val field = BuildConfig::class.java.getField("STRIPE_PUBLISHABLE_KEY")
-            val value = field.get(null) as? String
-            value?.takeIf { it.isNotBlank() }
+            val value = com.shourov.apps.pacedream.BuildConfig.STRIPE_PUBLISHABLE_KEY
+            value.takeIf { it.isNotBlank() }
         } catch (e: Exception) {
             null
         }
@@ -503,9 +502,9 @@ object StripePublishableKeyProvider {
 private fun rememberPaymentSheet(
     onResult: (PaymentSheetResult) -> Unit
 ): PaymentSheet {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val activity = context as? android.app.Activity
-        ?: throw IllegalStateException("PaymentSheet requires an Activity context")
+    val context = LocalContext.current
+    val activity = context as? androidx.activity.ComponentActivity
+        ?: throw IllegalStateException("PaymentSheet requires a ComponentActivity context")
     return remember(activity) {
         PaymentSheet(activity, onResult)
     }

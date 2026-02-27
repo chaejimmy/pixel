@@ -26,10 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,7 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,9 +78,9 @@ fun HomeFeedScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
-    val authState by viewModel.authState.collectAsState()
-    val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -122,7 +119,9 @@ fun HomeFeedScreen(
                 item {
                     Header(
                         title = state.headerTitle,
-                        onSearchClick = { TabRouter.switchTo(DashboardDestination.SEARCH) }
+                        subtitle = state.headerSubtitle,
+                        onSearchClick = { TabRouter.switchTo(DashboardDestination.SEARCH) },
+                        onGetToKnowClick = { /* TODO: Navigate to about/intro screen */ }
                     )
                 }
 
@@ -140,12 +139,13 @@ fun HomeFeedScreen(
 
                 state.sections.forEach { section ->
                     item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                         PaceDreamSectionHeader(
                             title = section.key.displayTitle,
-                            onViewAllClick = { onSeeAll(section.key) }
+                            onViewAllClick = { onSeeAll(section.key) },
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
                         section.errorMessage?.takeIf { !section.isLoading }?.let { err ->
                             InlineErrorBanner(
@@ -163,7 +163,7 @@ fun HomeFeedScreen(
                                 isEmpty = section.items.isEmpty(),
                             ),
                             transitionSpec = {
-                                fadeIn(tween(180)) togetherWith fadeOut(tween(120))
+                                fadeIn(tween(200)) togetherWith fadeOut(tween(200))
                             },
                             label = "section_content"
                         ) { contentState ->
@@ -201,30 +201,73 @@ private data class SectionContentState(
 )
 
 @Composable
-private fun Header(title: String, onSearchClick: () -> Unit) {
+private fun Header(
+    title: String,
+    subtitle: String,
+    onSearchClick: () -> Unit,
+    onGetToKnowClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(220.dp)
             .statusBarsPadding()
+            .clip(RoundedCornerShape(bottomStart = PaceDreamRadius.XL, bottomEnd = PaceDreamRadius.XL))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamColors.Primary,
-                        PaceDreamColors.Primary.copy(alpha = 0.6f)
+                        PaceDreamColors.Primary.copy(alpha = 0.75f)
                     )
-                ),
-                RoundedCornerShape(bottomStart = PaceDreamRadius.LG, bottomEnd = PaceDreamRadius.LG)
+                )
             )
-            .padding(PaceDreamSpacing.LG)
+            .padding(
+                start = PaceDreamSpacing.LG,
+                end = PaceDreamSpacing.LG,
+                top = PaceDreamSpacing.LG,
+                bottom = PaceDreamSpacing.XL
+            )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column {
             Text(
                 text = title,
                 style = PaceDreamTypography.Title1,
                 color = Color.White,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = subtitle,
+                style = PaceDreamTypography.Body,
+                color = Color.White.copy(alpha = 0.9f)
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            OutlinedButton(
+                onClick = onGetToKnowClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White.copy(alpha = 0.15f),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.MD)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "Get to know PaceDream",
+                        style = PaceDreamTypography.Callout,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             HomeSearchPill(onClick = onSearchClick)
         }
@@ -237,24 +280,24 @@ private fun HomeSearchPill(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                .height(48.dp)
+                .padding(horizontal = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
+                imageVector = PaceDreamIcons.Search,
+                contentDescription = "Search",
+                tint = PaceDreamColors.Primary,
                 modifier = Modifier.size(20.dp)
             )
             Text(
@@ -337,7 +380,7 @@ private fun ListingCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
                             tint = PaceDreamColors.TextSecondary
                         )
@@ -354,13 +397,13 @@ private fun ListingCard(
                     AnimatedContent(
                         targetState = isFavorited,
                         transitionSpec = {
-                            (fadeIn(tween(120)) + scaleIn(initialScale = 0.85f, animationSpec = tween(180))) togetherWith
-                                (fadeOut(tween(90)) + scaleOut(targetScale = 0.9f, animationSpec = tween(90)))
+                            (fadeIn(tween(200)) + scaleIn(initialScale = 0.85f, animationSpec = tween(200))) togetherWith
+                                (fadeOut(tween(200)) + scaleOut(targetScale = 0.9f, animationSpec = tween(200)))
                         },
                         label = "favorite_toggle"
                     ) { favored ->
                         Icon(
-                            imageVector = if (favored) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
                             tint = if (favored) PaceDreamColors.Error else Color.White
                         )
@@ -499,7 +542,7 @@ private fun EmptyInline(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            Icon(Icons.Default.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+            Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
             Text(
                 message,
                 style = PaceDreamTypography.Body,

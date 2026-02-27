@@ -1,7 +1,9 @@
 package com.pacedream.app.core.config
 
+import com.shourov.apps.pacedream.BuildConfig
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -41,7 +43,14 @@ class AppConfig @Inject constructor() {
     }
     
     val auth0ClientId: String by lazy {
-        getConfigValue("AUTH0_CLIENT_ID") ?: DEFAULT_AUTH0_CLIENT_ID
+        val fromBuildConfig = try { BuildConfig.AUTH0_CLIENT_ID } catch (_: Exception) { "" }
+        val resolved = fromBuildConfig.ifBlank {
+            getConfigValue("AUTH0_CLIENT_ID") ?: ""
+        }
+        if (resolved.isBlank()) {
+            Timber.e("AUTH0_CLIENT_ID is not configured! Set auth0ClientId in local.properties or CI.")
+        }
+        resolved
     }
     
     val auth0Audience: String by lazy {
@@ -70,7 +79,6 @@ class AppConfig @Inject constructor() {
         
         // Auth0 defaults
         private const val DEFAULT_AUTH0_DOMAIN = "dev-pacedream.us.auth0.com"
-        private const val DEFAULT_AUTH0_CLIENT_ID = "YOUR_AUTH0_CLIENT_ID"
         private const val DEFAULT_AUTH0_SCOPES = "openid profile email offline_access"
     }
     

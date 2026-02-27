@@ -76,19 +76,39 @@ fun DashboardContent(
                 Color(0xFF21BDF2),
             ),
             CategoryModel(
-                stringResource(R.string.feature_home_ev_parking),
+                stringResource(R.string.feature_home_nap_pod),
+                R.drawable.ic_nap_pod,
+                Color(0xFF8B5CF6),
+            ),
+            CategoryModel(
+                stringResource(R.string.feature_home_meeting_room),
+                R.drawable.ic_meeting_room,
+                Color(0xFF3B82F6),
+            ),
+            CategoryModel(
+                stringResource(R.string.feature_home_study_room),
+                R.drawable.ic_study_room,
+                Color(0xFF10B981),
+            ),
+            CategoryModel(
+                stringResource(R.string.feature_home_short_stay),
+                R.drawable.ic_short_stay,
+                Color(0xFFF59E0B),
+            ),
+            CategoryModel(
+                stringResource(R.string.feature_home_apartment),
+                R.drawable.ic_apartment,
+                Color(0xFFEF4444),
+            ),
+            CategoryModel(
+                stringResource(R.string.feature_home_parking),
                 R.drawable.ic_ev_parking,
                 Color(0xCCB452DA),
             ),
             CategoryModel(
-                stringResource(R.string.feature_home_storage_room),
+                stringResource(R.string.feature_home_storage_space),
                 R.drawable.ic_storage_room,
                 Color(0xCC5753FA),
-            ),
-            CategoryModel(
-                stringResource(R.string.feature_home_parking_spot),
-                R.drawable.ic_ev_parking,
-                Color(0xFF0057FA),
             ),
         )
 

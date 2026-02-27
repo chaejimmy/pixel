@@ -2,7 +2,8 @@ package com.shourov.apps.pacedream
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shourov.apps.pacedream.core.data.repository.PaceDreamRepository
+import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.shourov.apps.pacedream.core.network.auth.AuthState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,11 +13,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainActivityViewModel @Inject constructor(
-    private val repository: PaceDreamRepository
+    private val authSession: AuthSession
 ) : ViewModel() {
 
     private val _isAuthenticated = MutableStateFlow(false)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    val authState: StateFlow<AuthState> = authSession.authState
 
     init {
         checkAuthenticationStatus()
@@ -24,9 +27,9 @@ class MainActivityViewModel @Inject constructor(
 
     private fun checkAuthenticationStatus() {
         viewModelScope.launch {
-            // TODO: Implement actual authentication check
-            // For now, we'll assume user is not authenticated
-            _isAuthenticated.value = false
+            authSession.authState.collect { state ->
+                _isAuthenticated.value = state == AuthState.Authenticated
+            }
         }
     }
 
@@ -36,8 +39,7 @@ class MainActivityViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            // TODO: Implement logout logic
-            // Clear user data, tokens, etc.
+            authSession.signOut()
             _isAuthenticated.value = false
         }
     }

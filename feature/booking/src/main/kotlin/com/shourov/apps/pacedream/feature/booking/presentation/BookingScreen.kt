@@ -21,11 +21,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -46,7 +46,7 @@ fun BookingScreen(
     modifier: Modifier = Modifier,
     viewModel: BookingViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(Unit) {
         viewModel.loadBookings()
@@ -116,8 +116,8 @@ private fun BookingCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(PaceDreamRadius.MD)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD)
@@ -167,34 +167,54 @@ private fun BookingCard(
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
+            // Date separator
+            HorizontalDivider(
+                color = PaceDreamColors.Border,
+                thickness = 0.5.dp
+            )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             // Booking Details
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
                         text = "Check-in",
                         style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.OnCard.copy(alpha = 0.7f)
+                        color = PaceDreamColors.OnCard.copy(alpha = 0.6f)
                     )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
                         text = formatDate(booking.startDate),
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.OnCard
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.OnCard,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-                
-                Column {
+
+                Icon(
+                    imageVector = PaceDreamIcons.ArrowForward,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "Check-out",
                         style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.OnCard.copy(alpha = 0.7f)
+                        color = PaceDreamColors.OnCard.copy(alpha = 0.6f)
                     )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
                         text = formatDate(booking.endDate),
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.OnCard
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.OnCard,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -212,11 +232,16 @@ private fun BookingCard(
                 Row {
                     if (booking.status == BookingStatus.PENDING) {
                         TextButton(onClick = onCancel) {
-                            Text("Cancel")
+                            Text("Cancel", style = PaceDreamTypography.Callout, color = PaceDreamColors.Error)
                         }
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Button(onClick = onConfirm) {
-                            Text("Confirm")
+                        Button(
+                            onClick = onConfirm,
+                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                            shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                        ) {
+                            Text("Confirm", style = PaceDreamTypography.Callout)
                         }
                     }
                 }
@@ -228,20 +253,22 @@ private fun BookingCard(
 @Composable
 private fun StatusChip(status: String) {
     val (backgroundColor, textColor) = when (status) {
-        "CONFIRMED" -> PaceDreamColors.Success to PaceDreamColors.OnSuccess
-        "PENDING" -> PaceDreamColors.Warning to PaceDreamColors.OnWarning
-        "CANCELLED" -> PaceDreamColors.Error to PaceDreamColors.OnError
+        "CONFIRMED" -> PaceDreamColors.Success.copy(alpha = 0.15f) to PaceDreamColors.Success
+        "PENDING" -> PaceDreamColors.Warning.copy(alpha = 0.15f) to PaceDreamColors.Warning
+        "CANCELLED" -> PaceDreamColors.Error.copy(alpha = 0.15f) to PaceDreamColors.Error
         else -> PaceDreamColors.SurfaceVariant to PaceDreamColors.OnSurfaceVariant
     }
-    
+
     Card(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(PaceDreamRadius.SM)
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Text(
-            text = status,
-            style = PaceDreamTypography.Caption,
+            text = status.lowercase().replaceFirstChar { it.uppercase() },
+            style = PaceDreamTypography.Caption2,
             color = textColor,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(
                 horizontal = PaceDreamSpacing.SM,
                 vertical = PaceDreamSpacing.XS
@@ -265,29 +292,32 @@ private fun BookingLoadingState() {
 @Composable
 private fun BookingEmptyState() {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.CalendarToday,
+                imageVector = PaceDreamIcons.CalendarToday,
                 contentDescription = "No bookings",
-                tint = PaceDreamColors.OnBackground.copy(alpha = 0.5f),
+                tint = PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(64.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
                 text = "No bookings yet",
-                style = PaceDreamTypography.Headline,
-                color = PaceDreamColors.OnBackground
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
                 text = "Start exploring properties to make your first booking",
                 style = PaceDreamTypography.Body,
-                color = PaceDreamColors.OnBackground.copy(alpha = 0.7f)
+                color = PaceDreamColors.TextSecondary
             )
         }
     }

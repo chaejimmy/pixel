@@ -2,14 +2,14 @@ package com.pacedream.app.feature.verification
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -116,7 +116,7 @@ fun PhoneInputView(
             placeholder = { Text("+1234567890") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             leadingIcon = {
-                Icon(Icons.Default.Phone, contentDescription = null)
+                Icon(PaceDreamIcons.Phone, contentDescription = null)
             },
             singleLine = true
         )
@@ -184,11 +184,11 @@ fun OTPInputView(
             placeholder = { Text("000000") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             textStyle = MaterialTheme.typography.headlineMedium.copy(
-                letterSpacing = 8.dp.value
+                letterSpacing = 8.sp
             ),
             singleLine = true,
             leadingIcon = {
-                Icon(Icons.Default.Lock, contentDescription = null)
+                Icon(PaceDreamIcons.Lock, contentDescription = null)
             }
         )
         

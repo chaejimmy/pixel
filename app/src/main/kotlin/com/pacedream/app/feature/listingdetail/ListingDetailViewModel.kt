@@ -16,7 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
@@ -25,6 +27,7 @@ import javax.inject.Inject
 class ListingDetailViewModel @Inject constructor(
     private val repository: ListingDetailRepository,
     private val wishlistRepository: ListingWishlistRepository,
+    private val reviewRepository: ReviewRepository,
     private val sessionManager: SessionManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -66,6 +69,7 @@ class ListingDetailViewModel @Inject constructor(
         }
 
         refresh()
+        // Reviews are lazy-loaded only when user opens the reviews sheet (iOS parity)
     }
 
     fun refresh() {
@@ -162,6 +166,68 @@ class ListingDetailViewModel @Inject constructor(
         }
     }
 
+    fun loadReviews() {
+        val listingId = currentListingId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingReviews = true) }
+            when (val result = reviewRepository.fetchReviews(listingId)) {
+                is ApiResult.Success -> {
+                    val (summary, reviews) = result.data
+                    _uiState.update {
+                        it.copy(
+                            isLoadingReviews = false,
+                            reviewSummary = summary,
+                            reviews = reviews
+                        )
+                    }
+                }
+                is ApiResult.Failure -> {
+                    _uiState.update { it.copy(isLoadingReviews = false) }
+                    Timber.e("Failed to load reviews: ${result.error.message}")
+                }
+            }
+        }
+    }
+
+    fun submitReview(rating: Double, comment: String, categoryRatings: CategoryRatings?) {
+        val listingId = currentListingId ?: return
+        viewModelScope.launch {
+            val isAuthed = sessionManager.authState.value == AuthState.Authenticated
+            if (!isAuthed) {
+                _effects.send(Effect.ShowAuthRequired)
+                return@launch
+            }
+
+            _uiState.update { it.copy(isSubmittingReview = true, reviewSubmitSuccess = false) }
+
+            val request = CreateReviewRequest(
+                listingId = listingId,
+                rating = rating,
+                comment = comment,
+                categoryRatings = categoryRatings
+            )
+
+            when (val result = reviewRepository.createReview(request)) {
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isSubmittingReview = false,
+                            reviewSubmitSuccess = true,
+                            reviews = listOf(result.data) + it.reviews
+                        )
+                    }
+                    _effects.send(Effect.ShowToast("Review submitted!"))
+                    // Refresh reviews to get updated summary
+                    loadReviews()
+                }
+                is ApiResult.Failure -> {
+                    _uiState.update { it.copy(isSubmittingReview = false) }
+                    _effects.send(Effect.ShowToast(result.error.message))
+                }
+            }
+        }
+    }
+
     fun openInMaps() {
         viewModelScope.launch {
             val listing = _uiState.value.listing ?: return@launch
@@ -204,11 +270,11 @@ class ListingDetailViewModel @Inject constructor(
             _uiState.update { it.copy(isGeocoding = true) }
             try {
                 Timber.d("Geocoding address: $address")
-                val geocoder = Geocoder(context, Locale.getDefault())
-                
-                @Suppress("DEPRECATION")
-                val results = geocoder.getFromLocationName(address, 1)
-                val first = results?.firstOrNull()
+                val first = withContext(Dispatchers.IO) {
+                    val geocoder = Geocoder(context, Locale.getDefault())
+                    @Suppress("DEPRECATION")
+                    geocoder.getFromLocationName(address, 1)?.firstOrNull()
+                }
                 if (first != null) {
                     Timber.d("Geocoding successful: lat=${first.latitude}, lng=${first.longitude}")
                     _uiState.update {

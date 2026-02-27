@@ -35,6 +35,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
@@ -67,9 +70,10 @@ fun OnBoardingScreen(
             state = pagerState,
         ) { index ->
             val item = onBoardingScreenItems[index]
+            val screenHeight = LocalConfiguration.current.screenHeightDp.dp
             SwipeAbleOnBoardingItemImage(
                 image = item.image,
-                imageHeight = 500.dp,
+                imageHeight = screenHeight * 0.45f,
                 modifier = Modifier,
             )
         }
@@ -140,7 +144,9 @@ fun CustomDotIndicator(currentPage: Int, numberOfPages: Int, pagerState: PagerSt
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "Page ${currentPage + 1} of $numberOfPages" },
     ) {
         repeat(numberOfPages) { index ->
             val width by animateDpAsState(
@@ -184,7 +190,7 @@ fun CustomDotIndicator(currentPage: Int, numberOfPages: Int, pagerState: PagerSt
 fun SwipeAbleOnBoardingItemImage(
     @DrawableRes image: Int,
     modifier: Modifier = Modifier,
-    imageHeight: Dp = 400.dp, // todo take 1/3 of the screen height for this
+    imageHeight: Dp = 400.dp,
 ) {
     Column(
         modifier = modifier,
@@ -196,7 +202,7 @@ fun SwipeAbleOnBoardingItemImage(
         ) {
             Image(
                 painter = painterResource(id = image),
-                contentDescription = null,
+                contentDescription = "Onboarding illustration",
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxWidth(),
             )

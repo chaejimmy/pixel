@@ -4,9 +4,16 @@
     <!-- Status bar -->
     <color name="black30">#4D000000</color>
 
-    <color name="ic_launcher_background_tint">#000000</color>
-    <color name="ic_launcher_foreground_tint">#FCFCFC</color>
+    <!-- App icon colors - iOS 26 System Indigo palette -->
+    <color name="ic_launcher_background_tint">#5856D6</color>
+    <color name="ic_launcher_foreground_tint">#FFFFFF</color>
 
-    <!-- Splash / brand background (matches iOS primary #5527D7) -->
-    <color name="pacedream_splash_background">#5527D7</color>
+    <!-- iOS 26 system colors for XML resources -->
+    <color name="system_indigo">#5856D6</color>
+    <color name="system_blue">#007AFF</color>
+    <color name="system_background">#FFFFFF</color>
+    <color name="system_grouped_background">#F2F2F7</color>
+
+    <!-- Splash / brand background to match launcher/app icon -->
+    <color name="pacedream_splash_background">#5856D6</color>
 </resources>

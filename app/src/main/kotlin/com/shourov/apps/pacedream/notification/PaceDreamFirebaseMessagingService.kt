@@ -1,9 +1,19 @@
 package com.shourov.apps.pacedream.notification
 
-import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.shourov.apps.pacedream.core.network.api.ApiClient
+import com.shourov.apps.pacedream.core.network.api.ApiResult
+import com.shourov.apps.pacedream.core.network.auth.TokenStorage
+import com.shourov.apps.pacedream.core.network.config.AppConfig
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -12,11 +22,25 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var notificationService: PaceDreamNotificationService
 
+    @Inject
+    lateinit var apiClient: ApiClient
+
+    @Inject
+    lateinit var appConfig: AppConfig
+
+    @Inject
+    lateinit var tokenStorage: TokenStorage
+
+    @Inject
+    lateinit var json: Json
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-        
-        Log.d("PaceDreamFCM", "From: ${remoteMessage.from}")
-        Log.d("PaceDreamFCM", "Message data payload: ${remoteMessage.data}")
+
+        Timber.d("FCM message received from: %s", remoteMessage.from)
+        Timber.d("FCM message type: %s", remoteMessage.data["type"] ?: "unknown")
 
         // Handle data payload
         remoteMessage.data.let { data ->
@@ -92,15 +116,45 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d("PaceDreamFCM", "Refreshed token: $token")
-        
-        // Send token to your server
+        Timber.d("FCM token refreshed")
+
         sendTokenToServer(token)
     }
 
     private fun sendTokenToServer(token: String) {
-        // TODO: Implement token sending to your server
-        // This could be done through your API service
-        Log.d("PaceDreamFCM", "Token sent to server: $token")
+        // Only register if user is authenticated
+        if (!tokenStorage.hasTokens()) {
+            Timber.d("Skipping FCM token registration: user not authenticated")
+            return
+        }
+
+        serviceScope.launch {
+            try {
+                val url = appConfig.buildApiUrl("notifications", "register-device")
+                val body = json.encodeToString(
+                    RegisterDeviceRequest.serializer(),
+                    RegisterDeviceRequest(
+                        token = token,
+                        platform = "android"
+                    )
+                )
+                when (val result = apiClient.post(url, body, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        Timber.d("FCM token registered with server")
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to register FCM token: ${result.error.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send FCM token to server")
+            }
+        }
     }
+
+    @Serializable
+    private data class RegisterDeviceRequest(
+        val token: String,
+        val platform: String
+    )
 }

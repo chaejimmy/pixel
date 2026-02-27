@@ -24,13 +24,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -42,6 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -68,6 +64,13 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableDoubleStateOf
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
 import java.time.Instant
@@ -80,26 +83,33 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ListingDetailScreen(
     uiState: ListingDetailUiState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onBackClick: () -> Unit,
     onRetry: () -> Unit,
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
     onContactHost: () -> Unit,
     onOpenInMaps: () -> Unit,
-    onConfirmReserve: (BookingDraft) -> Unit
+    onConfirmReserve: (BookingDraft) -> Unit,
+    onSubmitReview: (Double, String, CategoryRatings?) -> Unit = { _, _, _ -> },
+    onLoadReviews: () -> Unit = {}
 ) {
     var showAboutSheet by remember { mutableStateOf(false) }
     var showAmenitiesSheet by remember { mutableStateOf(false) }
     var showReviewsSheet by remember { mutableStateOf(false) }
+    var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
+    var showProposalSheet by remember { mutableStateOf(false) }
 
     val listing = uiState.listing
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
-                onReserveClick = { showReserveSheet = true }
+                onReserveClick = { showReserveSheet = true },
+                onSendProposalClick = { showProposalSheet = true }
             )
         }
     ) { padding ->
@@ -166,6 +176,23 @@ fun ListingDetailScreen(
                         )
                     }
 
+                    // Property details (bedrooms, beds, bathrooms, guests)
+                    if (listing?.hasPropertyDetails == true) {
+                        item {
+                            PropertyDetailsRow(
+                                propertyType = listing.propertyType,
+                                maxGuests = listing.maxGuests,
+                                bedrooms = listing.bedrooms,
+                                beds = listing.beds,
+                                bathrooms = listing.bathrooms,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    }
+
                     item {
                         HostCard(
                             host = listing?.host,
@@ -198,13 +225,69 @@ fun ListingDetailScreen(
                         )
                     }
 
+                    // House Rules Section
+                    if (listing != null && (listing.houseRules.isNotEmpty() || listing.checkInTime != null || listing.checkOutTime != null)) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item {
+                            SectionHouseRules(
+                                houseRules = listing.houseRules,
+                                checkInTime = listing.checkInTime,
+                                checkOutTime = listing.checkOutTime,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
+                    // Safety Features Section
+                    if (listing != null && listing.safetyFeatures.isNotEmpty()) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item {
+                            SectionSafetyFeatures(
+                                features = listing.safetyFeatures,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
                     item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
 
                     item {
                         SectionReviews(
-                            rating = listing?.rating,
-                            reviewCount = listing?.reviewCount,
+                            rating = uiState.reviewSummary?.averageRating ?: listing?.rating,
+                            reviewCount = uiState.reviewSummary?.totalCount ?: listing?.reviewCount,
+                            reviews = uiState.reviews,
+                            reviewSummary = uiState.reviewSummary,
+                            isLoadingReviews = uiState.isLoadingReviews,
                             onSeeAll = { showReviewsSheet = true },
+                            onWriteReview = { showWriteReviewSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                        )
+                    }
+
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+
+                    // Cancellation Policy Section (Web parity)
+                    item {
+                        SectionCancellationPolicy(
+                            cancellationPolicy = listing?.cancellationPolicy,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                        )
+                    }
+
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+
+                    // Pricing Breakdown Section (Web parity: cleaning fee, weekly discount)
+                    item {
+                        SectionPricingBreakdown(
+                            pricing = listing?.pricing,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
@@ -267,23 +350,90 @@ fun ListingDetailScreen(
         }
 
         if (showReviewsSheet) {
+            // Lazy-load reviews when sheet is opened (iOS parity)
+            androidx.compose.runtime.LaunchedEffect(Unit) { onLoadReviews() }
+
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showReviewsSheet = false },
                 sheetState = sheetState
             ) {
                 BottomSheetHeader(title = "Reviews", onClose = { showReviewsSheet = false })
-                Column(modifier = Modifier.padding(16.dp)) {
-                    val rating = listing?.rating
-                    val count = listing?.reviewCount
-                    if (rating == null || count == null || count == 0) {
-                        Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Text("⭐ $rating ($count reviews)", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Review list is coming soon on Android.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                    val summary = uiState.reviewSummary
+                    val reviews = uiState.reviews
+
+                    // Rating summary header
+                    item {
+                        if (summary != null && summary.totalCount > 0) {
+                            ReviewSummaryHeader(summary = summary)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+
+                    // Write review button
+                    item {
+                        Button(
+                            onClick = {
+                                showReviewsSheet = false
+                                showWriteReviewSheet = true
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Write a Review")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    if (reviews.isEmpty() && !uiState.isLoadingReviews) {
+                        item {
+                            Text(
+                                "No reviews yet. Be the first to share your experience!",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    items(reviews.size) { index ->
+                        ReviewCard(review = reviews[index])
+                        if (index < reviews.size - 1) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    if (uiState.isLoadingReviews) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
+                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
+            }
+        }
+
+        if (showWriteReviewSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showWriteReviewSheet = false },
+                sheetState = sheetState
+            ) {
+                WriteReviewSheet(
+                    isSubmitting = uiState.isSubmittingReview,
+                    onClose = { showWriteReviewSheet = false },
+                    onSubmit = { rating, comment, catRatings ->
+                        onSubmitReview(rating, comment, catRatings)
+                        showWriteReviewSheet = false
+                    }
+                )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
         }
@@ -303,6 +453,22 @@ fun ListingDetailScreen(
                         showReserveSheet = false
                         onConfirmReserve(draft)
                     }
+                )
+                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
+            }
+        }
+
+        if (showProposalSheet) {
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { showProposalSheet = false },
+                sheetState = sheetState
+            ) {
+                ProposalSheet(
+                    listingTitle = listing?.title.orEmpty(),
+                    hostName = listing?.host?.name,
+                    onClose = { showProposalSheet = false },
+                    onSend = { showProposalSheet = false }
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -445,7 +611,8 @@ private fun Long.toLocalDate(): LocalDate {
 @Composable
 private fun BookingBar(
     pricingLabel: String?,
-    onReserveClick: () -> Unit
+    onReserveClick: () -> Unit,
+    onSendProposalClick: () -> Unit
 ) {
     Surface(shadowElevation = 8.dp) {
         Row(
@@ -467,6 +634,18 @@ private fun BookingBar(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            OutlinedButton(
+                onClick = onSendProposalClick,
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Send,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Propose")
             }
             Button(onClick = onReserveClick) {
                 Text(if (pricingLabel != null) "Reserve" else "Select time")
@@ -521,7 +700,7 @@ private fun HeroGallery(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -537,15 +716,15 @@ private fun HeroGallery(
         ) {
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
                 IconButton(onClick = onShare) {
-                    Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                    Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = Color.White)
                 }
             }
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
                 IconButton(onClick = onToggleFavorite) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) Color(0xFFFF5A5F) else Color.White
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White
                     )
                 }
             }
@@ -590,9 +769,9 @@ private fun TitleMetaBlock(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = Icons.Default.Star,
+                imageVector = PaceDreamIcons.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFB400),
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
@@ -650,56 +829,198 @@ private fun HostCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(14.dp)
         ) {
-            val initials = (host?.name ?: "Host")
-                .trim()
-                .split(" ")
-                .filter { it.isNotBlank() }
-                .take(2)
-                .mapNotNull { it.firstOrNull()?.toString() }
-                .joinToString("")
-                .uppercase()
-                .ifBlank { "H" }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val initials = (host?.name ?: "Host")
+                    .trim()
+                    .split(" ")
+                    .filter { it.isNotBlank() }
+                    .take(2)
+                    .mapNotNull { it.firstOrNull()?.toString() }
+                    .joinToString("")
+                    .uppercase()
+                    .ifBlank { "H" }
 
-            if (!host?.avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = host?.avatarUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(initials, fontWeight = FontWeight.SemiBold)
+                // Host avatar
+                Box {
+                    if (!host?.avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = host?.avatarUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(initials, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                    // Superhost badge
+                    if (host?.isSuperhost == true) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = "Superhost",
+                                tint = Color.White,
+                                modifier = Modifier.padding(3.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            host?.name ?: "Host",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (host?.isVerified == true || host?.verifications?.isNotEmpty() == true) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                PaceDreamIcons.Verified,
+                                contentDescription = "Verified",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    if (host?.isSuperhost == true) {
+                        Text(
+                            "Superhost",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                OutlinedButton(onClick = onContact) {
+                    Text("Contact")
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            // Host details row (response rate, response time, joined)
+            val hasDetails = host?.responseRate != null || host?.responseTime != null || host?.joinedDate != null
+            if (hasDetails) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    host?.responseRate?.let { rate ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "$rate%",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Response rate",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    host?.responseTime?.let { time ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                time,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Response time",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    host?.listingCount?.let { count ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "$count",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Listings",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Host bio
+            host?.bio?.takeIf { it.isNotBlank() }?.let { bio ->
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    host?.name ?: "Host",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = bio.trim(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            OutlinedButton(onClick = onContact) {
-                Text("Contact")
+            // Verification badges
+            if (host?.verifications?.isNotEmpty() == true) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    host.verifications.take(4).forEach { verification ->
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    PaceDreamIcons.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = verification.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -780,7 +1101,11 @@ private fun SectionAmenities(
 private fun SectionReviews(
     rating: Double?,
     reviewCount: Int?,
+    reviews: List<ReviewModel>,
+    reviewSummary: ReviewSummary?,
+    isLoadingReviews: Boolean,
     onSeeAll: () -> Unit,
+    onWriteReview: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -796,40 +1121,495 @@ private fun SectionReviews(
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (rating == null || reviewCount == null || reviewCount == 0) {
+        val displayRating = rating ?: reviewSummary?.averageRating
+        val displayCount = reviewCount ?: reviewSummary?.totalCount
+
+        if (displayRating == null || displayCount == null || displayCount == 0) {
             Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(onClick = onWriteReview) {
+                Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Write a Review")
+            }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
+                Icon(PaceDreamIcons.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = String.format("%.1f", rating),
+                    text = String.format("%.1f", displayRating),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("($reviewCount reviews)", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("($displayCount reviews)", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(modifier = Modifier.height(12.dp))
 
-            // Preview cards placeholder until backend reviews exist.
-            ReviewPreviewPlaceholder()
+            // Category ratings bar (if available)
+            reviewSummary?.categoryAverages?.let { cats ->
+                Spacer(modifier = Modifier.height(14.dp))
+                CategoryRatingBars(categoryRatings = cats)
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (isLoadingReviews) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            } else if (reviews.isNotEmpty()) {
+                // Horizontal scrollable review preview cards (max 3)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(reviews.take(3)) { review ->
+                        ReviewPreviewCard(review = review)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onWriteReview) {
+                    Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Write a Review")
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ReviewPreviewPlaceholder() {
+private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
+    val categories = listOfNotNull(
+        categoryRatings.cleanliness?.let { "Cleanliness" to it },
+        categoryRatings.accuracy?.let { "Accuracy" to it },
+        categoryRatings.communication?.let { "Communication" to it },
+        categoryRatings.location?.let { "Location" to it },
+        categoryRatings.checkIn?.let { "Check-in" to it },
+        categoryRatings.value?.let { "Value" to it }
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        categories.forEach { (label, value) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.width(100.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LinearProgressIndicator(
+                    progress = { (value / 5.0).toFloat().coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = Color(0xFFFFB400),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = String.format("%.1f", value),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewPreviewCard(review: ReviewModel) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.width(280.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Avatar
+                if (!review.userAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = review.userAvatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    val initials = review.userName.trim().split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .mapNotNull { it.firstOrNull()?.toString() }
+                        .joinToString("")
+                        .uppercase()
+                        .ifBlank { "G" }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            initials,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = review.userName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { idx ->
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        review.createdAt?.let { date ->
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = formatReviewDate(date),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            if (review.comment.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewCard(review: ReviewModel) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!review.userAvatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = review.userAvatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    val initials = review.userName.trim().split(" ")
+                        .filter { it.isNotBlank() }
+                        .take(2)
+                        .mapNotNull { it.firstOrNull()?.toString() }
+                        .joinToString("")
+                        .uppercase()
+                        .ifBlank { "G" }
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            initials,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = review.userName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        repeat(5) { idx ->
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = String.format("%.1f", review.rating),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                review.createdAt?.let { date ->
+                    Text(
+                        text = formatReviewDate(date),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (review.comment.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewSummaryHeader(summary: ReviewSummary) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                PaceDreamIcons.Star,
+                contentDescription = null,
+                tint = Color(0xFFFFB400),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Review previews are coming soon on Android.",
-                style = MaterialTheme.typography.bodyMedium,
+                text = String.format("%.1f", summary.averageRating),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "${summary.totalCount} reviews",
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        // Rating distribution bars
+        if (summary.ratingDistribution.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (star in 5 downTo 1) {
+                    val count = summary.ratingDistribution[star] ?: 0
+                    val fraction = if (summary.totalCount > 0) count.toFloat() / summary.totalCount else 0f
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$star",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.width(16.dp)
+                        )
+                        Icon(
+                            PaceDreamIcons.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB400),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        LinearProgressIndicator(
+                            progress = { fraction },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = Color(0xFFFFB400),
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$count",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Category averages
+        summary.categoryAverages?.let { cats ->
+            Spacer(modifier = Modifier.height(14.dp))
+            CategoryRatingBars(categoryRatings = cats)
+        }
+    }
+}
+
+@Composable
+private fun WriteReviewSheet(
+    isSubmitting: Boolean,
+    onClose: () -> Unit,
+    onSubmit: (rating: Double, comment: String, categoryRatings: CategoryRatings?) -> Unit
+) {
+    var rating by remember { mutableDoubleStateOf(0.0) }
+    var comment by remember { mutableStateOf("") }
+    var cleanlinessRating by remember { mutableDoubleStateOf(0.0) }
+    var accuracyRating by remember { mutableDoubleStateOf(0.0) }
+    var communicationRating by remember { mutableDoubleStateOf(0.0) }
+    var locationRating by remember { mutableDoubleStateOf(0.0) }
+    var checkInRating by remember { mutableDoubleStateOf(0.0) }
+    var valueRating by remember { mutableDoubleStateOf(0.0) }
+
+    BottomSheetHeader(title = "Write a Review", onClose = onClose)
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        // Overall rating
+        Text("Overall Rating", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        StarRatingInput(
+            rating = rating,
+            onRatingChanged = { rating = it },
+            starSize = 36.dp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Category ratings
+        Text("Rate Categories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CategoryRatingInput("Cleanliness", cleanlinessRating) { cleanlinessRating = it }
+        CategoryRatingInput("Accuracy", accuracyRating) { accuracyRating = it }
+        CategoryRatingInput("Communication", communicationRating) { communicationRating = it }
+        CategoryRatingInput("Location", locationRating) { locationRating = it }
+        CategoryRatingInput("Check-in", checkInRating) { checkInRating = it }
+        CategoryRatingInput("Value", valueRating) { valueRating = it }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Comment
+        Text("Your Review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = comment,
+            onValueChange = { comment = it },
+            label = { Text("Share your experience...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val hasCategoryRatings = listOf(
+            cleanlinessRating, accuracyRating, communicationRating,
+            locationRating, checkInRating, valueRating
+        ).any { it > 0 }
+
+        Button(
+            onClick = {
+                val catRatings = if (hasCategoryRatings) CategoryRatings(
+                    cleanliness = cleanlinessRating.takeIf { it > 0 },
+                    accuracy = accuracyRating.takeIf { it > 0 },
+                    communication = communicationRating.takeIf { it > 0 },
+                    location = locationRating.takeIf { it > 0 },
+                    checkIn = checkInRating.takeIf { it > 0 },
+                    value = valueRating.takeIf { it > 0 }
+                ) else null
+                onSubmit(rating, comment, catRatings)
+            },
+            enabled = rating > 0 && comment.isNotBlank() && !isSubmitting,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isSubmitting) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text("Submit Review")
+        }
+    }
+}
+
+@Composable
+private fun StarRatingInput(
+    rating: Double,
+    onRatingChanged: (Double) -> Unit,
+    starSize: androidx.compose.ui.unit.Dp = 28.dp
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (star in 1..5) {
+            Icon(
+                PaceDreamIcons.Star,
+                contentDescription = "Rate $star stars",
+                tint = if (star <= rating.toInt()) Color(0xFFFFB400)
+                else MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier
+                    .size(starSize)
+                    .clickable { onRatingChanged(star.toDouble()) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryRatingInput(
+    label: String,
+    rating: Double,
+    onRatingChanged: (Double) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.width(110.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        StarRatingInput(
+            rating = rating,
+            onRatingChanged = onRatingChanged,
+            starSize = 22.dp
+        )
+    }
+}
+
+private fun formatReviewDate(dateString: String): String {
+    return try {
+        val instant = Instant.parse(dateString)
+        val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        localDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+    } catch (_: Exception) {
+        try {
+            val localDate = LocalDate.parse(dateString.take(10))
+            localDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        } catch (_: Exception) {
+            dateString.take(10)
         }
     }
 }
@@ -883,16 +1663,10 @@ private fun MapPreviewCard(
         val mapsEnabled = mapsKey.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
-            // Recreate camera position state when coordinate changes to ensure map updates
-            val cameraPositionState = remember(
-                key1 = mapCoordinate.latitude,
-                key2 = mapCoordinate.longitude
-            ) {
-                rememberCameraPositionState {
-                    position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
-                }
+            val cameraPositionState = rememberCameraPositionState()
+            androidx.compose.runtime.LaunchedEffect(mapCoordinate.latitude, mapCoordinate.longitude) {
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
             }
-            
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState
@@ -911,13 +1685,13 @@ private fun MapPreviewCard(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(PaceDreamIcons.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = when {
                             isGeocoding -> "Finding location…"
                             !mapsEnabled -> "Map preview unavailable"
-                            else -> "Map preview unavailable"
+                            else -> "Location not found"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1005,6 +1779,491 @@ private fun SkeletonLine(widthFraction: Float, height: androidx.compose.ui.unit.
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     )
+}
+
+@Composable
+private fun SectionCancellationPolicy(
+    cancellationPolicy: CancellationPolicy?,
+    modifier: Modifier = Modifier
+) {
+    val policy = cancellationPolicy ?: CancellationPolicy()
+    Column(modifier = modifier) {
+        Text(
+            "Cancellation Policy",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF10B981).copy(alpha = 0.08f)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    PaceDreamIcons.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = when (policy.type) {
+                            "flexible" -> "Flexible"
+                            "moderate" -> "Moderate"
+                            "strict" -> "Strict"
+                            else -> "Standard"
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF10B981)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = policy.displayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionPricingBreakdown(
+    pricing: ListingPricing?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            "Price Details",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                val rate = pricing?.hourlyFrom ?: pricing?.basePrice
+                val symbol = when ((pricing?.currency ?: "USD").uppercase()) {
+                    "USD" -> "$"
+                    else -> "$"
+                }
+                val freq = pricing?.frequencyLabel?.lowercase()
+                    ?: if (pricing?.hourlyFrom != null) "hr" else "night"
+
+                if (rate != null) {
+                    PricingRow(
+                        label = "Base rate",
+                        value = "$symbol${rate.toLong()}/$freq"
+                    )
+                }
+
+                pricing?.cleaningFee?.let { fee ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PricingRow(
+                        label = "Cleaning fee",
+                        value = "$symbol${fee.toLong()}"
+                    )
+                }
+
+                pricing?.serviceFee?.let { fee ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    PricingRow(
+                        label = "Service fee",
+                        value = "$symbol${fee.toLong()}"
+                    )
+                }
+
+                pricing?.weeklyDiscountPercent?.let { discount ->
+                    if (discount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PricingRow(
+                            label = "Weekly discount",
+                            value = "-$discount%",
+                            valueColor = Color(0xFF10B981)
+                        )
+                    }
+                }
+
+                pricing?.monthlyDiscountPercent?.let { discount ->
+                    if (discount > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        PricingRow(
+                            label = "Monthly discount",
+                            value = "-$discount%",
+                            valueColor = Color(0xFF10B981)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Taxes & fees",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Calculated at checkout",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PricingRow(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = valueColor
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProposalSheet(
+    listingTitle: String,
+    hostName: String?,
+    onClose: () -> Unit,
+    onSend: () -> Unit
+) {
+    var message by remember { mutableStateOf("") }
+    var proposedPrice by remember { mutableStateOf("") }
+    var proposedDuration by remember { mutableStateOf("") }
+
+    BottomSheetHeader(title = "Send Proposal", onClose = onClose)
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = "Send a proposal to ${hostName ?: "the host"} for \"$listingTitle\"",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Your offer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = proposedPrice,
+            onValueChange = { proposedPrice = it },
+            label = { Text("Proposed price (e.g. \$25/hr)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = proposedDuration,
+            onValueChange = { proposedDuration = it },
+            label = { Text("Duration (e.g. 3 hours, 1 week)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text("Message", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = message,
+            onValueChange = { message = it },
+            label = { Text("Describe your needs, special requests...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    PaceDreamIcons.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "The host will review your proposal and respond through the messaging system.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = onSend,
+            enabled = message.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(PaceDreamIcons.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Send Proposal")
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Property Details Row (bedrooms, beds, bathrooms, guests)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PropertyDetailsRow(
+    propertyType: String?,
+    maxGuests: Int?,
+    bedrooms: Int?,
+    beds: Int?,
+    bathrooms: Int?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        // Property type header
+        propertyType?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                text = it.replaceFirstChar { c -> c.uppercase() },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Details chips
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            maxGuests?.let {
+                PropertyDetailItem(
+                    icon = PaceDreamIcons.Group,
+                    value = "$it",
+                    label = if (it == 1) "guest" else "guests"
+                )
+            }
+            bedrooms?.let {
+                PropertyDetailItem(
+                    icon = PaceDreamIcons.Home,
+                    value = "$it",
+                    label = if (it == 1) "bedroom" else "bedrooms"
+                )
+            }
+            beds?.let {
+                PropertyDetailItem(
+                    icon = PaceDreamIcons.Bed,
+                    value = "$it",
+                    label = if (it == 1) "bed" else "beds"
+                )
+            }
+            bathrooms?.let {
+                PropertyDetailItem(
+                    icon = PaceDreamIcons.Bathtub,
+                    value = "$it",
+                    label = if (it == 1) "bath" else "baths"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PropertyDetailItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    label: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "$value $label",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// House Rules Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionHouseRules(
+    houseRules: List<String>,
+    checkInTime: String?,
+    checkOutTime: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                PaceDreamIcons.Rule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("House Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Check-in / Check-out times
+        if (checkInTime != null || checkOutTime != null) {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    checkInTime?.let {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Check-in", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    checkOutTime?.let {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Check-out", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+            if (houseRules.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+
+        // Rules list
+        houseRules.forEach { rule ->
+            Row(
+                modifier = Modifier.padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(rule, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Safety Features Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SectionSafetyFeatures(
+    features: List<String>,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                PaceDreamIcons.Security,
+                contentDescription = null,
+                tint = Color(0xFF10B981),
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Safety & Property", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            features.forEach { feature ->
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            PaceDreamIcons.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = feature,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

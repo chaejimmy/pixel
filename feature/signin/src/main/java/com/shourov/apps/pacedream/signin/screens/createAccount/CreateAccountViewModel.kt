@@ -20,15 +20,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.signin.model.AccountCreationScreenState
 import com.shourov.apps.pacedream.signin.model.CreateAccountComponents
 import com.shourov.apps.pacedream.signin.model.CreateAccountComponents.HOBBIES_AND_INTERESTS
 import com.shourov.apps.pacedream.signin.model.CreateAccountData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class CreateAccountViewModel @Inject constructor() : ViewModel() {
+class CreateAccountViewModel @Inject constructor(
+    private val authSession: AuthSession
+) : ViewModel() {
     private var createAccountComponentsOrder = listOf<CreateAccountComponents>(
         CreateAccountComponents.START_EMAIL_PHONE,
         CreateAccountComponents.PASSWORD,
@@ -94,6 +100,24 @@ class CreateAccountViewModel @Inject constructor() : ViewModel() {
     }
 
     fun onDoneClicked() {
-        toastMessage.value = _createAccountData.firstName
+        viewModelScope.launch {
+            val data = _createAccountData
+            val result = authSession.updateProfile(
+                firstName = data.firstName,
+                lastName = data.lastName,
+                dateOfBirth = null,
+                interests = emptySet(),
+            )
+            result.fold(
+                onSuccess = {
+                    Timber.d("Account creation profile update succeeded")
+                    toastMessage.value = "Account created successfully"
+                },
+                onFailure = { error ->
+                    Timber.e("Account creation profile update failed: ${error.message}")
+                    toastMessage.value = error.message ?: "Failed to create account"
+                }
+            )
+        }
     }
 }

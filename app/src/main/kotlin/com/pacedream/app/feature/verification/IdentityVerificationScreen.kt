@@ -6,9 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,7 +45,7 @@ fun IdentityVerificationScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -126,7 +124,7 @@ fun LevelBadge(level: Int) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.VerifiedUser,
+                PaceDreamIcons.VerifiedUser,
                 contentDescription = null,
                 tint = color
             )
@@ -215,7 +213,7 @@ fun VerifiedStatusCard(text: String, phoneNumber: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.CheckCircle,
+                PaceDreamIcons.CheckCircle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )

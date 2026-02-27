@@ -1,7 +1,7 @@
 package com.shourov.apps.pacedream.signin
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,26 +10,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.shourov.apps.pacedream.core.data.UserAuthPath
 import com.shourov.apps.pacedream.core.ui.EmailEntryScreen
 import com.shourov.apps.pacedream.core.ui.R
 import com.shourov.apps.pacedream.core.ui.SignInButton
 import com.pacedream.common.icon.PaceDreamIcons
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.AuthResult
-import com.google.android.gms.tasks.Task
 
 
 @Composable
@@ -43,12 +43,15 @@ fun StartWithEmailScreen(
     onNavigateToCreateAccount: () -> Unit,
     onNavigateToAccountSignIn: () -> Unit,
 ) {
+    val viewModel: EmailSignInViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = context as Activity
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val auth = FirebaseAuth.getInstance()
     var showDialog by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -64,24 +67,32 @@ fun StartWithEmailScreen(
 
             EmailEntryScreen(
                 onForgetPasswordClicked = onForgotPasswordClicked,
-                onContinueAccountSetup = onContinueAccountSetup,
+                onContinueAccountSetup = {
+                    // NEW user: register with email and password via backend API
+                    viewModel.registerWithEmail(
+                        email = email,
+                        password = password,
+                        onSuccess = { onContinueAccountSetup() },
+                        onError = { error ->
+                            errorMessage = error
+                            showDialog = true
+                        }
+                    )
+                },
                 onNavigateToCreateAccount = onNavigateToCreateAccount,
                 onVerifySignIn = {
+                    // EXISTING user: login with email and password via backend API
                     if (email.isNotEmpty() && password.isNotEmpty()) {
-                        auth.signInWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task: Task<AuthResult> ->
-                                if (task.isSuccessful) {
-                                    // Sign-in successful
-                                    onContinueAccountSetup()
-                                } else {
-                                    // Sign-in failed, handle the error
-                                    errorMessage =
-                                        task.exception?.message ?: "Unknown error occurred"
-                                    showDialog = true
-                                }
+                        viewModel.loginWithEmail(
+                            email = email,
+                            password = password,
+                            onSuccess = { onContinueAccountSetup() },
+                            onError = { error ->
+                                errorMessage = error
+                                showDialog = true
                             }
+                        )
                     } else {
-                        // Handle case where email or password is empty
                         errorMessage = "Email and password cannot be empty"
                         showDialog = true
                     }
@@ -89,6 +100,7 @@ fun StartWithEmailScreen(
                 onNavigateToAccountSignIn = onNavigateToAccountSignIn,
                 userAuthPath = userAuthPath,
                 continueButtonText = stringResource(id = R.string.core_ui_continue_button),
+                isProcessing = uiState.isLoading,
                 modifier = modifier,
                 emailState = email,
                 onEmailChange = { email = it },
@@ -110,24 +122,33 @@ fun StartWithEmailScreen(
                 SignInButton(
                     logo = R.drawable.google_logo,
                     text = R.string.core_ui_continue_with_google,
-                    onClick = onContinueWithGoogleClicked,
+                    onClick = {
+                        viewModel.loginWithGoogle(
+                            activity = activity,
+                            onSuccess = { onContinueAccountSetup() },
+                            onError = { error ->
+                                errorMessage = error
+                                showDialog = true
+                            }
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    isLoading = false,
+                    isLoading = uiState.isGoogleLoading,
                 )
             }
         }
     }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(text = "Sign-in Error") },
+            text = { Text(text = errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(text = "OK")
+                }
+            }
+        )
+    }
 }
-//
-//    if (showDialog) {
-//        AlertDialog(
-//            onDismissRequest = { showDialog = false },
-//            title = { Text(text = "Sign-in Error") },
-//            text = { Text(text = errorMessage) },
-//            confirmButton = {
-//                Button(onClick = { showDialog = false }) {
-//                    Text(text = "OK")
-//                }
-//            }
-//        )
-//    }

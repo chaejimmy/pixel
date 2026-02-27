@@ -1,6 +1,5 @@
 package com.shourov.apps.pacedream.core.network.repository
 
-import android.util.Log
 import com.shourov.apps.pacedream.core.network.model.ApiResult
 import com.shourov.apps.pacedream.core.network.model.wrapIntoApiResult
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
@@ -55,7 +54,6 @@ class UserRepositoryImpl(
             )
         }
 
-        Log.d("gfsggffgg", "ddd $result")
         return result
     }
 

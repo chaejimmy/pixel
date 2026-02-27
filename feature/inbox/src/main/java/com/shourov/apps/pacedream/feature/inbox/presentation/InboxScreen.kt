@@ -26,11 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Message
-import androidx.compose.material.icons.filled.Archive
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,7 +47,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -88,7 +84,7 @@ fun InboxScreen(
     onShowAuthSheet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val loadMoreRequestedForSize = remember { mutableIntStateOf(-1) }
     
     // Handle navigation
@@ -166,13 +162,13 @@ fun InboxScreen(
                     is InboxUiState.Empty -> PaceDreamEmptyState(
                         title = "No messages yet",
                         description = "Start a conversation with hosts or guests",
-                        icon = Icons.Default.Message,
+                        icon = PaceDreamIcons.Message,
                         modifier = Modifier.fillMaxSize()
                     )
                     is InboxUiState.RequiresAuth -> PaceDreamEmptyState(
                         title = "Sign in to view messages",
                         description = "Connect with hosts and guests",
-                        icon = Icons.Default.Lock,
+                        icon = PaceDreamIcons.Lock,
                         actionText = "Sign In",
                         onActionClick = onShowAuthSheet,
                         modifier = Modifier.fillMaxSize()
@@ -252,7 +248,7 @@ private fun SuccessState(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Icon(
-                                        imageVector = Icons.Default.Archive,
+                                        imageVector = PaceDreamIcons.Archive,
                                         contentDescription = null,
                                         tint = PaceDreamColors.TextPrimary
                                     )
@@ -489,7 +485,7 @@ private fun InboxSkeletonList(
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
-        items(8) {
+        items(5) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

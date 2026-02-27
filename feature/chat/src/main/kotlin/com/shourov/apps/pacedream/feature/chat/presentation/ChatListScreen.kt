@@ -22,11 +22,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -47,7 +47,7 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = hiltViewModel(),
     onChatClick: (String) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(Unit) {
         viewModel.loadChats()
@@ -207,7 +207,7 @@ private fun ChatListEmptyState() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                imageVector = Icons.Default.Chat,
+                imageVector = PaceDreamIcons.Chat,
                 contentDescription = "No messages",
                 tint = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.5f),
                 modifier = Modifier.size(64.dp)

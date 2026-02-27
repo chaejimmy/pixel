@@ -4,8 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -128,7 +127,7 @@ fun HostModeWelcomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
+                    imageVector = PaceDreamIcons.Home,
                     contentDescription = "Host",
                     tint = Color.White,
                     modifier = Modifier.size(60.dp)
@@ -234,7 +233,7 @@ fun HostModeToggleScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(PaceDreamRadius.LG)),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(PaceDreamSpacing.LG)
@@ -251,7 +250,7 @@ fun HostModeToggleScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Person,
+                                imageVector = PaceDreamIcons.Person,
                                 contentDescription = "Guest Mode",
                                 tint = if (!isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
                                 modifier = Modifier.size(24.dp)
@@ -298,7 +297,7 @@ fun HostModeToggleScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Home,
+                                imageVector = PaceDreamIcons.Home,
                                 contentDescription = "Host Mode",
                                 tint = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
                                 modifier = Modifier.size(24.dp)

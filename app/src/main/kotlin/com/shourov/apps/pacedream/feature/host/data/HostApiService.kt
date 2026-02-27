@@ -1,58 +1,68 @@
 package com.shourov.apps.pacedream.feature.host.data
 
+import com.shourov.apps.pacedream.core.network.ApiEndPoints
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.Property
 import retrofit2.Response
 import retrofit2.http.*
 
 interface HostApiService {
-    
+
     // Dashboard
     @GET("host/dashboard")
     suspend fun getHostDashboard(): Response<HostDashboardData>
-    
-    // Listings
-    @GET("host/listings")
+
+    // Listings (using ApiEndPoints constants)
+    @GET(ApiEndPoints.HOST_GET_LISTINGS)
     suspend fun getHostListings(
         @Query("filter") filter: String? = null,
         @Query("sort") sort: String? = null
     ): Response<List<Property>>
-    
-    @POST("host/listings")
+
+    @POST(ApiEndPoints.HOST_CREATE_LISTING)
     suspend fun createListing(@Body listing: Property): Response<Property>
-    
-    @PUT("host/listings/{id}")
+
+    @PUT(ApiEndPoints.HOST_UPDATE_LISTING)
     suspend fun updateListing(
-        @Path("id") id: String,
+        @Path("listingId") id: String,
         @Body listing: Property
     ): Response<Property>
-    
-    @DELETE("host/listings/{id}")
-    suspend fun deleteListing(@Path("id") id: String): Response<Unit>
-    
-    // Bookings
-    @GET("host/bookings")
+
+    @DELETE(ApiEndPoints.HOST_DELETE_LISTING)
+    suspend fun deleteListing(@Path("listingId") id: String): Response<Unit>
+
+    // Bookings (using ApiEndPoints constants)
+    @GET(ApiEndPoints.HOST_GET_BOOKINGS)
     suspend fun getHostBookings(
         @Query("status") status: String? = null
     ): Response<List<BookingModel>>
-    
-    @PUT("host/bookings/{id}/status")
-    suspend fun updateBookingStatus(
-        @Path("id") id: String,
-        @Body statusUpdate: BookingStatusUpdate
+
+    @POST(ApiEndPoints.HOST_ACCEPT_BOOKING)
+    suspend fun acceptBooking(@Path("bookingId") id: String): Response<BookingModel>
+
+    @POST(ApiEndPoints.HOST_DECLINE_BOOKING)
+    suspend fun declineBooking(
+        @Path("bookingId") id: String,
+        @Body reason: BookingStatusUpdate
     ): Response<BookingModel>
-    
-    // Earnings
-    @GET("host/earnings")
+
+    @PATCH("host/bookings/{bookingId}")
+    suspend fun updateBookingStatus(
+        @Path("bookingId") bookingId: String,
+        @Body body: BookingStatusUpdate
+    ): Response<BookingModel>
+
+    // Earnings (using ApiEndPoints constants)
+    @GET(ApiEndPoints.HOST_GET_EARNINGS)
     suspend fun getHostEarnings(
         @Query("timeRange") timeRange: String? = null
     ): Response<HostEarningsData>
-    
+
     @POST("host/earnings/withdraw")
     suspend fun requestWithdrawal(@Body withdrawal: WithdrawalRequest): Response<WithdrawalResponse>
-    
-    // Analytics
-    @GET("host/analytics")
+
+    // Analytics (using ApiEndPoints constants)
+    @GET(ApiEndPoints.HOST_GET_ANALYTICS)
     suspend fun getHostAnalytics(
         @Query("timeRange") timeRange: String? = null
     ): Response<HostAnalyticsData>

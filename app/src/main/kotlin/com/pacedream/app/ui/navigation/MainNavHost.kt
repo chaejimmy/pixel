@@ -9,22 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -60,6 +47,10 @@ import com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen
 import com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen
 import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
+import com.pacedream.app.feature.about.AboutUsScreen
+import com.pacedream.app.feature.collections.CollectionsScreen
+import com.pacedream.app.feature.roommate.RoommateFinderScreen
+import com.pacedream.app.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -133,7 +124,10 @@ fun MainNavHost(
                 composable(NavRoutes.HOME) {
                     HomeScreen(
                         onSectionViewAll = { sectionType ->
-                            navController.navigate(NavRoutes.homeSectionList(sectionType))
+                            when (sectionType) {
+                                "roommate" -> navController.navigate(NavRoutes.ROOMMATE_FINDER)
+                                else -> navController.navigate(NavRoutes.homeSectionList(sectionType))
+                            }
                         },
                         onListingClick = { item ->
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
@@ -188,9 +182,22 @@ fun MainNavHost(
                     )
                 }
                 
-                // Search Tab (placeholder)
+                // Search Tab
                 composable(NavRoutes.SEARCH) {
-                    SearchPlaceholderScreen()
+                    SearchScreen(
+                        onListingClick = { item ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_id", item.id)
+                                set("listing_initial_title", item.title)
+                                set("listing_initial_imageUrl", item.imageUrl)
+                                set("listing_initial_location", item.location)
+                                set("listing_initial_price", item.price)
+                                set("listing_initial_rating", item.rating)
+                                set("listing_initial_type", item.type)
+                            }
+                            navController.navigate(NavRoutes.listingDetail(item.id))
+                        }
+                    )
                 }
                 
                 // Favorites/Wishlist Tab
@@ -284,6 +291,12 @@ fun MainNavHost(
                         },
                         onHelpClick = {
                             navController.navigate(NavRoutes.FAQ)
+                        },
+                        onAboutClick = {
+                            navController.navigate(NavRoutes.ABOUT_US)
+                        },
+                        onMyListsClick = {
+                            navController.navigate(NavRoutes.COLLECTIONS)
                         }
                     )
                 }
@@ -365,14 +378,45 @@ fun MainNavHost(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
-                
+
+                // About Us Screen
+                composable(NavRoutes.ABOUT_US) {
+                    AboutUsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
+                // Roommate Finder Screen
+                composable(NavRoutes.ROOMMATE_FINDER) {
+                    RoommateFinderScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        }
+                    )
+                }
+
                 // Identity Verification Screen
                 composable(NavRoutes.IDENTITY_VERIFICATION) {
                     com.pacedream.app.feature.verification.IdentityVerificationScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
-                
+
+                // Collections / My Lists Screen
+                composable(NavRoutes.COLLECTIONS) {
+                    CollectionsScreen(
+                        onCollectionClick = { collectionId ->
+                            navController.navigate(NavRoutes.collectionDetail(collectionId))
+                        },
+                        onLoginRequired = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to create and manage your lists."
+                            showAuthSheet = true
+                        }
+                    )
+                }
+
                 // Listing Detail (stub)
                 composable(
                     route = NavRoutes.LISTING_DETAIL,
@@ -592,12 +636,12 @@ fun PaceDreamBottomBar(
     currentRoute: String?
 ) {
     val tabs = listOf(
-        TabItem(NavRoutes.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home),
-        TabItem(NavRoutes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search),
-        TabItem(NavRoutes.FAVORITES, "Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
-        TabItem(NavRoutes.BOOKINGS, "Bookings", Icons.Filled.DateRange, Icons.Outlined.DateRange),
-        TabItem(NavRoutes.INBOX, "Inbox", Icons.Filled.Mail, Icons.Outlined.MailOutline),
-        TabItem(NavRoutes.PROFILE, "Profile", Icons.Filled.Person, Icons.Outlined.Person)
+        TabItem(NavRoutes.HOME, "Home", PaceDreamIcons.Home, PaceDreamIcons.HomeOutlined),
+        TabItem(NavRoutes.SEARCH, "Search", PaceDreamIcons.Search, PaceDreamIcons.SearchOutlined),
+        TabItem(NavRoutes.FAVORITES, "Favorites", PaceDreamIcons.Favorite, PaceDreamIcons.FavoriteBorderOutlined),
+        TabItem(NavRoutes.BOOKINGS, "Bookings", PaceDreamIcons.DateRange, PaceDreamIcons.DateRangeOutlined),
+        TabItem(NavRoutes.INBOX, "Inbox", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
+        TabItem(NavRoutes.PROFILE, "Profile", PaceDreamIcons.Person, PaceDreamIcons.PersonOutlined)
     )
     
     NavigationBar {
@@ -655,7 +699,7 @@ fun LockedScreen(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(PaceDreamIcons.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(16.dp))
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))

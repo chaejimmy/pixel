@@ -26,9 +26,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -50,6 +53,11 @@ import androidx.navigation.NavHostController
 import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.texts.TitleText
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.core.ui.R
 import com.shourov.apps.pacedream.signin.screens.createAccount.components.CreateAccountParts
 
@@ -63,21 +71,24 @@ fun CreateAccountScreen(
 
     LaunchedEffect(key1 = createAccountViewModel.toastMessage.value) {
         if (createAccountViewModel.toastMessage.value.isNotBlank()){
-            Toast.makeText(context, "the name is : ${createAccountViewModel.toastMessage.value}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, createAccountViewModel.toastMessage.value, Toast.LENGTH_SHORT).show()
             createAccountViewModel.toastMessage.value = ""
         }
     }
 
-    Scaffold {
+    Scaffold(
+        containerColor = PaceDreamColors.Background,
+    ) {
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it), color = MaterialTheme.colorScheme.background
+                .padding(it),
+            color = PaceDreamColors.Background
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = PaceDreamSpacing.MD),
                 verticalArrangement = Arrangement.Center
             ) {
 
@@ -93,9 +104,7 @@ fun CreateAccountScreen(
                 VerticalSpacer(height = 10)
 
                 Box(
-                    modifier = Modifier,
-                      //  .fillMaxSize(0.2f),
-                        //.padding(bottom = 20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     Row(
@@ -110,14 +119,22 @@ fun CreateAccountScreen(
                         if (createAccountViewModel.accountCreationScreenState.showPreviousButton) {
                             OutlinedButton(
                                 modifier = Modifier
-                                    .weight(1f),
+                                    .weight(1f)
+                                    .height(PaceDreamButtonHeight.MD),
                                 onClick = {
                                     createAccountViewModel.onPreviousClicked()
                                 },
+                                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = PaceDreamColors.TextPrimary,
+                                ),
                             ) {
-                                Text(text = stringResource(id = R.string.feature_signin_ui_previous))
+                                Text(
+                                    text = stringResource(id = R.string.feature_signin_ui_previous),
+                                    style = PaceDreamTypography.Button,
+                                )
                             }
-                            Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                         }
 
                         ProcessButton(
