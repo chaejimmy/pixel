@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream
 import android.app.Application
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.google.firebase.FirebaseApp
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
@@ -24,6 +25,11 @@ class PaceDreamApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Initialize Firebase before any network calls. The firebase-perf gradle plugin
+        // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
+        // prior to any OkHttpClient.execute() call (including those in authSession.initialize()).
+        FirebaseApp.initializeApp(this)
 
         profileVerifierLogger()
 
