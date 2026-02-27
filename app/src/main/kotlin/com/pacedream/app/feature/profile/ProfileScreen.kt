@@ -377,7 +377,7 @@ private fun ProfileMenuSection(
             HorizontalDivider(color = PaceDreamColors.Border)
 
             ProfileMenuItem(
-                icon = PaceDreamIcons.Logout,
+                icon = PaceDreamIcons.ExitToApp,
                 title = "Sign Out",
                 onClick = onLogoutClick,
                 tint = PaceDreamColors.Error
