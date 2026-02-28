@@ -24,20 +24,58 @@ class ListingDetailRepository @Inject constructor(
     private val appConfig: AppConfig,
     private val json: Json
 ) {
-    suspend fun fetchListingDetail(listingId: String): ApiResult<ListingDetailModel> {
-        val url = appConfig.buildApiUrl("listings", listingId)
-        return when (val result = apiClient.get(url, includeAuth = true)) {
-            is ApiResult.Success -> {
-                val parsed = parseListingDetail(result.data)
-                if (parsed != null) ApiResult.Success(parsed) else ApiResult.Failure(ApiError.DecodingError())
-            }
+    /**
+     * Fetch listing detail using type-specific endpoints with fallback.
+     *
+     * The backend does not expose a unified /listings/{id} endpoint.
+     * Each listing type lives under its own resource path:
+     *   time-based → GET /v1/properties/{id}
+     *   gear       → GET /v1/gear-rentals/{id}
+     *   split-stay → GET /v1/roommate/{id}
+     */
+    suspend fun fetchListingDetail(
+        listingId: String,
+        listingType: String = ""
+    ): ApiResult<ListingDetailModel> {
+        val urls = buildDetailUrls(listingId, listingType)
 
-            is ApiResult.Failure -> result
+        for (url in urls) {
+            when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    val parsed = parseListingDetail(result.data)
+                    if (parsed != null) return ApiResult.Success(parsed)
+                }
+                is ApiResult.Failure -> {
+                    if (result.error !is ApiError.NotFound) return result
+                }
+            }
         }
+        return ApiResult.Failure(ApiError.NotFound)
+    }
+
+    private fun buildDetailUrls(
+        listingId: String,
+        listingType: String
+    ): List<okhttp3.HttpUrl> {
+        val typeSpecific = when (listingType) {
+            "time-based" -> listOf(
+                appConfig.buildApiUrl("properties", listingId)
+            )
+            "gear" -> listOf(
+                appConfig.buildApiUrl("gear-rentals", listingId),
+                appConfig.buildApiUrl("gear-rentals", "get", listingId)
+            )
+            "split-stay" -> listOf(
+                appConfig.buildApiUrl("roommate", listingId),
+                appConfig.buildApiUrl("roommate", "get", listingId)
+            )
+            else -> emptyList()
+        }
+        return typeSpecific + listOf(appConfig.buildApiUrl("listings", listingId))
     }
 
     /**
-     * Tolerant parsing for GET /v1/listings/{id}
+     * Tolerant JSON parsing – handles multiple response shapes.
      */
     private fun parseListingDetail(responseBody: String): ListingDetailModel? {
         return try {

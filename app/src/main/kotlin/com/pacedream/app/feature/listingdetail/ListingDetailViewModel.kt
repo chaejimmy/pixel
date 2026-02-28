@@ -46,12 +46,16 @@ class ListingDetailViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
 
     private var currentListingId: String? = null
+    private var currentListingType: String = ""
 
     fun isAuthenticated(): Boolean = sessionManager.authState.value == AuthState.Authenticated
 
-    fun load(listingId: String, initialListing: ListingCardModel?) {
+    fun getListingType(): String = currentListingType
+
+    fun load(listingId: String, listingType: String = "", initialListing: ListingCardModel?) {
         if (currentListingId == listingId && _uiState.value.listing != null) return
         currentListingId = listingId
+        currentListingType = listingType
 
         // Seed cached/partial content immediately.
         if (initialListing != null) {
@@ -77,7 +81,7 @@ class ListingDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, inlineErrorMessage = null) }
 
-            when (val result = repository.fetchListingDetail(listingId)) {
+            when (val result = repository.fetchListingDetail(listingId, currentListingType)) {
                 is ApiResult.Success -> {
                     val listing = result.data
                     _uiState.update {

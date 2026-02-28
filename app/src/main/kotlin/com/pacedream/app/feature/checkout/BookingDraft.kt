@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class BookingDraft(
     val listingId: String,
+    val listingType: String = "", // "time-based", "gear", "split-stay"
     val date: String, // yyyy-MM-dd
     val startTimeISO: String, // yyyy-MM-ddTHH:mm:ss
     val endTimeISO: String, // yyyy-MM-ddTHH:mm:ss
