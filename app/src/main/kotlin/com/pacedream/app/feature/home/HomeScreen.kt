@@ -1,7 +1,12 @@
 package com.pacedream.app.feature.home
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -11,6 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamTypography as DSTypo
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -18,31 +26,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 
-/**
- * HomeScreen - Modernized homepage inspired by Airbnb/Turo design language.
- *
- * Key design features:
- * - Immersive hero with gradient overlay and bold display typography
- * - Airbnb-style pill search bar floating between hero and content
- * - Icon-above-label category tabs with underline indicator
- * - Clean section layout with modern card treatment
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -59,22 +58,23 @@ fun HomeScreen(
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            // Hero + floating search bar
+            // ── Header: Greeting + Search ──
             item {
-                HeroSection(
+                HeaderSection(
                     onSearchClick = onSearchClick,
-                    onFilterClick = { /* TODO: Open filters */ },
-                    heroImageUrl = uiState.heroImageUrl
+                    onFilterClick = { /* TODO: Open filters */ }
                 )
             }
 
-            // Category Filter Tabs (Airbnb-style icon tabs)
+            // ── Category Filter Tabs ──
             item {
                 CategoryFilterTabs(
                     selectedCategory = selectedCategoryFilter,
@@ -82,20 +82,19 @@ fun HomeScreen(
                         selectedCategoryFilter = category
                         onCategoryFilterClick(category)
                     },
-                    modifier = Modifier.padding(top = 20.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
-            // Categories Section
+            // ── Quick Categories ──
             item {
-                CategoriesSection(
-                    onViewAllClick = { onSectionViewAll("categories") },
+                QuickCategoriesRow(
                     onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(top = 20.dp)
                 )
             }
 
-            // Warning banner
+            // ── Warning banner ──
             if (uiState.hasErrors) {
                 item {
                     WarningBanner(
@@ -105,55 +104,58 @@ fun HomeScreen(
                 }
             }
 
-            // Hourly Spaces Section
+            // ── Hourly Spaces ──
             if (uiState.hourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
-                    HomeSection(
+                    ListingSection(
                         title = "Hourly Spaces",
-                        subtitle = "Find flexible spaces for short stays",
+                        subtitle = "Flexible spaces for short stays",
                         items = uiState.hourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
-                        onItemClick = onListingClick
+                        onItemClick = onListingClick,
+                        modifier = Modifier.padding(top = 28.dp)
                     )
                 }
             }
 
-            // Rent Gear Section
+            // ── Rent Gear ──
             if (uiState.rentGear.isNotEmpty() || uiState.isLoadingRentGear) {
                 item {
-                    HomeSection(
+                    ListingSection(
                         title = "Rent Gear",
                         subtitle = "Equipment and tools for every need",
                         items = uiState.rentGear,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
-                        onItemClick = onListingClick
+                        onItemClick = onListingClick,
+                        modifier = Modifier.padding(top = 28.dp)
                     )
                 }
             }
 
-            // Split Stays Section
+            // ── Split Stays ──
             if (uiState.splitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
-                    HomeSection(
+                    ListingSection(
                         title = "Split Stays",
                         subtitle = "Flexible long-term rentals",
                         items = uiState.splitStays,
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },
-                        onItemClick = onListingClick
+                        onItemClick = onListingClick,
+                        modifier = Modifier.padding(top = 28.dp)
                     )
                 }
             }
 
-            // Empty state
+            // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
                 item {
                     EmptyState(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp)
+                            .padding(48.dp)
                     )
                 }
             }
@@ -162,198 +164,142 @@ fun HomeScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero Section
+// Header: Greeting + Search Bar
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HeroSection(
+private fun HeaderSection(
     onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit,
-    heroImageUrl: String? = null
+    onFilterClick: () -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color.White)
+            .statusBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp)
     ) {
-        // Hero background + content
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(280.dp)
-        ) {
-            // Background
-            if (heroImageUrl != null) {
-                AsyncImage(
-                    model = heroImageUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF1A1A2E),
-                                    Color(0xFF16213E),
-                                    Color(0xFF0F3460)
-                                )
-                            )
-                        )
-                )
-            }
-
-            // Gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.15f),
-                                Color.Black.copy(alpha = 0.55f)
-                            )
-                        )
-                    )
-            )
-
-            // Hero text content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 24.dp, end = 24.dp, top = 56.dp, bottom = 56.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "One place to\nshare it all",
-                    style = TextStyle(
-                        fontFamily = paceDreamDisplayFontFamily,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 38.sp,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = "Book, share, or split stays and spaces.",
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
-                        lineHeight = 22.sp,
-                        letterSpacing = (-0.2).sp
-                    ),
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-            }
-        }
-
-        // Floating search bar - overlaps hero bottom edge
-        FloatingSearchBar(
-            onSearchClick = onSearchClick,
-            onFilterClick = onFilterClick,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .offset(y = 24.dp)
-                .padding(horizontal = 20.dp)
-                .zIndex(1f)
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Floating Search Bar (Airbnb-style pill)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun FloatingSearchBar(
-    onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(28.dp),
-                ambientColor = Color.Black.copy(alpha = 0.08f),
-                spotColor = Color.Black.copy(alpha = 0.12f)
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onSearchClick
-            ),
-        shape = RoundedCornerShape(28.dp),
-        color = Color.White,
-        tonalElevation = 0.dp
-    ) {
+        // Greeting row
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = PaceDreamIcons.Search,
-                contentDescription = "Search",
-                tint = Color(0xFF222222),
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
-                    text = "Where to?",
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.2).sp
+                    text = "Discover",
+                    style = DSTypo.LargeTitle.copy(
+                        fontFamily = paceDreamDisplayFontFamily,
+                        letterSpacing = (-0.5).sp
                     ),
-                    color = Color(0xFF222222)
+                    color = Color(0xFF1A1A1A)
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Anywhere \u00B7 Any time \u00B7 Any type",
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal,
-                        letterSpacing = 0.sp
-                    ),
-                    color = Color(0xFF717171)
+                    text = "Book, share, or split anything.",
+                    style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.Gray500
                 )
             }
-            // Filter button
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .border(
-                        width = 1.dp,
-                        color = Color(0xFFDDDDDD),
-                        shape = CircleShape
-                    )
-                    .clip(CircleShape)
-                    .clickable(onClick = onFilterClick),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                color = PaceDreamColors.Gray50
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Tune,
-                    contentDescription = "Filters",
-                    tint = Color(0xFF222222),
-                    modifier = Modifier.size(18.dp)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color(0xFF1A1A1A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Search bar
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 6.dp,
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    ambientColor = Color.Black.copy(alpha = 0.06f),
+                    spotColor = Color.Black.copy(alpha = 0.08f)
                 )
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onSearchClick
+                ),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            color = Color.White,
+            tonalElevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            PaceDreamColors.Primary.copy(alpha = 0.08f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Search,
+                        contentDescription = "Search",
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Where to?",
+                        style = DSTypo.Headline.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontSize = 15.sp
+                        ),
+                        color = Color(0xFF1A1A1A)
+                    )
+                    Text(
+                        text = "Anywhere \u00B7 Any time \u00B7 Any type",
+                        style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                        color = PaceDreamColors.Gray400
+                    )
+                }
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onFilterClick),
+                    shape = CircleShape,
+                    color = PaceDreamColors.Gray50
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Tune,
+                            contentDescription = "Filters",
+                            tint = Color(0xFF1A1A1A),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Category Filter Tabs (Airbnb-style: icon on top, label below, underline)
+// Category Filter Tabs
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -379,27 +325,32 @@ private fun CategoryFilterTabs(
         Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
     )
 
-    LazyRow(
-        modifier = modifier,
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        items(categories) { (name, outlinedIcon, filledIcon) ->
-            val isSelected = selectedCategory == name
-            CategoryTab(
-                name = name,
-                icon = if (isSelected) filledIcon else outlinedIcon,
-                isSelected = isSelected,
-                onClick = { onCategorySelected(name) }
-            )
+    Column(modifier = modifier) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(categories) { (name, outlinedIcon, filledIcon) ->
+                val isSelected = selectedCategory == name
+                CategoryTab(
+                    name = name,
+                    icon = if (isSelected) filledIcon else outlinedIcon,
+                    isSelected = isSelected,
+                    onClick = { onCategorySelected(name) }
+                )
+            }
         }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = PaceDreamColors.Gray100
+        )
     }
 }
 
 @Composable
 private fun CategoryTab(
     name: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -411,97 +362,58 @@ private fun CategoryTab(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 8.dp)
+            .padding(horizontal = 10.dp, vertical = 12.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = name,
-            tint = if (isSelected) Color(0xFF222222) else Color(0xFF717171),
+            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray400,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = name,
-            style = TextStyle(
+            style = DSTypo.Caption2.copy(
                 fontFamily = paceDreamFontFamily,
-                fontSize = 11.sp,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                letterSpacing = 0.sp
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
             ),
-            color = if (isSelected) Color(0xFF222222) else Color(0xFF717171),
+            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray500,
             maxLines = 1
         )
         Spacer(modifier = Modifier.height(8.dp))
-        // Active indicator bar
         Box(
             modifier = Modifier
-                .width(28.dp)
-                .height(2.dp)
+                .width(32.dp)
+                .height(2.5.dp)
                 .background(
-                    color = if (isSelected) Color(0xFF222222) else Color.Transparent,
-                    shape = RoundedCornerShape(1.dp)
+                    color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
+                    shape = RoundedCornerShape(2.dp)
                 )
         )
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Categories Section
+// Quick Categories Row
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun CategoriesSection(
-    onViewAllClick: () -> Unit,
+private fun QuickCategoriesRow(
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
-    ) {
-        // Section Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Explore Categories",
-                style = TextStyle(
-                    fontFamily = paceDreamDisplayFontFamily,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp
-                ),
-                color = Color(0xFF222222)
-            )
-            TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "See all",
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.sp
-                    ),
-                    color = Color(0xFF222222),
-                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                )
-            }
-        }
-
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = "Explore Categories",
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
         Spacer(modifier = Modifier.height(14.dp))
-
-        // Category Cards
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(getCategoryCards()) { category ->
-                CategoryCard(
+                QuickCategoryChip(
                     category = category,
                     onClick = { onCategoryClick(category.name) }
                 )
@@ -511,130 +423,68 @@ private fun CategoriesSection(
 }
 
 @Composable
-private fun CategoryCard(
+private fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier
-            .width(140.dp)
-            .height(110.dp)
+            .height(48.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        color = category.bgColor.copy(alpha = 0.06f)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        colors = category.gradientColors
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(start = 6.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(category.bgColor.copy(alpha = 0.10f), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = category.icon,
                     contentDescription = category.name,
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = category.name,
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.1).sp
-                    ),
-                    color = Color.White,
-                    textAlign = TextAlign.Center
+                    tint = category.bgColor,
+                    modifier = Modifier.size(18.dp)
                 )
             }
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = category.name,
+                style = DSTypo.Footnote.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Color(0xFF1A1A1A),
+                maxLines = 1
+            )
         }
     }
 }
 
 private data class CategoryCardData(
     val name: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val gradientColors: List<Color>
+    val icon: ImageVector,
+    val bgColor: Color
 )
 
 private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
-        CategoryCardData(
-            name = "Entire Home",
-            icon = PaceDreamIcons.Home,
-            gradientColors = listOf(Color(0xFFEF4444), Color(0xFFDC2626))
-        ),
-        CategoryCardData(
-            name = "Private Room",
-            icon = PaceDreamIcons.MeetingRoom,
-            gradientColors = listOf(Color(0xFFEC4899), Color(0xFFDB2777))
-        ),
-        CategoryCardData(
-            name = "Restroom",
-            icon = PaceDreamIcons.Wc,
-            gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
-        ),
-        CategoryCardData(
-            name = "Nap Pod",
-            icon = PaceDreamIcons.Bed,
-            gradientColors = listOf(Color(0xFF8B5CF6), Color(0xFF7C3AED))
-        ),
-        CategoryCardData(
-            name = "Meeting Room",
-            icon = PaceDreamIcons.Business,
-            gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF2563EB))
-        ),
-        CategoryCardData(
-            name = "Workspace",
-            icon = PaceDreamIcons.Laptop,
-            gradientColors = listOf(Color(0xFF10B981), Color(0xFF059669))
-        ),
-        CategoryCardData(
-            name = "EV Parking",
-            icon = PaceDreamIcons.ElectricCar,
-            gradientColors = listOf(Color(0xFFa855f7), Color(0xFF7c3aed))
-        ),
-        CategoryCardData(
-            name = "Study Room",
-            icon = PaceDreamIcons.School,
-            gradientColors = listOf(Color(0xFF059669), Color(0xFF047857))
-        ),
-        CategoryCardData(
-            name = "Short Stay",
-            icon = PaceDreamIcons.Hotel,
-            gradientColors = listOf(Color(0xFFF59E0B), Color(0xFFD97706))
-        ),
-        CategoryCardData(
-            name = "Apartment",
-            icon = PaceDreamIcons.Apartment,
-            gradientColors = listOf(Color(0xFFDC2626), Color(0xFFB91C1C))
-        ),
-        CategoryCardData(
-            name = "Parking",
-            icon = PaceDreamIcons.LocalParking,
-            gradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
-        ),
-        CategoryCardData(
-            name = "Luxury Room",
-            icon = PaceDreamIcons.Star,
-            gradientColors = listOf(Color(0xFFD97706), Color(0xFFB45309))
-        ),
-        CategoryCardData(
-            name = "Storage Space",
-            icon = PaceDreamIcons.Storage,
-            gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
-        )
+        CategoryCardData("Entire Home", PaceDreamIcons.Home, Color(0xFFEF4444)),
+        CategoryCardData("Private Room", PaceDreamIcons.MeetingRoom, Color(0xFFEC4899)),
+        CategoryCardData("Nap Pod", PaceDreamIcons.Bed, Color(0xFF8B5CF6)),
+        CategoryCardData("Meeting Room", PaceDreamIcons.Business, Color(0xFF3B82F6)),
+        CategoryCardData("Workspace", PaceDreamIcons.Laptop, Color(0xFF10B981)),
+        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, Color(0xFFA855F7)),
+        CategoryCardData("Study Room", PaceDreamIcons.School, Color(0xFF059669)),
+        CategoryCardData("Short Stay", PaceDreamIcons.Hotel, Color(0xFFF59E0B)),
+        CategoryCardData("Apartment", PaceDreamIcons.Apartment, Color(0xFFDC2626)),
+        CategoryCardData("Parking", PaceDreamIcons.LocalParking, Color(0xFF6366F1)),
+        CategoryCardData("Luxury Room", PaceDreamIcons.Star, Color(0xFFD97706)),
+        CategoryCardData("Storage Space", PaceDreamIcons.Storage, Color(0xFF0EA5E9))
     )
 }
 
@@ -647,128 +497,124 @@ private fun WarningBanner(
     message: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        color = PaceDreamColors.Warning.copy(alpha = 0.08f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
+                tint = PaceDreamColors.Warning,
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = message,
-                style = TextStyle(
-                    fontFamily = paceDreamFontFamily,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = MaterialTheme.colorScheme.onErrorContainer
+                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                color = Color(0xFF78350F)
             )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Home Section (listing rows)
+// Section Header
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HomeSection(
+private fun SectionHeader(
+    title: String,
+    subtitle: String? = null,
+    onViewAllClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = DSTypo.Title2.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    letterSpacing = (-0.3).sp
+                ),
+                color = Color(0xFF1A1A1A)
+            )
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.Gray500
+                )
+            }
+        }
+        if (onViewAllClick != null) {
+            TextButton(onClick = onViewAllClick) {
+                Text(
+                    text = "See all",
+                    style = DSTypo.Footnote.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = PaceDreamColors.Primary
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = PaceDreamIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Listing Section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ListingSection(
     title: String,
     subtitle: String,
     items: List<HomeListingItem>,
     isLoading: Boolean,
     onViewAllClick: () -> Unit,
-    onItemClick: (HomeListingItem) -> Unit
+    onItemClick: (HomeListingItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-    ) {
-        // Section Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .clickable(onClick = onViewAllClick),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = TextStyle(
-                        fontFamily = paceDreamDisplayFontFamily,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.3).sp
-                    ),
-                    color = Color(0xFF222222)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = subtitle,
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Normal,
-                        letterSpacing = (-0.1).sp
-                    ),
-                    color = Color(0xFF717171)
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Show all",
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.sp
-                    ),
-                    color = Color(0xFF222222),
-                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = PaceDreamIcons.ArrowForward,
-                    contentDescription = null,
-                    tint = Color(0xFF222222),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = title,
+            subtitle = subtitle,
+            onViewAllClick = onViewAllClick,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Items Row
         if (isLoading) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(5) {
-                    SkeletonCard()
-                }
+                items(4) { ShimmerCard() }
             }
         } else {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(items) { item ->
                     ListingCard(
@@ -792,15 +638,18 @@ private fun ListingCard(
 ) {
     Column(
         modifier = Modifier
-            .width(220.dp)
-            .clickable(onClick = onClick)
+            .width(260.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        // Image with rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .height(190.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
         ) {
             AsyncImage(
                 model = item.imageUrl,
@@ -808,34 +657,93 @@ private fun ListingCard(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Rating badge
+
+            // Bottom scrim
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.25f)
+                            )
+                        )
+                    )
+            )
+
+            // Type badge
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(10.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.XS),
+                color = Color.White
+            ) {
+                Text(
+                    text = when (item.type) {
+                        "time-based" -> "Hourly"
+                        "gear" -> "Gear"
+                        "split-stay" -> "Split"
+                        else -> item.type.replaceFirstChar { it.uppercase() }
+                    },
+                    style = DSTypo.Caption2.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = PaceDreamColors.Primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+
+            // Heart
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(10.dp)
+                    .size(32.dp),
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.85f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = PaceDreamIcons.FavoriteBorderOutlined,
+                        contentDescription = "Favorite",
+                        tint = Color(0xFF1A1A1A),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            // Rating
             item.rating?.let { rating ->
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.BottomEnd)
                         .padding(10.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.XS),
                     color = Color.White
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
-                            tint = Color(0xFF222222),
+                            tint = Color(0xFFFBBF24),
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "%.1f".format(rating),
-                            style = TextStyle(
+                            style = DSTypo.Caption2.copy(
                                 fontFamily = paceDreamFontFamily,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.Bold
                             ),
-                            color = Color(0xFF222222)
+                            color = Color(0xFF1A1A1A)
                         )
                     }
                 }
@@ -844,90 +752,109 @@ private fun ListingCard(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Title
         Text(
             text = item.title,
-            style = TextStyle(
+            style = DSTypo.Headline.copy(
                 fontFamily = paceDreamFontFamily,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.2).sp
+                fontSize = 15.sp
             ),
-            color = Color(0xFF222222),
+            color = Color(0xFF1A1A1A),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
 
-        // Location
         item.location?.let { location ->
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = location,
-                style = TextStyle(
-                    fontFamily = paceDreamFontFamily,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                color = Color(0xFF717171),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        // Price
-        item.price?.let { price ->
-            Spacer(modifier = Modifier.height(4.dp))
-            Row {
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = PaceDreamIcons.LocationOn,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Gray400,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
                 Text(
-                    text = price,
-                    style = TextStyle(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.1).sp
-                    ),
-                    color = Color(0xFF222222)
+                    text = location,
+                    style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.Gray500,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+
+        item.price?.let { price ->
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = price,
+                style = DSTypo.Headline.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontSize = 15.sp,
+                    color = PaceDreamColors.Primary
+                )
+            )
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Skeleton Card
+// Shimmer Loading Card
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SkeletonCard() {
-    Column(modifier = Modifier.width(220.dp)) {
+private fun ShimmerCard() {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val shimmerX = transition.animateFloat(
+        initialValue = -300f,
+        targetValue = 900f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerX"
+    )
+
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFF0F0F0),
+            Color(0xFFE0E0E0),
+            Color(0xFFF0F0F0)
+        ),
+        start = Offset(shimmerX.value, 0f),
+        end = Offset(shimmerX.value + 300f, 0f)
+    )
+
+    Column(modifier = Modifier.width(260.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp)
-                .background(
-                    Color(0xFFF0F0F0),
-                    RoundedCornerShape(14.dp)
-                )
+                .height(190.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                .background(shimmerBrush)
         )
         Spacer(modifier = Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.75f)
+                .fillMaxWidth(0.8f)
                 .height(14.dp)
-                .background(
-                    Color(0xFFF0F0F0),
-                    RoundedCornerShape(4.dp)
-                )
+                .clip(RoundedCornerShape(4.dp))
+                .background(shimmerBrush)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.5f)
                 .height(12.dp)
-                .background(
-                    Color(0xFFF0F0F0),
-                    RoundedCornerShape(4.dp)
-                )
+                .clip(RoundedCornerShape(4.dp))
+                .background(shimmerBrush)
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.35f)
+                .height(14.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(shimmerBrush)
         )
     }
 }
@@ -942,25 +869,38 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .background(
+                    PaceDreamColors.Primary.copy(alpha = 0.08f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Search,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "No listings available",
-            style = TextStyle(
+            style = DSTypo.Title2.copy(
                 fontFamily = paceDreamDisplayFontFamily,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.2).sp
             ),
-            color = Color(0xFF222222)
+            color = Color(0xFF1A1A1A),
+            textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Check back later for new spaces and rentals",
-            style = TextStyle(
-                fontFamily = paceDreamFontFamily,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Normal
-            ),
-            color = Color(0xFF717171)
+            style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.Gray500,
+            textAlign = TextAlign.Center
         )
     }
 }
