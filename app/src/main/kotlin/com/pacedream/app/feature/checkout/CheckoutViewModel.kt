@@ -56,18 +56,20 @@ class CheckoutViewModel @Inject constructor(
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
 
             val body = buildBookingBody(draft).toString()
+            val urls = buildBookingUrls(draft)
 
-            val primaryUrl = appConfig.buildApiUrl("bookings")
-            val primary = apiClient.post(primaryUrl, body, includeAuth = true)
-
-            val finalResult = when (primary) {
-                is ApiResult.Success -> primary
-                is ApiResult.Failure -> {
-                    if (primary.error is ApiError.NotFound) {
-                        val legacyUrl = appConfig.buildApiUrl("bookings", "rooms", "add")
-                        apiClient.post(legacyUrl, body, includeAuth = true)
-                    } else primary
+            var finalResult: ApiResult<String>? = null
+            for (url in urls) {
+                val result = apiClient.post(url, body, includeAuth = true)
+                if (result is ApiResult.Success) {
+                    finalResult = result
+                    break
                 }
+                if (result is ApiResult.Failure && result.error !is ApiError.NotFound) {
+                    finalResult = result
+                    break
+                }
+                finalResult = result
             }
 
             when (finalResult) {
@@ -83,15 +85,44 @@ class CheckoutViewModel @Inject constructor(
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isSubmitting = false, errorMessage = finalResult.error.message) }
                 }
+                null -> {
+                    _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }
+                }
             }
         }
     }
 
+    /**
+     * Build the ordered list of booking URLs to try based on listing type.
+     *
+     * Backend endpoints (matching iOS / CheckoutLauncher):
+     *   time-based → POST /v1/properties/bookings/timebased
+     *   gear       → POST /v1/gear-rentals/book
+     *   fallback   → POST /v1/bookings
+     */
+    private fun buildBookingUrls(draft: BookingDraft): List<okhttp3.HttpUrl> {
+        val typeSpecific = when (draft.listingType) {
+            "time-based" -> listOf(
+                appConfig.buildApiUrl("properties", "bookings", "timebased")
+            )
+            "gear" -> listOf(
+                appConfig.buildApiUrl("gear-rentals", "book")
+            )
+            "split-stay" -> listOf(
+                appConfig.buildApiUrl("roommate", "book")
+            )
+            else -> emptyList()
+        }
+        return typeSpecific + listOf(appConfig.buildApiUrl("bookings"))
+    }
+
     private fun buildBookingBody(draft: BookingDraft) = buildJsonObject {
-        // Listing identifier (tolerant)
+        // Listing / item identifier – use the key the endpoint expects
+        put("itemId", draft.listingId)
         put("listingId", draft.listingId)
         put("listing_id", draft.listingId)
         put("property_id", draft.listingId)
+        put("gearId", draft.listingId)
 
         // Time window
         put("date", draft.date)
@@ -101,12 +132,15 @@ class CheckoutViewModel @Inject constructor(
         put("endTime", draft.endTimeISO)
         put("start_time", draft.startTimeISO)
         put("end_time", draft.endTimeISO)
+        put("startDate", draft.date)
+        put("endDate", draft.date)
 
         // Guests
         put("guests", draft.guests)
 
-        // Estimate (optional)
+        // Amount (required by the backend)
         draft.totalAmountEstimate?.let {
+            put("amount", it)
             put("totalAmountEstimate", it)
             put("total_amount_estimate", it)
         }

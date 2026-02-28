@@ -204,6 +204,9 @@ fun MainNavHost(
                 composable(NavRoutes.FAVORITES) {
                     WishlistScreen(
                         onItemClick = { itemId, itemType ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_type", itemType)
+                            }
                             navController.navigate(NavRoutes.listingDetail(itemId))
                         },
                         onLoginRequired = {
@@ -391,6 +394,9 @@ fun MainNavHost(
                     RoommateFinderScreen(
                         onBackClick = { navController.popBackStack() },
                         onListingClick = { listingId ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_type", "split-stay")
+                            }
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         }
                     )
@@ -439,8 +445,12 @@ fun MainNavHost(
                         } else null
                     }
 
+                    val listingType = navController.previousBackStackEntry?.savedStateHandle
+                        ?.get<String>("listing_initial_type") ?: ""
+
                     ListingDetailRoute(
                         listingId = listingId,
+                        listingType = listingType,
                         initialListing = initialListing,
                         onBackClick = { navController.popBackStack() },
                         onLoginRequired = {

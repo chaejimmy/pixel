@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ListingDetailRoute(
     listingId: String,
+    listingType: String = "",
     initialListing: ListingCardModel? = null,
     viewModel: ListingDetailViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
@@ -26,7 +27,7 @@ fun ListingDetailRoute(
     val context = LocalContext.current
 
     LaunchedEffect(listingId) {
-        viewModel.load(listingId, initialListing)
+        viewModel.load(listingId, listingType, initialListing)
     }
 
     LaunchedEffect(Unit) {
@@ -68,7 +69,7 @@ fun ListingDetailRoute(
         },
         onOpenInMaps = { viewModel.openInMaps() },
         onConfirmReserve = { draft ->
-            onNavigateToCheckout(draft)
+            onNavigateToCheckout(draft.copy(listingType = viewModel.getListingType()))
         },
         onSubmitReview = { rating, comment, catRatings ->
             viewModel.submitReview(rating, comment, catRatings)
