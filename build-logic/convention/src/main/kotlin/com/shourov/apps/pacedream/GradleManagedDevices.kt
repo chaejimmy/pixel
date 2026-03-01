@@ -2,7 +2,6 @@
 package com.shourov.apps.pacedream
 
 import com.android.build.api.dsl.CommonExtension
-import com.android.build.api.dsl.ManagedVirtualDevice
 import org.gradle.kotlin.dsl.get
 
 /**
@@ -22,7 +21,7 @@ internal fun configureGradleManagedDevices(
         managedDevices.apply {
             localDevices.apply {
                 allDevices.forEach { deviceConfig ->
-                    maybeCreate(deviceConfig.taskName, ManagedVirtualDevice::class.java).apply {
+                    maybeCreate(deviceConfig.taskName).apply {
                         device = deviceConfig.device
                         apiLevel = deviceConfig.apiLevel
                         systemImageSource = deviceConfig.systemImageSource
