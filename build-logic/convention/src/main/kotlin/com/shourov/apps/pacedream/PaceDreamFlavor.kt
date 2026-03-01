@@ -24,7 +24,7 @@ enum class PaceDreamFlavor(
 }
 
 fun configureFlavors(
-    commonExtension: CommonExtension<*, *, *, *, *, *>,
+    commonExtension: CommonExtension,
     flavorConfigurationBlock: ProductFlavor.(flavor: PaceDreamFlavor) -> Unit = {},
 ) {
     commonExtension.flavorDimensions += contentType.name
