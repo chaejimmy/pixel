@@ -464,7 +464,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         // Navigate to settings
                                     },
                                     onHelpClick = {
-                                        // Navigate to help
+                                        navController.navigate("support")
                                     },
                                     onFaqClick = {
                                         navController.navigate("faq")
@@ -515,6 +515,14 @@ fun NavGraphBuilder.DashboardNavigation(
                             composable("faq") {
                                 com.shourov.apps.pacedream.feature.help.FaqScreen(
                                     onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Help & Support Screen
+                            composable("support") {
+                                com.shourov.apps.pacedream.feature.help.SupportScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onFaqClick = { navController.navigate("faq") }
                                 )
                             }
 
