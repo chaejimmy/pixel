@@ -4,7 +4,6 @@ package com.shourov.apps.pacedream
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.ManagedVirtualDevice
 import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.invoke
 
 /**
  * Configure project for Gradle managed devices
@@ -19,9 +18,9 @@ internal fun configureGradleManagedDevices(
     val allDevices = listOf(pixel4, pixel6, pixelC)
     val ciDevices = listOf(pixel4, pixelC)
 
-    commonExtension.testOptions {
-        managedDevices {
-            devices {
+    commonExtension.testOptions.apply {
+        managedDevices.apply {
+            devices.apply {
                 allDevices.forEach { deviceConfig ->
                     maybeCreate(deviceConfig.taskName, ManagedVirtualDevice::class.java).apply {
                         device = deviceConfig.device
@@ -30,7 +29,7 @@ internal fun configureGradleManagedDevices(
                     }
                 }
             }
-            groups {
+            groups.apply {
                 maybeCreate("ci").apply {
                     ciDevices.forEach { deviceConfig ->
                         targetDevices.add(devices[deviceConfig.taskName])
