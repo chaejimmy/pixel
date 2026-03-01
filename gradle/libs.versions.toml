@@ -40,7 +40,7 @@ firebasePerfPlugin = "1.4.2"
 gmsPlugin = "4.4.2"
 googleOss = "17.1.0"
 googleOssPlugin = "0.10.6"
-hilt = "2.59.2"
+hilt = "2.58"
 hiltExt = "1.2.0"
 jacoco = "0.8.7"
 junit4 = "4.13.2"
@@ -152,6 +152,7 @@ hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", v
 hilt-ext-compiler = { group = "androidx.hilt", name = "hilt-compiler", version.ref = "hiltExt" }
 hilt-ext-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltExt" }
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
+kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-jvm", version.ref = "kotlin" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }

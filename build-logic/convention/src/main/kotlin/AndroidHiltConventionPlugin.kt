@@ -14,6 +14,8 @@ class AndroidHiltConventionPlugin : Plugin<Project> {
             dependencies {
                 "implementation"(libs.findLibrary("hilt.android").get())
                 "ksp"(libs.findLibrary("hilt.compiler").get())
+                // Override kotlin-metadata-jvm for Kotlin 2.3 support (Hilt 2.58 bundles 2.2.x)
+                "ksp"(libs.findLibrary("kotlin.metadata.jvm").get())
             }
 
         }
