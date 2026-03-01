@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.components.DatePicker as CommonDatePicker
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -136,7 +137,7 @@ fun EnhancedSearchBar(
                 onClick = onSearchClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(PaceDreamButtonHeight.LG),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
