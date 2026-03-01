@@ -20,7 +20,7 @@ interface HostApiService {
     ): Response<List<Property>>
 
     @POST(ApiEndPoints.HOST_CREATE_LISTING)
-    suspend fun createListing(@Body listing: Property): Response<Property>
+    suspend fun createListing(@Body listing: CreateListingRequest): Response<Property>
 
     @PUT(ApiEndPoints.HOST_UPDATE_LISTING)
     suspend fun updateListing(
@@ -92,4 +92,58 @@ data class HostAnalyticsData(
     val averageRating: Double = 0.0,
     val conversionRate: Double = 0.0,
     val timeRange: String = "Month"
+)
+
+/**
+ * Request body for creating a listing.
+ * Matches the web platform payload structure from ListingWizard.tsx.
+ */
+data class CreateListingRequest(
+    val listing_type: String,
+    val subCategory: String,
+    val title: String,
+    val description: String,
+    val summary: String,
+    val price: Double,
+    val pricing_type: String,
+    val prices: PricesPayload,
+    val pricing: PricingPayload,
+    val address: String,
+    val amenities: List<String> = emptyList(),
+    val images: List<String> = emptyList(),
+    val location: LocationPayload,
+    val available: Boolean = true,
+    val durations: List<Int>? = null,
+    val availability: AvailabilityPayload? = null,
+)
+
+data class PricesPayload(
+    val hour: Double = 0.0,
+    val day: Double = 0.0,
+    val month: Double = 0.0,
+)
+
+data class PricingPayload(
+    val base_price: Double,
+    val unit: String,
+    val currency: String = "USD",
+)
+
+data class LocationPayload(
+    val street_address: String = "",
+    val street: String = "",
+    val address: String = "",
+    val city: String = "",
+    val state: String = "",
+    val country: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+)
+
+data class AvailabilityPayload(
+    val start_time: String = "09:00",
+    val end_time: String = "17:00",
+    val available_days: List<Int> = listOf(1, 2, 3, 4, 5),
+    val timezone: String = "America/New_York",
+    val instant_booking: Boolean = false,
 )

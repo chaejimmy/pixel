@@ -1,6 +1,8 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -55,12 +57,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +76,11 @@ import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
+import com.shourov.apps.pacedream.feature.host.data.LocationPayload
+import com.shourov.apps.pacedream.feature.host.data.PricesPayload
+import com.shourov.apps.pacedream.feature.host.data.PricingPayload
+import com.shourov.apps.pacedream.model.PricingUnit
 
 /**
  * Listing mode determines which categories and flow to show.
@@ -82,6 +91,55 @@ enum class ListingMode(val displayName: String) {
     SHARE("Share"),
     BORROW("Borrow"),
     USE("Use"),
+}
+
+/**
+ * Pricing mode option displayed in the segmented control.
+ * Maps to the web platform's PRICING_MODES:
+ *   [{ value: 'hour', label: 'Hourly' }, { value: 'day', label: 'Daily' }, { value: 'month', label: 'Monthly' }]
+ */
+private data class PricingModeOption(
+    val unit: PricingUnit,
+    val label: String,
+    val unitLabel: String,
+)
+
+private val ALL_PRICING_MODES = listOf(
+    PricingModeOption(PricingUnit.HOUR, "Hourly", "hour"),
+    PricingModeOption(PricingUnit.DAY, "Daily", "day"),
+    PricingModeOption(PricingUnit.MONTH, "Monthly", "month"),
+)
+
+/**
+ * Category-to-allowed-pricing-units mapping.
+ * Matches the web platform's listingWizard.ts WIZARD_CONFIG per subcategory.
+ */
+private fun getAllowedPricingUnits(
+    listingMode: ListingMode,
+    propertyType: String,
+): List<PricingUnit> {
+    val type = propertyType.lowercase()
+    return when (listingMode) {
+        ListingMode.USE -> when (type) {
+            "apartment", "house", "studio", "loft" -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
+            "office", "event space" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            "parking" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.MONTH)
+        }
+        ListingMode.SHARE -> when (type) {
+            "tools", "games", "toys" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            "micromobility" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.MONTH)
+        }
+        ListingMode.BORROW -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
+    }
+}
+
+private fun getDefaultPricingUnit(
+    listingMode: ListingMode,
+    propertyType: String,
+): PricingUnit {
+    return getAllowedPricingUnits(listingMode, propertyType).first()
 }
 
 /**
@@ -134,7 +192,8 @@ private val USE_DURATIONS = listOf(
 fun CreateListingScreen(
     listingMode: ListingMode = ListingMode.SHARE,
     onBackClick: () -> Unit = {},
-    onPublishSuccess: (String) -> Unit = {}
+    onPublishSuccess: (String) -> Unit = {},
+    onPublishListing: (CreateListingRequest) -> Unit = {},
 ) {
     val totalSteps = if (listingMode == ListingMode.USE) 5 else 4
     var currentStep by remember { mutableIntStateOf(0) }
@@ -154,6 +213,14 @@ fun CreateListingScreen(
     var itemCondition by remember { mutableStateOf("") }
     val selectedDurations = remember { mutableStateListOf<String>() }
     var showMoreDurations by remember { mutableStateOf(false) }
+
+    // Pricing type state - mirrors web platform's pricingMode / prices
+    var selectedPricingUnit by remember { mutableStateOf(PricingUnit.HOUR) }
+    val pricesPerUnit = remember { mutableStateMapOf(
+        PricingUnit.HOUR to 0.0,
+        PricingUnit.DAY to 0.0,
+        PricingUnit.MONTH to 0.0,
+    ) }
 
     val stepTitles = if (listingMode == ListingMode.USE) {
         listOf("Property Type", "Location", "Details & Photos", "Pricing & Schedule", "Review")
@@ -222,6 +289,40 @@ fun CreateListingScreen(
                     if (currentStep < totalSteps - 1) {
                         currentStep++
                     } else {
+                        // Save final price to pricesPerUnit before building payload
+                        val finalPrice = basePrice.toDoubleOrNull() ?: 0.0
+                        pricesPerUnit[selectedPricingUnit] = finalPrice
+
+                        val request = CreateListingRequest(
+                            listing_type = listingMode.name.lowercase(),
+                            subCategory = propertyType.lowercase().replace(" ", "_"),
+                            title = title,
+                            description = description,
+                            summary = description,
+                            price = finalPrice,
+                            pricing_type = selectedPricingUnit.value,
+                            prices = PricesPayload(
+                                hour = pricesPerUnit[PricingUnit.HOUR] ?: 0.0,
+                                day = pricesPerUnit[PricingUnit.DAY] ?: 0.0,
+                                month = pricesPerUnit[PricingUnit.MONTH] ?: 0.0,
+                            ),
+                            pricing = PricingPayload(
+                                base_price = finalPrice,
+                                unit = selectedPricingUnit.value,
+                                currency = currency,
+                            ),
+                            address = address,
+                            location = LocationPayload(
+                                street_address = address,
+                                street = address,
+                                address = address,
+                                city = city,
+                                state = state,
+                                country = country.ifBlank { "US" },
+                            ),
+                            available = true,
+                        )
+                        onPublishListing(request)
                         onPublishSuccess("new-listing-id")
                     }
                 }
@@ -288,11 +389,14 @@ fun CreateListingScreen(
                         )
                         3 -> PricingScheduleStep(
                             listingMode = listingMode,
+                            propertyType = propertyType,
                             basePrice = basePrice,
                             currency = currency,
                             isInstantBook = isInstantBook,
                             selectedDurations = selectedDurations,
                             showMoreDurations = showMoreDurations,
+                            selectedPricingUnit = selectedPricingUnit,
+                            pricesPerUnit = pricesPerUnit,
                             onBasePriceChange = { basePrice = it },
                             onCurrencyChange = { currency = it },
                             onInstantBookChange = { isInstantBook = it },
@@ -301,6 +405,15 @@ fun CreateListingScreen(
                                 else selectedDurations.add(id)
                             },
                             onShowMoreDurations = { showMoreDurations = true },
+                            onPricingUnitChange = { newUnit ->
+                                // Save current price to map before switching
+                                val currentPrice = basePrice.toDoubleOrNull() ?: 0.0
+                                pricesPerUnit[selectedPricingUnit] = currentPrice
+                                // Restore saved price for new unit
+                                val restoredPrice = pricesPerUnit[newUnit] ?: 0.0
+                                basePrice = if (restoredPrice > 0.0) restoredPrice.toBigDecimal().stripTrailingZeros().toPlainString() else ""
+                                selectedPricingUnit = newUnit
+                            },
                         )
                         4 -> ReviewStep(
                             listingMode = listingMode,
@@ -312,6 +425,7 @@ fun CreateListingScreen(
                             selectedDurations = selectedDurations,
                             isInstantBook = isInstantBook,
                             itemCondition = itemCondition,
+                            selectedPricingUnit = selectedPricingUnit,
                         )
                     }
                 } else {
@@ -333,11 +447,14 @@ fun CreateListingScreen(
                         )
                         2 -> PricingScheduleStep(
                             listingMode = listingMode,
+                            propertyType = propertyType,
                             basePrice = basePrice,
                             currency = currency,
                             isInstantBook = isInstantBook,
                             selectedDurations = selectedDurations,
                             showMoreDurations = showMoreDurations,
+                            selectedPricingUnit = selectedPricingUnit,
+                            pricesPerUnit = pricesPerUnit,
                             onBasePriceChange = { basePrice = it },
                             onCurrencyChange = { currency = it },
                             onInstantBookChange = { isInstantBook = it },
@@ -346,6 +463,13 @@ fun CreateListingScreen(
                                 else selectedDurations.add(id)
                             },
                             onShowMoreDurations = { showMoreDurations = true },
+                            onPricingUnitChange = { newUnit ->
+                                val currentPrice = basePrice.toDoubleOrNull() ?: 0.0
+                                pricesPerUnit[selectedPricingUnit] = currentPrice
+                                val restoredPrice = pricesPerUnit[newUnit] ?: 0.0
+                                basePrice = if (restoredPrice > 0.0) restoredPrice.toBigDecimal().stripTrailingZeros().toPlainString() else ""
+                                selectedPricingUnit = newUnit
+                            },
                         )
                         3 -> ReviewStep(
                             listingMode = listingMode,
@@ -357,6 +481,7 @@ fun CreateListingScreen(
                             selectedDurations = selectedDurations,
                             isInstantBook = isInstantBook,
                             itemCondition = itemCondition,
+                            selectedPricingUnit = selectedPricingUnit,
                         )
                     }
                 }
@@ -757,20 +882,27 @@ private fun ItemConditionSelector(
 @Composable
 private fun PricingScheduleStep(
     listingMode: ListingMode,
+    propertyType: String,
     basePrice: String,
     currency: String,
     isInstantBook: Boolean,
     selectedDurations: List<String>,
     showMoreDurations: Boolean,
+    selectedPricingUnit: PricingUnit,
+    pricesPerUnit: Map<PricingUnit, Double>,
     onBasePriceChange: (String) -> Unit,
     onCurrencyChange: (String) -> Unit,
     onInstantBookChange: (Boolean) -> Unit,
     onToggleDuration: (String) -> Unit,
     onShowMoreDurations: () -> Unit,
+    onPricingUnitChange: (PricingUnit) -> Unit,
 ) {
     val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
-    // Show first 5 by default, all when expanded
     val visibleDurations = if (showMoreDurations) allDurations else allDurations.take(5)
+
+    // Category-aware allowed pricing modes
+    val allowedUnits = getAllowedPricingUnits(listingMode, propertyType)
+    val availableModes = ALL_PRICING_MODES.filter { it.unit in allowedUnits }
 
     Column(
         modifier = Modifier
@@ -778,21 +910,71 @@ private fun PricingScheduleStep(
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG)
     ) {
-        // Pricing
+        // Section Header
         Text(
             text = "Set your price",
             style = PaceDreamTypography.Title2,
             color = PaceDreamColors.TextPrimary,
         )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Choose how you want to charge and set your rate.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+        )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        FormSection(title = "Pricing") {
-            FormTextField(
+        // ── Pricing Type Segmented Control ──
+        // Matches the web platform's segmented radio group design
+        if (availableModes.size > 1) {
+            FormSection(title = "Pricing Type") {
+                PricingTypeSelector(
+                    availableModes = availableModes,
+                    selectedUnit = selectedPricingUnit,
+                    onUnitSelected = onPricingUnitChange,
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        }
+
+        // ── Price Input ──
+        FormSection(title = "Price per ${selectedPricingUnit.displayLabel.lowercase().removeSuffix("ly")}") {
+            OutlinedTextField(
                 value = basePrice,
-                onValueChange = onBasePriceChange,
-                label = "Base price ($currency)",
-                keyboardType = KeyboardType.Decimal,
-                placeholder = "0.00",
+                onValueChange = { raw ->
+                    // Sanitize: only digits and one decimal point, max 2 decimal places
+                    val cleaned = raw.replace(Regex("[^0-9.]"), "")
+                    val parts = cleaned.split(".")
+                    val sanitized = if (parts.size > 1) {
+                        "${parts[0]}.${parts[1].take(2)}"
+                    } else cleaned
+                    onBasePriceChange(sanitized)
+                },
+                label = { Text("Amount ($currency)", style = PaceDreamTypography.Callout) },
+                placeholder = { Text("0.00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = {
+                    Text(
+                        "$",
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
+                trailingIcon = {
+                    Text(
+                        "/${selectedPricingUnit.shortLabel}",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextTertiary,
+                    )
+                },
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
 
             FormToggleRow(
@@ -805,7 +987,7 @@ private fun PricingScheduleStep(
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        // Schedule & Availability
+        // ── Schedule & Availability ──
         Text(
             text = "Schedule & Availability",
             style = PaceDreamTypography.Title3,
@@ -864,7 +1046,6 @@ private fun PricingScheduleStep(
             }
         }
 
-        // "+ More durations" button
         if (!showMoreDurations) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             TextButton(onClick = onShowMoreDurations) {
@@ -916,6 +1097,69 @@ private fun PricingScheduleStep(
     }
 }
 
+// ── Pricing Type Segmented Control ──────────────────────────
+
+/**
+ * iOS-style segmented control for selecting pricing type (Hourly / Daily / Monthly).
+ * Matches the web platform's rounded radio group with selected = white bg + shadow + primary text.
+ */
+@Composable
+private fun PricingTypeSelector(
+    availableModes: List<PricingModeOption>,
+    selectedUnit: PricingUnit,
+    onUnitSelected: (PricingUnit) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(PaceDreamColors.Gray100)
+            .padding(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            availableModes.forEach { mode ->
+                val isSelected = selectedUnit == mode.unit
+                val bgColor by animateColorAsState(
+                    targetValue = if (isSelected) Color.White else Color.Transparent,
+                    animationSpec = tween(200),
+                    label = "segmented_bg"
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                    animationSpec = tween(200),
+                    label = "segmented_text"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (isSelected) Modifier
+                                .shadow(2.dp, RoundedCornerShape(10.dp))
+                                .border(1.dp, PaceDreamColors.Primary.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                            else Modifier
+                        )
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(bgColor)
+                        .clickable { onUnitSelected(mode.unit) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = mode.label,
+                        style = PaceDreamTypography.Callout,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = textColor,
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ── Review Step ──────────────────────────────────────────────
 
 @Composable
@@ -929,16 +1173,13 @@ private fun ReviewStep(
     selectedDurations: List<String>,
     isInstantBook: Boolean,
     itemCondition: String,
+    selectedPricingUnit: PricingUnit = PricingUnit.HOUR,
 ) {
     val isItemListing = listingMode == ListingMode.SHARE || listingMode == ListingMode.BORROW
     val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
     val durationLabels = allDurations
         .filter { selectedDurations.contains(it.id) }
         .joinToString(" · ") { it.label }
-
-    // Determine the shortest duration for price display
-    val shortestDuration = allDurations
-        .firstOrNull { selectedDurations.contains(it.id) }
 
     Column(
         modifier = Modifier
@@ -1016,18 +1257,25 @@ private fun ReviewStep(
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold,
                     )
-                    if (shortestDuration != null) {
-                        Text(
-                            text = " / ${shortestDuration.label}",
-                            style = PaceDreamTypography.Body,
-                            color = PaceDreamColors.TextSecondary,
-                        )
-                    }
+                    Text(
+                        text = " / ${selectedPricingUnit.shortLabel}",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextSecondary,
+                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // Pricing type summary
+        ReviewSummarySection(title = "Pricing Type") {
+            Text(
+                text = selectedPricingUnit.displayLabel,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+            )
+        }
 
         // Duration summary
         ReviewSummarySection(title = "Available Durations") {
@@ -1063,7 +1311,6 @@ private fun ReviewStep(
             }
         }
 
-        // Listing type badge
         ReviewSummarySection(title = "Listing Type") {
             Text(
                 text = listingMode.displayName,

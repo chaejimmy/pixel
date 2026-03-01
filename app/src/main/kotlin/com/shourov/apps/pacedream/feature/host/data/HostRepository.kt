@@ -40,11 +40,11 @@ class HostRepository @Inject constructor(
         }
     }
     
-    suspend fun createListing(listing: Property): Result<Property> {
+    suspend fun createListing(request: CreateListingRequest): Result<Property> {
         return try {
-            val response = hostApiService.createListing(listing)
+            val response = hostApiService.createListing(request)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: listing)
+                Result.success(response.body() ?: Property(title = request.title))
             } else {
                 Result.failure(Exception("Failed to create listing: ${response.code()}"))
             }

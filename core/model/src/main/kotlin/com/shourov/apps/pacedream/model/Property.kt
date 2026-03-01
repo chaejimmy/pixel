@@ -1,6 +1,22 @@
 package com.shourov.apps.pacedream.model
 
 /**
+ * Pricing unit matching the backend enum: 'hour' | 'day' | 'week' | 'month'.
+ * Maps directly to the web platform's pricing_type / pricing.unit fields.
+ */
+enum class PricingUnit(val value: String, val displayLabel: String, val shortLabel: String) {
+    HOUR("hour", "Hourly", "hr"),
+    DAY("day", "Daily", "day"),
+    WEEK("week", "Weekly", "wk"),
+    MONTH("month", "Monthly", "mo");
+
+    companion object {
+        fun fromValue(value: String): PricingUnit =
+            entries.firstOrNull { it.value == value.lowercase() } ?: HOUR
+    }
+}
+
+/**
  * Property model for host features
  */
 data class Property(
@@ -26,6 +42,7 @@ data class PropertyLocation(
     val city: String = "",
     val country: String = "",
     val address: String = "",
+    val state: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0
 )
@@ -33,6 +50,18 @@ data class PropertyLocation(
 data class PropertyPricing(
     val basePrice: Double = 0.0,
     val currency: String = "USD",
+    val unit: String = "hour",
+    val pricingType: String = "hour",
     val cleaningFee: Double = 0.0,
     val serviceFee: Double = 0.0
+)
+
+/**
+ * Per-unit price map used when switching between pricing modes.
+ * Mirrors the web platform's `prices: { hour, day, month }` field.
+ */
+data class PricingPrices(
+    val hour: Double = 0.0,
+    val day: Double = 0.0,
+    val month: Double = 0.0,
 )
