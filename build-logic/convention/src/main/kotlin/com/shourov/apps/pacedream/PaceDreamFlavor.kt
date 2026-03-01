@@ -27,17 +27,15 @@ fun configureFlavors(
     commonExtension: CommonExtension,
     flavorConfigurationBlock: ProductFlavor.(flavor: PaceDreamFlavor) -> Unit = {},
 ) {
-    commonExtension.apply {
-        flavorDimensions += contentType.name
-        productFlavors {
-            PaceDreamFlavor.values().forEach {
-                create(it.name) {
-                    dimension = it.dimension.name
-                    flavorConfigurationBlock(this, it)
-                    if (this@apply is ApplicationExtension && this is ApplicationProductFlavor) {
-                        if (it.applicationIdSuffix != null) {
-                            applicationIdSuffix = it.applicationIdSuffix
-                        }
+    commonExtension.flavorDimensions += contentType.name
+    commonExtension.productFlavors.apply {
+        PaceDreamFlavor.values().forEach {
+            create(it.name).apply {
+                dimension = it.dimension.name
+                flavorConfigurationBlock(this, it)
+                if (commonExtension is ApplicationExtension && this is ApplicationProductFlavor) {
+                    if (it.applicationIdSuffix != null) {
+                        applicationIdSuffix = it.applicationIdSuffix
                     }
                 }
             }
