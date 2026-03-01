@@ -115,7 +115,6 @@ class SearchViewModel @Inject constructor(
     }
 
     fun submitSearch() {
-        val q = uiState.value.query.trim()
         _uiState.update {
             it.copy(
                 phase = SearchPhase.Loading,
@@ -142,9 +141,15 @@ class SearchViewModel @Inject constructor(
     private fun loadPage(reset: Boolean) {
         viewModelScope.launch {
             val current = uiState.value
-            val q = current.query.trim()
+            val whereQuery = current.query.trim()
+            val whatQ = current.whatQuery?.trim().orEmpty()
 
-            if (q.isBlank()) {
+            // Allow search if either WHERE or WHAT has content, or if shareType is set
+            // (browsing by category without a query is valid)
+            val hasQuery = whereQuery.isNotBlank() || whatQ.isNotBlank()
+            val hasShareType = !current.shareType.isNullOrBlank()
+
+            if (!hasQuery && !hasShareType) {
                 _uiState.update { it.copy(phase = SearchPhase.Idle, items = emptyList(), hasMore = false) }
                 return@launch
             }
@@ -159,8 +164,9 @@ class SearchViewModel @Inject constructor(
             }
 
             val res = repo.search(
-                q = q,
-                city = current.city?.takeIf { it.isNotBlank() },
+                q = whereQuery,
+                city = current.city?.takeIf { it.isNotBlank() }
+                    ?: whereQuery.takeIf { it.isNotBlank() },
                 category = current.category?.takeIf { it.isNotBlank() },
                 page0 = page,
                 perPage = current.perPage,
