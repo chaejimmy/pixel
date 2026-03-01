@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.help
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -193,7 +194,7 @@ private fun FaqExpandableCard(
         easing = PaceDreamEasing.EaseInOut,
     )
 
-    val expandIntAnimationSpec = tween<Int>(
+    val expandIntSizeAnimationSpec = tween<IntSize>(
         durationMillis = FAQ_ANIMATION_DURATION_MS,
         easing = PaceDreamEasing.EaseInOut,
     )
@@ -235,8 +236,8 @@ private fun FaqExpandableCard(
             // Answer (expandable)
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn(expandAnimationSpec) + expandVertically(expandIntAnimationSpec),
-                exit = fadeOut(expandAnimationSpec) + shrinkVertically(expandIntAnimationSpec),
+                enter = fadeIn(expandAnimationSpec) + expandVertically(expandIntSizeAnimationSpec),
+                exit = fadeOut(expandAnimationSpec) + shrinkVertically(expandIntSizeAnimationSpec),
             ) {
                 Column {
                     HorizontalDivider(
