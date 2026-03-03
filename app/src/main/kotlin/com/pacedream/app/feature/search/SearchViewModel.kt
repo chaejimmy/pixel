@@ -81,19 +81,31 @@ class SearchViewModel @Inject constructor(
             SearchTab.SPLIT -> "SPLIT"
         }
 
+        // Map tab to the web API's required "category" parameter.
+        // The /api/search endpoint returns 400 if category is missing or invalid.
+        val category = when (state.selectedTab) {
+            SearchTab.USE -> "time-based"
+            SearchTab.BORROW -> "hourly-rental-gears"
+            SearchTab.SPLIT -> "room-stays"
+        }
+
         // Primary: frontend search proxy (iOS parity)
+        // Web API requires: category (mandatory), limit/offset for pagination
         val primaryUrl = appConfig.frontendBaseUrl.newBuilder()
             .addPathSegment("api")
             .addPathSegment("search")
             .apply {
+                addQueryParameter("category", category)
                 if (state.query.isNotBlank()) addQueryParameter("q", state.query)
                 addQueryParameter("shareType", shareType)
-                state.selectedCategory?.let { addQueryParameter("category", it) }
-                addQueryParameter("page", "0")
-                addQueryParameter("perPage", "24")
+                // UI chip selections are sub-category filters, not the API category
+                state.selectedCategory?.let { addQueryParameter("subCategory", it) }
+                addQueryParameter("limit", "24")
+                addQueryParameter("offset", "0")
             }
             .build()
 
+        Timber.d("Search primary URL: $primaryUrl")
         val primaryResult = apiClient.get(primaryUrl, includeAuth = false)
         if (primaryResult is ApiResult.Success) {
             val items = parseSearchResults(primaryResult.data, state.selectedTab)
@@ -109,12 +121,14 @@ class SearchViewModel @Inject constructor(
             queryParams = buildMap {
                 if (state.query.isNotBlank()) put("q", state.query)
                 put("shareType", shareType)
-                state.selectedCategory?.let { put("category", it) }
-                put("page", "0")
-                put("perPage", "24")
+                put("category", category)
+                state.selectedCategory?.let { put("subCategory", it) }
+                put("limit", "24")
+                put("offset", "0")
             }
         )
 
+        Timber.d("Search fallback URL: $fallbackUrl")
         when (val result = apiClient.get(fallbackUrl, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseSearchResults(result.data, state.selectedTab)
@@ -127,6 +141,7 @@ class SearchViewModel @Inject constructor(
                 }
             }
             is ApiResult.Failure -> {
+                Timber.e("Search failed: ${result.error.message}")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -176,9 +191,10 @@ class SearchViewModel @Inject constructor(
                         ?: itemObj["galleryImages"]?.jsonArray?.firstOrNull().stringOrNull()
 
                     val location = itemObj["city"].stringOrNull()
-                        ?: itemObj["location"]?.jsonObject?.get("city").stringOrNull()
+                        ?: (itemObj["location"] as? JsonObject)?.get("city").stringOrNull()
+                        ?: (itemObj["location"] as? JsonObject)?.get("address").stringOrNull()
                         ?: itemObj["location"].stringOrNull()
-                        ?: itemObj["address"]?.jsonObject?.get("city").stringOrNull()
+                        ?: (itemObj["address"] as? JsonObject)?.get("city").stringOrNull()
 
                     val price = itemObj["priceText"].stringOrNull()
                         ?: parsePrice(itemObj)
