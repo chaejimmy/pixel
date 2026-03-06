@@ -28,7 +28,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -47,8 +51,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -57,7 +59,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,117 +77,133 @@ import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.feature.host.data.AvailabilityPayload
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
-import com.shourov.apps.pacedream.feature.host.data.PricesPayload
 import com.shourov.apps.pacedream.feature.host.data.PricingPayload
 import com.shourov.apps.pacedream.model.PricingUnit
 
 /**
- * Listing mode determines which categories and flow to show.
- * SHARE / BORROW: item-based listings (Tools, Games, Toys, Micromobility, Other)
- * USE: space-based listings (Apartment, Office, Event Space, etc.)
+ * Listing type matching iOS: share | borrow | split.
+ * iOS: ListingType enum { share, borrow, split }
  */
-enum class ListingMode(val displayName: String) {
-    SHARE("Share"),
-    BORROW("Borrow"),
-    USE("Use"),
+enum class ListingMode(val displayName: String, val backendValue: String) {
+    SHARE("Share", "share"),
+    BORROW("Borrow", "borrow"),
+    SPLIT("Split", "split"),
 }
 
 /**
- * Pricing mode option displayed in the segmented control.
- * Maps to the web platform's PRICING_MODES:
- *   [{ value: 'hour', label: 'Hourly' }, { value: 'day', label: 'Daily' }, { value: 'month', label: 'Monthly' }]
+ * Subcategory item matching iOS ListingSubcategoryPickerView.SubcategoryItem.
  */
-private data class PricingModeOption(
-    val unit: PricingUnit,
-    val label: String,
-    val unitLabel: String,
-)
-
-private val ALL_PRICING_MODES = listOf(
-    PricingModeOption(PricingUnit.HOUR, "Hourly", "hour"),
-    PricingModeOption(PricingUnit.DAY, "Daily", "day"),
-    PricingModeOption(PricingUnit.WEEK, "Weekly", "week"),
-    PricingModeOption(PricingUnit.MONTH, "Monthly", "month"),
+private data class SubcategoryItem(
+    val id: String,
+    val value: String,
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val needsSchedule: Boolean = false,
 )
 
 /**
- * Category-to-allowed-pricing-units mapping.
- * Matches the web platform's listingWizard.ts WIZARD_CONFIG per subcategory.
+ * Subcategories per listing type – iOS parity.
+ * iOS: ListingSubcategoryPickerView.subcategories
+ */
+private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = when (listingMode) {
+    ListingMode.SHARE -> listOf(
+        SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
+        SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home, needsSchedule = true),
+        SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Groups, needsSchedule = true),
+        SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
+        SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
+        SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
+        SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.DirectionsCar, needsSchedule = false),
+        SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Inventory2, needsSchedule = false),
+    )
+    ListingMode.BORROW -> listOf(
+        SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike, needsSchedule = true),
+        SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt, needsSchedule = true),
+        SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop, needsSchedule = true),
+        SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.MusicNote, needsSchedule = true),
+        SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build, needsSchedule = true),
+        SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
+        SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
+        SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike, needsSchedule = true),
+        SubcategoryItem("other", "other", "Other", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
+    )
+    ListingMode.SPLIT -> listOf(
+        SubcategoryItem("subscription", "subscription", "Subscription", "Share the cost", PaceDreamIcons.CreditCard, needsSchedule = false),
+        SubcategoryItem("sports", "sports", "Sports", "Split memberships", PaceDreamIcons.FitnessCenter, needsSchedule = false),
+        SubcategoryItem("wifi", "wifi", "WIFI", "Split internet cost", PaceDreamIcons.Wifi, needsSchedule = false),
+        SubcategoryItem("events", "events", "Events", "Share event costs", PaceDreamIcons.Event, needsSchedule = false),
+    )
+}
+
+/**
+ * Allowed pricing units per subcategory – iOS parity.
+ * iOS: PricingUnit.allowedUnits(for:listingType:)
  */
 private fun getAllowedPricingUnits(
     listingMode: ListingMode,
-    propertyType: String,
+    subCategory: String,
 ): List<PricingUnit> {
-    val type = propertyType.lowercase()
+    val sc = subCategory.lowercase()
     return when (listingMode) {
-        ListingMode.USE -> when (type) {
-            "apartment", "house", "studio", "loft" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
-            "office", "event space" -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK)
-            "parking" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+        ListingMode.SHARE -> when (sc) {
+            "restroom", "nap_pod" -> listOf(PricingUnit.HOUR)
+            "meeting_room", "gym", "parking" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            "short_stay", "luxury_room" -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
+            "apartment" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+            "storage_space" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+            "wifi" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
         }
-        ListingMode.SHARE -> when (type) {
-            "tools", "games", "toys" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            "micromobility" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+        ListingMode.BORROW -> when (sc) {
+            "sports_gear", "camera", "vehicle", "tech", "instrument",
+            "tools", "games", "toys", "micromobility", "other" ->
+                listOf(PricingUnit.DAY, PricingUnit.WEEK)
+            else -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
         }
-        ListingMode.BORROW -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+        ListingMode.SPLIT -> when (sc) {
+            "subscription", "sports", "membership", "events" -> listOf(PricingUnit.MONTH)
+            "wifi" -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
+            else -> listOf(PricingUnit.MONTH)
+        }
     }
 }
 
-private fun getDefaultPricingUnit(
-    listingMode: ListingMode,
-    propertyType: String,
-): PricingUnit {
-    return getAllowedPricingUnits(listingMode, propertyType).first()
+/**
+ * Whether a subcategory requires the schedule/availability step – iOS parity.
+ * iOS: ListingDraft.needsSchedule
+ */
+private fun needsSchedule(listingMode: ListingMode, subCategory: String): Boolean {
+    val sc = subCategory.lowercase()
+    return when (listingMode) {
+        ListingMode.SHARE -> sc in listOf("restroom", "nap_pod", "meeting_room", "gym")
+        ListingMode.BORROW -> sc in listOf("camera", "sports_gear", "tech", "instrument", "tools", "games", "toys", "micromobility", "other")
+        ListingMode.SPLIT -> false
+    }
 }
 
-/**
- * Duration options for Schedule & Availability.
- * Platform-optimized for short-term sharing and borrowing.
- */
-private data class DurationOption(
-    val id: String,
-    val label: String,
-    val description: String,
-)
+// Duration options matching iOS (minutes)
+private val DURATION_OPTIONS_MINUTES = listOf(15, 30, 60, 90, 120)
 
-private val SHARE_BORROW_DURATIONS = listOf(
-    DurationOption("1h", "1 hour", "Quick use"),
-    DurationOption("2h", "2 hours", "Short session"),
-    DurationOption("4h", "4 hours", "Half day"),
-    DurationOption("12h", "12 hours", "Half day+"),
-    DurationOption("24h", "24 hours", "Full day"),
-    DurationOption("2d", "2 days", "Weekend"),
-    DurationOption("3d", "3 days", "Long weekend"),
-    DurationOption("1w", "1 week", "Weekly"),
-    DurationOption("2w", "2 weeks", "Bi-weekly"),
-    DurationOption("1m", "1 month", "Monthly"),
-)
-
-private val USE_DURATIONS = listOf(
-    DurationOption("1h", "1 hour", "Quick use"),
-    DurationOption("2h", "2 hours", "Short session"),
-    DurationOption("4h", "4 hours", "Half day"),
-    DurationOption("12h", "12 hours", "Half day+"),
-    DurationOption("24h", "24 hours", "Full day"),
-    DurationOption("2d", "2 days", "Weekend"),
-    DurationOption("3d", "3 days", "Long weekend"),
-    DurationOption("1w", "1 week", "Weekly"),
-    DurationOption("1m", "1 month", "Monthly"),
+private val DAY_LABELS = listOf(
+    "Sun" to 0, "Mon" to 1, "Tue" to 2, "Wed" to 3, "Thu" to 4, "Fri" to 5, "Sat" to 6
 )
 
 /**
- * iOS-style multi-step Create Listing screen
- * Follows Apple HIG grouped inset form pattern with step-by-step wizard flow.
+ * iOS-parity Create Listing screen.
+ * Flow: Entry (Share/Borrow/Split) → Subcategory picker → Wizard → Success
  *
- * Flow for SHARE / BORROW (items):
- *   1. Category  →  2. Details & Photos  →  3. Pricing & Schedule  →  4. Review
+ * iOS flow:
+ *   CreateListingEntryView → ListingSubcategoryPickerView → CreateListingWizardView
  *
- * Flow for USE (spaces):
- *   1. Property Type  →  2. Location  →  3. Details & Photos  →  4. Pricing & Schedule  →  5. Review
+ * Wizard steps (iOS: CreateListingFlowCoordinator.Step):
+ *   1. Basics (title, description)
+ *   2. Photos · Location · Pricing
+ *   3. Schedule & Availability (if needsSchedule)
+ *   4. Review & Publish
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -196,137 +213,65 @@ fun CreateListingScreen(
     onPublishSuccess: (String) -> Unit = {},
     onPublishListing: (CreateListingRequest) -> Unit = {},
 ) {
-    val totalSteps = if (listingMode == ListingMode.USE) 5 else 4
-    var currentStep by remember { mutableIntStateOf(0) }
+    // Phase: entry → subcategory → wizard → success
+    var phase by remember { mutableStateOf("entry") }
+    var selectedMode by remember { mutableStateOf(listingMode) }
+    var selectedSubCategory by remember { mutableStateOf("") }
+    var publishedTitle by remember { mutableStateOf("") }
 
-    // Form state
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var propertyType by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var country by remember { mutableStateOf("") }
-    var zipCode by remember { mutableStateOf("") }
-    var basePrice by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("USD") }
-    var isInstantBook by remember { mutableStateOf(false) }
-    var itemCondition by remember { mutableStateOf("") }
-    val selectedDurations = remember { mutableStateListOf<String>() }
-    var showMoreDurations by remember { mutableStateOf(false) }
-
-    // Pricing type state - mirrors web platform's pricingMode / prices
-    var selectedPricingUnit by remember { mutableStateOf(PricingUnit.HOUR) }
-    val pricesPerUnit = remember { mutableStateMapOf(
-        PricingUnit.HOUR to 0.0,
-        PricingUnit.DAY to 0.0,
-        PricingUnit.MONTH to 0.0,
-    ) }
-
-    val stepTitles = if (listingMode == ListingMode.USE) {
-        listOf("Property Type", "Location", "Details & Photos", "Pricing & Schedule", "Review")
-    } else {
-        listOf("Category", "Details & Photos", "Pricing & Schedule", "Review")
+    when (phase) {
+        "entry" -> CreateListingEntryScreen(
+            onModeSelected = { mode ->
+                selectedMode = mode
+                phase = "subcategory"
+            },
+            onBackClick = onBackClick,
+        )
+        "subcategory" -> SubcategoryPickerScreen(
+            listingMode = selectedMode,
+            onSubcategorySelected = { sub ->
+                selectedSubCategory = sub
+                phase = "wizard"
+            },
+            onBackClick = { phase = "entry" },
+        )
+        "wizard" -> CreateListingWizardScreen(
+            listingMode = selectedMode,
+            subCategory = selectedSubCategory,
+            onBackClick = { phase = "subcategory" },
+            onPublishSuccess = { id, title ->
+                publishedTitle = title
+                phase = "success"
+                onPublishSuccess(id)
+            },
+            onPublishListing = onPublishListing,
+        )
+        "success" -> PublishSuccessScreen(
+            title = publishedTitle,
+            onBackToHome = onBackClick,
+            onClose = onBackClick,
+        )
     }
+}
 
-    val progress = (currentStep + 1).toFloat() / totalSteps
+// ── Phase 1: Entry (Share / Borrow / Split) – iOS: CreateListingEntryView ──
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateListingEntryScreen(
+    onModeSelected: (ListingMode) -> Unit,
+    onBackClick: () -> Unit,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = stepTitles[currentStep],
-                        style = PaceDreamTypography.Headline,
-                    )
-                },
+                title = { Text("Create a Listing", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (currentStep > 0) currentStep-- else onBackClick()
-                    }) {
-                        Icon(
-                            imageVector = if (currentStep > 0) PaceDreamIcons.ArrowBack else PaceDreamIcons.Close,
-                            contentDescription = if (currentStep > 0) "Back" else "Close"
-                        )
+                    IconButton(onClick = onBackClick) {
+                        Icon(PaceDreamIcons.Close, contentDescription = "Cancel")
                     }
                 },
-                actions = {
-                    Text(
-                        text = "Step ${currentStep + 1} of $totalSteps",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                        modifier = Modifier.padding(end = PaceDreamSpacing.MD)
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PaceDreamColors.Background
-                )
-            )
-        },
-        bottomBar = {
-            CreateListingBottomBar(
-                currentStep = currentStep,
-                totalSteps = totalSteps,
-                canProceed = when {
-                    // Step 0 is always Category/Property Type selection
-                    currentStep == 0 -> propertyType.isNotBlank()
-                    // USE mode has Location as step 1
-                    listingMode == ListingMode.USE && currentStep == 1 ->
-                        city.isNotBlank() && country.isNotBlank()
-                    // Details step: USE=2, SHARE/BORROW=1
-                    (listingMode == ListingMode.USE && currentStep == 2) ||
-                    (listingMode != ListingMode.USE && currentStep == 1) ->
-                        title.isNotBlank() && description.isNotBlank()
-                    // Pricing & Schedule step: USE=3, SHARE/BORROW=2
-                    (listingMode == ListingMode.USE && currentStep == 3) ||
-                    (listingMode != ListingMode.USE && currentStep == 2) ->
-                        basePrice.isNotBlank() && selectedDurations.isNotEmpty()
-                    // Review step is always last
-                    currentStep == totalSteps - 1 -> true
-                    else -> false
-                },
-                onBack = { if (currentStep > 0) currentStep-- },
-                onNext = {
-                    if (currentStep < totalSteps - 1) {
-                        currentStep++
-                    } else {
-                        // Save final price to pricesPerUnit before building payload
-                        val finalPrice = basePrice.toDoubleOrNull() ?: 0.0
-                        pricesPerUnit[selectedPricingUnit] = finalPrice
-
-                        val request = CreateListingRequest(
-                            listing_type = listingMode.name.lowercase(),
-                            subCategory = propertyType.lowercase().replace(" ", "_"),
-                            title = title,
-                            description = description,
-                            summary = description,
-                            price = finalPrice,
-                            pricing_type = selectedPricingUnit.value,
-                            prices = PricesPayload(
-                                hour = pricesPerUnit[PricingUnit.HOUR] ?: 0.0,
-                                day = pricesPerUnit[PricingUnit.DAY] ?: 0.0,
-                                month = pricesPerUnit[PricingUnit.MONTH] ?: 0.0,
-                            ),
-                            pricing = PricingPayload(
-                                base_price = finalPrice,
-                                unit = selectedPricingUnit.value,
-                                currency = currency,
-                            ),
-                            address = address,
-                            location = LocationPayload(
-                                street_address = address,
-                                street = address,
-                                address = address,
-                                city = city,
-                                state = state,
-                                country = country.ifBlank { "US" },
-                            ),
-                            available = true,
-                        )
-                        onPublishListing(request)
-                        onPublishSuccess("new-listing-id")
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background),
             )
         },
         containerColor = PaceDreamColors.Background,
@@ -335,13 +280,403 @@ fun CreateListingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = PaceDreamSpacing.LG)
+                .padding(top = PaceDreamSpacing.SM, bottom = PaceDreamSpacing.XL),
         ) {
-            // Progress bar - iOS style thin
+            Text(
+                text = "Create a Listing",
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Choose how you want to list: Share, Borrow, or Split.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            ModeCard(
+                title = "Share",
+                subtitle = "Rent your space by the hour or day.",
+                icon = PaceDreamIcons.Home,
+                tint = PaceDreamColors.Primary,
+                onClick = { onModeSelected(ListingMode.SHARE) },
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            ModeCard(
+                title = "Borrow",
+                subtitle = "Lend out gear, tools, games & more.",
+                icon = PaceDreamIcons.Schedule,
+                tint = Color(0xFF2196F3),
+                onClick = { onModeSelected(ListingMode.BORROW) },
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            ModeCard(
+                title = "Split",
+                subtitle = "Invite others to share a cost.",
+                icon = PaceDreamIcons.AttachMoney,
+                tint = Color(0xFF4CAF50),
+                onClick = { onModeSelected(ListingMode.SPLIT) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(tint.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = tint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                Text(
+                    text = subtitle,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+            Icon(
+                PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+// ── Phase 2: Subcategory Picker – iOS: ListingSubcategoryPickerView ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SubcategoryPickerScreen(
+    listingMode: ListingMode,
+    onSubcategorySelected: (String) -> Unit,
+    onBackClick: () -> Unit,
+) {
+    val subcategories = getSubcategories(listingMode)
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(listingMode.displayName, style = PaceDreamTypography.Headline) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background),
+            )
+        },
+        containerColor = PaceDreamColors.Background,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = PaceDreamSpacing.LG),
+        ) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Choose a subcategory",
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = PaceDreamSpacing.XL),
+            ) {
+                items(subcategories, key = { it.id }) { item ->
+                    SubcategoryCard(
+                        item = item,
+                        onClick = { onSubcategorySelected(item.value) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SubcategoryCard(
+    item: SubcategoryItem,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(PaceDreamColors.Gray100),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = item.title,
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+                maxLines = 1,
+            )
+            Text(
+                text = item.subtitle,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+                maxLines = 2,
+            )
+            if (item.needsSchedule) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Schedule required",
+                    style = PaceDreamTypography.Caption,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF2196F3))
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                )
+            }
+        }
+    }
+}
+
+// ── Phase 3: Create Listing Wizard – iOS: CreateListingWizardView ──
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateListingWizardScreen(
+    listingMode: ListingMode,
+    subCategory: String,
+    onBackClick: () -> Unit,
+    onPublishSuccess: (String, String) -> Unit,
+    onPublishListing: (CreateListingRequest) -> Unit,
+) {
+    val hasSchedule = needsSchedule(listingMode, subCategory)
+    val steps = if (hasSchedule) {
+        listOf("Basics", "Photos \u00b7 Location \u00b7 Pricing", "Schedule & Availability", "Review & Publish")
+    } else {
+        listOf("Basics", "Photos \u00b7 Location \u00b7 Pricing", "Review & Publish")
+    }
+    val totalSteps = steps.size
+    var currentStep by remember { mutableIntStateOf(0) }
+
+    // Form state – iOS parity (ListingDraft fields)
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    // Split-specific
+    var deadlineAt by remember { mutableStateOf("") }
+    var requirements by remember { mutableStateOf("") }
+    var totalCost by remember { mutableStateOf("") }
+
+    // Photos/Location/Pricing
+    var address by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
+    var basePrice by remember { mutableStateOf("") }
+    val amenities = remember { mutableStateListOf<String>() }
+
+    // Pricing unit – iOS parity
+    val allowedUnits = getAllowedPricingUnits(listingMode, subCategory)
+    var selectedPricingUnit by remember { mutableStateOf(allowedUnits.firstOrNull() ?: PricingUnit.HOUR) }
+
+    // Schedule/Availability
+    val selectedDurations = remember { mutableStateListOf<Int>() }
+    val selectedDays = remember { mutableStateListOf<Int>() }
+    var startTime by remember { mutableStateOf("09:00") }
+    var endTime by remember { mutableStateOf("17:00") }
+    var timezone by remember { mutableStateOf("America/New_York") }
+
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+
+    val progress = (currentStep + 1).toFloat() / totalSteps
+
+    fun validate(): String? {
+        return when (currentStep) {
+            0 -> if (title.isBlank()) "Title is required." else null
+            1 -> {
+                val price = if (listingMode == ListingMode.SPLIT) {
+                    totalCost.toDoubleOrNull() ?: 0.0
+                } else {
+                    basePrice.toDoubleOrNull() ?: 0.0
+                }
+                if (price <= 0) return "Price must be greater than 0."
+                if (listingMode != ListingMode.SPLIT) {
+                    if (address.isBlank()) return "Address is required."
+                    if (city.isBlank() || state.isBlank()) return "City and state are required."
+                }
+                null
+            }
+            2 -> {
+                if (hasSchedule) {
+                    if (selectedDurations.isEmpty()) return "Select at least 1 duration."
+                    if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                }
+                null
+            }
+            else -> null
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = steps[currentStep], style = PaceDreamTypography.Headline) },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (currentStep > 0) currentStep-- else onBackClick()
+                    }) {
+                        Icon(
+                            imageVector = if (currentStep > 0) PaceDreamIcons.ArrowBack else PaceDreamIcons.Close,
+                            contentDescription = if (currentStep > 0) "Back" else "Close",
+                        )
+                    }
+                },
+                actions = {
+                    Text(
+                        text = "Step ${currentStep + 1} of $totalSteps",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.padding(end = PaceDreamSpacing.MD),
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background),
+            )
+        },
+        bottomBar = {
+            WizardBottomBar(
+                currentStep = currentStep,
+                totalSteps = totalSteps,
+                validationMessage = validationMessage,
+                onBack = {
+                    validationMessage = null
+                    if (currentStep > 0) currentStep--
+                },
+                onNext = {
+                    validationMessage = null
+                    val msg = validate()
+                    if (msg != null) {
+                        validationMessage = msg
+                        return@WizardBottomBar
+                    }
+                    if (currentStep < totalSteps - 1) {
+                        currentStep++
+                    } else {
+                        // Build payload matching iOS ListingsPublisherService
+                        val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
+                            totalCost.toDoubleOrNull() ?: 0.0
+                        } else {
+                            basePrice.toDoubleOrNull() ?: 0.0
+                        }
+                        val request = CreateListingRequest(
+                            listing_type = listingMode.backendValue,
+                            subCategory = subCategory,
+                            title = title,
+                            description = description.ifBlank { null },
+                            price = resolvedPrice,
+                            pricing_type = selectedPricingUnit.backendPricingType,
+                            pricing = PricingPayload(
+                                base_price = resolvedPrice,
+                                unit = selectedPricingUnit.value,
+                                pricing_type = selectedPricingUnit.backendPricingType,
+                                currency = "USD",
+                                frequency = selectedPricingUnit.backendFrequency,
+                            ),
+                            address = if (listingMode != ListingMode.SPLIT) address else null,
+                            amenities = amenities.ifEmpty { null },
+                            location = if (listingMode != ListingMode.SPLIT && city.isNotBlank()) {
+                                LocationPayload(lat = 0.0, lng = 0.0, city = city, state = state)
+                            } else null,
+                            durations = if (hasSchedule) selectedDurations.toList() else null,
+                            availability = if (hasSchedule) AvailabilityPayload(
+                                start_time = startTime,
+                                end_time = endTime,
+                                available_days = selectedDays.toList(),
+                                timezone = timezone,
+                                instant_booking = false,
+                            ) else null,
+                            shareType = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
+                            share_type = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
+                            totalCost = totalCost.toDoubleOrNull(),
+                            deadlineAt = deadlineAt.ifBlank { null },
+                            requirements = requirements.ifBlank { null },
+                        )
+                        onPublishListing(request)
+                        onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
+                    }
+                },
+            )
+        },
+        containerColor = PaceDreamColors.Background,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        ) {
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp),
+                    .height(3.dp),
                 color = PaceDreamColors.Primary,
                 trackColor = PaceDreamColors.Border,
             )
@@ -357,428 +692,125 @@ fun CreateListingScreen(
                                 (slideOutHorizontally { it } + fadeOut())
                     }
                 },
-                label = "step_transition"
+                label = "step_transition",
             ) { step ->
-                if (listingMode == ListingMode.USE) {
-                    // USE mode: 5-step flow
-                    when (step) {
-                        0 -> PropertyTypeStep(
-                            listingMode = listingMode,
-                            selectedType = propertyType,
-                            onTypeSelected = { propertyType = it }
-                        )
-                        1 -> LocationStep(
-                            address = address,
-                            city = city,
-                            state = state,
-                            country = country,
-                            zipCode = zipCode,
-                            onAddressChange = { address = it },
-                            onCityChange = { city = it },
-                            onStateChange = { state = it },
-                            onCountryChange = { country = it },
-                            onZipCodeChange = { zipCode = it },
-                        )
-                        2 -> DetailsStep(
-                            listingMode = listingMode,
-                            title = title,
-                            description = description,
-                            itemCondition = itemCondition,
-                            onTitleChange = { title = it },
-                            onDescriptionChange = { description = it },
-                            onItemConditionChange = { itemCondition = it },
-                        )
-                        3 -> PricingScheduleStep(
-                            listingMode = listingMode,
-                            propertyType = propertyType,
-                            basePrice = basePrice,
-                            currency = currency,
-                            isInstantBook = isInstantBook,
-                            selectedDurations = selectedDurations,
-                            showMoreDurations = showMoreDurations,
-                            selectedPricingUnit = selectedPricingUnit,
-                            pricesPerUnit = pricesPerUnit,
-                            onBasePriceChange = { basePrice = it },
-                            onCurrencyChange = { currency = it },
-                            onInstantBookChange = { isInstantBook = it },
-                            onToggleDuration = { id ->
-                                if (selectedDurations.contains(id)) selectedDurations.remove(id)
-                                else selectedDurations.add(id)
-                            },
-                            onShowMoreDurations = { showMoreDurations = true },
-                            onPricingUnitChange = { newUnit ->
-                                // Save current price to map before switching
-                                val currentPrice = basePrice.toDoubleOrNull() ?: 0.0
-                                pricesPerUnit[selectedPricingUnit] = currentPrice
-                                // Restore saved price for new unit
-                                val restoredPrice = pricesPerUnit[newUnit] ?: 0.0
-                                basePrice = if (restoredPrice > 0.0) restoredPrice.toBigDecimal().stripTrailingZeros().toPlainString() else ""
-                                selectedPricingUnit = newUnit
-                            },
-                        )
-                        4 -> ReviewStep(
-                            listingMode = listingMode,
-                            title = title,
-                            propertyType = propertyType,
-                            location = "$city, $state, $country",
-                            price = basePrice,
-                            currency = currency,
-                            selectedDurations = selectedDurations,
-                            isInstantBook = isInstantBook,
-                            itemCondition = itemCondition,
-                            selectedPricingUnit = selectedPricingUnit,
-                        )
-                    }
-                } else {
-                    // SHARE / BORROW mode: 4-step flow
-                    when (step) {
-                        0 -> PropertyTypeStep(
-                            listingMode = listingMode,
-                            selectedType = propertyType,
-                            onTypeSelected = { propertyType = it }
-                        )
-                        1 -> DetailsStep(
-                            listingMode = listingMode,
-                            title = title,
-                            description = description,
-                            itemCondition = itemCondition,
-                            onTitleChange = { title = it },
-                            onDescriptionChange = { description = it },
-                            onItemConditionChange = { itemCondition = it },
-                        )
-                        2 -> PricingScheduleStep(
-                            listingMode = listingMode,
-                            propertyType = propertyType,
-                            basePrice = basePrice,
-                            currency = currency,
-                            isInstantBook = isInstantBook,
-                            selectedDurations = selectedDurations,
-                            showMoreDurations = showMoreDurations,
-                            selectedPricingUnit = selectedPricingUnit,
-                            pricesPerUnit = pricesPerUnit,
-                            onBasePriceChange = { basePrice = it },
-                            onCurrencyChange = { currency = it },
-                            onInstantBookChange = { isInstantBook = it },
-                            onToggleDuration = { id ->
-                                if (selectedDurations.contains(id)) selectedDurations.remove(id)
-                                else selectedDurations.add(id)
-                            },
-                            onShowMoreDurations = { showMoreDurations = true },
-                            onPricingUnitChange = { newUnit ->
-                                val currentPrice = basePrice.toDoubleOrNull() ?: 0.0
-                                pricesPerUnit[selectedPricingUnit] = currentPrice
-                                val restoredPrice = pricesPerUnit[newUnit] ?: 0.0
-                                basePrice = if (restoredPrice > 0.0) restoredPrice.toBigDecimal().stripTrailingZeros().toPlainString() else ""
-                                selectedPricingUnit = newUnit
-                            },
-                        )
-                        3 -> ReviewStep(
-                            listingMode = listingMode,
-                            title = title,
-                            propertyType = propertyType,
-                            location = if (city.isNotBlank()) "$city, $state, $country" else "",
-                            price = basePrice,
-                            currency = currency,
-                            selectedDurations = selectedDurations,
-                            isInstantBook = isInstantBook,
-                            itemCondition = itemCondition,
-                            selectedPricingUnit = selectedPricingUnit,
-                        )
-                    }
+                when {
+                    step == 0 -> BasicsStep(
+                        listingMode = listingMode,
+                        title = title,
+                        description = description,
+                        deadlineAt = deadlineAt,
+                        requirements = requirements,
+                        onTitleChange = { title = it },
+                        onDescriptionChange = { description = it },
+                        onDeadlineAtChange = { deadlineAt = it },
+                        onRequirementsChange = { requirements = it },
+                    )
+                    step == 1 -> PhotosLocationPricingStep(
+                        listingMode = listingMode,
+                        subCategory = subCategory,
+                        address = address,
+                        city = city,
+                        state = state,
+                        basePrice = basePrice,
+                        totalCost = totalCost,
+                        amenities = amenities,
+                        selectedPricingUnit = selectedPricingUnit,
+                        allowedUnits = allowedUnits,
+                        onAddressChange = { address = it },
+                        onCityChange = { city = it },
+                        onStateChange = { state = it },
+                        onBasePriceChange = { basePrice = it },
+                        onTotalCostChange = { totalCost = it },
+                        onToggleAmenity = { name ->
+                            if (amenities.contains(name)) amenities.remove(name)
+                            else amenities.add(name)
+                        },
+                        onPricingUnitChange = { selectedPricingUnit = it },
+                    )
+                    step == 2 && hasSchedule -> ScheduleAvailabilityStep(
+                        selectedDurations = selectedDurations,
+                        selectedDays = selectedDays,
+                        startTime = startTime,
+                        endTime = endTime,
+                        timezone = timezone,
+                        onToggleDuration = { min ->
+                            if (selectedDurations.contains(min)) selectedDurations.remove(min)
+                            else { selectedDurations.add(min); selectedDurations.sort() }
+                        },
+                        onToggleDay = { day ->
+                            if (selectedDays.contains(day)) selectedDays.remove(day)
+                            else { selectedDays.add(day); selectedDays.sort() }
+                        },
+                        onStartTimeChange = { startTime = it },
+                        onEndTimeChange = { endTime = it },
+                        onTimezoneChange = { timezone = it },
+                    )
+                    else -> ReviewPublishStep(
+                        listingMode = listingMode,
+                        subCategory = subCategory,
+                        title = title,
+                        address = address,
+                        city = city,
+                        state = state,
+                        basePrice = basePrice,
+                        totalCost = totalCost,
+                        selectedPricingUnit = selectedPricingUnit,
+                        hasSchedule = hasSchedule,
+                        selectedDurations = selectedDurations,
+                        selectedDays = selectedDays,
+                        startTime = startTime,
+                        endTime = endTime,
+                        timezone = timezone,
+                    )
                 }
             }
         }
     }
 }
 
-// ── Step 1: Category / Property Type ─────────────────────────
+// ── Step: Basics (iOS: ListingBasicsStepView) ──
 
 @Composable
-private fun PropertyTypeStep(
+private fun BasicsStep(
     listingMode: ListingMode,
-    selectedType: String,
-    onTypeSelected: (String) -> Unit
-) {
-    val types = when (listingMode) {
-        ListingMode.SHARE, ListingMode.BORROW -> listOf(
-            PropertyTypeOption("Tools", PaceDreamIcons.Build, "Power tools, hand tools, garden equipment"),
-            PropertyTypeOption("Games", PaceDreamIcons.SportsEsports, "Board games, video games, consoles"),
-            PropertyTypeOption("Toys", PaceDreamIcons.SmartToy, "Kids toys, outdoor play, collectibles"),
-            PropertyTypeOption("Micromobility", PaceDreamIcons.DirectionsBike, "E-scooters, bikes, skateboards"),
-            PropertyTypeOption("Other", PaceDreamIcons.MoreHoriz, "Anything else you want to list"),
-        )
-        ListingMode.USE -> listOf(
-            PropertyTypeOption("Apartment", PaceDreamIcons.Home, "A unit within a building"),
-            PropertyTypeOption("House", PaceDreamIcons.Home, "An entire house"),
-            PropertyTypeOption("Studio", PaceDreamIcons.Home, "A single-room dwelling"),
-            PropertyTypeOption("Loft", PaceDreamIcons.Home, "An open-plan space"),
-            PropertyTypeOption("Office", PaceDreamIcons.Home, "A workspace for rent"),
-            PropertyTypeOption("Event Space", PaceDreamIcons.Home, "A venue for events"),
-            PropertyTypeOption("Parking", PaceDreamIcons.Home, "A parking spot"),
-        )
-    }
-
-    val headerText = when (listingMode) {
-        ListingMode.SHARE -> "What are you sharing?"
-        ListingMode.BORROW -> "What can people borrow?"
-        ListingMode.USE -> "What type of space are you listing?"
-    }
-
-    val subtitleText = when (listingMode) {
-        ListingMode.SHARE, ListingMode.BORROW -> "Pick the category that best fits your item."
-        ListingMode.USE -> "Choose the category that best describes your space."
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
-    ) {
-        Text(
-            text = headerText,
-            style = PaceDreamTypography.Title2,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = subtitleText,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        types.forEach { type ->
-            val isSelected = selectedType == type.name
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = PaceDreamSpacing.SM)
-                    .then(
-                        if (isSelected) Modifier.border(
-                            2.dp,
-                            PaceDreamColors.Primary,
-                            RoundedCornerShape(PaceDreamRadius.LG)
-                        ) else Modifier
-                    ),
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected) PaceDreamColors.Primary.copy(alpha = 0.06f)
-                    else PaceDreamColors.Card
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                onClick = { onTypeSelected(type.name) }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(PaceDreamSpacing.MD),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                            .background(
-                                if (isSelected) PaceDreamColors.Primary.copy(alpha = 0.12f)
-                                else PaceDreamColors.Gray100
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = type.icon,
-                            contentDescription = type.name,
-                            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = type.name,
-                            style = PaceDreamTypography.Headline,
-                            color = PaceDreamColors.TextPrimary,
-                        )
-                        Text(
-                            text = type.description,
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                        )
-                    }
-                    if (isSelected) {
-                        Icon(
-                            PaceDreamIcons.Check,
-                            contentDescription = "Selected",
-                            tint = PaceDreamColors.Primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ── Location Step (USE mode only) ────────────────────────────
-
-@Composable
-private fun LocationStep(
-    address: String,
-    city: String,
-    state: String,
-    country: String,
-    zipCode: String,
-    onAddressChange: (String) -> Unit,
-    onCityChange: (String) -> Unit,
-    onStateChange: (String) -> Unit,
-    onCountryChange: (String) -> Unit,
-    onZipCodeChange: (String) -> Unit,
+    title: String,
+    description: String,
+    deadlineAt: String,
+    requirements: String,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onDeadlineAtChange: (String) -> Unit,
+    onRequirementsChange: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
+            .padding(PaceDreamSpacing.LG),
     ) {
-        Text(
-            text = "Where is your property?",
-            style = PaceDreamTypography.Title2,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Guests will only get the exact address after booking.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        FormSection(title = "Address") {
-            FormTextField(
-                value = address,
-                onValueChange = onAddressChange,
-                label = "Street address",
-            )
-            FormTextField(
-                value = city,
-                onValueChange = onCityChange,
-                label = "City",
-            )
-            Row(
+        FormSection(title = "Title") {
+            OutlinedTextField(
+                value = title,
+                onValueChange = onTitleChange,
+                label = { Text("Give it a clear, searchable title", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                FormTextField(
-                    value = state,
-                    onValueChange = onStateChange,
-                    label = "State / Province",
-                    modifier = Modifier.weight(1f),
-                )
-                FormTextField(
-                    value = zipCode,
-                    onValueChange = onZipCodeChange,
-                    label = "ZIP Code",
-                    modifier = Modifier.weight(1f),
-                    keyboardType = KeyboardType.Number,
-                )
-            }
-            FormTextField(
-                value = country,
-                onValueChange = onCountryChange,
-                label = "Country",
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
             )
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-        // Map placeholder
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        PaceDreamIcons.LocationOn,
-                        contentDescription = null,
-                        tint = PaceDreamColors.TextSecondary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    Text(
-                        "Pin your location on the map",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ── Details & Photos Step ────────────────────────────────────
-
-@Composable
-private fun DetailsStep(
-    listingMode: ListingMode,
-    title: String,
-    description: String,
-    itemCondition: String,
-    onTitleChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-    onItemConditionChange: (String) -> Unit,
-) {
-    val isItemListing = listingMode == ListingMode.SHARE || listingMode == ListingMode.BORROW
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
-    ) {
-        Text(
-            text = if (isItemListing) "Describe your item" else "Tell us about your space",
-            style = PaceDreamTypography.Title2,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = if (isItemListing)
-                "A clear title and description help people find your listing."
-            else
-                "A great title and description help guests find your listing.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        FormSection(title = "Listing Info") {
-            FormTextField(
-                value = title,
-                onValueChange = onTitleChange,
-                label = "Title",
-                placeholder = if (isItemListing) "e.g. DeWalt Power Drill Set" else "e.g. Cozy Downtown Studio",
-            )
+        FormSection(title = "Description") {
             OutlinedTextField(
                 value = description,
                 onValueChange = onDescriptionChange,
-                label = { Text("Description", style = PaceDreamTypography.Callout) },
-                placeholder = {
-                    Text(
-                        if (isItemListing)
-                            "Describe the item, what's included, and any usage notes..."
-                        else
-                            "Describe what makes your space special...",
-                        style = PaceDreamTypography.Body
-                    )
-                },
+                label = { Text("Describe your listing", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 8,
@@ -788,88 +820,35 @@ private fun DetailsStep(
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
-
-            // Item condition (share/borrow only)
-            if (isItemListing) {
-                ItemConditionSelector(
-                    selectedCondition = itemCondition,
-                    onConditionSelected = onItemConditionChange,
-                )
-            }
         }
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        // Photo upload section
-        FormSection(title = "Photos") {
-            Text(
-                if (isItemListing)
-                    "Add photos from different angles to show condition."
-                else
-                    "Add at least 5 photos to showcase your space.",
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamColors.TextSecondary,
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                PhotoUploadPlaceholder(onClick = { /* TODO: open image picker */ })
-                PhotoUploadPlaceholder(onClick = {})
-                PhotoUploadPlaceholder(onClick = {})
-            }
-        }
-    }
-}
-
-// ── Item Condition Selector ──────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ItemConditionSelector(
-    selectedCondition: String,
-    onConditionSelected: (String) -> Unit,
-) {
-    val conditions = listOf("New", "Like New", "Good", "Fair")
-
-    Column {
-        Text(
-            text = "Condition",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-        ) {
-            conditions.forEach { condition ->
-                val isSelected = selectedCondition == condition
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onConditionSelected(condition) },
-                    label = { Text(condition, style = PaceDreamTypography.Callout) },
-                    leadingIcon = if (isSelected) {
-                        {
-                            Icon(
-                                PaceDreamIcons.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    } else null,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaceDreamColors.Primary,
-                        selectedLabelColor = Color.White,
-                        selectedLeadingIconColor = Color.White,
-                        containerColor = PaceDreamColors.Card,
-                        labelColor = PaceDreamColors.TextPrimary,
+        if (listingMode == ListingMode.SPLIT) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            FormSection(title = "Split details (optional)") {
+                OutlinedTextField(
+                    value = deadlineAt,
+                    onValueChange = onDeadlineAtChange,
+                    label = { Text("Deadline (optional)", style = PaceDreamTypography.Callout) },
+                    placeholder = { Text("e.g. 2026-04-01", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
                     ),
-                    shape = RoundedCornerShape(PaceDreamRadius.Round),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderColor = PaceDreamColors.Border,
-                        selectedBorderColor = PaceDreamColors.Primary,
-                        enabled = true,
-                        selected = isSelected,
+                )
+                OutlinedTextField(
+                    value = requirements,
+                    onValueChange = onRequirementsChange,
+                    label = { Text("Requirements (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 6,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
             }
@@ -877,157 +856,225 @@ private fun ItemConditionSelector(
     }
 }
 
-// ── Pricing & Schedule Step ──────────────────────────────────
+// ── Step: Photos · Location · Pricing (iOS: ListingPhotosLocationPricingStepView) ──
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PricingScheduleStep(
+private fun PhotosLocationPricingStep(
     listingMode: ListingMode,
-    propertyType: String,
+    subCategory: String,
+    address: String,
+    city: String,
+    state: String,
     basePrice: String,
-    currency: String,
-    isInstantBook: Boolean,
-    selectedDurations: List<String>,
-    showMoreDurations: Boolean,
+    totalCost: String,
+    amenities: List<String>,
     selectedPricingUnit: PricingUnit,
-    pricesPerUnit: Map<PricingUnit, Double>,
+    allowedUnits: List<PricingUnit>,
+    onAddressChange: (String) -> Unit,
+    onCityChange: (String) -> Unit,
+    onStateChange: (String) -> Unit,
     onBasePriceChange: (String) -> Unit,
-    onCurrencyChange: (String) -> Unit,
-    onInstantBookChange: (Boolean) -> Unit,
-    onToggleDuration: (String) -> Unit,
-    onShowMoreDurations: () -> Unit,
+    onTotalCostChange: (String) -> Unit,
+    onToggleAmenity: (String) -> Unit,
     onPricingUnitChange: (PricingUnit) -> Unit,
 ) {
-    val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
-    val visibleDurations = if (showMoreDurations) allDurations else allDurations.take(5)
-
-    // Category-aware allowed pricing modes
-    val allowedUnits = getAllowedPricingUnits(listingMode, propertyType)
-    val availableModes = ALL_PRICING_MODES.filter { it.unit in allowedUnits }
+    val isSplit = listingMode == ListingMode.SPLIT
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
+            .padding(PaceDreamSpacing.LG),
     ) {
-        // Section Header
-        Text(
-            text = "Set your price",
-            style = PaceDreamTypography.Title2,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Choose how you want to charge and set your rate.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        // ── Pricing Type Segmented Control ──
-        // Matches the web platform's segmented radio group design
-        if (availableModes.size > 1) {
-            FormSection(title = "Pricing Type") {
-                PricingTypeSelector(
-                    availableModes = availableModes,
-                    selectedUnit = selectedPricingUnit,
-                    onUnitSelected = onPricingUnitChange,
-                )
+        // Photos
+        FormSection(title = if (isSplit) "Photos (optional)" else "Photos") {
+            Text(
+                text = "Add at least 1 photo for Share/Borrow listings.",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+                PhotoUploadPlaceholder(onClick = { /* TODO: open image picker */ })
+                PhotoUploadPlaceholder(onClick = {})
+                PhotoUploadPlaceholder(onClick = {})
             }
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
 
-        // ── Price Input ──
-        FormSection(title = "Price per ${selectedPricingUnit.displayLabel.lowercase().removeSuffix("ly")}") {
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // Location
+        FormSection(title = if (isSplit) "Location (optional)" else "Location") {
             OutlinedTextField(
-                value = basePrice,
-                onValueChange = { raw ->
-                    // Sanitize: only digits and one decimal point, max 2 decimal places
-                    val cleaned = raw.replace(Regex("[^0-9.]"), "")
-                    val parts = cleaned.split(".")
-                    val sanitized = if (parts.size > 1) {
-                        "${parts[0]}.${parts[1].take(2)}"
-                    } else cleaned
-                    onBasePriceChange(sanitized)
-                },
-                label = { Text("Amount ($currency)", style = PaceDreamTypography.Callout) },
-                placeholder = { Text("0.00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                value = address,
+                onValueChange = onAddressChange,
+                label = { Text("Search address\u2026", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                leadingIcon = {
-                    Text(
-                        "$",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.TextSecondary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                },
-                trailingIcon = {
-                    Text(
-                        "/${selectedPricingUnit.shortLabel}",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextTertiary,
-                    )
-                },
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.Primary,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
-
-            FormToggleRow(
-                title = "Instant Book",
-                subtitle = "People can book without waiting for approval",
-                checked = isInstantBook,
-                onCheckedChange = onInstantBookChange,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                OutlinedTextField(
+                    value = city,
+                    onValueChange = onCityChange,
+                    label = { Text("City", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                OutlinedTextField(
+                    value = state,
+                    onValueChange = onStateChange,
+                    label = { Text("State", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        // ── Schedule & Availability ──
+        // Pricing
+        FormSection(title = "Pricing") {
+            if (isSplit) {
+                OutlinedTextField(
+                    value = totalCost,
+                    onValueChange = { raw ->
+                        val cleaned = raw.replace(Regex("[^0-9.]"), "")
+                        val parts = cleaned.split(".")
+                        val sanitized = if (parts.size > 1) "${parts[0]}.${parts[1].take(2)}" else cleaned
+                        onTotalCostChange(sanitized)
+                    },
+                    label = { Text("Total cost", style = PaceDreamTypography.Callout) },
+                    placeholder = { Text("0.00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = { Text("$", style = PaceDreamTypography.Title3, color = PaceDreamColors.TextSecondary, fontWeight = FontWeight.SemiBold) },
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            } else {
+                if (allowedUnits.size > 1) {
+                    PricingUnitSelector(
+                        allowedUnits = allowedUnits,
+                        selectedUnit = selectedPricingUnit,
+                        onUnitSelected = onPricingUnitChange,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                } else if (allowedUnits.size == 1) {
+                    Text(
+                        text = "Pricing: ${allowedUnits.first().displayLabel}",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                }
+
+                OutlinedTextField(
+                    value = basePrice,
+                    onValueChange = { raw ->
+                        val cleaned = raw.replace(Regex("[^0-9.]"), "")
+                        val parts = cleaned.split(".")
+                        val sanitized = if (parts.size > 1) "${parts[0]}.${parts[1].take(2)}" else cleaned
+                        onBasePriceChange(sanitized)
+                    },
+                    label = { Text("Price", style = PaceDreamTypography.Callout) },
+                    placeholder = { Text("0.00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = { Text("$", style = PaceDreamTypography.Title3, color = PaceDreamColors.TextSecondary, fontWeight = FontWeight.SemiBold) },
+                    trailingIcon = {
+                        Text(
+                            "/${selectedPricingUnit.shortLabel}",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextTertiary,
+                        )
+                    },
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // Amenities
+        FormSection(title = "Amenities") {
+            val options = getAmenities(subCategory)
+            AmenitiesGrid(
+                options = options,
+                selectedAmenities = amenities,
+                onToggle = onToggleAmenity,
+            )
+        }
+    }
+}
+
+// ── Step: Schedule & Availability (iOS: ListingScheduleAvailabilityStepView) ──
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ScheduleAvailabilityStep(
+    selectedDurations: List<Int>,
+    selectedDays: List<Int>,
+    startTime: String,
+    endTime: String,
+    timezone: String,
+    onToggleDuration: (Int) -> Unit,
+    onToggleDay: (Int) -> Unit,
+    onStartTimeChange: (String) -> Unit,
+    onEndTimeChange: (String) -> Unit,
+    onTimezoneChange: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(PaceDreamSpacing.LG),
+    ) {
         Text(
-            text = "Schedule & Availability",
-            style = PaceDreamTypography.Title3,
+            text = "Durations",
+            style = PaceDreamTypography.Headline,
             color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Select the durations you want to offer. You can set different prices for each later.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            visibleDurations.forEach { duration ->
-                val isSelected = selectedDurations.contains(duration.id)
+            DURATION_OPTIONS_MINUTES.forEach { min ->
+                val isSelected = selectedDurations.contains(min)
                 FilterChip(
                     selected = isSelected,
-                    onClick = { onToggleDuration(duration.id) },
-                    label = {
-                        Column {
-                            Text(
-                                duration.label,
-                                style = PaceDreamTypography.Callout,
-                            )
-                        }
-                    },
+                    onClick = { onToggleDuration(min) },
+                    label = { Text("$min min", style = PaceDreamTypography.Callout) },
                     leadingIcon = if (isSelected) {
-                        {
-                            Icon(
-                                PaceDreamIcons.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                     } else null,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PaceDreamColors.Primary,
@@ -1047,50 +1094,354 @@ private fun PricingScheduleStep(
             }
         }
 
-        if (!showMoreDurations) {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            TextButton(onClick = onShowMoreDurations) {
-                Icon(
-                    PaceDreamIcons.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = PaceDreamColors.Primary,
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "More durations",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        Text(
+            text = "Available days",
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DAY_LABELS.forEach { (label, value) ->
+                val isOn = selectedDays.contains(value)
+                Box(
+                    modifier = Modifier
+                        .size(width = 44.dp, height = 34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Gray100)
+                        .clickable { onToggleDay(value) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        style = PaceDreamTypography.Caption,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOn) Color.White else PaceDreamColors.TextPrimary,
+                    )
+                }
             }
         }
 
-        if (selectedDurations.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(
-                    containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        Text(
+            text = "Time window",
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            OutlinedTextField(
+                value = startTime,
+                onValueChange = onStartTimeChange,
+                label = { Text("Start", style = PaceDreamTypography.Callout) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            )
+            OutlinedTextField(
+                value = endTime,
+                onValueChange = onEndTimeChange,
+                label = { Text("End", style = PaceDreamTypography.Callout) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+        OutlinedTextField(
+            value = timezone,
+            onValueChange = onTimezoneChange,
+            label = { Text("Timezone", style = PaceDreamTypography.Callout) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PaceDreamColors.Primary,
+                unfocusedBorderColor = PaceDreamColors.Border,
+            ),
+        )
+    }
+}
+
+// ── Step: Review & Publish (iOS: ListingReviewPublishStepView) ──
+
+@Composable
+private fun ReviewPublishStep(
+    listingMode: ListingMode,
+    subCategory: String,
+    title: String,
+    address: String,
+    city: String,
+    state: String,
+    basePrice: String,
+    totalCost: String,
+    selectedPricingUnit: PricingUnit,
+    hasSchedule: Boolean,
+    selectedDurations: List<Int>,
+    selectedDays: List<Int>,
+    startTime: String,
+    endTime: String,
+    timezone: String,
+) {
+    val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
+        totalCost.toDoubleOrNull() ?: 0.0
+    } else {
+        basePrice.toDoubleOrNull() ?: 0.0
+    }
+
+    val priceDisplay = if (listingMode == ListingMode.SPLIT) {
+        "$${resolvedPrice.toInt()} total"
+    } else {
+        "$${resolvedPrice.toInt()}/${selectedPricingUnit.shortLabel}"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(PaceDreamSpacing.LG),
+    ) {
+        Text(
+            text = "Preview",
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        // Preview card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .background(PaceDreamColors.Gray100),
+                contentAlignment = Alignment.Center,
             ) {
-                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                Icon(
+                    PaceDreamIcons.CameraAlt,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = title.ifBlank { "Untitled listing" },
+                            style = PaceDreamTypography.Title3,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                        )
+                        if (city.isNotBlank() || state.isNotBlank()) {
+                            Text(
+                                text = "$city, $state".trim(' ', ','),
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.TextSecondary,
+                            )
+                        }
+                        Text(
+                            text = priceDisplay,
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                     Text(
-                        text = "Selected durations",
-                        style = PaceDreamTypography.Footnote,
-                        color = PaceDreamColors.TextSecondary,
-                        fontWeight = FontWeight.SemiBold,
+                        text = subCategory,
+                        style = PaceDreamTypography.Caption,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(PaceDreamColors.Primary)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                     )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                    val selectedLabels = allDurations
-                        .filter { selectedDurations.contains(it.id) }
-                        .joinToString(" · ") { it.label }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        Text(
+            text = "What will be published",
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextPrimary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        SummaryRow("Type", listingMode.displayName)
+        SummaryRow("Subcategory", subCategory)
+        SummaryRow("Pricing", selectedPricingUnit.displayLabel)
+        SummaryRow("Price", priceDisplay)
+        if (listingMode != ListingMode.SPLIT) {
+            SummaryRow("Address", address.ifBlank { "\u2014" })
+            SummaryRow("City/State", "$city, $state".trim(' ', ',').ifBlank { "\u2014" })
+        }
+        if (hasSchedule) {
+            SummaryRow("Durations", selectedDurations.joinToString(", ") { "$it min" }.ifBlank { "\u2014" })
+            SummaryRow("Days", selectedDays.sorted().joinToString(", ").ifBlank { "\u2014" })
+            SummaryRow("Time window", "$startTime\u2013$endTime")
+            SummaryRow("Timezone", timezone)
+        }
+    }
+}
+
+// ── Phase 4: Publish Success (iOS: ListingPublishSuccessView) ──
+
+@Composable
+private fun PublishSuccessScreen(
+    title: String,
+    onBackToHome: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PaceDreamColors.Background)
+            .padding(PaceDreamSpacing.LG),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Spacer(modifier = Modifier.weight(1f))
+
+        Icon(
+            PaceDreamIcons.CheckCircle,
+            contentDescription = null,
+            tint = Color(0xFF4CAF50),
+            modifier = Modifier.size(74.dp),
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        Text(
+            text = "Submitted!",
+            style = PaceDreamTypography.Title2,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = title,
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Your listing is under review and will be visible once approved.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL),
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(
+            onClick = onBackToHome,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(PaceDreamButtonHeight.MD),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(14.dp),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        ) {
+            Text("Back to Home", style = PaceDreamTypography.Button)
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        TextButton(onClick = onClose) {
+            Text(
+                "Back to Post",
+                style = PaceDreamTypography.Button,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+    }
+}
+
+// ── Shared Components ──
+
+@Composable
+private fun WizardBottomBar(
+    currentStep: Int,
+    totalSteps: Int,
+    validationMessage: String?,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Card.copy(alpha = PaceDreamGlass.ThickAlpha),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
+                .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
+        ) {
+            if (validationMessage != null) {
+                Text(
+                    text = validationMessage,
+                    style = PaceDreamTypography.Caption,
+                    color = Color(0xFFE53935),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = PaceDreamSpacing.SM),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (currentStep > 0) {
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier.height(PaceDreamButtonHeight.MD),
+                        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                    ) {
+                        Text("Back", style = PaceDreamTypography.Button)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
+                Button(
+                    onClick = onNext,
+                    modifier = Modifier.height(PaceDreamButtonHeight.MD),
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                    shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                ) {
                     Text(
-                        text = selectedLabels,
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextPrimary,
+                        text = if (currentStep == totalSteps - 1) "Publish" else "Next",
+                        style = PaceDreamTypography.Button,
                     )
                 }
             }
@@ -1098,15 +1449,9 @@ private fun PricingScheduleStep(
     }
 }
 
-// ── Pricing Type Segmented Control ──────────────────────────
-
-/**
- * iOS-style segmented control for selecting pricing type (Hourly / Daily / Monthly).
- * Matches the web platform's rounded radio group with selected = white bg + shadow + primary text.
- */
 @Composable
-private fun PricingTypeSelector(
-    availableModes: List<PricingModeOption>,
+private fun PricingUnitSelector(
+    allowedUnits: List<PricingUnit>,
     selectedUnit: PricingUnit,
     onUnitSelected: (PricingUnit) -> Unit,
 ) {
@@ -1115,23 +1460,23 @@ private fun PricingTypeSelector(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(PaceDreamColors.Gray100)
-            .padding(4.dp)
+            .padding(4.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            availableModes.forEach { mode ->
-                val isSelected = selectedUnit == mode.unit
+            allowedUnits.forEach { unit ->
+                val isSelected = selectedUnit == unit
                 val bgColor by animateColorAsState(
                     targetValue = if (isSelected) Color.White else Color.Transparent,
                     animationSpec = tween(200),
-                    label = "segmented_bg"
+                    label = "segmented_bg",
                 )
                 val textColor by animateColorAsState(
                     targetValue = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
                     animationSpec = tween(200),
-                    label = "segmented_text"
+                    label = "segmented_text",
                 )
 
                 Box(
@@ -1140,17 +1485,21 @@ private fun PricingTypeSelector(
                         .then(
                             if (isSelected) Modifier
                                 .shadow(2.dp, RoundedCornerShape(10.dp))
-                                .border(1.dp, PaceDreamColors.Primary.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                .border(
+                                    1.dp,
+                                    PaceDreamColors.Primary.copy(alpha = 0.2f),
+                                    RoundedCornerShape(10.dp),
+                                )
                             else Modifier
                         )
                         .clip(RoundedCornerShape(10.dp))
                         .background(bgColor)
-                        .clickable { onUnitSelected(mode.unit) }
+                        .clickable { onUnitSelected(unit) }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = mode.label,
+                        text = unit.displayLabel,
                         style = PaceDreamTypography.Callout,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                         color = textColor,
@@ -1161,233 +1510,73 @@ private fun PricingTypeSelector(
     }
 }
 
-// ── Review Step ──────────────────────────────────────────────
-
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReviewStep(
-    listingMode: ListingMode,
-    title: String,
-    propertyType: String,
-    location: String,
-    price: String,
-    currency: String,
-    selectedDurations: List<String>,
-    isInstantBook: Boolean,
-    itemCondition: String,
-    selectedPricingUnit: PricingUnit = PricingUnit.HOUR,
+private fun AmenitiesGrid(
+    options: List<String>,
+    selectedAmenities: List<String>,
+    onToggle: (String) -> Unit,
 ) {
-    val isItemListing = listingMode == ListingMode.SHARE || listingMode == ListingMode.BORROW
-    val allDurations = if (listingMode == ListingMode.USE) USE_DURATIONS else SHARE_BORROW_DURATIONS
-    val durationLabels = allDurations
-        .filter { selectedDurations.contains(it.id) }
-        .joinToString(" · ") { it.label }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(PaceDreamSpacing.LG)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
     ) {
-        Text(
-            text = "Review your listing",
-            style = PaceDreamTypography.Title2,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Make sure everything looks good before publishing.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        // Preview card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(PaceDreamRadius.XL),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            // Image placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(PaceDreamColors.Gray100),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        PaceDreamIcons.CameraAlt,
-                        contentDescription = null,
-                        tint = PaceDreamColors.TextSecondary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    Text(
-                        "Add photos to see preview",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextSecondary,
-                    )
-                }
-            }
-
-            Column(modifier = Modifier.padding(PaceDreamSpacing.LG)) {
-                Text(
-                    text = title.ifBlank { "Untitled Listing" },
-                    style = PaceDreamTypography.Title3,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                Text(
-                    text = buildString {
-                        append(propertyType)
-                        if (location.isNotBlank()) append(" · $location")
-                        if (isItemListing && itemCondition.isNotBlank()) append(" · $itemCondition")
-                    },
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextSecondary,
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$currency $price",
-                        style = PaceDreamTypography.Title2,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = " / ${selectedPricingUnit.shortLabel}",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextSecondary,
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        // Pricing type summary
-        ReviewSummarySection(title = "Pricing Type") {
-            Text(
-                text = selectedPricingUnit.displayLabel,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextPrimary,
-            )
-        }
-
-        // Duration summary
-        ReviewSummarySection(title = "Available Durations") {
-            if (durationLabels.isBlank()) {
-                Text("No durations selected", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary)
-            } else {
-                Text(
-                    text = durationLabels,
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextPrimary,
-                )
-            }
-        }
-
-        // Condition (item listings only)
-        if (isItemListing && itemCondition.isNotBlank()) {
-            ReviewSummarySection(title = "Condition") {
-                Text(
-                    text = itemCondition,
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextPrimary,
-                )
-            }
-        }
-
-        ReviewSummarySection(title = "Booking") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (isInstantBook) "Instant Book enabled" else "Host approval required",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextPrimary,
-                )
-            }
-        }
-
-        ReviewSummarySection(title = "Listing Type") {
-            Text(
-                text = listingMode.displayName,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextPrimary,
+        options.forEach { name ->
+            val isOn = selectedAmenities.contains(name)
+            FilterChip(
+                selected = isOn,
+                onClick = { onToggle(name) },
+                label = { Text(name, style = PaceDreamTypography.Callout) },
+                leadingIcon = if (isOn) {
+                    { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PaceDreamColors.Primary,
+                    selectedLabelColor = Color.White,
+                    selectedLeadingIconColor = Color.White,
+                    containerColor = PaceDreamColors.Card,
+                    labelColor = PaceDreamColors.TextPrimary,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                border = FilterChipDefaults.filterChipBorder(
+                    borderColor = PaceDreamColors.Border,
+                    selectedBorderColor = PaceDreamColors.Primary,
+                    enabled = true,
+                    selected = isOn,
+                ),
             )
         }
     }
 }
 
-// ── Shared Components ──────────────────────────────────────────
-
 @Composable
-private fun CreateListingBottomBar(
-    currentStep: Int,
-    totalSteps: Int,
-    canProceed: Boolean,
-    onBack: () -> Unit,
-    onNext: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
-        colors = CardDefaults.cardColors(
-            containerColor = PaceDreamColors.Card.copy(alpha = PaceDreamGlass.ThickAlpha)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+private fun SummaryRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = PaceDreamSpacing.LG,
-                    vertical = PaceDreamSpacing.MD
-                )
-                .padding(
-                    bottom = WindowInsets.systemBars
-                        .asPaddingValues()
-                        .calculateBottomPadding()
-                ),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (currentStep > 0) {
-                OutlinedButton(
-                    onClick = onBack,
-                    modifier = Modifier.height(PaceDreamButtonHeight.MD),
-                    shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                ) {
-                    Text("Back", style = PaceDreamTypography.Button)
-                }
-            } else {
-                Spacer(modifier = Modifier.width(1.dp))
-            }
-
-            Button(
-                onClick = onNext,
-                enabled = canProceed,
-                modifier = Modifier.height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-                Text(
-                    text = if (currentStep == totalSteps - 1) "Publish Listing" else "Continue",
-                    style = PaceDreamTypography.Button,
-                )
-            }
-        }
+        Text(
+            text = label,
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.width(92.dp),
+        )
+        Text(
+            text = value,
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
 @Composable
 private fun FormSection(
     title: String,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Column {
         Text(
@@ -1395,10 +1584,7 @@ private fun FormSection(
             style = PaceDreamTypography.Footnote,
             color = PaceDreamColors.TextSecondary,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(
-                start = PaceDreamSpacing.XS,
-                bottom = PaceDreamSpacing.SM
-            )
+            modifier = Modifier.padding(start = PaceDreamSpacing.XS, bottom = PaceDreamSpacing.SM),
         )
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1417,69 +1603,6 @@ private fun FormSection(
 }
 
 @Composable
-private fun FormTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    keyboardType: KeyboardType = KeyboardType.Text,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, style = PaceDreamTypography.Callout) },
-        placeholder = if (placeholder.isNotBlank()) {
-            { Text(placeholder, style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) }
-        } else null,
-        modifier = modifier.fillMaxWidth(),
-        singleLine = true,
-        shape = RoundedCornerShape(PaceDreamRadius.MD),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = PaceDreamColors.Primary,
-            unfocusedBorderColor = PaceDreamColors.Border,
-        ),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-    )
-}
-
-@Composable
-private fun FormToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextPrimary,
-            )
-            Text(
-                text = subtitle,
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary,
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = PaceDreamColors.Success,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = PaceDreamColors.Gray100,
-            ),
-        )
-    }
-}
-
-@Composable
 private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
     Card(
         modifier = Modifier
@@ -1494,40 +1617,22 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
                 PaceDreamIcons.Add,
                 contentDescription = "Add photo",
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
             )
         }
     }
 }
 
-@Composable
-private fun ReviewSummarySection(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Column(modifier = Modifier.padding(bottom = PaceDreamSpacing.LG)) {
-        Text(
-            text = title,
-            style = PaceDreamTypography.Footnote,
-            color = PaceDreamColors.TextSecondary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        ) {
-            Box(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                content()
-            }
-        }
+private fun getAmenities(subCategory: String): List<String> {
+    return when (subCategory.lowercase()) {
+        "restroom" -> listOf("Soap", "Paper towels", "Hand dryer", "Accessible", "Clean")
+        "nap_pod" -> listOf("Blanket", "Pillow", "Privacy", "Charger", "Quiet")
+        "meeting_room" -> listOf("Whiteboard", "Projector", "WiFi", "Coffee", "AC")
+        "gym" -> listOf("Weights", "Cardio", "Showers", "Lockers", "Towels")
+        "parking" -> listOf("Covered", "EV Charging", "24/7 Access", "Security")
+        "storage_space" -> listOf("Climate Control", "24/7 Access", "Security", "Indoor")
+        "wifi" -> listOf("High Speed", "Unlimited", "5G", "Portable")
+        "short_stay" -> listOf("WiFi", "AC", "Kitchen", "Bathroom", "TV")
+        else -> listOf("WiFi", "AC", "Parking", "Clean", "Accessible")
     }
 }
-
-private data class PropertyTypeOption(
-    val name: String,
-    val icon: ImageVector,
-    val description: String,
-)
