@@ -1,5 +1,7 @@
 package com.pacedream.app.feature.checkout
 
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +51,7 @@ fun CheckoutScreen(
     viewModel: CheckoutViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(draft) {
         viewModel.setDraft(draft)
@@ -57,6 +61,15 @@ fun CheckoutScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is CheckoutViewModel.Effect.NavigateToConfirmation -> onConfirmSuccess(effect.bookingId)
+                is CheckoutViewModel.Effect.LaunchStripeCheckout -> {
+                    // iOS parity: open Stripe checkout in Custom Tabs (like Safari on iOS)
+                    runCatching {
+                        val customTabsIntent = CustomTabsIntent.Builder()
+                            .setShowTitle(true)
+                            .build()
+                        customTabsIntent.launchUrl(context, Uri.parse(effect.checkoutUrl))
+                    }
+                }
             }
         }
     }
