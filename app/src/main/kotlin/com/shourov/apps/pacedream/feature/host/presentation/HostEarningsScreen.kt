@@ -249,7 +249,7 @@ private fun BalanceTabContent(
                             BalanceBreakdownRow(
                                 currency = amount.currency,
                                 amount = amount.amount,
-                                sourceTypes = amount.sourceTypes
+                                sourceTypes = amount.resolvedSourceTypes
                             )
                         }
                     }
