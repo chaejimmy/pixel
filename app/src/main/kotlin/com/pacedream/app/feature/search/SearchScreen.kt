@@ -423,7 +423,7 @@ private fun SearchResultCard(
                 ) {
                     Text(
                         text = when (item.type) {
-                            "time-based" -> "Space"
+                            "share" -> "Space"
                             "gear" -> "Gear"
                             "split-stay" -> "Stay"
                             else -> item.type

@@ -107,9 +107,9 @@ class AppConfigTest {
     fun `buildApiUrlWithQuery skips null values`() {
         val url = config.buildApiUrlWithQuery(
             "listings",
-            queryParams = mapOf("shareType" to "USE", "category" to null)
+            queryParams = mapOf("shareType" to "SHARE", "category" to null)
         )
-        assertEquals("USE", url.queryParameter("shareType"))
+        assertEquals("SHARE", url.queryParameter("shareType"))
         assertEquals(null, url.queryParameter("category"))
     }
 

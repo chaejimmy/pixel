@@ -35,7 +35,7 @@ enum class WishlistItemType(val apiValue: String, val displayName: String) {
             if (value == null) return null
             val normalized = value.lowercase().trim()
             return when {
-                normalized.contains("time") || normalized == "use" -> TIME_BASED
+                normalized.contains("time") || normalized == "use" || normalized == "share" -> TIME_BASED
                 normalized.contains("gear") || normalized == "borrow" || 
                     normalized.contains("car") || normalized.contains("vehicle") -> HOURLY_GEAR
                 normalized.contains("split") || normalized.contains("room") ||

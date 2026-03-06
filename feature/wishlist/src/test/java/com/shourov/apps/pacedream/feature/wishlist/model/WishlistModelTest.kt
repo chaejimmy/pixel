@@ -24,8 +24,8 @@ class WishlistModelTest {
     }
 
     @Test
-    fun `fromString returns TIME_BASED for USE uppercase`() {
-        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("USE"))
+    fun `fromString returns TIME_BASED for SHARE uppercase`() {
+        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("SHARE"))
     }
 
     @Test

@@ -320,7 +320,7 @@ class HomeFeedRepositoryExtendedTest {
     @Test
     fun `HomeSectionKey has correct properties`() {
         assertEquals("Hourly spaces", HomeSectionKey.HOURLY.displayTitle)
-        assertEquals("USE", HomeSectionKey.HOURLY.shareType)
+        assertEquals("SHARE", HomeSectionKey.HOURLY.shareType)
 
         assertEquals("Rent gear", HomeSectionKey.GEAR.displayTitle)
         assertEquals("BORROW", HomeSectionKey.GEAR.shareType)

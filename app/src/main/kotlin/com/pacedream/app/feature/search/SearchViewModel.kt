@@ -75,33 +75,23 @@ class SearchViewModel @Inject constructor(
         val state = _uiState.value
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-        val shareType = when (state.selectedTab) {
-            SearchTab.USE -> "USE"
-            SearchTab.BORROW -> "BORROW"
-            SearchTab.SPLIT -> "SPLIT"
-        }
-
-        // Map tab to the web API's required "category" parameter.
-        // The /api/search endpoint returns 400 if category is missing or invalid.
-        val category = when (state.selectedTab) {
-            SearchTab.USE -> "time-based"
-            SearchTab.BORROW -> "hourly-rental-gears"
-            SearchTab.SPLIT -> "room-stays"
+        // Map tab to the API's "category" parameter (iOS parity).
+        // Share sends no category (returns all), Borrow/Split send specific values.
+        val category: String? = when (state.selectedTab) {
+            SearchTab.SHARE -> null
+            SearchTab.BORROW -> "hourly_rental_gear"
+            SearchTab.SPLIT -> "find_roommate"
         }
 
         // Primary: frontend search proxy (iOS parity)
-        // Web API requires: category (mandatory), limit/offset for pagination
         val primaryUrl = appConfig.frontendBaseUrl.newBuilder()
             .addPathSegment("api")
             .addPathSegment("search")
             .apply {
-                addQueryParameter("category", category)
                 if (state.query.isNotBlank()) addQueryParameter("q", state.query)
-                addQueryParameter("shareType", shareType)
-                // UI chip selections are sub-category filters, not the API category
-                state.selectedCategory?.let { addQueryParameter("subCategory", it) }
-                addQueryParameter("limit", "24")
-                addQueryParameter("offset", "0")
+                category?.let { addQueryParameter("category", it) }
+                addQueryParameter("page", "0")
+                addQueryParameter("perPage", "24")
             }
             .build()
 
@@ -115,16 +105,19 @@ class SearchViewModel @Inject constructor(
             return
         }
 
-        // Fallback: backend /v1/search endpoint
+        // Fallback: backend /v1/search endpoint (iOS parity)
+        // Only fall back when q exists (matches iOS behavior)
+        val q = state.query.trim()
+        if (q.isBlank()) {
+            _uiState.update { it.copy(isLoading = false, results = emptyList()) }
+            return
+        }
         val fallbackUrl = appConfig.buildApiUrl(
             "search",
             queryParams = buildMap {
-                if (state.query.isNotBlank()) put("q", state.query)
-                put("shareType", shareType)
-                put("category", category)
-                state.selectedCategory?.let { put("subCategory", it) }
-                put("limit", "24")
-                put("offset", "0")
+                put("query", q)
+                put("page", "1")
+                put("pageSize", "24")
             }
         )
 
@@ -164,8 +157,10 @@ class SearchViewModel @Inject constructor(
             val root = json.parseToJsonElement(responseBody)
             val dataArray = findArray(
                 root,
+                listOf("hits"),
                 listOf("items"),
                 listOf("listings"),
+                listOf("data", "hits"),
                 listOf("data", "listings"),
                 listOf("data", "items"),
                 listOf("data")
@@ -175,6 +170,7 @@ class SearchViewModel @Inject constructor(
                 try {
                     val itemObj = item.jsonObject
                     val id = itemObj["_id"].stringOrNull()
+                        ?: itemObj["objectID"].stringOrNull()
                         ?: itemObj["id"].stringOrNull()
                         ?: itemObj["listingId"].stringOrNull()
                         ?: return@mapNotNull null
@@ -202,7 +198,7 @@ class SearchViewModel @Inject constructor(
                         ?: itemObj["avgRating"]?.jsonPrimitive?.doubleOrNull
 
                     val type = when (tab) {
-                        SearchTab.USE -> "time-based"
+                        SearchTab.SHARE -> "share"
                         SearchTab.BORROW -> "gear"
                         SearchTab.SPLIT -> "split-stay"
                     }
@@ -296,7 +292,7 @@ class SearchViewModel @Inject constructor(
 }
 
 enum class SearchTab(val label: String) {
-    USE("Use"),
+    SHARE("Share"),
     BORROW("Borrow"),
     SPLIT("Split")
 }
@@ -313,7 +309,8 @@ data class SearchResultItem(
 
 data class SearchUiState(
     val query: String = "",
-    val selectedTab: SearchTab = SearchTab.USE,
+    val selectedTab: SearchTab = SearchTab.SHARE,
+
     val selectedCategory: String? = null,
     val results: List<SearchResultItem> = emptyList(),
     val isLoading: Boolean = false,

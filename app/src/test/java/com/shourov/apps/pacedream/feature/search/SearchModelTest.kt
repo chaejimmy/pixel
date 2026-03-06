@@ -122,7 +122,7 @@ class SearchModelTest {
             page0 = 2,
             hasMore = true,
             phase = SearchPhase.Success,
-            shareType = "USE",
+            shareType = "SHARE",
             startDate = "2024-06-01",
             endDate = "2024-06-15"
         )
@@ -133,7 +133,7 @@ class SearchModelTest {
         assertEquals(2, state.page0)
         assertTrue(state.hasMore)
         assertEquals(SearchPhase.Success, state.phase)
-        assertEquals("USE", state.shareType)
+        assertEquals("SHARE", state.shareType)
         assertEquals("2024-06-01", state.startDate)
         assertEquals("2024-06-15", state.endDate)
     }
