@@ -1,5 +1,8 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -13,8 +16,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.pacedream.common.composables.components.*
@@ -22,7 +26,6 @@ import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.host.navigation.HostNavigationGraph
 import com.shourov.apps.pacedream.feature.host.presentation.components.HostBottomNavigation
-import com.shourov.apps.pacedream.feature.host.presentation.components.HostModeBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,9 +41,10 @@ fun HostModeScreen(
 ) {
     val navController = rememberNavController()
     var currentRoute by remember { mutableStateOf("host_dashboard") }
-    
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = PaceDreamColors.Background,
         bottomBar = {
             HostBottomNavigation(
                 currentRoute = currentRoute,
@@ -57,39 +61,22 @@ fun HostModeScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        NavHost(
+            navController = navController,
+            startDestination = "host_dashboard",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Host Mode Banner
-            HostModeBanner(
-                isHostMode = true,
-                onSwitchToGuest = onSwitchToGuestMode,
-                onSwitchToHost = { /* Already in host mode */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(PaceDreamSpacing.MD)
-            )
-            
-            // Host Navigation
-            NavHost(
+            HostNavigationGraph(
                 navController = navController,
-                startDestination = "host_dashboard",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 80.dp) // Account for banner
-            ) {
-                HostNavigationGraph(
-                    navController = navController,
-                    onNavigateToProperty = onNavigateToProperty,
-                    onNavigateToBooking = onNavigateToBooking,
-                    onNavigateToAddListing = onNavigateToAddListing,
-                    onNavigateToEditListing = onNavigateToEditListing,
-                    onNavigateToAnalytics = onNavigateToAnalytics,
-                    onNavigateToWithdraw = onNavigateToWithdraw
-                )
-            }
+                onNavigateToProperty = onNavigateToProperty,
+                onNavigateToBooking = onNavigateToBooking,
+                onNavigateToAddListing = onNavigateToAddListing,
+                onNavigateToEditListing = onNavigateToEditListing,
+                onNavigateToAnalytics = onNavigateToAnalytics,
+                onNavigateToWithdraw = onNavigateToWithdraw
+            )
         }
     }
 }
@@ -106,7 +93,8 @@ fun HostModeWelcomeScreen(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamColors.Primary,
-                        PaceDreamColors.Primary.copy(alpha = 0.9f)
+                        PaceDreamColors.Primary.copy(alpha = 0.85f),
+                        PaceDreamColors.Primary.copy(alpha = 0.7f)
                     )
                 )
             )
@@ -114,79 +102,143 @@ fun HostModeWelcomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(PaceDreamSpacing.XXXL),
+                .statusBarsPadding()
+                .padding(horizontal = PaceDreamSpacing.XL)
+                .padding(bottom = PaceDreamSpacing.XXXL),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Host Icon
+            // Glowing icon container
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f)),
+                    .background(Color.White.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Home,
-                    contentDescription = "Host",
-                    tint = Color.White,
-                    modifier = Modifier.size(60.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Home,
+                        contentDescription = "Host",
+                        tint = Color.White,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
-            
+
             Text(
-                text = "Welcome to Host Mode",
-                style = PaceDreamTypography.Title1,
+                text = "Welcome to\nHost Mode",
+                style = PaceDreamTypography.LargeTitle,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center,
+                lineHeight = 40.sp
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             Text(
                 text = "Turn your space into income. List your property, manage bookings, and start earning with PaceDream.",
                 style = PaceDreamTypography.Body,
-                color = Color.White.copy(alpha = 0.9f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                color = Color.White.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+                lineHeight = 24.sp
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
-            
-            // Action Buttons
+
+            // Feature highlights
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
-                Button(
-                    onClick = onStartHosting,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Start Hosting",
-                        style = PaceDreamTypography.Headline,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                
-                OutlinedButton(
-                    onClick = onContinueAsGuest,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Continue as Guest",
-                        style = PaceDreamTypography.Headline,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                WelcomeFeatureRow(
+                    icon = PaceDreamIcons.Home,
+                    text = "List any space - rooms, parking, gear & more"
+                )
+                WelcomeFeatureRow(
+                    icon = PaceDreamIcons.CalendarToday,
+                    text = "Manage bookings and availability easily"
+                )
+                WelcomeFeatureRow(
+                    icon = PaceDreamIcons.AttachMoney,
+                    text = "Earn money with secure Stripe payouts"
+                )
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
+
+            // Action Buttons
+            Button(
+                onClick = onStartHosting,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.LG)
+            ) {
+                Text(
+                    text = "Start Hosting",
+                    style = PaceDreamTypography.Button,
+                    color = PaceDreamColors.Primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            OutlinedButton(
+                onClick = onContinueAsGuest,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.6f))
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.LG)
+            ) {
+                Text(
+                    text = "Continue as Guest",
+                    style = PaceDreamTypography.Button,
+                    color = Color.White
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun WelcomeFeatureRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(Color.White.copy(alpha = 0.1f))
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = 0.9f),
+            modifier = Modifier.size(PaceDreamIconSize.MD)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+        Text(
+            text = text,
+            style = PaceDreamTypography.Callout,
+            color = Color.White.copy(alpha = 0.9f)
+        )
     }
 }
 
@@ -204,7 +256,9 @@ fun HostModeToggleScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(PaceDreamSpacing.XXXL),
+                .statusBarsPadding()
+                .padding(horizontal = PaceDreamSpacing.XL)
+                .padding(vertical = PaceDreamSpacing.XXXL),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -213,139 +267,131 @@ fun HostModeToggleScreen(
                 style = PaceDreamTypography.Title1,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = "Switch between guest and host modes to access different features",
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
-            
-            // Mode Toggle Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(PaceDreamRadius.LG)),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+
+            // Mode cards
+            Column(
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
-                Column(
-                    modifier = Modifier.padding(PaceDreamSpacing.LG)
-                ) {
-                    // Guest Mode
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(PaceDreamSpacing.MD),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Person,
-                                contentDescription = "Guest Mode",
-                                tint = if (!isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                            
-                            Column {
-                                Text(
-                                    text = "Guest Mode",
-                                    style = PaceDreamTypography.Headline,
-                                    color = if (!isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                
-                                Text(
-                                    text = "Book amazing stays",
-                                    style = PaceDreamTypography.Caption,
-                                    color = PaceDreamColors.TextSecondary
-                                )
-                            }
-                        }
-                        
-                        RadioButton(
-                            selected = !isHostMode,
-                            onClick = { onToggleHostMode(false) },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = PaceDreamColors.Primary
-                            )
-                        )
-                    }
-                    
-                    Divider(color = PaceDreamColors.Border, thickness = 1.dp)
-                    
-                    // Host Mode
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(PaceDreamSpacing.MD),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Home,
-                                contentDescription = "Host Mode",
-                                tint = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                            
-                            Column {
-                                Text(
-                                    text = "Host Mode",
-                                    style = PaceDreamTypography.Headline,
-                                    color = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.TextPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                
-                                Text(
-                                    text = "Manage your properties",
-                                    style = PaceDreamTypography.Caption,
-                                    color = PaceDreamColors.TextSecondary
-                                )
-                            }
-                        }
-                        
-                        RadioButton(
-                            selected = isHostMode,
-                            onClick = { onToggleHostMode(true) },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = PaceDreamColors.Primary
-                            )
-                        )
-                    }
-                }
+                ModeSelectionCard(
+                    icon = PaceDreamIcons.Person,
+                    title = "Guest Mode",
+                    subtitle = "Book amazing stays and experiences",
+                    isSelected = !isHostMode,
+                    accentColor = PaceDreamColors.Info,
+                    onClick = { onToggleHostMode(false) }
+                )
+
+                ModeSelectionCard(
+                    icon = PaceDreamIcons.Home,
+                    title = "Host Mode",
+                    subtitle = "Manage your properties and earnings",
+                    isSelected = isHostMode,
+                    accentColor = PaceDreamColors.Primary,
+                    onClick = { onToggleHostMode(true) }
+                )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
-            
+
             Button(
                 onClick = onContinue,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.LG)
             ) {
                 Text(
                     text = "Continue",
-                    style = PaceDreamTypography.Headline,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
+                    style = PaceDreamTypography.Button,
+                    color = Color.White
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ModeSelectionCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) accentColor.copy(alpha = 0.08f) else PaceDreamColors.Card
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) PaceDreamElevation.SM else PaceDreamElevation.None),
+        border = if (isSelected) {
+            androidx.compose.foundation.BorderStroke(2.dp, accentColor)
+        } else {
+            androidx.compose.foundation.BorderStroke(1.dp, PaceDreamColors.Border)
+        }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.LG),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(accentColor.copy(alpha = if (isSelected) 0.15f else 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = accentColor,
+                    modifier = Modifier.size(PaceDreamIconSize.MD)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Headline,
+                    color = if (isSelected) accentColor else PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(
+                    selectedColor = accentColor,
+                    unselectedColor = PaceDreamColors.TextSecondary
+                )
+            )
         }
     }
 }

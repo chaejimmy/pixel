@@ -1,18 +1,15 @@
 package com.shourov.apps.pacedream.feature.host.presentation.components
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pacedream.common.composables.theme.*
 
 @Composable
@@ -28,63 +25,57 @@ fun HostBottomNavigation(
         HostScreenItem("host_analytics", "Analytics", PaceDreamIcons.Analytics)
     )
 
-    NavigationBar(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        containerColor = PaceDreamColors.Background,
-        tonalElevation = 8.dp
+        color = PaceDreamColors.Background,
+        shadowElevation = PaceDreamElevation.LG,
+        tonalElevation = 0.dp
     ) {
-        hostScreens.forEach { screen ->
-            NavigationBarItem(
-                selected = currentRoute == screen.route,
-                onClick = { onNavigate(screen.route) },
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (currentRoute == screen.route)
-                                    PaceDreamColors.Primary.copy(alpha = 0.1f)
-                                else
-                                    Color.Transparent
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
+        NavigationBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp
+        ) {
+            hostScreens.forEach { screen ->
+                val selected = currentRoute == screen.route
+                val iconColor by animateColorAsState(
+                    targetValue = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                    animationSpec = tween(PaceDreamAnimationDuration.FAST),
+                    label = "iconColor"
+                )
+
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onNavigate(screen.route) },
+                    icon = {
                         Icon(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(PaceDreamIconSize.MD),
                             imageVector = screen.icon,
                             contentDescription = screen.title,
-                            tint = if (currentRoute == screen.route)
-                                PaceDreamColors.Primary
-                            else
-                                PaceDreamColors.TextSecondary
+                            tint = iconColor
                         )
-                    }
-                },
-                label = {
-                    Text(
-                        text = screen.title,
-                        style = PaceDreamTypography.Caption.copy(
-                            fontSize = 11.sp,
-                            fontWeight = if (currentRoute == screen.route)
-                                FontWeight.SemiBold
-                            else
-                                FontWeight.Normal
-                        ),
-                        color = if (currentRoute == screen.route)
-                            PaceDreamColors.Primary
-                        else
-                            PaceDreamColors.TextSecondary
+                    },
+                    label = {
+                        Text(
+                            text = screen.title,
+                            style = PaceDreamTypography.Caption2.copy(
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                            ),
+                            color = iconColor,
+                            maxLines = 1
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = PaceDreamColors.Primary,
+                        selectedTextColor = PaceDreamColors.Primary,
+                        unselectedIconColor = PaceDreamColors.TextSecondary,
+                        unselectedTextColor = PaceDreamColors.TextSecondary,
+                        indicatorColor = PaceDreamColors.Primary.copy(alpha = 0.1f)
                     )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = PaceDreamColors.Primary,
-                    selectedTextColor = PaceDreamColors.Primary,
-                    unselectedIconColor = PaceDreamColors.TextSecondary,
-                    unselectedTextColor = PaceDreamColors.TextSecondary,
-                    indicatorColor = Color.Transparent
                 )
-            )
+            }
         }
     }
 }

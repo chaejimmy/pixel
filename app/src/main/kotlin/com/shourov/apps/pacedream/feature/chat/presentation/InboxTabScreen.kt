@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pacedream.common.composables.components.*
@@ -25,7 +27,6 @@ fun InboxTabScreen(
     onChatClick: (String) -> Unit = {},
     onNewMessageClick: () -> Unit = {}
 ) {
-    // Sample data - replace with actual data from ViewModel
     val chats = remember {
         listOf(
             ChatData(
@@ -75,99 +76,100 @@ fun InboxTabScreen(
             )
         )
     }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PaceDreamColors.Background)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(PaceDreamSpacing.LG),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Messages",
-                    style = PaceDreamTypography.LargeTitle,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${chats.count { it.unreadCount > 0 }} unread messages",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary
-                )
-            }
-            
-            IconButton(
-                onClick = onNewMessageClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(PaceDreamColors.Primary)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Add,
-                    contentDescription = "New Message",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-        
-        // Search Bar
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.LG)
-                .height(PaceDreamSearchBar.Height),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = PaceDreamSpacing.MD),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Search,
-                    contentDescription = "Search",
-                    tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                
-                Text(
-                    text = "Search messages...",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
-        // Chats List
-        if (chats.isEmpty()) {
-            PaceDreamEmptyState(
-                icon = PaceDreamIcons.Message,
-                title = "No messages yet",
-                subtitle = "Start a conversation with your guests or hosts",
-                actionText = "Start Chatting",
-                onActionClick = onNewMessageClick
+
+    val unreadCount = chats.count { it.unreadCount > 0 }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Messages",
+                            style = PaceDreamTypography.Title1,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (unreadCount > 0) {
+                            Text(
+                                text = "$unreadCount unread",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Primary
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    FilledIconButton(
+                        onClick = onNewMessageClick,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = PaceDreamColors.Primary
+                        ),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Add,
+                            contentDescription = "New Message",
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
-                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
-            ) {
+        },
+        containerColor = PaceDreamColors.Background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
+        ) {
+            // Search Bar
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
+                    color = PaceDreamColors.Card,
+                    tonalElevation = PaceDreamElevation.XS
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Search,
+                            contentDescription = "Search",
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            text = "Search messages...",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextTertiary
+                        )
+                    }
+                }
+            }
+
+            // Chat list or empty state
+            if (chats.isEmpty()) {
+                item {
+                    PaceDreamEmptyState(
+                        icon = PaceDreamIcons.Message,
+                        title = "No messages yet",
+                        subtitle = "Start a conversation with your guests or hosts",
+                        actionText = "Start Chatting",
+                        onActionClick = onNewMessageClick
+                    )
+                }
+            } else {
                 items(chats) { chat ->
                     ChatItem(
                         chat = chat,
@@ -184,53 +186,63 @@ fun ChatItem(
     chat: ChatData,
     onClick: () -> Unit
 ) {
+    val hasUnread = chat.unreadCount > 0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
-        onClick = onClick
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        onClick = onClick,
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(
+            containerColor = if (hasUnread)
+                PaceDreamColors.Primary.copy(alpha = 0.04f)
+            else
+                PaceDreamColors.Card
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
         Row(
             modifier = Modifier.padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar
+            // Avatar with online indicator
             Box {
                 Box(
                     modifier = Modifier
-                        .size(50.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = chat.name.first().toString(),
-                        style = PaceDreamTypography.Headline,
+                        text = chat.name.split(" ")
+                            .mapNotNull { it.firstOrNull()?.uppercase() }
+                            .take(2)
+                            .joinToString(""),
+                        style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
-                // Online indicator
+
                 if (chat.isOnline) {
                     Box(
                         modifier = Modifier
                             .size(14.dp)
+                            .clip(CircleShape)
+                            .background(PaceDreamColors.Background)
+                            .padding(2.dp)
                             .clip(CircleShape)
                             .background(PaceDreamColors.Success)
                             .align(Alignment.BottomEnd)
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-            
-            // Content
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -238,20 +250,23 @@ fun ChatItem(
                 ) {
                     Text(
                         text = chat.name,
-                        style = PaceDreamTypography.Body,
+                        style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = if (hasUnread) FontWeight.Bold else FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
-                    
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
                         text = chat.timestamp,
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
+                        style = PaceDreamTypography.Caption2,
+                        color = if (hasUnread) PaceDreamColors.Primary else PaceDreamColors.TextTertiary
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -259,23 +274,26 @@ fun ChatItem(
                 ) {
                     Text(
                         text = chat.lastMessage,
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextSecondary,
+                        style = PaceDreamTypography.Caption,
+                        color = if (hasUnread) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
+                        fontWeight = if (hasUnread) FontWeight.Medium else FontWeight.Normal,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    
-                    if (chat.unreadCount > 0) {
+
+                    if (hasUnread) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Box(
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(22.dp)
                                 .clip(CircleShape)
                                 .background(PaceDreamColors.Primary),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = chat.unreadCount.toString(),
-                                style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
+                                style = PaceDreamTypography.Caption2.copy(fontSize = 10.sp),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
@@ -297,54 +315,56 @@ fun PaceDreamEmptyState(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(PaceDreamSpacing.XXXL),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
                 .size(80.dp)
                 .clip(CircleShape)
-                .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
                 tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(PaceDreamIconSize.XL)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
+
         Text(
             text = title,
             style = PaceDreamTypography.Title2,
             color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
+
         Text(
             text = subtitle,
-            style = PaceDreamTypography.Body,
+            style = PaceDreamTypography.Callout,
             color = PaceDreamColors.TextSecondary,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.75f)
         )
-        
+
         actionText?.let { text ->
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+
             Button(
                 onClick = { onActionClick?.invoke() },
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.XL, vertical = PaceDreamSpacing.SM)
             ) {
                 Text(
                     text = text,
-                    style = PaceDreamTypography.Body,
+                    style = PaceDreamTypography.Callout,
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold
                 )

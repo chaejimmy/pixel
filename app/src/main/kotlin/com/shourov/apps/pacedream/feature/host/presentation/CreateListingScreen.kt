@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -73,7 +74,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
@@ -336,31 +339,31 @@ private fun ModeCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.16f)),
+                    .background(tint.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
                     tint = tint,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(PaceDreamIconSize.MD),
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -377,7 +380,7 @@ private fun ModeCard(
                 PaceDreamIcons.ChevronRight,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(PaceDreamIconSize.SM),
             )
         }
     }
@@ -425,8 +428,8 @@ private fun SubcategoryPickerScreen(
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                 contentPadding = PaddingValues(bottom = PaceDreamSpacing.XL),
             ) {
                 items(subcategories, key = { it.id }) { item ->
@@ -448,27 +451,27 @@ private fun SubcategoryCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(PaceDreamColors.Gray100),
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.06f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
                     tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(PaceDreamIconSize.MD),
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
                 text = item.title,
                 style = PaceDreamTypography.Headline,
@@ -482,16 +485,16 @@ private fun SubcategoryCard(
                 maxLines = 2,
             )
             if (item.needsSchedule) {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
                     text = "Schedule required",
-                    style = PaceDreamTypography.Caption,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    style = PaceDreamTypography.Caption2,
+                    color = PaceDreamColors.Info,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF2196F3))
-                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                        .clip(RoundedCornerShape(PaceDreamRadius.Round))
+                        .background(PaceDreamColors.Info.copy(alpha = 0.1f))
+                        .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                 )
             }
         }
@@ -1102,14 +1105,14 @@ private fun ScheduleAvailabilityStep(
             color = PaceDreamColors.TextPrimary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
             DAY_LABELS.forEach { (label, value) ->
                 val isOn = selectedDays.contains(value)
                 Box(
                     modifier = Modifier
                         .size(width = 44.dp, height = 34.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Gray100)
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                        .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Primary.copy(alpha = 0.06f))
                         .clickable { onToggleDay(value) },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1226,15 +1229,22 @@ private fun ReviewPublishStep(
         // Preview card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(190.dp)
-                    .background(PaceDreamColors.Gray100),
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                PaceDreamColors.Primary.copy(alpha = 0.03f)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -1244,7 +1254,7 @@ private fun ReviewPublishStep(
                     modifier = Modifier.size(32.dp),
                 )
             }
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1274,13 +1284,13 @@ private fun ReviewPublishStep(
                     }
                     Text(
                         text = subCategory,
-                        style = PaceDreamTypography.Caption,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        style = PaceDreamTypography.Caption2,
+                        color = PaceDreamColors.Primary,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(PaceDreamColors.Primary)
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                            .clip(RoundedCornerShape(PaceDreamRadius.Round))
+                            .background(PaceDreamColors.Primary.copy(alpha = 0.1f))
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                     )
                 }
             }
@@ -1330,12 +1340,20 @@ private fun PublishSuccessScreen(
     ) {
         Spacer(modifier = Modifier.weight(1f))
 
-        Icon(
-            PaceDreamIcons.CheckCircle,
-            contentDescription = null,
-            tint = Color(0xFF4CAF50),
-            modifier = Modifier.size(74.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(PaceDreamColors.Success.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                PaceDreamIcons.CheckCircle,
+                contentDescription = null,
+                tint = PaceDreamColors.Success,
+                modifier = Modifier.size(PaceDreamIconSize.XXL),
+            )
+        }
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         Text(
             text = "Submitted!",
@@ -1365,7 +1383,7 @@ private fun PublishSuccessScreen(
                 .fillMaxWidth()
                 .height(PaceDreamButtonHeight.MD),
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
             Text("Back to Home", style = PaceDreamTypography.Button)
@@ -1410,7 +1428,7 @@ private fun WizardBottomBar(
                 Text(
                     text = validationMessage,
                     style = PaceDreamTypography.Caption,
-                    color = Color(0xFFE53935),
+                    color = PaceDreamColors.Error,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(bottom = PaceDreamSpacing.SM),
                 )
@@ -1458,13 +1476,13 @@ private fun PricingUnitSelector(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(PaceDreamColors.Gray100)
-            .padding(4.dp),
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Primary.copy(alpha = 0.06f))
+            .padding(PaceDreamSpacing.XS),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
         ) {
             allowedUnits.forEach { unit ->
                 val isSelected = selectedUnit == unit
@@ -1484,18 +1502,18 @@ private fun PricingUnitSelector(
                         .weight(1f)
                         .then(
                             if (isSelected) Modifier
-                                .shadow(2.dp, RoundedCornerShape(10.dp))
+                                .shadow(PaceDreamElevation.XS, RoundedCornerShape(PaceDreamRadius.SM))
                                 .border(
                                     1.dp,
                                     PaceDreamColors.Primary.copy(alpha = 0.2f),
-                                    RoundedCornerShape(10.dp),
+                                    RoundedCornerShape(PaceDreamRadius.SM),
                                 )
                             else Modifier
                         )
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(bgColor)
                         .clickable { onUnitSelected(unit) }
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = PaceDreamSpacing.SM),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -1554,7 +1572,7 @@ private fun SummaryRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = PaceDreamSpacing.XS),
         verticalAlignment = Alignment.Top,
     ) {
         Text(

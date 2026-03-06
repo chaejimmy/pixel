@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
@@ -12,8 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,94 +36,76 @@ fun HostListingsScreen(
     viewModel: HostListingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PaceDreamColors.Background)
-    ) {
-        // Listings Header
-        item {
-            ListingsHeader(
-                totalListings = uiState.listings.size,
-                onAddListingClick = onAddListingClick
-            )
-        }
-        
-        // Filter and Sort Section
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            ListingsFilterSection(
-                selectedFilter = uiState.selectedFilter,
-                selectedSort = uiState.selectedSort,
-                onFilterChanged = { viewModel.updateFilter(it) },
-                onSortChanged = { viewModel.updateSort(it) }
-            )
-        }
-        
-        // Listings Content
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            if (uiState.listings.isEmpty()) {
-                EmptyListingsState(onAddListingClick = onAddListingClick)
-            } else {
-                ListingsContent(
-                    listings = uiState.listings,
-                    onListingClick = onListingClick,
-                    onEditListingClick = onEditListingClick,
-                    onDeleteListingClick = onDeleteListingClick
-                )
-            }
-        }
-    }
-}
 
-@Composable
-fun ListingsHeader(
-    totalListings: Int,
-    onAddListingClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(
-                        PaceDreamColors.Primary,
-                        PaceDreamColors.Primary.copy(alpha = 0.9f)
-                    )
-                )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "My Listings",
+                            style = PaceDreamTypography.Title1,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${uiState.listings.size} properties listed",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                },
+                actions = {
+                    FilledIconButton(
+                        onClick = onAddListingClick,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = PaceDreamColors.Primary
+                        ),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Add,
+                            contentDescription = "Add Listing",
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
-            .padding(PaceDreamSpacing.LG)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        },
+        containerColor = PaceDreamColors.Background
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
         ) {
-            Column {
-                Text(
-                    text = "My Listings",
-                    style = PaceDreamTypography.Title1,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Text(
-                    text = "$totalListings properties listed",
-                    style = PaceDreamTypography.Body,
-                    color = Color.White.copy(alpha = 0.9f)
+            // Filter Section
+            item {
+                ListingsFilterSection(
+                    selectedFilter = uiState.selectedFilter,
+                    selectedSort = uiState.selectedSort,
+                    onFilterChanged = { viewModel.updateFilter(it) },
+                    onSortChanged = { viewModel.updateSort(it) }
                 )
             }
-            
-            FloatingActionButton(
-                onClick = onAddListingClick,
-                containerColor = Color.White,
-                contentColor = PaceDreamColors.Primary
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Add,
-                    contentDescription = "Add Listing"
-                )
+
+            // Content
+            if (uiState.listings.isEmpty()) {
+                item {
+                    EmptyListingsState(onAddListingClick = onAddListingClick)
+                }
+            } else {
+                items(uiState.listings) { listing ->
+                    HostListingCard(
+                        listing = listing,
+                        onListingClick = onListingClick,
+                        onEditClick = onEditListingClick,
+                        onDeleteClick = onDeleteListingClick
+                    )
+                }
             }
         }
     }
@@ -133,81 +119,97 @@ fun ListingsFilterSection(
     onSortChanged: (String) -> Unit
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
     ) {
         // Filter Chips
         Text(
-            text = "Filter by Status",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
+            text = "Status",
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary,
             fontWeight = FontWeight.SemiBold
         )
-        
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
+
         val filters = listOf("All", "Active", "Pending", "Unavailable")
-        
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(filters) { filter ->
+                val isSelected = selectedFilter == filter
                 FilterChip(
-                    selected = selectedFilter == filter,
+                    selected = isSelected,
                     onClick = { onFilterChanged(filter) },
                     label = {
                         Text(
                             text = filter,
-                            style = PaceDreamTypography.Callout,
-                            fontWeight = if (selectedFilter == filter) FontWeight.SemiBold else FontWeight.Normal
+                            style = PaceDreamTypography.Caption,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     },
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PaceDreamColors.Primary,
                         selectedLabelColor = Color.White,
                         containerColor = PaceDreamColors.Card,
                         labelColor = PaceDreamColors.TextPrimary
-                    )
+                    ),
+                    border = if (!isSelected) {
+                        FilterChipDefaults.filterChipBorder(
+                            borderColor = PaceDreamColors.Border,
+                            enabled = true,
+                            selected = false
+                        )
+                    } else null
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        
+
         // Sort Options
         Text(
             text = "Sort by",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary,
             fontWeight = FontWeight.SemiBold
         )
-        
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        val sortOptions = listOf("Date (Newest)", "Date (Oldest)", "Price (High-Low)", "Price (Low-High)", "Rating")
-        
+
+        val sortOptions = listOf("Newest", "Oldest", "Price (High)", "Price (Low)", "Rating")
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(sortOptions) { sort ->
+                val isSelected = selectedSort == sort
                 FilterChip(
-                    selected = selectedSort == sort,
+                    selected = isSelected,
                     onClick = { onSortChanged(sort) },
                     label = {
                         Text(
                             text = sort,
-                            style = PaceDreamTypography.Callout,
-                            fontWeight = if (selectedSort == sort) FontWeight.SemiBold else FontWeight.Normal
+                            style = PaceDreamTypography.Caption,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     },
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = PaceDreamColors.Primary,
                         selectedLabelColor = Color.White,
                         containerColor = PaceDreamColors.Card,
                         labelColor = PaceDreamColors.TextPrimary
-                    )
+                    ),
+                    border = if (!isSelected) {
+                        FilterChipDefaults.filterChipBorder(
+                            borderColor = PaceDreamColors.Border,
+                            enabled = true,
+                            selected = false
+                        )
+                    } else null
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
     }
 }
 
@@ -215,58 +217,67 @@ fun ListingsFilterSection(
 fun EmptyListingsState(
     onAddListingClick: () -> Unit
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG)
-            .clip(RoundedCornerShape(PaceDreamRadius.LG)),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .padding(PaceDreamSpacing.XXXL),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(PaceDreamSpacing.XXXL),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Home,
                 contentDescription = "No listings",
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(PaceDreamIconSize.XL)
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+        Text(
+            text = "No listings yet",
+            style = PaceDreamTypography.Title2,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        Text(
+            text = "Start earning by listing your space on PaceDream",
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.75f)
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+        Button(
+            onClick = onAddListingClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(PaceDreamRadius.Round),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.XL, vertical = PaceDreamSpacing.SM)
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Add,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(PaceDreamIconSize.SM)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
-                text = "No listings yet",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
+                text = "Add Your First Listing",
+                style = PaceDreamTypography.Callout,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Text(
-                text = "Start earning by listing your space on PaceDream. Share your property with travelers and start generating income.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
-            Button(
-                onClick = onAddListingClick,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                modifier = Modifier.fillMaxWidth(0.6f)
-            ) {
-                Text(
-                    text = "Add Your First Listing",
-                    style = PaceDreamTypography.Headline,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
     }
 }
@@ -279,17 +290,8 @@ fun ListingsContent(
     onDeleteListingClick: (String) -> Unit
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
     ) {
-        Text(
-            text = "Your Properties",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
         listings.forEach { listing ->
             HostListingCard(
                 listing = listing,
@@ -297,7 +299,7 @@ fun ListingsContent(
                 onEditClick = onEditListingClick,
                 onDeleteClick = onDeleteListingClick
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
     }
 }
@@ -312,31 +314,56 @@ fun HostListingCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(PaceDreamRadius.LG)),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        onClick = { onListingClick(listing.id) },
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
         Column {
-            // Property Image
+            // Property Image placeholder
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                    .height(160.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                PaceDreamColors.Primary.copy(alpha = 0.03f)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Home,
                     contentDescription = "Property",
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(60.dp)
+                    tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
+                    modifier = Modifier.size(PaceDreamIconSize.XXL)
                 )
+
+                // Status badge overlay
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(PaceDreamSpacing.SM)
+                ) {
+                    val statusColor = if (listing.isAvailable) PaceDreamColors.Success else PaceDreamColors.TextSecondary
+                    Text(
+                        text = if (listing.isAvailable) "Active" else "Unavailable",
+                        style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.SemiBold),
+                        color = Color.White,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(PaceDreamRadius.Round))
+                            .background(statusColor)
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+                    )
+                }
             }
-            
-            Column(
-                modifier = Modifier.padding(PaceDreamSpacing.MD)
-            ) {
-                // Header Row
+
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                // Title and actions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -346,13 +373,13 @@ fun HostListingCard(
                         text = listing.title,
                         style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                    ) {
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
                         IconButton(
                             onClick = { onEditClick(listing.id) },
                             modifier = Modifier.size(32.dp)
@@ -361,10 +388,9 @@ fun HostListingCard(
                                 imageVector = PaceDreamIcons.Edit,
                                 contentDescription = "Edit",
                                 tint = PaceDreamColors.Primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
                             )
                         }
-                        
                         IconButton(
                             onClick = { onDeleteClick(listing.id) },
                             modifier = Modifier.size(32.dp)
@@ -373,92 +399,55 @@ fun HostListingCard(
                                 imageVector = PaceDreamIcons.Delete,
                                 contentDescription = "Delete",
                                 tint = PaceDreamColors.Error,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
                             )
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
+
                 // Location
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = PaceDreamIcons.LocationOn,
-                        contentDescription = "Location",
-                        tint = PaceDreamColors.TextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextTertiary,
+                        modifier = Modifier.size(PaceDreamIconSize.XS)
                     )
-                    
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                    
                     Text(
                         text = "${listing.location.city}, ${listing.location.country}",
-                        style = PaceDreamTypography.Body,
+                        style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
-                // Stats Row
+
+                // Price and Rating
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Price
                     Text(
                         text = "$${listing.pricing.basePrice.toInt()}/hour",
-                        style = PaceDreamTypography.Title3,
+                        style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
-                    
-                    // Rating
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.Star,
-                            contentDescription = "Rating",
+                            contentDescription = null,
                             tint = PaceDreamColors.Warning,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
-                        
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                        
                         Text(
                             text = String.format("%.1f", listing.rating),
-                            style = PaceDreamTypography.Body,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
-                // Status and Action Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PaceDreamStatusChip(
-                        status = if (listing.isAvailable) "Active" else "Unavailable",
-                        isActive = listing.isAvailable
-                    )
-                    
-                    TextButton(
-                        onClick = { onListingClick(listing.id) }
-                    ) {
-                        Text(
-                            text = "View Details",
                             style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.Primary,
+                            color = PaceDreamColors.TextPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                     }

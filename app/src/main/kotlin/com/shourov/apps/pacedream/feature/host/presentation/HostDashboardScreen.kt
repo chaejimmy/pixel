@@ -16,8 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,21 +32,6 @@ import com.shourov.apps.pacedream.feature.host.data.PayoutConnectionState
 import com.shourov.apps.pacedream.model.Property
 import java.util.Calendar
 
-/**
- * Host Dashboard Screen - iOS parity.
- *
- * Matches iOS HostDashboardView layout:
- * - Time-of-day greeting header
- * - Payout status badge
- * - Quick action capsules (Create listing, View listings, Manage payouts)
- * - KPI chips (Active listings, Upcoming bookings, Pending requests, Monthly earnings)
- * - Upcoming bookings section
- * - Your listings section (horizontal scroll)
- * - History section (recent events)
- * - Switch to Guest Mode
- * - Pull-to-refresh
- * - Inline error banners
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostDashboardScreen(
@@ -70,25 +57,25 @@ fun HostDashboardScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 28.dp)
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
         ) {
-            // Header with greeting
+            // Greeting header with gradient
             item {
-                DashboardHeader(
+                DashboardHeaderSection(
                     userName = uiState.userName,
                     payoutState = uiState.payoutState,
                     onProfileClick = onProfileClick
                 )
             }
 
-            // Inline error banner (iOS parity)
+            // Error banner
             uiState.error?.let { error ->
                 item {
                     InlineErrorBannerComposable(text = error)
                 }
             }
 
-            // Quick Actions (capsule buttons like iOS)
+            // Quick Actions
             item {
                 QuickActionsCapsules(
                     onCreateListing = onAddListingClick,
@@ -97,7 +84,7 @@ fun HostDashboardScreen(
                 )
             }
 
-            // KPI Chips (iOS parity)
+            // KPI Overview
             item {
                 KPIChipsRow(
                     activeListings = uiState.activeListingsCount,
@@ -137,34 +124,49 @@ fun HostDashboardScreen(
 
             // Switch to Guest Mode
             item {
-                Spacer(modifier = Modifier.height(16.dp))
-                TextButton(
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PaceDreamSpacing.MD),
                     onClick = onSwitchToGuestMode,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = CardDefaults.cardColors(
+                        containerColor = PaceDreamColors.Info.copy(alpha = 0.08f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.ExitToApp,
-                        contentDescription = null,
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Switch to Guest Mode",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.ExitToApp,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Info,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            text = "Switch to Guest Mode",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.Info,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// ── Header (iOS parity: time-of-day greeting + payout badge) ────
+// ── Header ─────────────────────────────────────────────────────
 
 @Composable
-private fun DashboardHeader(
+private fun DashboardHeaderSection(
     userName: String,
     payoutState: PayoutConnectionState,
     onProfileClick: () -> Unit
@@ -172,42 +174,82 @@ private fun DashboardHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .padding(top = 16.dp)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        PaceDreamColors.Primary.copy(alpha = 0.06f),
+                        Color.Transparent
+                    )
+                )
+            )
+            .statusBarsPadding()
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.SM)
     ) {
-        Text(
-            text = "Good ${timeOfDayGreeting()}, $userName",
-            style = PaceDreamTypography.Title1,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Good ${timeOfDayGreeting()},",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary
+                )
+                Text(
+                    text = userName.ifBlank { "Host" },
+                    style = PaceDreamTypography.Title1,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            IconButton(onClick = onProfileClick) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Person,
+                        contentDescription = "Profile",
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(PaceDreamIconSize.SM)
+                    )
+                }
+            }
+        }
 
-        // Payout status badge (iOS parity)
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        // Payout status badge
         val (badgeText, badgeColor) = when (payoutState) {
-            PayoutConnectionState.CONNECTED -> "Payouts: Connected" to PaceDreamColors.Success
+            PayoutConnectionState.CONNECTED -> "Payouts Connected" to PaceDreamColors.Success
             PayoutConnectionState.PENDING -> "Payouts: Action required" to PaceDreamColors.Warning
             PayoutConnectionState.NOT_CONNECTED -> "Payouts: Not connected" to PaceDreamColors.TextSecondary
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(badgeColor.copy(alpha = 0.12f))
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.Round))
+                .background(badgeColor.copy(alpha = 0.1f))
+                .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(6.dp)
                     .clip(CircleShape)
                     .background(badgeColor)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
             Text(
                 text = badgeText,
-                style = PaceDreamTypography.Caption,
+                style = PaceDreamTypography.Caption2,
                 color = badgeColor,
                 fontWeight = FontWeight.SemiBold
             )
@@ -215,36 +257,40 @@ private fun DashboardHeader(
     }
 }
 
-// ── Inline Error Banner (iOS parity: InlineErrorBanner) ─────────
+// ── Error Banner ──────────────────────────────────────────────
 
 @Composable
 private fun InlineErrorBannerComposable(text: String) {
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(PaceDreamColors.Error.copy(alpha = 0.08f))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Icon(
-            imageVector = PaceDreamIcons.Warning,
-            contentDescription = null,
-            tint = PaceDreamColors.Error,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = text,
-            style = PaceDreamTypography.Caption,
-            color = PaceDreamColors.Error,
-            fontWeight = FontWeight.Medium
-        )
+        Row(
+            modifier = Modifier.padding(PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Warning,
+                contentDescription = null,
+                tint = PaceDreamColors.Error,
+                modifier = Modifier.size(PaceDreamIconSize.SM)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = text,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.Error,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
-// ── Quick Actions (iOS parity: capsule buttons) ─────────────────
+// ── Quick Actions ─────────────────────────────────────────────
 
 @Composable
 private fun QuickActionsCapsules(
@@ -253,9 +299,9 @@ private fun QuickActionsCapsules(
     onManagePayouts: () -> Unit
 ) {
     LazyRow(
-        modifier = Modifier.padding(top = 16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.padding(top = PaceDreamSpacing.MD),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         item {
             CapsuleButton(
@@ -289,28 +335,28 @@ private fun CapsuleButton(
 ) {
     Button(
         onClick = onClick,
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(PaceDreamIconSize.XS)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
         Text(
             text = title,
             color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp
+            style = PaceDreamTypography.Caption,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
 
-// ── KPI Chips (iOS parity) ──────────────────────────────────────
+// ── KPI Chips ─────────────────────────────────────────────────
 
 @Composable
 private fun KPIChipsRow(
@@ -320,13 +366,13 @@ private fun KPIChipsRow(
     monthlyEarnings: Double
 ) {
     LazyRow(
-        modifier = Modifier.padding(top = 16.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.padding(top = PaceDreamSpacing.MD),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         item { KPIChip(title = "Active listings", value = "$activeListings", icon = PaceDreamIcons.Home) }
-        item { KPIChip(title = "Upcoming bookings", value = "$upcomingBookings", icon = PaceDreamIcons.CalendarToday) }
-        item { KPIChip(title = "Pending requests", value = "$pendingRequests", icon = PaceDreamIcons.Schedule) }
+        item { KPIChip(title = "Upcoming", value = "$upcomingBookings", icon = PaceDreamIcons.CalendarToday) }
+        item { KPIChip(title = "Pending", value = "$pendingRequests", icon = PaceDreamIcons.Schedule) }
         item { KPIChip(title = "This month", value = "$${String.format("%.0f", monthlyEarnings)}", icon = PaceDreamIcons.AttachMoney) }
     }
 }
@@ -339,20 +385,28 @@ private fun KPIChip(
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(16.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                )
+            }
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Column {
                 Text(
                     text = value,
@@ -362,7 +416,7 @@ private fun KPIChip(
                 )
                 Text(
                     text = title,
-                    style = PaceDreamTypography.Caption,
+                    style = PaceDreamTypography.Caption2,
                     color = PaceDreamColors.TextSecondary
                 )
             }
@@ -370,7 +424,7 @@ private fun KPIChip(
     }
 }
 
-// ── Upcoming Bookings (iOS parity) ──────────────────────────────
+// ── Upcoming Bookings ─────────────────────────────────────────
 
 @Composable
 private fun UpcomingBookingsSection(
@@ -381,49 +435,28 @@ private fun UpcomingBookingsSection(
 ) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .padding(top = 22.dp)
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(top = PaceDreamSpacing.LG)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Upcoming bookings",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
-            TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "See all",
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
-                )
-            }
-        }
+        SectionHeader(title = "Upcoming bookings", onViewAll = onViewAllClick)
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         if (isLoading && bookings.isEmpty()) {
-            // Shimmer placeholders (iOS parity)
-            repeat(3) {
+            repeat(2) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(72.dp)
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Gray.copy(alpha = 0.12f))
+                        .padding(vertical = PaceDreamSpacing.XS)
+                        .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                        .background(PaceDreamColors.Gray100)
                 )
             }
         } else if (bookings.isEmpty()) {
-            Text(
-                text = "No upcoming bookings yet.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.padding(vertical = 8.dp)
+            EmptyStateInline(
+                text = "No upcoming bookings yet",
+                icon = PaceDreamIcons.CalendarToday
             )
         } else {
             bookings.forEach { booking ->
@@ -435,7 +468,7 @@ private fun UpcomingBookingsSection(
                     status = booking.status ?: "",
                     onClick = { onBookingClick(booking.id) }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             }
         }
     }
@@ -451,18 +484,17 @@ private fun BookingRowCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Guest initials circle
+            // Guest initials
             val initials = guestName.split(" ")
                 .mapNotNull { it.firstOrNull()?.uppercase() }
                 .take(2)
@@ -471,49 +503,50 @@ private fun BookingRowCard(
 
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.16f)),
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = initials,
                     color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+                    style = PaceDreamTypography.Callout
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = listingTitle,
-                    style = PaceDreamTypography.Body,
+                    style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = dateRange,
                     style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
+                    color = PaceDreamColors.TextSecondary,
+                    maxLines = 1
                 )
             }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = payout,
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = payout,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
 
-// ── Your Listings (iOS parity: horizontal scroll with cards) ────
+// ── Your Listings ─────────────────────────────────────────────
 
 @Composable
 private fun YourListingsSection(
@@ -522,59 +555,40 @@ private fun YourListingsSection(
     onListingClick: (String) -> Unit,
     onViewAllClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.padding(top = 22.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Your listings",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
-            TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "See all",
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp
-                )
-            }
-        }
+    Column(modifier = Modifier.padding(top = PaceDreamSpacing.LG)) {
+        SectionHeader(
+            title = "Your listings",
+            onViewAll = onViewAllClick,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         if (isLoading && listings.isEmpty()) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 items(3) {
                     Box(
                         modifier = Modifier
-                            .width(224.dp)
-                            .height(220.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color.Gray.copy(alpha = 0.12f))
+                            .width(200.dp)
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                            .background(PaceDreamColors.Gray100)
                     )
                 }
             }
         } else if (listings.isEmpty()) {
-            Text(
-                text = "No active listings yet.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            EmptyStateInline(
+                text = "No active listings yet",
+                icon = PaceDreamIcons.Home,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
             )
         } else {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 items(listings) { listing ->
                     ListingMiniCard(
@@ -597,47 +611,55 @@ private fun ListingMiniCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .width(224.dp)
-            .clickable(onClick = onClick),
+        modifier = Modifier.width(200.dp),
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(18.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                    .height(120.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                PaceDreamColors.Primary.copy(alpha = 0.04f)
+                            )
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Home,
                     contentDescription = null,
-                    tint = PaceDreamColors.Primary.copy(alpha = 0.4f),
-                    modifier = Modifier.size(40.dp)
+                    tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
+                    modifier = Modifier.size(PaceDreamIconSize.XL)
                 )
             }
 
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
                 Text(
                     text = title,
-                    style = PaceDreamTypography.Body,
+                    style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = location,
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary,
                     maxLines = 1
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
                     text = price,
-                    style = PaceDreamTypography.Body,
+                    style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.Bold
                 )
@@ -646,7 +668,7 @@ private fun ListingMiniCard(
     }
 }
 
-// ── History Section (iOS parity: DashboardEvent feed) ───────────
+// ── History Section ───────────────────────────────────────────
 
 @Composable
 private fun HistorySection(
@@ -655,41 +677,38 @@ private fun HistorySection(
 ) {
     Column(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .padding(top = 22.dp)
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(top = PaceDreamSpacing.LG)
     ) {
         Text(
-            text = "History",
-            style = PaceDreamTypography.Title3,
+            text = "Recent activity",
+            style = PaceDreamTypography.Headline,
             color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp
+            fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         if (isLoading && events.isEmpty()) {
-            repeat(3) {
+            repeat(2) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(vertical = 5.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.Gray.copy(alpha = 0.12f))
+                        .padding(vertical = PaceDreamSpacing.XS)
+                        .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                        .background(PaceDreamColors.Gray100)
                 )
             }
         } else if (events.isEmpty()) {
-            Text(
-                text = "No recent activity yet.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.padding(vertical = 8.dp)
+            EmptyStateInline(
+                text = "No recent activity yet",
+                icon = PaceDreamIcons.Notifications
             )
         } else {
             events.forEach { event ->
                 HistoryEventRow(event)
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             }
         }
     }
@@ -699,18 +718,18 @@ private fun HistorySection(
 private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
     Card(
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.MD)
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.16f)),
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -718,27 +737,26 @@ private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
                         PaceDreamIcons.AttachMoney else PaceDreamIcons.Notifications,
                     contentDescription = null,
                     tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(PaceDreamIconSize.XS)
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = event.title,
-                    style = PaceDreamTypography.Body,
+                    style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    fontSize = 14.sp
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = event.subtitle,
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary,
-                    maxLines = 1,
-                    fontSize = 12.sp
+                    maxLines = 1
                 )
             }
 
@@ -749,16 +767,75 @@ private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
                     DateUtils.MINUTE_IN_MILLIS,
                     DateUtils.FORMAT_ABBREV_RELATIVE
                 ).toString(),
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp
+                style = PaceDreamTypography.Caption2,
+                color = PaceDreamColors.TextTertiary,
+                fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
-// ── Helper ──────────────────────────────────────────────────────
+// ── Shared Section Components ─────────────────────────────────
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    onViewAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = PaceDreamTypography.Headline,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        TextButton(onClick = onViewAll) {
+            Text(
+                text = "See all",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateInline(
+    text: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Gray50)
+            .padding(PaceDreamSpacing.MD),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(PaceDreamIconSize.SM)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+        Text(
+            text = text,
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary
+        )
+    }
+}
+
+// ── Helper ────────────────────────────────────────────────────
 
 private fun timeOfDayGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
