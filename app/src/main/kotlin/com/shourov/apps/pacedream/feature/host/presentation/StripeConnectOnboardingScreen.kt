@@ -357,14 +357,14 @@ private fun ConnectAccountStatusCard(
             account?.let { acct ->
                 if (acct.status != ConnectAccountStatus.ENABLED) {
                     acct.requirements?.let { requirements ->
-                        if (requirements.currentlyDue.isNotEmpty()) {
+                        if (requirements.resolvedCurrentlyDue.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                             Text(
                                 text = "Required:",
                                 style = PaceDreamTypography.Caption,
                                 color = PaceDreamColors.TextSecondary
                             )
-                            requirements.currentlyDue.forEach { requirement ->
+                            requirements.resolvedCurrentlyDue.forEach { requirement ->
                                 Text(
                                     text = "  \u2022 $requirement",
                                     style = PaceDreamTypography.Caption,
