@@ -11,6 +11,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenW
 import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
+import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 
 fun NavGraphBuilder.HostNavigationGraph(
     navController: NavController,
@@ -62,6 +63,16 @@ fun NavGraphBuilder.HostNavigationGraph(
     
     composable(HostScreen.Settings.route) {
         HostSettingsScreen(
+            onBackClick = { navController.popBackStack() },
+            onPaymentSetupClick = { navController.navigate(HostScreen.PaymentSetup.route) },
+            onEarningsClick = { navController.navigate(HostScreen.Earnings.route) },
+            onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
+            onListingsClick = { navController.navigate(HostScreen.Listings.route) }
+        )
+    }
+
+    composable(HostScreen.PaymentSetup.route) {
+        StripeConnectOnboardingScreen(
             onBackClick = { navController.popBackStack() }
         )
     }
@@ -70,7 +81,7 @@ fun NavGraphBuilder.HostNavigationGraph(
         val typeParam = backStackEntry.arguments?.getString("type") ?: "share"
         val listingMode = when (typeParam.lowercase()) {
             "borrow" -> ListingMode.BORROW
-            "use" -> ListingMode.USE
+            "split" -> ListingMode.SPLIT
             else -> ListingMode.SHARE
         }
         CreateListingScreen(

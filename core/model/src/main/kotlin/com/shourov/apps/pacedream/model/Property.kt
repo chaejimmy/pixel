@@ -4,11 +4,19 @@ package com.shourov.apps.pacedream.model
  * Pricing unit matching the backend enum: 'hour' | 'day' | 'week' | 'month'.
  * Maps directly to the web platform's pricing_type / pricing.unit fields.
  */
-enum class PricingUnit(val value: String, val displayLabel: String, val shortLabel: String) {
-    HOUR("hour", "Hourly", "hr"),
-    DAY("day", "Daily", "day"),
-    WEEK("week", "Weekly", "wk"),
-    MONTH("month", "Monthly", "mo");
+enum class PricingUnit(
+    val value: String,
+    val displayLabel: String,
+    val shortLabel: String,
+    /** Backend pricing_type value (e.g. "hourly", "daily") – iOS parity. */
+    val backendPricingType: String,
+    /** Backend frequency value (e.g. "HOUR", "DAY") – iOS parity. */
+    val backendFrequency: String,
+) {
+    HOUR("hour", "Hourly", "hr", "hourly", "HOUR"),
+    DAY("day", "Daily", "day", "daily", "DAY"),
+    WEEK("week", "Weekly", "wk", "weekly", "WEEK"),
+    MONTH("month", "Monthly", "mo", "monthly", "MONTH");
 
     companion object {
         fun fromValue(value: String): PricingUnit =

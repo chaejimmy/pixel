@@ -3,9 +3,9 @@ package com.shourov.apps.pacedream.feature.host.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.host.data.HostEarningsData
+import com.shourov.apps.pacedream.feature.host.data.HostEarningsUiState
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
-import com.shourov.apps.pacedream.feature.host.data.PayoutConnectionState
-import com.shourov.apps.pacedream.feature.host.data.PayoutMethod
+import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,118 +22,113 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HostEarningsViewModel @Inject constructor(
-    private val hostRepository: HostRepository
+    private val hostRepository: HostRepository,
+    private val stripeConnectRepository: StripeConnectRepository
 ) : ViewModel() {
 
+    // Legacy state for backward compatibility
     private val _uiState = MutableStateFlow(HostEarningsData())
     val uiState: StateFlow<HostEarningsData> = _uiState.asStateFlow()
 
+    // New tabbed earnings state (matching iOS EarningsView)
+    private val _earningsUiState = MutableStateFlow(HostEarningsUiState())
+    val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
+
     init {
-        load()
+        loadAllData()
     }
 
-    fun load() {
+    private fun loadAllData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
 
-            val payoutStateDeferred = async {
-                try { hostRepository.resolvePayoutState() }
-                catch (_: Exception) { PayoutConnectionState.NOT_CONNECTED }
-            }
+            // Load balance, transfers, payouts concurrently (like iOS refreshData)
+            val balanceDeferred = async { stripeConnectRepository.getBalance() }
+            val transfersDeferred = async { stripeConnectRepository.getTransfers() }
+            val payoutsDeferred = async { stripeConnectRepository.getPayouts() }
+            val accountDeferred = async { stripeConnectRepository.getConnectAccountStatus() }
 
-            val payoutMethodsDeferred = async {
-                try { hostRepository.getPayoutMethods().getOrElse { emptyList() } }
-                catch (_: Exception) { emptyList<PayoutMethod>() }
-            }
+            val balanceResult = balanceDeferred.await()
+            val transfersResult = transfersDeferred.await()
+            val payoutsResult = payoutsDeferred.await()
+            val accountResult = accountDeferred.await()
 
-            val revenueDeferred = async {
-                try { hostRepository.getRevenue().getOrNull() }
-                catch (_: Exception) { null }
-            }
-
-            val payoutStatusDeferred = async {
-                try { hostRepository.getPayoutStatus().getOrNull() }
-                catch (_: Exception) { null }
-            }
-
-            val payoutState = payoutStateDeferred.await()
-            val payoutMethods = payoutMethodsDeferred.await()
-            val revenue = revenueDeferred.await()
-            val payoutStatus = payoutStatusDeferred.await()
-
-            _uiState.value = _uiState.value.copy(
-                connectionState = payoutState,
-                payoutMethods = payoutMethods,
-                requirementsCurrentlyDue = payoutStatus?.resolvedCurrentlyDue ?: emptyList(),
-                totalRevenue = revenue?.totalRevenue ?: 0.0,
-                grossRevenue = revenue?.grossRevenue ?: 0.0,
-                platformFees = revenue?.platformFees ?: 0.0,
-                netRevenue = revenue?.netRevenue ?: 0.0,
-                revenueByMonth = revenue?.revenueByMonth ?: emptyList(),
-                revenueByListing = revenue?.revenueByListing ?: emptyList(),
-                isLoading = false
+            _earningsUiState.value = _earningsUiState.value.copy(
+                balance = balanceResult.getOrNull(),
+                transfers = transfersResult.getOrDefault(emptyList()),
+                payouts = payoutsResult.getOrDefault(emptyList()),
+                connectAccount = accountResult.getOrNull(),
+                isLoading = false,
+                isRefreshing = false,
+                errorMessage = balanceResult.exceptionOrNull()?.message
+                    ?: transfersResult.exceptionOrNull()?.message
+                    ?: payoutsResult.exceptionOrNull()?.message
             )
         }
     }
 
-    fun performPrimaryAction() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isBusy = true)
-            when (_uiState.value.connectionState) {
-                PayoutConnectionState.CONNECTED -> {
-                    hostRepository.createLoginLink()
-                        .onSuccess { url ->
-                            _uiState.value = _uiState.value.copy(loginUrl = url, isBusy = false)
-                        }
-                        .onFailure { e ->
-                            _uiState.value = _uiState.value.copy(
-                                error = e.message ?: "Failed to open Stripe dashboard",
-                                isBusy = false
-                            )
-                        }
-                }
-                PayoutConnectionState.PENDING, PayoutConnectionState.NOT_CONNECTED -> {
-                    hostRepository.createOnboardingLink()
-                        .onSuccess { url ->
-                            _uiState.value = _uiState.value.copy(onboardingUrl = url, isBusy = false)
-                        }
-                        .onFailure { e ->
-                            _uiState.value = _uiState.value.copy(
-                                error = e.message ?: "Failed to create onboarding link",
-                                isBusy = false
-                            )
-                        }
-                }
-            }
-        }
+    fun selectTab(index: Int) {
+        _earningsUiState.value = _earningsUiState.value.copy(selectedTab = index)
     }
 
-    fun openDashboard() {
+    fun refreshData() {
+        _earningsUiState.value = _earningsUiState.value.copy(isRefreshing = true)
+        loadAllData()
+    }
+
+    fun showPayoutSheet() {
+        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = true)
+    }
+
+    fun hidePayoutSheet() {
+        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
+    }
+
+    fun requestPayout(amount: Double) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isBusy = true)
-            hostRepository.createLoginLink()
-                .onSuccess { url ->
-                    _uiState.value = _uiState.value.copy(loginUrl = url, isBusy = false)
+            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
+
+            val amountInCents = (amount * 100).toInt()
+            stripeConnectRepository.createPayout(amountInCents)
+                .onSuccess {
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        showPayoutSheet = false,
+                        payoutAmount = ""
+                    )
+                    refreshData()
                 }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Failed to open Stripe dashboard",
-                        isBusy = false
+                .onFailure { exception ->
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        isLoading = false,
+                        errorMessage = exception.message ?: "Failed to request payout"
                     )
                 }
         }
     }
 
-    fun clearUrls() {
-        _uiState.value = _uiState.value.copy(onboardingUrl = null, loginUrl = null)
-        load()
-    }
-
-    fun refreshData() {
-        load()
-    }
-
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _earningsUiState.value = _earningsUiState.value.copy(errorMessage = null)
+    }
+
+    // Legacy methods for backward compatibility
+    fun updateTimeRange(timeRange: String) {
+        _uiState.value = _uiState.value.copy(selectedTimeRange = timeRange)
+    }
+
+    fun withdrawEarnings(amount: Double) {
+        requestPayout(amount)
+    }
+
+    fun requestWithdrawal(amount: Double, paymentMethod: String) {
+        viewModelScope.launch {
+            hostRepository.requestWithdrawal(amount, paymentMethod)
+                .onSuccess { refreshData() }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = exception.message ?: "Failed to process withdrawal",
+                        isBusy = false
+                    )
+                }
+        }
     }
 }

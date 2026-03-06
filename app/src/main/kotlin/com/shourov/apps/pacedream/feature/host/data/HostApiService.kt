@@ -55,7 +55,7 @@ interface HostApiService {
         @Query("sort") sort: String? = null
     ): Response<List<Property>>
 
-    @POST(ApiEndPoints.HOST_CREATE_LISTING)
+    @POST(ApiEndPoints.CREATE_LISTING)
     suspend fun createListing(@Body listing: CreateListingRequest): Response<Property>
 
     @PUT(ApiEndPoints.HOST_UPDATE_LISTING)
@@ -70,16 +70,39 @@ interface HostApiService {
     // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
 
     @GET(ApiEndPoints.HOST_PAYOUT_STATUS)
-    suspend fun getPayoutStatus(): Response<PayoutStatusResponse>
+    suspend fun getPayoutStatus(): Response<PayoutStatus>
 
     @POST(ApiEndPoints.HOST_PAYOUT_ONBOARDING_LINK)
-    suspend fun createPayoutOnboardingLink(): Response<PayoutLinkResponse>
+    suspend fun createOnboardingLink(): Response<AccountLink>
 
     @POST(ApiEndPoints.HOST_PAYOUT_LOGIN_LINK)
-    suspend fun createPayoutLoginLink(): Response<PayoutLinkResponse>
+    suspend fun createLoginLink(): Response<LoginLink>
 
     @GET(ApiEndPoints.HOST_PAYOUT_METHODS)
-    suspend fun getPayoutMethods(): Response<PayoutMethodsResponse>
+    suspend fun getPayoutMethods(): Response<List<PayoutMethod>>
+
+    @POST("host/payouts/methods/set-primary")
+    suspend fun setPrimaryPayoutMethod(@Body body: SetPrimaryMethodRequest): Response<Unit>
+
+    // ── Stripe Connect - Balance & Transfers ────────────────────
+
+    @GET("host/stripe/balance")
+    suspend fun getStripeBalance(): Response<ConnectBalance>
+
+    @GET("host/stripe/transfers")
+    suspend fun getStripeTransfers(@Query("limit") limit: Int = 20): Response<List<Transfer>>
+
+    @GET("host/stripe/payouts")
+    suspend fun getStripePayouts(@Query("limit") limit: Int = 20): Response<List<Payout>>
+
+    @POST("host/stripe/payouts/create")
+    suspend fun createPayout(@Body request: CreatePayoutRequest): Response<Payout>
+
+    @GET("host/stripe/connect/status")
+    suspend fun getConnectAccountStatus(): Response<ConnectAccount>
+
+    @POST("host/stripe/connect/create")
+    suspend fun createConnectAccount(@Body request: CreateConnectAccountRequest): Response<ConnectAccount>
 
     // ── Reviews (iOS: HostDashboardService) ─────────────────────
 
@@ -113,6 +136,12 @@ interface HostApiService {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 20
     ): Response<PaginatedTransactionsResponse>
+
+    // Analytics (using ApiEndPoints constants)
+    @GET(ApiEndPoints.HOST_GET_ANALYTICS)
+    suspend fun getHostAnalytics(
+        @Query("timeRange") timeRange: String? = null
+    ): Response<HostAnalyticsData>
 }
 
 // ── Request/Response Models (iOS parity) ────────────────────────
@@ -120,6 +149,31 @@ interface HostApiService {
 data class BookingStatusUpdate(
     val status: String,
     val reason: String? = null
+)
+
+data class SetPrimaryMethodRequest(val id: String)
+
+data class CreatePayoutRequest(
+    val amount: Int,
+    val currency: String = "usd"
+)
+
+data class CreateConnectAccountRequest(
+    val email: String,
+    val country: String = "US"
+)
+
+data class WithdrawalResponse(
+    val id: String,
+    val status: String,
+    val processedAt: String? = null
+)
+
+data class HostAnalyticsData(
+    val views: Int = 0,
+    val bookings: Int = 0,
+    val revenue: Double = 0.0,
+    val occupancyRate: Double = 0.0
 )
 
 // ── Dashboard Overview (matches iOS HostDashboardOverview) ──────
@@ -423,49 +477,58 @@ data class PaginatedTransactionsResponse(
     val limit: Int = 20
 )
 
-// ── Listing Creation (unchanged) ────────────────────────────────
+// ── Listing Creation (iOS parity) ───────────────────────────────
 
+/**
+ * Request body for creating a listing.
+ * Matches the iOS ListingsPublisherService payload structure (web parity).
+ * Endpoint: POST /listings (same as iOS)
+ */
 data class CreateListingRequest(
     val listing_type: String,
     val subCategory: String,
     val title: String,
-    val description: String,
-    val summary: String,
+    val description: String? = null,
+    val summary: String? = null,
     val price: Double,
     val pricing_type: String,
-    val prices: PricesPayload,
     val pricing: PricingPayload,
-    val address: String,
-    val amenities: List<String> = emptyList(),
-    val images: List<String> = emptyList(),
-    val location: LocationPayload,
-    val available: Boolean = true,
+    val address: String? = null,
+    val amenities: List<String>? = null,
+    val images: List<String>? = null,
+    val location: LocationPayload? = null,
     val durations: List<Int>? = null,
     val availability: AvailabilityPayload? = null,
-)
-
-data class PricesPayload(
-    val hour: Double = 0.0,
-    val day: Double = 0.0,
-    val week: Double = 0.0,
-    val month: Double = 0.0,
+    // Split-specific fields (iOS parity)
+    val shareType: String? = null,
+    val share_type: String? = null,
+    val splitType: String? = null,
+    val totalCost: Double? = null,
+    val checkInDate: String? = null,
+    val checkOutDate: String? = null,
+    val hotelName: String? = null,
+    val roomType: String? = null,
+    val deadlineAt: String? = null,
+    val requirements: String? = null,
+    val experiments: Map<String, String>? = null,
 )
 
 data class PricingPayload(
     val base_price: Double,
     val unit: String,
+    val pricing_type: String,
     val currency: String = "USD",
+    val frequency: String,
 )
 
+/**
+ * Location payload matching iOS: uses lat/lng (not latitude/longitude).
+ */
 data class LocationPayload(
-    val street_address: String = "",
-    val street: String = "",
-    val address: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
     val city: String = "",
     val state: String = "",
-    val country: String = "",
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
 )
 
 data class AvailabilityPayload(
