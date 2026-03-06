@@ -61,7 +61,6 @@ fun ListingDetailRoute(
         onShare = { viewModel.share() },
         onContactHost = {
             if (!viewModel.isAuthenticated()) {
-                onNavigateToInbox()
                 onLoginRequired()
             } else {
                 onNavigateToInbox()

@@ -108,7 +108,7 @@ class BookingRepository @Inject constructor(
         return try {
             val response = apiService.confirmBooking(bookingId)
             if (response.isSuccessful) {
-                // Booking confirmed - could update local database status if needed
+                bookingDao.updateBookingStatus(bookingId, "CONFIRMED")
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to confirm booking: ${response.message()}"))

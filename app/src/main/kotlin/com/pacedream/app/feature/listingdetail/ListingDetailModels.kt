@@ -105,6 +105,14 @@ data class ListingPricing(
             val amount = hourlyFrom ?: basePrice ?: return null
             val symbol = when ((currency ?: "USD").uppercase()) {
                 "USD" -> "$"
+                "EUR" -> "€"
+                "GBP" -> "£"
+                "AED" -> "د.إ"
+                "BDT" -> "৳"
+                "INR" -> "₹"
+                "JPY" -> "¥"
+                "CAD" -> "CA$"
+                "AUD" -> "A$"
                 else -> "$"
             }
             val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.lowercase()
