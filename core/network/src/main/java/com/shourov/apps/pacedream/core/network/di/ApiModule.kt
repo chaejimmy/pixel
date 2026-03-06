@@ -41,7 +41,7 @@ object ApiModule {
     fun providesHttpLoggingInterceptor() = HttpLoggingInterceptor()
         .apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.HEADERS
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }

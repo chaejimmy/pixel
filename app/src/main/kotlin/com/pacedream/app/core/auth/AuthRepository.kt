@@ -40,9 +40,7 @@ class AuthRepository @Inject constructor(
                 email = email,
                 firstName = firstName,
                 lastName = lastName,
-                password = password,
-                dob = "1990-01-01",
-                gender = "unspecified"
+                password = password
             )
         )
         return apiClient.post(url, body, includeAuth = false)
@@ -113,7 +111,7 @@ data class EmailSignupRequest(
     val firstName: String,
     val lastName: String,
     val password: String,
-    val dob: String,
-    val gender: String
+    val dob: String? = null,
+    val gender: String? = null
 )
 
