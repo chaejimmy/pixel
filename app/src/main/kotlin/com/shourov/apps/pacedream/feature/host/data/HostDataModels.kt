@@ -1,71 +1,174 @@
 package com.shourov.apps.pacedream.feature.host.data
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddHome
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Money
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.Property
 
-// Host Dashboard UI State
+/**
+ * Host Dashboard UI State - iOS parity.
+ *
+ * Matches iOS HostDashboardView + HostDataStore combined state.
+ */
 data class HostDashboardData(
     val userName: String = "Host",
-    val totalEarnings: Double = 0.0,
-    val activeListings: Int = 0,
-    val monthlyEarnings: Double = 0.0,
-    val occupancyRate: Double = 0.0,
-    val averageRating: Double = 0.0,
+    // From HostDashboardOverview (iOS)
     val totalBookings: Int = 0,
-    val recentBookings: List<BookingModel> = emptyList(),
-    val myListings: List<Property> = emptyList(),
+    val totalRevenue: Double = 0.0,
+    val averageRating: Double = 0.0,
+    val totalReviews: Int = 0,
+    val occupancyRate: Double = 0.0,
+    val responseRate: Double = 0.0,
+    val activeListings: Int = 0,
+    val pendingBookings: Int = 0,
+    // From HostDataStore (iOS)
+    val bookings: List<HostBookingDTO> = emptyList(),
+    val listings: List<Property> = emptyList(),
+    // Payout status (iOS: PayoutsService.PayoutStatus)
+    val payoutState: PayoutConnectionState = PayoutConnectionState.NOT_CONNECTED,
+    val payoutDetails: String? = null,
+    // UI state
     val isLoading: Boolean = false,
     val error: String? = null
+) {
+    // ── KPI computations (iOS parity: HostDataStore) ──────────
+
+    val activeListingsCount: Int get() = activeListings
+
+    val pendingRequestsCount: Int get() = bookings.count { booking ->
+        isPendingStatus(booking.status)
+    }
+
+    val upcomingBookingsCount: Int get() = bookings.count { booking ->
+        isConfirmedBooking(booking) && isUpcoming(booking)
+    }
+
+    val monthlyEarnings: Double get() {
+        val cal = java.util.Calendar.getInstance()
+        val currentMonth = cal.get(java.util.Calendar.MONTH)
+        val currentYear = cal.get(java.util.Calendar.YEAR)
+
+        return bookings.filter { isConfirmedBooking(it) }
+            .mapNotNull { booking ->
+                val created = parseDate(booking.createdAt) ?: return@mapNotNull null
+                cal.timeInMillis = created
+                if (cal.get(java.util.Calendar.MONTH) == currentMonth &&
+                    cal.get(java.util.Calendar.YEAR) == currentYear) {
+                    booking.resolvedTotal
+                } else null
+            }.sum()
+    }
+
+    val topUpcomingBookings: List<HostBookingDTO> get() =
+        bookings.filter { isConfirmedBooking(it) && isUpcoming(it) }
+            .sortedBy { parseDate(it.resolvedStart) ?: Long.MAX_VALUE }
+            .take(5)
+
+    val topActiveListings: List<Property> get() =
+        listings.filter { it.isAvailable }.take(5)
+
+    // ── History events (iOS parity: DashboardEvent) ──────────
+
+    data class DashboardEvent(
+        val id: String,
+        val title: String,
+        val subtitle: String,
+        val createdAt: Long
+    )
+
+    val recentEvents: List<DashboardEvent> get() =
+        bookings.mapNotNull { booking ->
+            val created = parseDate(booking.createdAt) ?: return@mapNotNull null
+            val statusLower = (booking.status ?: "").lowercase()
+            val listingTitle = booking.resolvedListingTitle
+            val guest = booking.resolvedGuestName
+
+            when {
+                isPendingStatus(booking.status) -> DashboardEvent(
+                    id = "pending-${booking.id}",
+                    title = "New booking request",
+                    subtitle = "$guest requested $listingTitle",
+                    createdAt = created
+                )
+                isConfirmedBooking(booking) && (statusLower.contains("confirm") ||
+                    statusLower.contains("book") || statusLower.contains("active") ||
+                    statusLower.contains("accept")) -> DashboardEvent(
+                    id = "confirmed-${booking.id}",
+                    title = "Payment received",
+                    subtitle = "$listingTitle • $${String.format("%.0f", booking.resolvedTotal)}",
+                    createdAt = created
+                )
+                else -> null
+            }
+        }
+        .sortedByDescending { it.createdAt }
+        .take(6)
+
+    // ── Helpers ──────────────────────────────────────────────
+
+    private fun isPendingStatus(status: String?): Boolean {
+        val s = (status ?: "").trim().lowercase()
+        if (s.isEmpty()) return false
+        if (s.contains("pending")) return true
+        return s == "requires_capture" || s == "created" || s == "pending_host"
+    }
+
+    private fun isConfirmedBooking(booking: HostBookingDTO): Boolean {
+        val s = (booking.status ?: "").trim().lowercase()
+        return s.contains("confirm") || s.contains("accept") ||
+            s.contains("active") || s == "booked"
+    }
+
+    private fun isUpcoming(booking: HostBookingDTO): Boolean {
+        val startMs = parseDate(booking.resolvedStart) ?: return false
+        return startMs > System.currentTimeMillis()
+    }
+}
+
+/** Payout connection state matching iOS PayoutsService.PayoutStatus.State */
+enum class PayoutConnectionState {
+    CONNECTED,
+    PENDING,
+    NOT_CONNECTED
+}
+
+/** Payout method matching iOS PayoutsService.PayoutMethod */
+data class PayoutMethod(
+    val id: String,
+    val type: String,
+    val label: String,
+    val isPrimary: Boolean
 )
 
-// Quick Action Item
+// ── Quick Action Item ───────────────────────────────────────────
+
 data class QuickAction(
     val title: String,
     val icon: ImageVector,
     val onClick: () -> Unit
 )
 
-// Performance Metric Item
-data class PerformanceMetric(
-    val title: String,
-    val value: String,
-    val icon: ImageVector,
-    val color: androidx.compose.ui.graphics.Color
-)
+// ── Host Earnings UI State (iOS parity: Stripe Connect) ─────────
 
-// Host Earnings UI State
 data class HostEarningsData(
-    val totalEarnings: Double = 0.0,
-    val availableBalance: Double = 0.0,
-    val selectedTimeRange: String = "Month",
-    val earningsData: List<Pair<String, Double>> = emptyList(), // e.g., ("Jan", 1200.0)
-    val earningsBreakdown: List<EarningsBreakdownItem> = emptyList(),
-    val recentTransactions: List<Transaction> = emptyList(),
+    val connectionState: PayoutConnectionState = PayoutConnectionState.NOT_CONNECTED,
+    val payoutMethods: List<PayoutMethod> = emptyList(),
+    val requirementsCurrentlyDue: List<String> = emptyList(),
+    // Revenue data from /hosts/dashboard/revenue
+    val totalRevenue: Double = 0.0,
+    val grossRevenue: Double = 0.0,
+    val platformFees: Double = 0.0,
+    val netRevenue: Double = 0.0,
+    val revenueByMonth: List<RevenueByMonth> = emptyList(),
+    val revenueByListing: List<RevenueByListing> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val isBusy: Boolean = false,
+    val error: String? = null,
+    val onboardingUrl: String? = null,
+    val loginUrl: String? = null
 )
 
-data class EarningsBreakdownItem(
-    val category: String,
-    val amount: Double,
-    val percentage: Double
-)
+// ── Host Listings UI State ──────────────────────────────────────
 
-data class Transaction(
-    val id: String,
-    val description: String,
-    val amount: Double,
-    val date: String,
-    val type: TransactionType
-)
-
-// Host Listings UI State
 data class HostListingsData(
     val listings: List<Property> = emptyList(),
     val selectedFilter: String = "All",
@@ -74,18 +177,20 @@ data class HostListingsData(
     val error: String? = null
 )
 
-// Host Bookings UI State
+// ── Host Bookings UI State (iOS parity: segments) ───────────────
+
 data class HostBookingsData(
     val totalBookings: Int = 0,
     val pendingBookings: Int = 0,
-    val selectedStatus: String = "All",
-    val bookings: List<BookingModel> = emptyList(),
+    val selectedStatus: String = "Pending",
+    val bookings: List<HostBookingDTO> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
-enum class TimeRange {
-    WEEK, MONTH, QUARTER, YEAR, ALL_TIME
+/** Booking status segments matching iOS HostBookingsView */
+enum class BookingSegment {
+    PENDING, CONFIRMED, PAST, CANCELLED
 }
 
 enum class ListingFilter {
@@ -96,8 +201,24 @@ enum class ListingSortOption {
     DATE_NEWEST, DATE_OLDEST, PRICE_HIGH_LOW, PRICE_LOW_HIGH, RATING_HIGH_LOW
 }
 
-// Note: Use com.shourov.apps.pacedream.model.BookingStatus for booking status values
+// ── Date parsing utility ────────────────────────────────────────
 
-enum class TransactionType {
-    BOOKING, WITHDRAWAL, FEE
+fun parseDate(dateString: String?): Long? {
+    if (dateString.isNullOrBlank()) return null
+    val formats = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssZ",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd",
+        "MM/dd/yyyy"
+    )
+    for (fmt in formats) {
+        try {
+            val sdf = java.text.SimpleDateFormat(fmt, java.util.Locale.US)
+            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            return sdf.parse(dateString)?.time
+        } catch (_: Exception) { }
+    }
+    return null
 }

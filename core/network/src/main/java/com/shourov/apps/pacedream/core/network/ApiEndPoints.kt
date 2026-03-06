@@ -92,15 +92,34 @@ object ApiEndPoints {
     const val GET_LISTING_BY_ID = "listings/{listingId}"
 
     // ── Host (iOS parity) ─────────────────────────────────
+    const val HOST_DASHBOARD_OVERVIEW = "hosts/dashboard/overview"
+    const val HOST_DASHBOARD_ANALYTICS = "hosts/dashboard/analytics"
+    const val HOST_DASHBOARD_REVENUE = "hosts/dashboard/revenue"
+    const val HOST_DASHBOARD_BOOKINGS = "hosts/dashboard/bookings"
     const val HOST_GET_LISTINGS = "host/listings"
     const val HOST_CREATE_LISTING = "host/listings"
     const val HOST_UPDATE_LISTING = "host/listings/{listingId}"
     const val HOST_DELETE_LISTING = "host/listings/{listingId}"
-    const val HOST_GET_EARNINGS = "host/earnings"
-    const val HOST_GET_BOOKINGS = "host/bookings"
-    const val HOST_ACCEPT_BOOKING = "host/bookings/{bookingId}/accept"
-    const val HOST_DECLINE_BOOKING = "host/bookings/{bookingId}/decline"
+    const val HOST_GET_BOOKINGS = "bookings/host"
+    const val HOST_UPDATE_BOOKING = "bookings/host/{bookingId}"
     const val HOST_GET_ANALYTICS = "host/analytics"
+
+    // ── Host Payouts (Stripe Connect - iOS parity) ──────
+    const val HOST_PAYOUT_STATUS = "host/payouts/status"
+    const val HOST_PAYOUT_ONBOARDING_LINK = "host/payouts/create-onboarding-link"
+    const val HOST_PAYOUT_LOGIN_LINK = "host/payouts/create-login-link"
+    const val HOST_PAYOUT_METHODS = "host/payouts/methods"
+
+    // ── Host Reviews ────────────────────────────────────
+    const val HOST_REVIEWS_SUMMARY = "host/reviews/summary"
+    const val HOST_REVIEWS = "host/reviews"
+
+    // ── Host Personal Info ──────────────────────────────
+    const val HOST_PERSONAL_INFO = "hosts/personal-info"
+
+    // ── Host Payments & Transactions ────────────────────
+    const val HOST_PAYMENTS = "hosts/payments"
+    const val HOST_TRANSACTIONS = "hosts/transactions"
 
     // ── Verification ──────────────────────────────────────
     const val VERIFICATION_SEND_PHONE_CODE = "users/verification/phone/send-code"

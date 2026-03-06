@@ -14,6 +14,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Host Earnings ViewModel - iOS parity.
+ *
+ * Matches iOS HostEarningsView with Stripe Connect onboarding,
+ * payout status, payout methods, and revenue data.
+ */
 @HiltViewModel
 class HostEarningsViewModel @Inject constructor(
     private val hostRepository: HostRepository,
@@ -119,7 +125,8 @@ class HostEarningsViewModel @Inject constructor(
                 .onSuccess { refreshData() }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
-                        error = exception.message ?: "Failed to request withdrawal"
+                        error = exception.message ?: "Failed to process withdrawal",
+                        isBusy = false
                     )
                 }
         }

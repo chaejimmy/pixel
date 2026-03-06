@@ -1,5 +1,7 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,10 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -26,11 +30,18 @@ import java.text.SimpleDateFormat
 import java.util.Currency
 import java.util.Locale
 
+/**
+ * Host Earnings Screen - iOS parity.
+ *
+ * Matches iOS HostEarningsView with Stripe Connect integration:
+ * - Tabbed layout: Balance / Transfers / Payouts
+ * - Stripe account status and onboarding
+ * - Payout request bottom sheet
+ * - Pull-to-refresh
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostEarningsScreen(
-    onWithdrawClick: () -> Unit = {},
-    onTransactionClick: (String) -> Unit = {},
     viewModel: HostEarningsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.earningsUiState.collectAsStateWithLifecycle()

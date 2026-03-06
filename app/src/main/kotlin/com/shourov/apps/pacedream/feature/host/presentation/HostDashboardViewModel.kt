@@ -11,39 +11,53 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Host Dashboard ViewModel - iOS parity.
+ *
+ * Matches iOS HostDashboardViewModel: loads bookings, listings, payouts concurrently
+ * with partial-success handling and inline error banners.
+ */
 @HiltViewModel
 class HostDashboardViewModel @Inject constructor(
     private val hostRepository: HostRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(HostDashboardData())
     val uiState: StateFlow<HostDashboardData> = _uiState.asStateFlow()
-    
+
     init {
-        loadHostDashboardData()
+        loadDashboard()
     }
-    
-    private fun loadHostDashboardData() {
+
+    private fun loadDashboard() {
+        if (_uiState.value.isLoading) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            hostRepository.getHostDashboard()
-                .onSuccess { dashboardData ->
-                    _uiState.value = dashboardData
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = exception.message ?: "Unknown error occurred"
-                    )
-                }
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+            val result = hostRepository.loadDashboard()
+
+            _uiState.value = _uiState.value.copy(
+                bookings = result.bookings,
+                listings = result.listings,
+                activeListings = result.overview?.activeListings ?: result.listings.count { it.isAvailable },
+                totalBookings = result.overview?.totalBookings ?: result.bookings.size,
+                totalRevenue = result.overview?.totalRevenue ?: 0.0,
+                averageRating = result.overview?.averageRating ?: 0.0,
+                totalReviews = result.overview?.totalReviews ?: 0,
+                occupancyRate = result.overview?.occupancyRate ?: 0.0,
+                responseRate = result.overview?.responseRate ?: 0.0,
+                pendingBookings = result.overview?.pendingBookings ?: 0,
+                payoutState = result.payoutState,
+                isLoading = false,
+                error = result.errorMessage
+            )
         }
     }
-    
+
     fun refreshData() {
-        loadHostDashboardData()
+        loadDashboard()
     }
-    
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
