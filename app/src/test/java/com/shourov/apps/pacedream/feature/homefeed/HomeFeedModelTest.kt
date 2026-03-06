@@ -87,8 +87,8 @@ class HomeFeedModelTest {
     }
 
     @Test
-    fun `HomeSectionKey HOURLY shareType is USE`() {
-        assertEquals("USE", HomeSectionKey.HOURLY.shareType)
+    fun `HomeSectionKey HOURLY shareType is SHARE`() {
+        assertEquals("SHARE", HomeSectionKey.HOURLY.shareType)
     }
 
     @Test

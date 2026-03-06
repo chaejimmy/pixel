@@ -96,7 +96,7 @@ import kotlinx.coroutines.launch
  * Category chips per marketplace mode (matching website CATEGORIES_BY_MODE)
  */
 private val CATEGORIES_BY_MODE: Map<String, List<String>> = mapOf(
-    "USE" to listOf(
+    "SHARE" to listOf(
         "Restrooms", "Nap Pods", "Meeting Rooms", "Study Rooms",
         "Short Stays", "Studios", "Parking", "Storage Space"
     ),
@@ -213,7 +213,7 @@ fun SearchScreen(
     }
 
     // Clear categories when mode changes (categories differ per mode, like website)
-    val currentShareType = state.shareType?.uppercase() ?: "USE"
+    val currentShareType = state.shareType?.uppercase() ?: "SHARE"
     LaunchedEffect(currentShareType) {
         val validCats = CATEGORIES_BY_MODE[currentShareType] ?: emptyList()
         selectedCategories = selectedCategories.filter { it in validCats }.toSet()
@@ -287,17 +287,17 @@ fun SearchScreen(
                 )
 
                 // Enhanced Search Bar
-                var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.USE) }
+                var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.SHARE) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
 
                 LaunchedEffect(state.shareType) {
                     selectedTab = when (state.shareType?.uppercase()) {
-                        "USE" -> com.pacedream.app.feature.search.SearchTab.USE
+                        "SHARE" -> com.pacedream.app.feature.search.SearchTab.SHARE
                         "BORROW" -> com.pacedream.app.feature.search.SearchTab.BORROW
                         "SPLIT" -> com.pacedream.app.feature.search.SearchTab.SPLIT
-                        else -> com.pacedream.app.feature.search.SearchTab.USE
+                        else -> com.pacedream.app.feature.search.SearchTab.SHARE
                     }
                 }
 
@@ -306,7 +306,7 @@ fun SearchScreen(
                     onTabSelected = { tab ->
                         selectedTab = tab
                         val shareType = when (tab) {
-                            com.pacedream.app.feature.search.SearchTab.USE -> "USE"
+                            com.pacedream.app.feature.search.SearchTab.SHARE -> "SHARE"
                             com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
                             com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
                         }
@@ -358,7 +358,7 @@ fun SearchScreen(
                     onSearchClick = {
                         viewModel.updateSearchParams(
                             shareType = when (selectedTab) {
-                                com.pacedream.app.feature.search.SearchTab.USE -> "USE"
+                                com.pacedream.app.feature.search.SearchTab.SHARE -> "SHARE"
                                 com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
                                 com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
                             },
@@ -666,7 +666,7 @@ private fun EmptyState(shareType: String = "") {
         contentAlignment = Alignment.Center
     ) {
         val (title, description) = when (shareType) {
-            "USE" -> "No space listings available yet" to "Be the first to create a space listing!"
+            "SHARE" -> "No space listings available yet" to "Be the first to create a space listing!"
             "BORROW" -> "No borrow listings available yet" to "Be the first to create a borrow listing!"
             "SPLIT" -> "No split listings available yet" to "Be the first to create a split listing!"
             else -> "No results" to "Try a different search or pull to refresh."
@@ -844,7 +844,7 @@ private fun ResultsList(
 @Composable
 private fun ModeBanner(shareType: String) {
     val (title, description) = when (shareType) {
-        "USE" -> "Share - Space Rentals" to "Discover restrooms, nap pods, meeting rooms, study spaces, parking, and more available by the hour"
+        "SHARE" -> "Share - Space Rentals" to "Discover restrooms, nap pods, meeting rooms, study spaces, parking, and more available by the hour"
         "BORROW" -> "Borrow - Gear & Items" to "Borrow sports gear, cameras, e-bikes, scooters, musical instruments, and more"
         "SPLIT" -> "Split - Share Costs" to "Split stays, find travel roommates, share rides, and split memberships"
         else -> return
@@ -940,7 +940,7 @@ private fun ResultsHeader(
         // Results count
         val listingNoun = if (totalCount == 1) "listing" else "listings"
         val typeLabel = when (shareType) {
-            "USE" -> "space"
+            "SHARE" -> "space"
             "BORROW" -> "borrowable"
             "SPLIT" -> "split"
             else -> ""

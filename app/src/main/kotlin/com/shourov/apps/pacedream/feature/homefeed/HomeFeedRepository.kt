@@ -109,7 +109,7 @@ class HomeFeedRepository @Inject constructor(
 
         // Backend mismatch safety: if time_based isn't supported, fall back to standard listings for USE.
         return getListingsShareTypePage(
-            shareType = "USE",
+            shareType = "SHARE",
             page1 = 1,
             limit = limit
         )
