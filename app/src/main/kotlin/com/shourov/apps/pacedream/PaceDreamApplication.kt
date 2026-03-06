@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.FirebaseApp
+import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
@@ -24,6 +25,9 @@ class PaceDreamApplication : Application() {
     @Inject
     lateinit var authSession: AuthSession
 
+    @Inject
+    lateinit var sessionManager: SessionManager
+
     override fun onCreate() {
         super.onCreate()
 
@@ -42,6 +46,7 @@ class PaceDreamApplication : Application() {
         // Do not block app startup; protected actions can still gate via AuthFlowSheet.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             authSession.initialize()
+            sessionManager.initialize()
         }
     }
 }

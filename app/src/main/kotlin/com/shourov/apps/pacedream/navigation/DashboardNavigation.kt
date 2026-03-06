@@ -566,7 +566,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
 
                                 // Booking is a protected action; keep parity with iOS by gating with AuthFlowSheet.
-                                if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
+                                if (authState == com.pacedream.app.core.auth.AuthState.Unauthenticated) {
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
