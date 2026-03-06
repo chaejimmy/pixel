@@ -19,7 +19,7 @@ interface HostApiService {
         @Query("sort") sort: String? = null
     ): Response<List<Property>>
 
-    @POST(ApiEndPoints.HOST_CREATE_LISTING)
+    @POST(ApiEndPoints.CREATE_LISTING)
     suspend fun createListing(@Body listing: CreateListingRequest): Response<Property>
 
     @PUT(ApiEndPoints.HOST_UPDATE_LISTING)
@@ -96,49 +96,54 @@ data class HostAnalyticsData(
 
 /**
  * Request body for creating a listing.
- * Matches the web platform payload structure from ListingWizard.tsx.
+ * Matches the iOS ListingsPublisherService payload structure (web parity).
+ * Endpoint: POST /listings (same as iOS)
  */
 data class CreateListingRequest(
     val listing_type: String,
     val subCategory: String,
     val title: String,
-    val description: String,
-    val summary: String,
+    val description: String? = null,
+    val summary: String? = null,
     val price: Double,
     val pricing_type: String,
-    val prices: PricesPayload,
     val pricing: PricingPayload,
-    val address: String,
-    val amenities: List<String> = emptyList(),
-    val images: List<String> = emptyList(),
-    val location: LocationPayload,
-    val available: Boolean = true,
+    val address: String? = null,
+    val amenities: List<String>? = null,
+    val images: List<String>? = null,
+    val location: LocationPayload? = null,
     val durations: List<Int>? = null,
     val availability: AvailabilityPayload? = null,
-)
-
-data class PricesPayload(
-    val hour: Double = 0.0,
-    val day: Double = 0.0,
-    val week: Double = 0.0,
-    val month: Double = 0.0,
+    // Split-specific fields (iOS parity)
+    val shareType: String? = null,
+    val share_type: String? = null,
+    val splitType: String? = null,
+    val totalCost: Double? = null,
+    val checkInDate: String? = null,
+    val checkOutDate: String? = null,
+    val hotelName: String? = null,
+    val roomType: String? = null,
+    val deadlineAt: String? = null,
+    val requirements: String? = null,
+    val experiments: Map<String, String>? = null,
 )
 
 data class PricingPayload(
     val base_price: Double,
     val unit: String,
+    val pricing_type: String,
     val currency: String = "USD",
+    val frequency: String,
 )
 
+/**
+ * Location payload matching iOS: uses lat/lng (not latitude/longitude).
+ */
 data class LocationPayload(
-    val street_address: String = "",
-    val street: String = "",
-    val address: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
     val city: String = "",
     val state: String = "",
-    val country: String = "",
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0,
 )
 
 data class AvailabilityPayload(

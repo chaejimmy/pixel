@@ -70,7 +70,7 @@ fun NavGraphBuilder.HostNavigationGraph(
         val typeParam = backStackEntry.arguments?.getString("type") ?: "share"
         val listingMode = when (typeParam.lowercase()) {
             "borrow" -> ListingMode.BORROW
-            "use" -> ListingMode.USE
+            "split" -> ListingMode.SPLIT
             else -> ListingMode.SHARE
         }
         CreateListingScreen(
