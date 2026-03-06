@@ -1,16 +1,15 @@
 package com.shourov.apps.pacedream.navigation
 
 import androidx.lifecycle.ViewModel
-import com.shourov.apps.pacedream.core.network.auth.AuthSession
-import com.shourov.apps.pacedream.core.network.auth.AuthState
+import com.pacedream.app.core.auth.AuthState
+import com.pacedream.app.core.auth.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthGateViewModel @Inject constructor(
-    private val authSession: AuthSession
+    private val sessionManager: SessionManager
 ) : ViewModel() {
-    val authState: StateFlow<AuthState> = authSession.authState
+    val authState: StateFlow<AuthState> = sessionManager.authState
 }
-
