@@ -38,6 +38,7 @@ class CheckoutViewModel @Inject constructor(
 
     sealed class Effect {
         data class NavigateToConfirmation(val bookingId: String) : Effect()
+        data class LaunchStripeCheckout(val checkoutUrl: String) : Effect()
     }
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -74,12 +75,24 @@ class CheckoutViewModel @Inject constructor(
 
             when (finalResult) {
                 is ApiResult.Success -> {
+                    // iOS parity: backend may return a checkoutUrl (Stripe) or a direct booking ID.
+                    val checkoutUrl = parseCheckoutUrl(finalResult.data)
                     val bookingId = parseBookingId(finalResult.data)
-                    if (bookingId.isNullOrBlank()) {
-                        _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }
-                    } else {
-                        _uiState.update { it.copy(isSubmitting = false, errorMessage = null) }
-                        _effects.send(Effect.NavigateToConfirmation(bookingId))
+
+                    when {
+                        !checkoutUrl.isNullOrBlank() -> {
+                            // Stripe checkout flow (matches iOS WebFlow)
+                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null) }
+                            _effects.send(Effect.LaunchStripeCheckout(checkoutUrl))
+                        }
+                        !bookingId.isNullOrBlank() -> {
+                            // Direct booking created
+                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null) }
+                            _effects.send(Effect.NavigateToConfirmation(bookingId))
+                        }
+                        else -> {
+                            _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }
+                        }
                     }
                 }
                 is ApiResult.Failure -> {
@@ -143,6 +156,21 @@ class CheckoutViewModel @Inject constructor(
             put("amount", it)
             put("totalAmountEstimate", it)
             put("total_amount_estimate", it)
+        }
+    }
+
+    /**
+     * Parse checkout URL from backend response (iOS parity: Stripe checkout flow).
+     */
+    private fun parseCheckoutUrl(responseBody: String): String? {
+        return try {
+            val root = json.parseToJsonElement(responseBody).jsonObject
+            val data = (root["data"] as? JsonObject) ?: root
+            data["checkoutUrl"]?.jsonPrimitive?.content
+                ?: data["checkout_url"]?.jsonPrimitive?.content
+                ?: data["url"]?.jsonPrimitive?.content
+        } catch (_: Exception) {
+            null
         }
     }
 

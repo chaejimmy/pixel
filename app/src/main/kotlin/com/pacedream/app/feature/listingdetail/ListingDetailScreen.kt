@@ -108,6 +108,7 @@ fun ListingDetailScreen(
         bottomBar = {
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
+                available = listing?.available,
                 onReserveClick = { showReserveSheet = true },
                 onSendProposalClick = { showProposalSheet = true }
             )
@@ -170,6 +171,9 @@ fun ListingDetailScreen(
                             reviewCount = listing?.reviewCount,
                             cityState = listing?.location?.cityState,
                             pricePill = listing?.pricing?.displayPrimary,
+                            propertyType = listing?.propertyType,
+                            instantBook = listing?.instantBook,
+                            available = listing?.available,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 16.dp)
@@ -611,9 +615,11 @@ private fun Long.toLocalDate(): LocalDate {
 @Composable
 private fun BookingBar(
     pricingLabel: String?,
+    available: Boolean? = null,
     onReserveClick: () -> Unit,
     onSendProposalClick: () -> Unit
 ) {
+    val isAvailable = available != false // Default to available if null
     Surface(shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
@@ -629,11 +635,19 @@ private fun BookingBar(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Taxes shown at checkout",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (available != null) {
+                    Text(
+                        text = if (isAvailable) "Available" else "Unavailable",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444)
+                    )
+                } else {
+                    Text(
+                        text = "Taxes shown at checkout",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             OutlinedButton(
                 onClick = onSendProposalClick,
@@ -647,7 +661,10 @@ private fun BookingBar(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Propose")
             }
-            Button(onClick = onReserveClick) {
+            Button(
+                onClick = onReserveClick,
+                enabled = isAvailable
+            ) {
                 Text(if (pricingLabel != null) "Reserve" else "Select time")
             }
         }
@@ -757,6 +774,9 @@ private fun TitleMetaBlock(
     reviewCount: Int?,
     cityState: String?,
     pricePill: String?,
+    propertyType: String? = null,
+    instantBook: Boolean? = null,
+    available: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -813,6 +833,90 @@ private fun TitleMetaBlock(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
+        }
+
+        // Property type badge + Instant Book badge (iOS parity)
+        if (propertyType != null || instantBook == true || available != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                propertyType?.takeIf { it.isNotBlank() }?.let { type ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Home,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = type.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                if (instantBook == true) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0xFFFFF3E0)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Bolt,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Instant Book",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+                }
+
+                available?.let { isAvailable ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = if (isAvailable) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isAvailable) "Available" else "Unavailable",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

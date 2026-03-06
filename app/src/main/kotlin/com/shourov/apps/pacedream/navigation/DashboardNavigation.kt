@@ -52,7 +52,9 @@ import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
 import com.pacedream.app.feature.listingdetail.ListingDetailRoute
+import com.pacedream.app.feature.checkout.BookingDraft
 import com.pacedream.app.feature.checkout.BookingDraftCodec
+import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
@@ -543,6 +545,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
                             }
 
+                            // Checkout Screen – receives BookingDraft via savedStateHandle (iOS parity)
                             composable(
                                 route = "${BookingDestination.BOOKING_FORM.name}/{propertyId}",
                                 arguments = listOf(
@@ -553,9 +556,17 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val authGate = hiltViewModel<AuthGateViewModel>()
                                 val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
+
+                                // Decode the BookingDraft that was saved by the detail page
+                                val draftJson = navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.get<String>("booking_draft_json_$propertyId")
+                                val draft = draftJson?.let {
+                                    runCatching { BookingDraftCodec.decode(it) }.getOrNull()
+                                }
+
                                 // Booking is a protected action; keep parity with iOS by gating with AuthFlowSheet.
                                 if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
-                                    // Don't force login globally, but booking is protected.
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
@@ -569,7 +580,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                             ) { Text("Sign in") }
                                         }
                                     }
+                                } else if (draft != null) {
+                                    // Use CheckoutScreen with the real BookingDraft and backend API
+                                    CheckoutScreen(
+                                        draft = draft,
+                                        onBackClick = { navController.popBackStack() },
+                                        onConfirmSuccess = { bookingId ->
+                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId") {
+                                                // Pop checkout off the stack so back goes to detail
+                                                popUpTo("${BookingDestination.BOOKING_FORM.name}/$propertyId") {
+                                                    inclusive = true
+                                                }
+                                            }
+                                        }
+                                    )
                                 } else {
+                                    // Fallback: if draft is somehow missing, show BookingFormScreen
                                     BookingFormScreen(
                                         propertyId = propertyId,
                                         onBookingCreated = { bookingId ->
@@ -578,8 +604,6 @@ fun NavGraphBuilder.DashboardNavigation(
                                     )
                                 }
 
-                                // If user is logged out mid-flow, the BookingFormViewModel will surface an error;
-                                // keep an escape hatch to sign in.
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
                                         title = "Sign in",

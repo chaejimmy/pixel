@@ -66,6 +66,7 @@ import androidx.compose.material.icons.rounded.Bed
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmarks
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Business
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -350,6 +351,9 @@ object PaceDreamIcons {
     // ── Media & Camera ──────────────────────────────────────────
     val CameraAlt: ImageVector = Icons.Rounded.CameraAlt
     val AddPhotoAlternate: ImageVector = Icons.Rounded.AddPhotoAlternate
+
+    // ── Badges ─────────────────────────────────────────────────
+    val Bolt: ImageVector = Icons.Rounded.Bolt
 
     // ── Listing & Gear Types ────────────────────────────────────
     val Build: ImageVector = Icons.Rounded.Build
