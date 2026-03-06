@@ -113,18 +113,18 @@ private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = 
     ListingMode.SHARE -> listOf(
         SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
         SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home, needsSchedule = true),
-        SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Groups, needsSchedule = true),
+        SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group, needsSchedule = true),
         SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
         SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
         SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
-        SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.DirectionsCar, needsSchedule = false),
-        SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Inventory2, needsSchedule = false),
+        SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
+        SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
     )
     ListingMode.BORROW -> listOf(
         SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike, needsSchedule = true),
         SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt, needsSchedule = true),
         SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop, needsSchedule = true),
-        SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.MusicNote, needsSchedule = true),
+        SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.Category, needsSchedule = true),
         SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build, needsSchedule = true),
         SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
         SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
@@ -135,7 +135,7 @@ private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = 
         SubcategoryItem("subscription", "subscription", "Subscription", "Share the cost", PaceDreamIcons.CreditCard, needsSchedule = false),
         SubcategoryItem("sports", "sports", "Sports", "Split memberships", PaceDreamIcons.FitnessCenter, needsSchedule = false),
         SubcategoryItem("wifi", "wifi", "WIFI", "Split internet cost", PaceDreamIcons.Wifi, needsSchedule = false),
-        SubcategoryItem("events", "events", "Events", "Share event costs", PaceDreamIcons.Event, needsSchedule = false),
+        SubcategoryItem("events", "events", "Events", "Share event costs", PaceDreamIcons.CalendarToday, needsSchedule = false),
     )
 }
 

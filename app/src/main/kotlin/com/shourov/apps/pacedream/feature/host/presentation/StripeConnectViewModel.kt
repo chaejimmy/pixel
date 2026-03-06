@@ -75,7 +75,8 @@ class StripeConnectViewModel @Inject constructor(
         viewModelScope.launch {
             stripeConnectRepository.createOnboardingLink()
                 .onSuccess { link ->
-                    openUrl(link.url)
+                    val url = link.resolvedUrl
+                    if (url != null) openUrl(url)
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
@@ -89,7 +90,8 @@ class StripeConnectViewModel @Inject constructor(
         viewModelScope.launch {
             stripeConnectRepository.createLoginLink()
                 .onSuccess { link ->
-                    openUrl(link.url)
+                    val url = link.resolvedUrl
+                    if (url != null) openUrl(url)
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(

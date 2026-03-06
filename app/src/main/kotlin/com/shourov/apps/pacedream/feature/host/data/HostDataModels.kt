@@ -131,14 +131,6 @@ enum class PayoutConnectionState {
     NOT_CONNECTED
 }
 
-/** Payout method matching iOS PayoutsService.PayoutMethod */
-data class PayoutMethod(
-    val id: String,
-    val type: String,
-    val label: String,
-    val isPrimary: Boolean
-)
-
 // ── Quick Action Item ───────────────────────────────────────────
 
 data class QuickAction(

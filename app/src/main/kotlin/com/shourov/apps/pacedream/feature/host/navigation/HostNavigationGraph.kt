@@ -42,17 +42,12 @@ fun NavGraphBuilder.HostNavigationGraph(
     
     composable(HostScreen.Bookings.route) {
         HostBookingsScreen(
-            onBookingClick = onNavigateToBooking,
-            onAcceptBookingClick = { /* TODO: Handle accept */ },
-            onRejectBookingClick = { /* TODO: Handle reject */ },
-            onCancelBookingClick = { /* TODO: Handle cancel */ }
+            onBookingClick = onNavigateToBooking
         )
     }
-    
+
     composable(HostScreen.Earnings.route) {
-        HostEarningsScreen(
-            onWithdrawClick = onNavigateToWithdraw
-        )
+        HostEarningsScreen()
     }
     
     composable(HostScreen.Analytics.route) {

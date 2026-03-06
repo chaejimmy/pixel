@@ -70,16 +70,16 @@ interface HostApiService {
     // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
 
     @GET(ApiEndPoints.HOST_PAYOUT_STATUS)
-    suspend fun getPayoutStatus(): Response<PayoutStatus>
+    suspend fun getPayoutStatus(): Response<PayoutStatusResponse>
 
     @POST(ApiEndPoints.HOST_PAYOUT_ONBOARDING_LINK)
-    suspend fun createOnboardingLink(): Response<AccountLink>
+    suspend fun createOnboardingLink(): Response<PayoutLinkResponse>
 
     @POST(ApiEndPoints.HOST_PAYOUT_LOGIN_LINK)
-    suspend fun createLoginLink(): Response<LoginLink>
+    suspend fun createLoginLink(): Response<PayoutLinkResponse>
 
     @GET(ApiEndPoints.HOST_PAYOUT_METHODS)
-    suspend fun getPayoutMethods(): Response<List<PayoutMethod>>
+    suspend fun getPayoutMethods(): Response<PayoutMethodsResponse>
 
     @POST("host/payouts/methods/set-primary")
     suspend fun setPrimaryPayoutMethod(@Body body: SetPrimaryMethodRequest): Response<Unit>

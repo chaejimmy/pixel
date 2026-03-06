@@ -143,7 +143,7 @@ fun HostDashboardScreen(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
                     Icon(
-                        imageVector = PaceDreamIcons.SwapHoriz,
+                        imageVector = PaceDreamIcons.ExitToApp,
                         contentDescription = null,
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(18.dp)
@@ -326,7 +326,7 @@ private fun KPIChipsRow(
     ) {
         item { KPIChip(title = "Active listings", value = "$activeListings", icon = PaceDreamIcons.Home) }
         item { KPIChip(title = "Upcoming bookings", value = "$upcomingBookings", icon = PaceDreamIcons.CalendarToday) }
-        item { KPIChip(title = "Pending requests", value = "$pendingRequests", icon = PaceDreamIcons.HourglassEmpty) }
+        item { KPIChip(title = "Pending requests", value = "$pendingRequests", icon = PaceDreamIcons.Schedule) }
         item { KPIChip(title = "This month", value = "$${String.format("%.0f", monthlyEarnings)}", icon = PaceDreamIcons.AttachMoney) }
     }
 }
