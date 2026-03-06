@@ -75,8 +75,8 @@ class BookingRepository @Inject constructor(
 
     suspend fun updateBooking(booking: BookingModel): Result<BookingModel> {
         return try {
-            val bookingId = booking.id ?: return Result.Error(Exception("Booking ID is required"))
-            val response = apiService.updateBooking(bookingId.toString(), booking)
+            if (booking.id.isBlank()) return Result.Error(Exception("Booking ID is required"))
+            val response = apiService.updateBooking(booking.id, booking)
             if (response.isSuccessful) {
                 // Update local database
                 booking.asEntity()?.let { bookingDao.updateBooking(it) }
@@ -94,7 +94,7 @@ class BookingRepository @Inject constructor(
             val response = apiService.cancelBooking(bookingId)
             if (response.isSuccessful) {
                 // Update local database
-                bookingDao.deleteBookingById(bookingId)
+                bookingDao.updateBookingStatus(bookingId, "CANCELLED")
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to cancel booking: ${response.message()}"))

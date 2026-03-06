@@ -80,7 +80,7 @@ class CreateAccountViewModel @Inject constructor(
     }
 
     fun onContinueClicked() {
-        if (componentIndex < createAccountComponentsOrder.size) {
+        if (componentIndex < createAccountComponentsOrder.size - 1) {
             //update the data first
 
 

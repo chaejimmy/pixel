@@ -62,7 +62,8 @@ fun BookingEntity.asExternalModel(): BookingModel {
     )
 }
 
-fun BookingModel.asEntity(): BookingEntity {
+fun BookingModel.asEntity(): BookingEntity? {
+    if (id.isBlank()) return null
     return BookingEntity(
         id = id,
         userProfilePic = userProfilePic,

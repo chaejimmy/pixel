@@ -46,8 +46,8 @@ object NavRoutes {
     const val COLLECTION_DETAIL = "collections/{collectionId}"
 
     // Webflow / Booking routes
-    const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased"
-    const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear"
+    const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased/{sessionId}"
+    const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear/{sessionId}"
     const val BOOKING_CANCELLED = "booking/cancelled"
     const val BOOKING_DETAIL = "bookingDetail/{bookingId}"
 

@@ -52,8 +52,9 @@ class MainActivity : ComponentActivity() {
 
     val viewModel: MainActivityViewModel by viewModels()
     
-    // Pending deep link to process after navigation is ready
-    private var pendingDeepLink: DeepLinkResult? = null
+    // Pending deep link to process after navigation is ready (observable for Compose)
+    private val _pendingDeepLink = kotlinx.coroutines.flow.MutableStateFlow<DeepLinkResult?>(null)
+    val pendingDeepLink: kotlinx.coroutines.flow.StateFlow<DeepLinkResult?> = _pendingDeepLink
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
         // Check for deep links first
         val deepLinkResult = deepLinkHandler.parseDeepLink(intent)
         if (deepLinkResult != null) {
-            pendingDeepLink = deepLinkResult
+            _pendingDeepLink.value = deepLinkResult
             Timber.d("Deep link parsed: $deepLinkResult")
             return
         }
@@ -119,8 +120,8 @@ class MainActivity : ComponentActivity() {
      * Get pending deep link and clear it
      */
     fun consumePendingDeepLink(): DeepLinkResult? {
-        val result = pendingDeepLink
-        pendingDeepLink = null
+        val result = _pendingDeepLink.value
+        _pendingDeepLink.value = null
         return result
     }
 

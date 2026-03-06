@@ -112,8 +112,10 @@ class TokenStorage @Inject constructor(
      * Store backend tokens
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
-        this.accessToken = accessToken
-        this.refreshToken = refreshToken
+        prefs.edit()
+            .putString(KEY_ACCESS_TOKEN, accessToken)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .apply()
         Timber.d("Tokens stored")
     }
     

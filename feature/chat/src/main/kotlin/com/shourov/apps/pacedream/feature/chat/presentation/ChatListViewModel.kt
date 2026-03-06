@@ -30,18 +30,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val authSession: com.shourov.apps.pacedream.core.network.auth.AuthSession
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ChatListUiState())
     val uiState: StateFlow<ChatListUiState> = _uiState.asStateFlow()
-    
+
     fun loadChats() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            // For now, using a mock user ID - this should come from user session
-            val userId = "current_user_id"
+
+            val userId = authSession.currentUserId ?: run {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Not signed in"
+                )
+                return@launch
+            }
             
             messageRepository.getUserMessages(userId).collect { result ->
                 when (result) {

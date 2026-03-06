@@ -131,8 +131,8 @@ class BookingTabViewModel @Inject constructor(
     }
 
     private fun loadMore() {
-        val currentState = _uiState.value as? BookingTabUiState.Success ?: return
-        if (!currentState.hasMore) return
+        val initialState = _uiState.value as? BookingTabUiState.Success ?: return
+        if (!initialState.hasMore) return
 
         viewModelScope.launch {
             val result = bookingTabRepository.getBookings(
@@ -144,8 +144,10 @@ class BookingTabViewModel @Inject constructor(
             when (result) {
                 is ApiResult.Success -> {
                     currentOffset += result.data.bookings.size
-                    _uiState.value = currentState.copy(
-                        bookings = currentState.bookings + result.data.bookings,
+                    // Use latest state to avoid overwriting concurrent mutations
+                    val latestState = _uiState.value as? BookingTabUiState.Success ?: return@launch
+                    _uiState.value = latestState.copy(
+                        bookings = latestState.bookings + result.data.bookings,
                         hasMore = result.data.hasMore
                     )
                 }

@@ -105,37 +105,44 @@ class ApiClient @Inject constructor(
         includeAuth: Boolean = false
     ): ApiResult<String> {
         val cacheKey = url.toString()
-        
+
         // Check for in-flight request (deduplication)
-        mutex.withLock {
-            inFlightRequests[cacheKey]?.let { existing ->
-                Timber.d("Reusing in-flight GET request: $cacheKey")
-                return existing.await()
-            }
-            
-            // Create new deferred for this request
-            val deferred = CompletableDeferred<ApiResult<String>>()
-            inFlightRequests[cacheKey] = deferred
+        // Important: await() must be called OUTSIDE the mutex lock to avoid deadlock
+        val existingDeferred = mutex.withLock {
+            inFlightRequests[cacheKey]
         }
-        
+        if (existingDeferred != null) {
+            Timber.d("Reusing in-flight GET request: $cacheKey")
+            return existingDeferred.await()
+        }
+
+        // Create new deferred for this request
+        val deferred = CompletableDeferred<ApiResult<String>>()
+        mutex.withLock {
+            // Double-check: another coroutine may have registered between our check and lock
+            inFlightRequests[cacheKey]?.let { racing ->
+                return@withLock racing
+            }
+            inFlightRequests[cacheKey] = deferred
+            null
+        }?.let { racing ->
+            return racing.await()
+        }
+
         try {
             val result = executeWithRetry(url, includeAuth)
-            
-            mutex.withLock {
-                inFlightRequests[cacheKey]?.complete(result)
-                inFlightRequests.remove(cacheKey)
-            }
-            
+            deferred.complete(result)
+            inFlightRequests.remove(cacheKey)
             return result
+        } catch (e: CancellationException) {
+            deferred.cancel(e)
+            inFlightRequests.remove(cacheKey)
+            throw e
         } catch (e: Exception) {
             val error = mapException(e)
             val result = ApiResult.Failure(error)
-            
-            mutex.withLock {
-                inFlightRequests[cacheKey]?.complete(result)
-                inFlightRequests.remove(cacheKey)
-            }
-            
+            deferred.complete(result)
+            inFlightRequests.remove(cacheKey)
             return result
         }
     }
@@ -166,9 +173,11 @@ class ApiClient @Inject constructor(
                         ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastError = mapException(e)
-                
+
                 // Only retry on timeout/transient errors
                 if (!isRetryableError(lastError) || attempt >= AppConfig.MAX_RETRY_ATTEMPTS) {
                     return ApiResult.Failure(lastError)
@@ -238,11 +247,13 @@ class ApiClient @Inject constructor(
                     ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ApiResult.Failure(mapException(e))
         }
     }
-    
+
     /**
      * Execute non-GET request (no retry)
      */
@@ -255,7 +266,7 @@ class ApiClient @Inject constructor(
         return try {
             val request = buildRequest(url, method, body, includeAuth)
             val response = executeRequest(request)
-            
+
             when {
                 response.isSuccessful -> {
                     ApiResult.Success(response.body?.string() ?: "")
@@ -266,6 +277,8 @@ class ApiClient @Inject constructor(
                     ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ApiResult.Failure(mapException(e))
         }
@@ -320,7 +333,6 @@ class ApiClient @Inject constructor(
      */
     private fun mapException(e: Exception): ApiError {
         return when (e) {
-            is CancellationException -> ApiError.Cancelled
             is SocketTimeoutException -> ApiError.NetworkTimeout
             is UnknownHostException -> ApiError.NoConnection
             is HtmlResponseException -> ApiError.HtmlResponse

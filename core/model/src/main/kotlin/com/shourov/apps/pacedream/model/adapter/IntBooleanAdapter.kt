@@ -11,7 +11,7 @@ annotation class IntBoolean
 class IntBooleanAdapter {
     @ToJson
     fun toJson(@IntBoolean value: Boolean): Int {
-        return if (value) 0 else 1
+        return if (value) 1 else 0
     }
 
     @FromJson

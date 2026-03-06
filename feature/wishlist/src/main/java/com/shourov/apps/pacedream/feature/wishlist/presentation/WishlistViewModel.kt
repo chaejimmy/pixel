@@ -125,11 +125,12 @@ class WishlistViewModel @Inject constructor(
      * Update UI state with current filter
      */
     private fun updateUiWithCurrentFilter() {
-        if (fullItemsList.isEmpty()) {
+        val filteredItems = fullItemsList.filter { currentFilter.matches(it) }
+        if (filteredItems.isEmpty() && fullItemsList.isEmpty()) {
             _uiState.value = WishlistUiState.Empty
         } else {
             _uiState.value = WishlistUiState.Success(
-                items = fullItemsList.toList(),
+                items = filteredItems,
                 selectedFilter = currentFilter
             )
         }
