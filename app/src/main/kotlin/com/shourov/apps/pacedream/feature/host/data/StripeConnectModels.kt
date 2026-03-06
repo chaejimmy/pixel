@@ -1,59 +1,94 @@
 package com.shourov.apps.pacedream.feature.host.data
 
-import com.google.gson.annotations.SerializedName
-
-// Stripe Connect Account
+// Stripe Connect Account (dual camelCase/snake_case for backend compatibility)
 data class ConnectAccount(
     val id: String = "",
     val status: ConnectAccountStatus = ConnectAccountStatus.NOT_CREATED,
     val country: String = "US",
     val email: String = "",
-    @SerializedName("business_type") val businessType: String? = null,
-    @SerializedName("charges_enabled") val chargesEnabled: Boolean = false,
-    @SerializedName("payouts_enabled") val payoutsEnabled: Boolean = false,
-    @SerializedName("details_submitted") val detailsSubmitted: Boolean = false,
+    val businessType: String? = null,
+    val business_type: String? = null,
+    val chargesEnabled: Boolean = false,
+    val charges_enabled: Boolean = false,
+    val payoutsEnabled: Boolean = false,
+    val payouts_enabled: Boolean = false,
+    val detailsSubmitted: Boolean = false,
+    val details_submitted: Boolean = false,
     val requirements: ConnectRequirements? = null,
-    @SerializedName("created_at") val createdAt: String = ""
-)
+    val createdAt: String = "",
+    val created_at: String? = null
+) {
+    val resolvedBusinessType: String? get() = businessType ?: business_type
+    val resolvedChargesEnabled: Boolean get() = chargesEnabled || charges_enabled
+    val resolvedPayoutsEnabled: Boolean get() = payoutsEnabled || payouts_enabled
+    val resolvedDetailsSubmitted: Boolean get() = detailsSubmitted || details_submitted
+    val resolvedCreatedAt: String get() = createdAt.ifEmpty { created_at ?: "" }
+}
 
 enum class ConnectAccountStatus {
-    @SerializedName("not_created") NOT_CREATED,
-    @SerializedName("pending") PENDING,
-    @SerializedName("under_review") UNDER_REVIEW,
-    @SerializedName("enabled") ENABLED,
-    @SerializedName("restricted") RESTRICTED,
-    @SerializedName("rejected") REJECTED
+    NOT_CREATED, PENDING, UNDER_REVIEW, ENABLED, RESTRICTED, REJECTED;
+
+    companion object {
+        fun fromString(value: String): ConnectAccountStatus {
+            val normalized = value.trim().uppercase().replace("-", "_").replace(" ", "_")
+            return entries.firstOrNull { it.name == normalized } ?: NOT_CREATED
+        }
+    }
 }
 
 data class ConnectRequirements(
-    @SerializedName("currently_due") val currentlyDue: List<String> = emptyList(),
-    @SerializedName("eventually_due") val eventuallyDue: List<String> = emptyList(),
-    @SerializedName("past_due") val pastDue: List<String> = emptyList(),
-    @SerializedName("pending_verification") val pendingVerification: List<String> = emptyList()
-)
+    val currentlyDue: List<String>? = null,
+    val currently_due: List<String>? = null,
+    val eventuallyDue: List<String>? = null,
+    val eventually_due: List<String>? = null,
+    val pastDue: List<String>? = null,
+    val past_due: List<String>? = null,
+    val pendingVerification: List<String>? = null,
+    val pending_verification: List<String>? = null
+) {
+    val resolvedCurrentlyDue: List<String> get() = currentlyDue ?: currently_due ?: emptyList()
+    val resolvedEventuallyDue: List<String> get() = eventuallyDue ?: eventually_due ?: emptyList()
+    val resolvedPastDue: List<String> get() = pastDue ?: past_due ?: emptyList()
+    val resolvedPendingVerification: List<String> get() = pendingVerification ?: pending_verification ?: emptyList()
+}
 
 data class AccountLink(
-    val url: String,
-    @SerializedName("expires_at") val expiresAt: Long
-)
+    val url: String? = null,
+    val expiresAt: Long? = null,
+    val expires_at: Long? = null
+) {
+    val resolvedUrl: String? get() = url
+    val resolvedExpiresAt: Long? get() = expiresAt ?: expires_at
+}
 
 data class LoginLink(
-    val url: String,
-    @SerializedName("expires_at") val expiresAt: Long
-)
+    val url: String? = null,
+    val expiresAt: Long? = null,
+    val expires_at: Long? = null
+) {
+    val resolvedUrl: String? get() = url
+    val resolvedExpiresAt: Long? get() = expiresAt ?: expires_at
+}
 
 // Stripe Connect Balance
 data class ConnectBalance(
     val available: List<BalanceAmount> = emptyList(),
     val pending: List<BalanceAmount> = emptyList(),
-    @SerializedName("instant_available") val instantAvailable: List<BalanceAmount> = emptyList()
-)
+    val instantAvailable: List<BalanceAmount> = emptyList(),
+    val instant_available: List<BalanceAmount>? = null
+) {
+    val resolvedInstantAvailable: List<BalanceAmount> get() =
+        instantAvailable.ifEmpty { instant_available ?: emptyList() }
+}
 
 data class BalanceAmount(
     val amount: Int = 0,
     val currency: String = "usd",
-    @SerializedName("source_types") val sourceTypes: Map<String, Int> = emptyMap()
-)
+    val sourceTypes: Map<String, Int>? = null,
+    val source_types: Map<String, Int>? = null
+) {
+    val resolvedSourceTypes: Map<String, Int> get() = sourceTypes ?: source_types ?: emptyMap()
+}
 
 // Stripe Connect Transfer
 data class Transfer(
@@ -63,9 +98,14 @@ data class Transfer(
     val destination: String = "",
     val description: String? = null,
     val status: String = "pending",
-    @SerializedName("booking_id") val bookingId: String? = null,
-    @SerializedName("created_at") val createdAt: String = ""
-)
+    val bookingId: String? = null,
+    val booking_id: String? = null,
+    val createdAt: String = "",
+    val created_at: String? = null
+) {
+    val resolvedBookingId: String? get() = bookingId ?: booking_id
+    val resolvedCreatedAt: String get() = createdAt.ifEmpty { created_at ?: "" }
+}
 
 // Stripe Connect Payout
 data class Payout(
@@ -73,10 +113,15 @@ data class Payout(
     val amount: Int,
     val currency: String,
     val status: String = "pending",
-    @SerializedName("arrival_date") val arrivalDate: String = "",
+    val arrivalDate: String = "",
+    val arrival_date: String? = null,
     val description: String? = null,
-    @SerializedName("created_at") val createdAt: String = ""
-)
+    val createdAt: String = "",
+    val created_at: String? = null
+) {
+    val resolvedArrivalDate: String get() = arrivalDate.ifEmpty { arrival_date ?: "" }
+    val resolvedCreatedAt: String get() = createdAt.ifEmpty { created_at ?: "" }
+}
 
 // Payout Status from backend
 data class PayoutStatus(
@@ -89,7 +134,14 @@ data class PayoutStatus(
 )
 
 enum class PayoutState {
-    CONNECTED, PENDING, NOT_CONNECTED
+    CONNECTED, PENDING, NOT_CONNECTED;
+
+    companion object {
+        fun fromString(value: String): PayoutState {
+            val normalized = value.trim().uppercase().replace("-", "_").replace(" ", "_")
+            return entries.firstOrNull { it.name == normalized } ?: NOT_CONNECTED
+        }
+    }
 }
 
 // Payout Method

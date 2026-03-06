@@ -112,23 +112,11 @@ class HostEarningsViewModel @Inject constructor(
 
     // Legacy methods for backward compatibility
     fun updateTimeRange(timeRange: String) {
-        _uiState.value = _uiState.value.copy(selectedTimeRange = timeRange)
+        // Time range filtering handled via refreshData
+        refreshData()
     }
 
     fun withdrawEarnings(amount: Double) {
         requestPayout(amount)
-    }
-
-    fun requestWithdrawal(amount: Double, paymentMethod: String) {
-        viewModelScope.launch {
-            hostRepository.requestWithdrawal(amount, paymentMethod)
-                .onSuccess { refreshData() }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        error = exception.message ?: "Failed to process withdrawal",
-                        isBusy = false
-                    )
-                }
-        }
     }
 }

@@ -38,7 +38,7 @@ class StripeConnectRepository @Inject constructor(
     }
 
     // Onboarding & Dashboard Links
-    suspend fun createOnboardingLink(): Result<AccountLink> {
+    suspend fun createOnboardingLink(): Result<PayoutLinkResponse> {
         return try {
             val response = hostApiService.createOnboardingLink()
             if (response.isSuccessful) {
@@ -51,7 +51,7 @@ class StripeConnectRepository @Inject constructor(
         }
     }
 
-    suspend fun createLoginLink(): Result<LoginLink> {
+    suspend fun createLoginLink(): Result<PayoutLinkResponse> {
         return try {
             val response = hostApiService.createLoginLink()
             if (response.isSuccessful) {
@@ -124,7 +124,15 @@ class StripeConnectRepository @Inject constructor(
         return try {
             val response = hostApiService.getPayoutMethods()
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+                val methods = response.body()?.resolvedMethods?.map { m ->
+                    PayoutMethod(
+                        id = m.resolvedId,
+                        type = m.resolvedType,
+                        label = m.resolvedLabel,
+                        isPrimary = m.resolvedIsPrimary
+                    )
+                } ?: emptyList()
+                Result.success(methods)
             } else {
                 Result.failure(Exception("Failed to fetch payout methods: ${response.code()}"))
             }
@@ -134,11 +142,11 @@ class StripeConnectRepository @Inject constructor(
     }
 
     // Payout Status
-    suspend fun getPayoutStatus(): Result<PayoutStatus> {
+    suspend fun getPayoutStatus(): Result<PayoutStatusResponse> {
         return try {
             val response = hostApiService.getPayoutStatus()
             if (response.isSuccessful) {
-                Result.success(response.body() ?: PayoutStatus())
+                Result.success(response.body() ?: PayoutStatusResponse())
             } else {
                 Result.failure(Exception("Failed to fetch payout status: ${response.code()}"))
             }

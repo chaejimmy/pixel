@@ -244,7 +244,7 @@ class HostRepository @Inject constructor(
 
     suspend fun createOnboardingLink(): Result<String> {
         return try {
-            val response = hostApiService.createPayoutOnboardingLink()
+            val response = hostApiService.createOnboardingLink()
             if (response.isSuccessful) {
                 val url = response.body()?.resolvedUrl
                 if (url != null) Result.success(url)
@@ -259,7 +259,7 @@ class HostRepository @Inject constructor(
 
     suspend fun createLoginLink(): Result<String> {
         return try {
-            val response = hostApiService.createPayoutLoginLink()
+            val response = hostApiService.createLoginLink()
             if (response.isSuccessful) {
                 val url = response.body()?.resolvedUrl
                 if (url != null) Result.success(url)
