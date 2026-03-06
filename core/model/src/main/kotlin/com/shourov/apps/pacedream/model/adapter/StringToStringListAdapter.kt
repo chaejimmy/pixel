@@ -16,7 +16,7 @@ class StringToStringListAdapter {
 
     @ToJson
     fun toJson(@StringToStringList value: List<String>): String {
-        return value.joinToString().trim()
+        return value.joinToString(separator = ",")
     }
 
     @FromJson

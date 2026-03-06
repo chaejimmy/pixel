@@ -1,24 +1,22 @@
 package com.shourov.apps.pacedream.core.data.util
 
-// name pattern: no numbers, no special characters, min 3
-const val NAME_PATTERN = "^[a-zA-Z]{3,}\$"
+// name pattern: letters (including Unicode), spaces, hyphens, apostrophes, min 2
+const val NAME_PATTERN = "^[\\p{L}][\\p{L} '\\-]{1,}\$"
 fun isValidName(name: String): Boolean {
-    return NAME_PATTERN.toRegex().matches(name)
+    return NAME_PATTERN.toRegex().matches(name.trim())
 }
 
 // error message for name
 fun nameValidationError(name: String): String {
-    if (!name.matches(Regex(NAME_PATTERN))) {
+    val trimmed = name.trim()
+    if (!trimmed.matches(Regex(NAME_PATTERN))) {
         val errorMessage = StringBuilder()
 
-        if (name.contains("[0-9]".toRegex())) {
+        if (trimmed.contains("[0-9]".toRegex())) {
             errorMessage.append("- Should not include any numbers\n")
         }
-        if (name.contains("[^A-Za-z]".toRegex())) {
-            errorMessage.append("- Should not include any special characters or spaces\n")
-        }
-        if (name.length < 3) {
-            errorMessage.append("- Be at least 3 characters long\n")
+        if (trimmed.length < 2) {
+            errorMessage.append("- Be at least 2 characters long\n")
         }
 
         return errorMessage.toString()

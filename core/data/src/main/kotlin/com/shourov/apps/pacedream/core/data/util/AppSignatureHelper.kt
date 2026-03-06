@@ -106,7 +106,9 @@ class AppSignatureHelper(context: Context?) : ContextWrapper(context) {
                 var base64Hash: String =
                     Base64.encodeToString(hashSignature, Base64.NO_PADDING or Base64.NO_WRAP)
                 base64Hash = base64Hash.substring(0, NUM_BASE64_CHAR)
-                Log.d(TAG, String.format("pkg: %s -- hash: %s", packageName, base64Hash))
+                if (com.shourov.apps.pacedream.core.data.BuildConfig.DEBUG) {
+                    Log.d(TAG, String.format("pkg: %s -- hash: %s", packageName, base64Hash))
+                }
                 return base64Hash
             } catch (e: NoSuchAlgorithmException) {
                 Log.e(TAG, "hash:NoSuchAlgorithm", e)
