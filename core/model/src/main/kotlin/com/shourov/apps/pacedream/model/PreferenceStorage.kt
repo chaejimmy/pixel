@@ -18,24 +18,34 @@ val PreferenceStorage.userOrThrow: User
     }
 
 class PreferenceStorageImpl : PreferenceStorage{
+    private var _authorization: String? = null
+    private var _user: User? = null
+    private var _deviceToken: String? = null
+    private var _userMode: String? = null
+    private var _isLoggedIn: Boolean? = null
+
     override var authorization: String?
-        get() = authorization
-        set(value) { authorization = value}
+        get() = _authorization
+        set(value) { _authorization = value}
     override var user: User?
-        get() = user
-        set(value) { user = value}
+        get() = _user
+        set(value) { _user = value}
     override var deviceToken: String?
-        get() =deviceToken
-        set(value) { deviceToken = value}
+        get() = _deviceToken
+        set(value) { _deviceToken = value}
     override var userMode: String?
-        get() = userMode
-        set(value) { userMode = value}
+        get() = _userMode
+        set(value) { _userMode = value}
     override var isLoggedIn: Boolean?
-        get() = isLoggedIn
-        set(value) { isLoggedIn = value}
+        get() = _isLoggedIn
+        set(value) { _isLoggedIn = value}
 
     override fun clear() {
-        TODO("Not yet implemented")
+        _authorization = null
+        _user = null
+        _deviceToken = null
+        _userMode = null
+        _isLoggedIn = null
     }
 }
 

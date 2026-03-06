@@ -19,6 +19,6 @@ class StringDoubleAdapter {
     fun fromJson(value: String): Double {
         if (value.isEmpty())
             return 0.0
-        return value.toDouble()
+        return value.toDoubleOrNull() ?: 0.0
     }
 }

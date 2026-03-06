@@ -49,6 +49,9 @@ interface BookingDao {
     @Query("DELETE FROM bookings WHERE id = :bookingId")
     suspend fun deleteBookingById(bookingId: String)
 
+    @Query("UPDATE bookings SET bookingStatus = :status, status = :status WHERE id = :bookingId")
+    suspend fun updateBookingStatus(bookingId: String, status: String)
+
     @Query("DELETE FROM bookings")
     suspend fun deleteAllBookings()
 }

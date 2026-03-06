@@ -123,7 +123,15 @@ class PaceDreamRepository @Inject constructor(
             checkOutTime = checkOutTime,
             checkInTime = checkInTime,
             bookingStatus = bookingStatus,
-            price = price
+            price = price,
+            propertyImage = propertyImage,
+            propertyName = propertyName ?: "",
+            hostName = hostName ?: "",
+            currency = currency ?: "USD",
+            totalPrice = totalPrice ?: 0.0,
+            startDate = startDate ?: "",
+            endDate = endDate ?: "",
+            status = com.shourov.apps.pacedream.model.BookingStatus.fromString(status)
         )
     }
     
