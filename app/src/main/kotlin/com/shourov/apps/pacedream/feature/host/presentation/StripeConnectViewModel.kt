@@ -22,7 +22,8 @@ data class StripeConnectUiState(
 
 @HiltViewModel
 class StripeConnectViewModel @Inject constructor(
-    private val stripeConnectRepository: StripeConnectRepository
+    private val stripeConnectRepository: StripeConnectRepository,
+    private val authSession: com.shourov.apps.pacedream.core.network.auth.AuthSession
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StripeConnectUiState())
@@ -55,7 +56,14 @@ class StripeConnectViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            stripeConnectRepository.createConnectAccount("host@example.com")
+            val email = authSession.currentUser.value?.email ?: run {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Please add an email to your profile first"
+                )
+                return@launch
+            }
+            stripeConnectRepository.createConnectAccount(email)
                 .onSuccess { account ->
                     _uiState.value = _uiState.value.copy(
                         connectAccount = account,

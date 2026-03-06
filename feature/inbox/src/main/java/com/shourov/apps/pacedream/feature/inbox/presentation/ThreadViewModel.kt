@@ -118,20 +118,22 @@ class ThreadViewModel @Inject constructor(
     
     private fun loadMore() {
         val cursor = beforeCursor ?: return
-        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
-        
+        if (_uiState.value !is ThreadDetailUiState.Success) return
+
         viewModelScope.launch {
             val result = inboxRepository.getMessages(
                 threadId = threadId,
                 limit = 50,
                 before = cursor
             )
-            
+
             when (result) {
                 is ApiResult.Success -> {
                     beforeCursor = result.data.messages.lastOrNull()?.id
-                    _uiState.value = currentState.copy(
-                        messages = currentState.messages + result.data.messages,
+                    // Use latest state to avoid overwriting concurrent mutations
+                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages + result.data.messages,
                         hasMore = result.data.hasMore
                     )
                 }
@@ -141,37 +143,35 @@ class ThreadViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun sendMessage(text: String) {
         if (text.isBlank()) return
-        
+
         val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
-        
+
         viewModelScope.launch {
             // Mark as sending
             _uiState.value = currentState.copy(isSending = true)
-            
+
             val result = inboxRepository.sendMessage(
                 threadId = threadId,
                 text = text.trim()
             )
-            
+
             when (result) {
                 is ApiResult.Success -> {
-                    // Add the new message optimistically to the top
+                    // Use latest state to avoid overwriting concurrent mutations
+                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
                     val newMessage = result.data
-                    _uiState.value = currentState.copy(
-                        messages = listOf(newMessage) + currentState.messages,
+                    _uiState.value = latestState.copy(
+                        messages = listOf(newMessage) + latestState.messages,
                         isSending = false
                     )
-                    
-                    // Optionally refetch to ensure sync
-                    // refresh()
                 }
                 is ApiResult.Failure -> {
                     Timber.e("Failed to send message: ${result.error.message}")
-                    _uiState.value = currentState.copy(isSending = false)
-                    // Could show a toast/snackbar here
+                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                    _uiState.value = latestState.copy(isSending = false)
                 }
             }
         }

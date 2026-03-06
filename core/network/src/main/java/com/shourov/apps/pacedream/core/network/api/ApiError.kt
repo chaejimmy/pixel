@@ -18,11 +18,12 @@ sealed class ApiError : Exception() {
         val retryAfterSeconds: Int? = null
     ) : ApiError() {
         fun friendlyMessage(): String {
-            return if (retryAfterSeconds != null) {
+            if (retryAfterSeconds == null) return message
+            return if (retryAfterSeconds < 60) {
+                "Too many requests. Please try again in $retryAfterSeconds second${if (retryAfterSeconds > 1) "s" else ""}."
+            } else {
                 val minutes = (retryAfterSeconds / 60).coerceAtLeast(1)
                 "Too many requests. Please try again in $minutes minute${if (minutes > 1) "s" else ""}."
-            } else {
-                message
             }
         }
     }

@@ -408,6 +408,31 @@ fun MainNavHost(
                     )
                 }
 
+                // Host Home (placeholder)
+                composable(NavRoutes.HOST_HOME) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("Host Home", modifier = Modifier.padding(16.dp))
+                    }
+                }
+
+                // Edit Profile (placeholder)
+                composable(NavRoutes.EDIT_PROFILE) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("Edit Profile", modifier = Modifier.padding(16.dp))
+                    }
+                }
+
+                // Collection Detail
+                composable(
+                    route = NavRoutes.COLLECTION_DETAIL,
+                    arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val collectionId = backStackEntry.arguments?.getString("collectionId") ?: ""
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("Collection: $collectionId", modifier = Modifier.padding(16.dp))
+                    }
+                }
+
                 // Collections / My Lists Screen
                 composable(NavRoutes.COLLECTIONS) {
                     CollectionsScreen(
@@ -535,6 +560,7 @@ fun MainNavHost(
                 // Booking Confirmation - Timebased (with deep link)
                 composable(
                     route = NavRoutes.BOOKING_CONFIRMATION_TIMEBASED,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
                     deepLinks = listOf(
                         navDeepLink {
                             uriPattern = "https://www.pacedream.com/booking-success?session_id={sessionId}&type=timebased"
@@ -563,6 +589,7 @@ fun MainNavHost(
                 // Booking Confirmation - Gear (with deep link)
                 composable(
                     route = NavRoutes.BOOKING_CONFIRMATION_GEAR,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
                     deepLinks = listOf(
                         navDeepLink {
                             uriPattern = "https://www.pacedream.com/booking-success?session_id={sessionId}&type=gear"
@@ -629,9 +656,7 @@ fun MainNavHost(
             title = authSheetTitle,
             subtitle = authSheetSubtitle,
             onDismiss = { showAuthSheet = false },
-            onSuccess = {
-                // session bootstrap happens inside session manager
-            }
+            onSuccess = { showAuthSheet = false }
         )
     }
 }

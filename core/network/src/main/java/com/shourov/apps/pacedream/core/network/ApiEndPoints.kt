@@ -136,7 +136,7 @@ object ApiEndPoints {
     const val TRACK_PROPERTY_VIEW = "analytics/property-view"
 
     // ── Legacy ────────────────────────────────────────────
-    const val GET_ALREADY_BOOKED = ""
+    const val GET_ALREADY_BOOKED = "bookings/mine"
     const val HOURLY_RENTED_GEAR = "gear-rentals/get/hourly-rental-gear/{type}"
     const val ROOMMATE_ROOM_STAY = "roommate/get/room-stay"
 }

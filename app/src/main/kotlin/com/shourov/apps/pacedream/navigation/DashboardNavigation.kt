@@ -17,7 +17,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -372,14 +371,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                         title = "Sign in",
                                         subtitle = "Sign in to access your favorites.",
                                         onDismiss = { showAuthSheet = false },
-                                        onSuccess = {
-                                            // Session bootstrap happens in session manager
-                                        }
+                                        onSuccess = { showAuthSheet = false }
                                     )
                                     }
                                 }
                             }
-                            
+
                             // Inbox Tab - Connected to real ViewModel
                             navigation(
                                 startDestination = "inbox_root",
@@ -403,7 +400,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         title = "Sign in",
                                         subtitle = "Sign in to view your messages.",
                                         onDismiss = { showAuthSheet = false },
-                                        onSuccess = { }
+                                        onSuccess = { showAuthSheet = false }
                                     )
                                 }
                             }

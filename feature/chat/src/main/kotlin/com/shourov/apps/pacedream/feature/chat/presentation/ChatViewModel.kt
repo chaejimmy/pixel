@@ -32,7 +32,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val authSession: com.shourov.apps.pacedream.core.network.auth.AuthSession
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -40,7 +41,8 @@ class ChatViewModel @Inject constructor(
     
     fun loadMessages(chatId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId)
+            val resolvedUserId = authSession.currentUserId ?: "unknown"
+            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId, currentUserId = resolvedUserId)
             
             messageRepository.getChatMessages(chatId).collect { result ->
                 when (result) {
@@ -67,19 +69,19 @@ class ChatViewModel @Inject constructor(
     }
     
     fun sendMessage() {
-        val currentState = _uiState.value
-        val message = currentState.newMessage.trim()
-        
+        val message = _uiState.value.newMessage.trim()
+
         if (message.isEmpty()) return
-        
+
         viewModelScope.launch {
-            _uiState.value = currentState.copy(isSending = true)
-            
+            val snapshot = _uiState.value
+            _uiState.value = snapshot.copy(isSending = true)
+
             val messageModel = MessageModel(
                 id = UUID.randomUUID().toString(),
-                chatId = currentState.chatId,
-                senderId = currentState.currentUserId,
-                receiverId = currentState.otherUserId,
+                chatId = snapshot.chatId,
+                senderId = snapshot.currentUserId,
+                receiverId = snapshot.otherUserId,
                 content = message,
                 messageType = "TEXT",
                 attachmentUrl = null,
@@ -87,16 +89,17 @@ class ChatViewModel @Inject constructor(
                 timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date()),
                 createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
             )
-            
-            when (val result = messageRepository.sendMessage(currentState.chatId, messageModel)) {
+
+            when (val result = messageRepository.sendMessage(snapshot.chatId, messageModel)) {
                 is Result.Success -> {
-                    _uiState.value = currentState.copy(
+                    // Use latest state to avoid overwriting concurrent mutations
+                    _uiState.value = _uiState.value.copy(
                         newMessage = "",
                         isSending = false
                     )
                 }
                 is Result.Error -> {
-                    _uiState.value = currentState.copy(
+                    _uiState.value = _uiState.value.copy(
                         isSending = false,
                         error = result.exception.message
                     )
@@ -113,7 +116,7 @@ class ChatViewModel @Inject constructor(
 data class ChatUiState(
     val isLoading: Boolean = false,
     val chatId: String = "",
-    val currentUserId: String = "current_user_id", // This should come from user session
+    val currentUserId: String = "", // Resolved from AuthSession when loading messages
     val otherUserId: String = "",
     val otherUserName: String = "Other User", // This should come from user data
     val otherUserAvatar: String? = null, // This should come from user data

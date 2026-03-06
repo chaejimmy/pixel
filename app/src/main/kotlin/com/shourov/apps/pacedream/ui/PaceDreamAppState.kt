@@ -108,7 +108,7 @@ class PaceDreamAppState(
                     destinationOptions,
                 )
 
-                UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToHomeScreen(
+                UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToCreateAccountScreen(
                     destinationOptions,
                 )
             }
