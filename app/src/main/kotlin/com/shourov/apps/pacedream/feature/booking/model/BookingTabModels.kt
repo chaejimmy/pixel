@@ -17,6 +17,44 @@ enum class BookingRole(val apiValue: String, val displayName: String) {
 }
 
 /**
+ * Status filter tabs matching iOS BookingsTabView (iOS parity):
+ * All / Upcoming / Past / Cancelled
+ */
+enum class BookingStatusFilter(val displayName: String) {
+    ALL("All"),
+    UPCOMING("Upcoming"),
+    PAST("Past"),
+    CANCELLED("Cancelled");
+
+    fun matches(status: BookingStatus, endDate: String): Boolean {
+        return when (this) {
+            ALL -> true
+            UPCOMING -> status == BookingStatus.CONFIRMED || status == BookingStatus.PENDING
+            PAST -> status == BookingStatus.COMPLETED || (status == BookingStatus.CONFIRMED && isEndDatePast(endDate))
+            CANCELLED -> status == BookingStatus.CANCELLED || status == BookingStatus.REJECTED
+        }
+    }
+
+    private fun isEndDatePast(endDate: String): Boolean {
+        if (endDate.isBlank()) return false
+        val formats = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd"
+        )
+        for (fmt in formats) {
+            try {
+                val inputFormat = SimpleDateFormat(fmt, Locale.US)
+                val date = inputFormat.parse(endDate) ?: continue
+                return date.before(Date())
+            } catch (_: Exception) { continue }
+        }
+        return false
+    }
+}
+
+/**
  * A single booking item parsed from the API
  */
 data class BookingItem(
@@ -85,7 +123,9 @@ sealed class BookingTabUiState {
         val bookings: List<BookingItem>,
         val role: BookingRole,
         val isRefreshing: Boolean = false,
-        val hasMore: Boolean = false
+        val hasMore: Boolean = false,
+        val statusFilter: BookingStatusFilter = BookingStatusFilter.ALL,
+        val filteredBookings: List<BookingItem> = bookings
     ) : BookingTabUiState()
     data class Error(val message: String) : BookingTabUiState()
     data object Empty : BookingTabUiState()
@@ -98,6 +138,7 @@ sealed class BookingTabUiState {
 sealed class BookingTabEvent {
     data object Refresh : BookingTabEvent()
     data class RoleChanged(val role: BookingRole) : BookingTabEvent()
+    data class StatusFilterChanged(val filter: BookingStatusFilter) : BookingTabEvent()
     data class BookingClicked(val bookingId: String) : BookingTabEvent()
     data object LoadMore : BookingTabEvent()
 }

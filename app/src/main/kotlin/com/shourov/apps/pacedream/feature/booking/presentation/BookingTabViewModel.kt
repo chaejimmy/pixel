@@ -8,6 +8,7 @@ import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.feature.booking.data.BookingTabRepository
 import com.shourov.apps.pacedream.feature.booking.model.BookingRole
+import com.shourov.apps.pacedream.feature.booking.model.BookingStatusFilter
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabEvent
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +41,7 @@ class BookingTabViewModel @Inject constructor(
     val navigation = _navigation.receiveAsFlow()
 
     private var currentRole = BookingRole.RENTER
+    private var currentStatusFilter = BookingStatusFilter.ALL
     private var currentOffset = 0
 
     companion object {
@@ -54,6 +56,7 @@ class BookingTabViewModel @Inject constructor(
         when (event) {
             is BookingTabEvent.Refresh -> refresh()
             is BookingTabEvent.RoleChanged -> onRoleChanged(event.role)
+            is BookingTabEvent.StatusFilterChanged -> onStatusFilterChanged(event.filter)
             is BookingTabEvent.BookingClicked -> onBookingClicked(event.bookingId)
             is BookingTabEvent.LoadMore -> loadMore()
         }
@@ -96,14 +99,19 @@ class BookingTabViewModel @Inject constructor(
             is ApiResult.Success -> {
                 currentOffset = result.data.bookings.size
 
-                if (result.data.bookings.isEmpty()) {
+                val allBookings = result.data.bookings
+                val filtered = applyStatusFilter(allBookings, currentStatusFilter)
+
+                if (allBookings.isEmpty()) {
                     _uiState.value = BookingTabUiState.Empty
                 } else {
                     _uiState.value = BookingTabUiState.Success(
-                        bookings = result.data.bookings,
+                        bookings = allBookings,
                         role = currentRole,
                         isRefreshing = false,
-                        hasMore = result.data.hasMore
+                        hasMore = result.data.hasMore,
+                        statusFilter = currentStatusFilter,
+                        filteredBookings = filtered
                     )
                 }
             }
@@ -146,6 +154,24 @@ class BookingTabViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun onStatusFilterChanged(filter: BookingStatusFilter) {
+        currentStatusFilter = filter
+        val currentState = _uiState.value as? BookingTabUiState.Success ?: return
+        val filtered = applyStatusFilter(currentState.bookings, filter)
+        _uiState.value = currentState.copy(
+            statusFilter = filter,
+            filteredBookings = filtered
+        )
+    }
+
+    private fun applyStatusFilter(
+        bookings: List<com.shourov.apps.pacedream.feature.booking.model.BookingItem>,
+        filter: BookingStatusFilter
+    ): List<com.shourov.apps.pacedream.feature.booking.model.BookingItem> {
+        if (filter == BookingStatusFilter.ALL) return bookings
+        return bookings.filter { filter.matches(it.status, it.endDate) }
     }
 
     private fun onRoleChanged(role: BookingRole) {

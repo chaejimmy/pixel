@@ -63,5 +63,6 @@ data class PropertyPricing(
 data class PricingPrices(
     val hour: Double = 0.0,
     val day: Double = 0.0,
+    val week: Double = 0.0,
     val month: Double = 0.0,
 )

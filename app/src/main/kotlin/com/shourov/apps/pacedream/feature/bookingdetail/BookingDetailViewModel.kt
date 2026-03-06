@@ -59,5 +59,25 @@ class BookingDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun cancelBooking() {
+        if (bookingId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            when (bookingRepository.cancelBooking(bookingId)) {
+                is Result.Success -> {
+                    // Reload to reflect cancelled status
+                    load()
+                }
+                is Result.Error -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Failed to cancel booking"
+                    )
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
 }
 

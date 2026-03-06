@@ -73,12 +73,24 @@ class HostModeManager @Inject constructor(
     }
     
     /**
-     * Clear all host mode data (for logout)
+     * Clear all host mode data (for logout).
+     * iOS parity: Allow sign out directly from host mode without
+     * requiring the user to switch to guest mode first.
      */
     fun clearHostModeData() {
         _isHostMode.value = false
         _isHostVerified.value = false
         prefs.edit().clear().apply()
+    }
+
+    /**
+     * iOS parity: Sign out directly from host mode.
+     * Clears host state and resets to guest mode in one call.
+     * This matches iOS behavior from commit b43a469 which allows
+     * signing out directly from host mode.
+     */
+    fun signOutFromHostMode() {
+        clearHostModeData()
     }
     
     companion object {

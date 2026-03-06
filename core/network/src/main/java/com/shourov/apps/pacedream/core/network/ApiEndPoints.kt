@@ -46,10 +46,12 @@ object ApiEndPoints {
     // ── Bookings ──────────────────────────────────────────
     const val CREATE_BOOKING = "bookings"
     const val GET_USER_BOOKINGS = "bookings/user/{userId}"
+    const val GET_MY_BOOKINGS = "bookings/mine" // iOS parity: primary endpoint for user's bookings
     const val GET_BOOKING_BY_ID = "bookings/{bookingId}"
     const val UPDATE_BOOKING = "bookings/{bookingId}"
     const val CANCEL_BOOKING = "bookings/{bookingId}"
     const val CONFIRM_BOOKING = "bookings/{bookingId}/confirm"
+    const val CONFIRM_BOOKING_POST_PAYMENT = "bookings/{bookingId}/confirm-booking" // iOS: call after Stripe payment succeeds
     const val GET_BOOKING_AVAILABILITY = "bookings/availability/{propertyId}"
 
     // ── Messaging / Chat ──────────────────────────────────
@@ -84,6 +86,10 @@ object ApiEndPoints {
     const val DELETE_COLLECTION = "collections/{collectionId}"
     const val ADD_TO_COLLECTION = "collections/{collectionId}/items"
     const val REMOVE_FROM_COLLECTION = "collections/{collectionId}/items/{itemId}"
+
+    // ── Listings (iOS ListingService parity) ───────────────
+    const val CREATE_LISTING = "listings" // iOS: POST /listings with Bearer auth
+    const val GET_LISTING_BY_ID = "listings/{listingId}"
 
     // ── Host (iOS parity) ─────────────────────────────────
     const val HOST_GET_LISTINGS = "host/listings"

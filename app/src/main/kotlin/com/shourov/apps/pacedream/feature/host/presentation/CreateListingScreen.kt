@@ -107,6 +107,7 @@ private data class PricingModeOption(
 private val ALL_PRICING_MODES = listOf(
     PricingModeOption(PricingUnit.HOUR, "Hourly", "hour"),
     PricingModeOption(PricingUnit.DAY, "Daily", "day"),
+    PricingModeOption(PricingUnit.WEEK, "Weekly", "week"),
     PricingModeOption(PricingUnit.MONTH, "Monthly", "month"),
 )
 
@@ -121,17 +122,17 @@ private fun getAllowedPricingUnits(
     val type = propertyType.lowercase()
     return when (listingMode) {
         ListingMode.USE -> when (type) {
-            "apartment", "house", "studio", "loft" -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
-            "office", "event space" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            "apartment", "house", "studio", "loft" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+            "office", "event space" -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK)
             "parking" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.MONTH)
+            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
         }
         ListingMode.SHARE -> when (type) {
             "tools", "games", "toys" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
             "micromobility" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.MONTH)
+            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
         }
-        ListingMode.BORROW -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
+        ListingMode.BORROW -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
     }
 }
 
