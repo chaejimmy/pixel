@@ -75,12 +75,11 @@ class SearchViewModel @Inject constructor(
         val state = _uiState.value
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-        // Map tab to the API's "category" parameter (iOS parity).
-        // Share sends no category (returns all), Borrow/Split send specific values.
-        val category: String? = when (state.selectedTab) {
-            SearchTab.SHARE -> null
-            SearchTab.BORROW -> "hourly_rental_gear"
-            SearchTab.SPLIT -> "find_roommate"
+        // Map tab to the web API's "category" parameter (iOS parity).
+        val category: String = when (state.selectedTab) {
+            SearchTab.SHARE -> "time-based"
+            SearchTab.BORROW -> "hourly-rental-gears"
+            SearchTab.SPLIT -> "room-stays"
         }
 
         // Primary: frontend search proxy (iOS parity)
@@ -89,9 +88,9 @@ class SearchViewModel @Inject constructor(
             .addPathSegment("search")
             .apply {
                 if (state.query.isNotBlank()) addQueryParameter("q", state.query)
-                category?.let { addQueryParameter("category", it) }
-                addQueryParameter("page", "0")
-                addQueryParameter("perPage", "24")
+                addQueryParameter("category", category)
+                addQueryParameter("limit", "24")
+                addQueryParameter("offset", "0")
             }
             .build()
 
@@ -115,9 +114,10 @@ class SearchViewModel @Inject constructor(
         val fallbackUrl = appConfig.buildApiUrl(
             "search",
             queryParams = buildMap {
-                put("query", q)
-                put("page", "1")
-                put("pageSize", "24")
+                put("q", q)
+                put("page", "0")
+                put("perPage", "24")
+                put("category", category)
             }
         )
 
