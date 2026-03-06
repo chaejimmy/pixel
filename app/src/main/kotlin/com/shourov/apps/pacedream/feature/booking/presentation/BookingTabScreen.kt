@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.booking.model.BookingItem
 import com.shourov.apps.pacedream.feature.booking.model.BookingRole
+import com.shourov.apps.pacedream.feature.booking.model.BookingStatusFilter
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabEvent
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabUiState
 import com.shourov.apps.pacedream.model.BookingStatus
@@ -189,41 +191,85 @@ fun BookingTabScreen(
             }
 
             is BookingTabUiState.Success -> {
+                // iOS-parity: Status filter chips (All / Upcoming / Past / Cancelled)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PaceDreamSpacing.LG),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    BookingStatusFilter.entries.forEach { filter ->
+                        FilterChip(
+                            selected = state.statusFilter == filter,
+                            onClick = { viewModel.onEvent(BookingTabEvent.StatusFilterChanged(filter)) },
+                            label = {
+                                Text(
+                                    text = filter.displayName,
+                                    style = PaceDreamTypography.Caption,
+                                    fontWeight = if (state.statusFilter == filter) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PaceDreamColors.Primary,
+                                selectedLabelColor = PaceDreamColors.OnPrimary,
+                                containerColor = PaceDreamColors.Card,
+                                labelColor = PaceDreamColors.TextSecondary
+                            ),
+                            shape = RoundedCornerShape(PaceDreamRadius.Round)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
                     onRefresh = { viewModel.onEvent(BookingTabEvent.Refresh) },
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(PaceDreamSpacing.LG),
-                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
-                    ) {
-                        items(state.bookings, key = { it.id }) { booking ->
-                            BookingItemCard(
-                                booking = booking,
-                                role = state.role,
-                                onClick = { viewModel.onEvent(BookingTabEvent.BookingClicked(booking.id)) }
+                    if (state.filteredBookings.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No ${state.statusFilter.displayName.lowercase()} bookings",
+                                style = PaceDreamTypography.Body,
+                                color = PaceDreamColors.TextSecondary
                             )
                         }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(PaceDreamSpacing.LG),
+                            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+                        ) {
+                            items(state.filteredBookings, key = { it.id }) { booking ->
+                                BookingItemCard(
+                                    booking = booking,
+                                    role = state.role,
+                                    onClick = { viewModel.onEvent(BookingTabEvent.BookingClicked(booking.id)) }
+                                )
+                            }
 
-                        // Load more trigger
-                        if (state.hasMore) {
-                            item {
-                                LaunchedEffect(Unit) {
-                                    viewModel.onEvent(BookingTabEvent.LoadMore)
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(PaceDreamSpacing.MD),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = PaceDreamColors.Primary,
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
+                            // Load more trigger
+                            if (state.hasMore && state.statusFilter == BookingStatusFilter.ALL) {
+                                item {
+                                    LaunchedEffect(Unit) {
+                                        viewModel.onEvent(BookingTabEvent.LoadMore)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(PaceDreamSpacing.MD),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = PaceDreamColors.Primary,
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
                                 }
                             }
                         }

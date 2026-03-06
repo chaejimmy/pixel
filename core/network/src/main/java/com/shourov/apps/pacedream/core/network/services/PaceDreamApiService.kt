@@ -247,6 +247,22 @@ interface PaceDreamApiService {
     @POST(ApiEndPoints.CONFIRM_BOOKING)
     suspend fun confirmBooking(@Path("bookingId") bookingId: String): Response<ApiResponse<BookingResponse>>
 
+    // iOS parity: /bookings/mine as primary endpoint for user's bookings
+    @GET(ApiEndPoints.GET_MY_BOOKINGS)
+    suspend fun getMyBookings(
+        @Header("Authorization") token: String,
+        @Query("status") status: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<ApiListResponse<BookingResponse>>
+
+    // iOS parity: confirm booking after Stripe payment succeeds
+    @POST(ApiEndPoints.CONFIRM_BOOKING_POST_PAYMENT)
+    suspend fun confirmBookingPostPayment(
+        @Header("Authorization") token: String,
+        @Path("bookingId") bookingId: String
+    ): Response<ApiResponse<BookingResponse>>
+
     @GET(ApiEndPoints.GET_BOOKING_AVAILABILITY)
     suspend fun getBookingAvailability(@Path("propertyId") propertyId: String): Response<ApiResponse<BookingAvailabilityResponse>>
 

@@ -140,6 +140,44 @@ class ApiClient @Inject constructor(
     }
     
     /**
+     * Perform a multipart POST request (for image uploads).
+     * iOS parity: CloudinaryUploader sends multipart/form-data to /api/upload.
+     */
+    suspend fun postMultipart(
+        url: HttpUrl,
+        fieldName: String,
+        fieldValue: String,
+        includeAuth: Boolean = true
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val multipartBody = okhttp3.MultipartBody.Builder()
+                .setType(okhttp3.MultipartBody.FORM)
+                .addFormDataPart(fieldName, fieldValue)
+                .build()
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .post(multipartBody)
+                .header("Accept", "application/json")
+
+            if (includeAuth) {
+                tokenProvider.getAccessToken()?.let { token ->
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+            }
+
+            val response = httpClient.newCall(requestBuilder.build()).execute()
+            processResponse(response)
+        } catch (e: SocketTimeoutException) {
+            ApiResult.Failure(ApiError.Timeout())
+        } catch (e: IOException) {
+            ApiResult.Failure(ApiError.NetworkError())
+        } catch (e: Exception) {
+            ApiResult.Failure(mapException(e))
+        }
+    }
+
+    /**
      * Execute GET request with retry logic
      */
     private suspend fun executeWithRetry(
