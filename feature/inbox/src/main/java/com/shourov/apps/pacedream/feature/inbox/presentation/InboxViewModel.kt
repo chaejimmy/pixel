@@ -149,20 +149,22 @@ class InboxViewModel @Inject constructor(
     
     private fun loadMore() {
         val cursor = nextCursor ?: return
-        val currentState = _uiState.value as? InboxUiState.Success ?: return
-        
+        if (_uiState.value !is InboxUiState.Success) return
+
         viewModelScope.launch {
             val result = inboxRepository.getThreads(
                 mode = currentMode.apiValue,
                 limit = 20,
                 cursor = cursor
             )
-            
+
             when (result) {
                 is ApiResult.Success -> {
                     nextCursor = result.data.nextCursor
-                    _uiState.value = currentState.copy(
-                        threads = currentState.threads + result.data.threads,
+                    // Use latest state to avoid overwriting concurrent mutations
+                    val latestState = _uiState.value as? InboxUiState.Success ?: return@launch
+                    _uiState.value = latestState.copy(
+                        threads = latestState.threads + result.data.threads,
                         hasMore = result.data.hasMore
                     )
                 }
