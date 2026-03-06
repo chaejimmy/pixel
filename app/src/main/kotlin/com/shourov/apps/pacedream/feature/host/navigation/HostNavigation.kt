@@ -14,6 +14,7 @@ sealed class HostScreen(
     object Earnings : HostScreen("host_earnings", "Earnings", PaceDreamIcons.AttachMoney)
     object Analytics : HostScreen("host_analytics", "Analytics", PaceDreamIcons.Analytics)
     object Settings : HostScreen("host_settings", "Settings", PaceDreamIcons.Settings)
+    object PaymentSetup : HostScreen("host_payment_setup", "Payment Setup", PaceDreamIcons.CreditCard)
 }
 
 object HostNavigationDestinations {
@@ -24,6 +25,7 @@ object HostNavigationDestinations {
     const val HOST_EARNINGS = "host_earnings"
     const val HOST_ANALYTICS = "host_analytics"
     const val HOST_SETTINGS = "host_settings"
+    const val HOST_PAYMENT_SETUP = "host_payment_setup"
     const val ADD_LISTING = "add_listing"
     const val EDIT_LISTING = "edit_listing/{listingId}"
     const val LISTING_DETAILS = "listing_details/{listingId}"

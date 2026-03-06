@@ -66,6 +66,41 @@ interface HostApiService {
     suspend fun getHostAnalytics(
         @Query("timeRange") timeRange: String? = null
     ): Response<HostAnalyticsData>
+
+    // Stripe Connect - Payouts
+    @GET("host/payouts/status")
+    suspend fun getPayoutStatus(): Response<PayoutStatus>
+
+    @POST("host/payouts/create-onboarding-link")
+    suspend fun createOnboardingLink(): Response<AccountLink>
+
+    @POST("host/payouts/create-login-link")
+    suspend fun createLoginLink(): Response<LoginLink>
+
+    @GET("host/payouts/methods")
+    suspend fun getPayoutMethods(): Response<List<PayoutMethod>>
+
+    @POST("host/payouts/methods/set-primary")
+    suspend fun setPrimaryPayoutMethod(@Body body: SetPrimaryMethodRequest): Response<Unit>
+
+    // Stripe Connect - Balance & Transfers
+    @GET("host/stripe/balance")
+    suspend fun getStripeBalance(): Response<ConnectBalance>
+
+    @GET("host/stripe/transfers")
+    suspend fun getStripeTransfers(@Query("limit") limit: Int = 20): Response<List<Transfer>>
+
+    @GET("host/stripe/payouts")
+    suspend fun getStripePayouts(@Query("limit") limit: Int = 20): Response<List<Payout>>
+
+    @POST("host/stripe/payouts/create")
+    suspend fun createPayout(@Body request: CreatePayoutRequest): Response<Payout>
+
+    @GET("host/stripe/connect/status")
+    suspend fun getConnectAccountStatus(): Response<ConnectAccount>
+
+    @POST("host/stripe/connect/create")
+    suspend fun createConnectAccount(@Body request: CreateConnectAccountRequest): Response<ConnectAccount>
 }
 
 data class BookingStatusUpdate(
@@ -82,6 +117,18 @@ data class WithdrawalResponse(
     val id: String,
     val status: String,
     val processedAt: String? = null
+)
+
+data class SetPrimaryMethodRequest(val id: String)
+
+data class CreatePayoutRequest(
+    val amount: Int,
+    val currency: String = "usd"
+)
+
+data class CreateConnectAccountRequest(
+    val email: String,
+    val country: String = "US"
 )
 
 data class HostAnalyticsData(
