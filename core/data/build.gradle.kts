@@ -7,6 +7,9 @@ plugins {
 
 android {
     namespace = "com.shourov.apps.pacedream.core.data"
+    buildFeatures {
+        buildConfig = true
+    }
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
