@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,8 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.*
@@ -118,7 +119,7 @@ fun ProfileTabScreen(
 
                     // Host Mode Toggle
                     item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         HostModeToggle(
                             isHostMode = isHostMode,
                             onSwitchToHostMode = onSwitchToHostMode,
@@ -128,11 +129,11 @@ fun ProfileTabScreen(
 
                     // Menu Sections
                     items(menuSections) { section ->
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
                         ProfileMenuSection(
                             section = section,
-                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
                         )
                     }
 
@@ -140,40 +141,36 @@ fun ProfileTabScreen(
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-                        Card(
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.signOut()
+                                onLogoutClick()
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = PaceDreamSpacing.LG)
-                                .clickable {
-                                    viewModel.signOut()
-                                    onLogoutClick()
-                                },
-                            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.1f)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+                                .padding(horizontal = PaceDreamSpacing.MD),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = PaceDreamColors.Error
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
+                            ),
+                            shape = RoundedCornerShape(PaceDreamRadius.LG),
+                            contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(PaceDreamSpacing.LG),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.ExitToApp,
-                                    contentDescription = "Logout",
-                                    tint = PaceDreamColors.Error,
-                                    modifier = Modifier.size(20.dp)
-                                )
-
-                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-
-                                Text(
-                                    text = "Sign Out",
-                                    style = PaceDreamTypography.Body,
-                                    color = PaceDreamColors.Error,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                            Icon(
+                                imageVector = PaceDreamIcons.ExitToApp,
+                                contentDescription = "Logout",
+                                tint = PaceDreamColors.Error,
+                                modifier = Modifier.size(PaceDreamIconSize.SM)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(
+                                text = "Sign Out",
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.Error,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
@@ -189,36 +186,62 @@ private fun RequiresAuthState(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PaceDreamColors.Background)
-            .padding(PaceDreamSpacing.XL),
+            .background(PaceDreamColors.Background),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(PaceDreamSpacing.XL)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Lock,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(PaceDreamIconSize.XL)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
             Text(
                 text = "Sign in to view your profile",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = "Manage bookings, favorites, and account settings",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(0.75f)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
             Button(
                 onClick = onSignIn,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                modifier = Modifier.fillMaxWidth(0.6f)
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                modifier = Modifier.fillMaxWidth(0.7f),
+                contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
             ) {
-                Text("Sign in / Create account", style = PaceDreamTypography.Headline)
+                Text(
+                    "Sign in / Create account",
+                    style = PaceDreamTypography.Callout,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
@@ -234,20 +257,38 @@ fun ProfileHeader(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(PaceDreamSpacing.LG),
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(top = PaceDreamSpacing.MD),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            PaceDreamColors.Primary.copy(alpha = 0.12f),
+                            PaceDreamColors.Primary.copy(alpha = 0.03f)
+                        )
+                    )
+                )
+        )
+
         Column(
-            modifier = Modifier.padding(PaceDreamSpacing.LG),
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = (-40).dp)
+                .padding(horizontal = PaceDreamSpacing.MD),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -257,30 +298,34 @@ fun ProfileHeader(
                     fontWeight = FontWeight.Bold
                 )
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = name,
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold
             )
-            
-            Text(
-                text = email,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary
-            )
-            
-            Text(
-                text = memberSince,
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary
-            )
-            
+
+            if (email.isNotBlank()) {
+                Text(
+                    text = email,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+
+            if (memberSince.isNotBlank()) {
+                Text(
+                    text = memberSince,
+                    style = PaceDreamTypography.Caption2,
+                    color = PaceDreamColors.TextTertiary
+                )
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
             OutlinedButton(
                 onClick = onEditClick,
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -288,16 +333,24 @@ fun ProfileHeader(
                 ),
                 border = ButtonDefaults.outlinedButtonBorder.copy(
                     brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Primary)
-                )
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM)
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Edit,
                     contentDescription = "Edit",
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(PaceDreamIconSize.XS)
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                Text("Edit Profile")
+                Text(
+                    "Edit Profile",
+                    style = PaceDreamTypography.Caption,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
     }
 }
@@ -307,11 +360,10 @@ fun UserStatCard(
     stat: UserStatData
 ) {
     Card(
-        modifier = Modifier
-            .width(100.dp)
-            .clip(RoundedCornerShape(PaceDreamRadius.LG)),
+        modifier = Modifier.width(100.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD),
@@ -321,21 +373,21 @@ fun UserStatCard(
                 imageVector = stat.icon,
                 contentDescription = stat.title,
                 tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(PaceDreamIconSize.MD)
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
             Text(
                 text = stat.value,
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Text(
                 text = stat.title,
-                style = PaceDreamTypography.Caption,
+                style = PaceDreamTypography.Caption2,
                 color = PaceDreamColors.TextSecondary
             )
         }
@@ -350,16 +402,20 @@ fun ProfileMenuSection(
     Column(modifier = modifier) {
         Text(
             text = section.title,
-            style = PaceDreamTypography.Callout,
-            color = PaceDreamColors.TextSecondary,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextTertiary,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
+            modifier = Modifier.padding(
+                start = PaceDreamSpacing.XS,
+                bottom = PaceDreamSpacing.SM
+            )
         )
-        
+
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
         ) {
             Column {
                 section.items.forEachIndexed { index, item ->
@@ -382,38 +438,46 @@ fun ProfileMenuRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = item.onClick)
-            .padding(PaceDreamSpacing.MD),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = item.title,
-            tint = PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(20.dp)
-        )
-        
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.title,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(PaceDreamIconSize.XS)
+            )
+        }
+
         Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-        
+
         Text(
             text = item.title,
-            style = PaceDreamTypography.Body,
+            style = PaceDreamTypography.Callout,
             color = PaceDreamColors.TextPrimary,
             modifier = Modifier.weight(1f)
         )
-        
+
         Icon(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = "Navigate",
-            tint = PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(16.dp)
+            tint = PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(PaceDreamIconSize.XS)
         )
     }
-    
+
     if (showDivider) {
         HorizontalDivider(
             color = PaceDreamColors.Border,
             thickness = 0.5.dp,
-            modifier = Modifier.padding(start = 48.dp)
+            modifier = Modifier.padding(start = 56.dp)
         )
     }
 }
@@ -441,56 +505,71 @@ fun HostModeToggle(
     onSwitchToHostMode: () -> Unit,
     onSwitchToGuestMode: () -> Unit
 ) {
+    val accentColor = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Info
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG),
+            .padding(horizontal = PaceDreamSpacing.MD),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(
-            containerColor = if (isHostMode) 
-                PaceDreamColors.Primary.copy(alpha = 0.1f) 
-            else 
-                PaceDreamColors.Info.copy(alpha = 0.1f)
+            containerColor = accentColor.copy(alpha = 0.06f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PaceDreamSpacing.LG),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (isHostMode) PaceDreamIcons.Home else PaceDreamIcons.Person,
-                    contentDescription = null,
-                    tint = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Info,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isHostMode) PaceDreamIcons.Home else PaceDreamIcons.Person,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(PaceDreamIconSize.SM)
+                    )
+                }
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Column {
                     Text(
                         text = if (isHostMode) "Host Mode" else "Guest Mode",
-                        style = PaceDreamTypography.Headline,
-                        color = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Info,
+                        style = PaceDreamTypography.Callout,
+                        color = accentColor,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = if (isHostMode) "Manage your listings and bookings" else "Book amazing properties",
-                        style = PaceDreamTypography.Caption,
+                        style = PaceDreamTypography.Caption2,
                         color = PaceDreamColors.TextSecondary
                     )
                 }
             }
-            
+
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
             Button(
                 onClick = if (isHostMode) onSwitchToGuestMode else onSwitchToHostMode,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isHostMode) PaceDreamColors.Info else PaceDreamColors.Primary
-                )
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
             ) {
                 Text(
-                    text = if (isHostMode) "Switch to Guest" else "Switch to Host",
+                    text = if (isHostMode) "Guest" else "Host",
                     style = PaceDreamTypography.Caption,
                     fontWeight = FontWeight.SemiBold
                 )

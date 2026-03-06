@@ -16,23 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.HostBookingDTO
 
-/**
- * Host Bookings Screen - iOS parity.
- *
- * Matches iOS HostBookingsView with segmented filter:
- * Pending | Confirmed | Past | Cancelled
- *
- * Features: pull-to-refresh, accept/decline/cancel actions,
- * guest initials, booking row cards, inline error banner.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostBookingsScreen(
@@ -50,68 +41,100 @@ fun HostBookingsScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 28.dp)
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
         ) {
             // Title
             item {
-                Text(
-                    text = "Bookings",
-                    style = PaceDreamTypography.Title1,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
-                )
+                Column(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(horizontal = PaceDreamSpacing.MD)
+                        .padding(top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.SM)
+                ) {
+                    Text(
+                        text = "Bookings",
+                        style = PaceDreamTypography.Title1,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    Text(
+                        text = "Manage your guest reservations",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
             }
 
             // Error banner
             uiState.error?.let { error ->
                 item {
-                    Row(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PaceDreamColors.Error.copy(alpha = 0.08f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Warning,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Error,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = error, color = PaceDreamColors.Error, fontSize = 13.sp)
+                        Row(
+                            modifier = Modifier.padding(PaceDreamSpacing.SM),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Warning,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Error,
+                                modifier = Modifier.size(PaceDreamIconSize.SM)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(
+                                text = error,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Error
+                            )
+                        }
                     }
                 }
             }
 
-            // Segmented filter tabs (iOS parity: Pending/Confirmed/Past/Cancelled)
+            // Segmented filter tabs
             item {
                 val segments = listOf("Pending", "Confirmed", "Past", "Cancelled")
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                    modifier = Modifier.padding(bottom = PaceDreamSpacing.MD)
                 ) {
                     items(segments) { segment ->
+                        val isSelected = uiState.selectedStatus == segment
                         FilterChip(
-                            selected = uiState.selectedStatus == segment,
+                            selected = isSelected,
                             onClick = { viewModel.updateStatus(segment) },
                             label = {
                                 Text(
                                     text = segment,
-                                    fontWeight = if (uiState.selectedStatus == segment) FontWeight.SemiBold else FontWeight.Normal
+                                    style = PaceDreamTypography.Caption,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                                 )
                             },
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = PaceDreamColors.Primary,
                                 selectedLabelColor = Color.White,
                                 containerColor = PaceDreamColors.Card,
                                 labelColor = PaceDreamColors.TextPrimary
-                            )
+                            ),
+                            elevation = FilterChipDefaults.filterChipElevation(
+                                elevation = if (isSelected) PaceDreamElevation.SM else 0.dp
+                            ),
+                            border = if (!isSelected) {
+                                FilterChipDefaults.filterChipBorder(
+                                    borderColor = PaceDreamColors.Border,
+                                    enabled = true,
+                                    selected = false
+                                )
+                            } else null
                         )
                     }
                 }
@@ -123,20 +146,37 @@ fun HostBookingsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp),
+                            .padding(PaceDreamSpacing.XXXL),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.CalendarToday,
-                            contentDescription = null,
-                            tint = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CalendarToday,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(PaceDreamIconSize.LG)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         Text(
                             text = "No ${uiState.selectedStatus.lowercase()} bookings",
-                            style = PaceDreamTypography.Body,
-                            color = PaceDreamColors.TextSecondary
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                        Text(
+                            text = "Bookings will appear here once guests make reservations",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.fillMaxWidth(0.7f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                 }
@@ -168,13 +208,13 @@ private fun HostBookingCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        onClick = onBookingClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onBookingClick
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             // Guest info row
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val guestName = booking.resolvedGuestName
@@ -186,80 +226,134 @@ private fun HostBookingCard(
 
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(PaceDreamColors.Primary.copy(alpha = 0.16f)),
+                        .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = initials,
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
+                        style = PaceDreamTypography.Callout
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = booking.resolvedListingTitle,
-                        style = PaceDreamTypography.Body,
+                        style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = "${booking.resolvedStart ?: ""} - ${booking.resolvedEnd ?: ""}",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Person,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = guestName,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.CalendarToday,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "${booking.resolvedStart ?: ""} - ${booking.resolvedEnd ?: ""}",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
                 }
 
-                Text(
-                    text = "$${String.format("%.0f", booking.resolvedTotal)}",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "$${String.format("%.0f", booking.resolvedTotal)}",
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.Primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
-            // Action buttons for Pending segment (iOS parity: Accept/Decline)
+            // Action buttons for Pending segment
             if (selectedSegment == "Pending") {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     Button(
                         onClick = onAcceptClick,
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Success),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 10.dp)
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                     ) {
-                        Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Icon(
+                            imageVector = PaceDreamIcons.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                     }
                     OutlinedButton(
                         onClick = onDeclineClick,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Error),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
+                        ),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 10.dp)
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                     ) {
-                        Text("Decline", fontWeight = FontWeight.SemiBold)
+                        Icon(
+                            imageVector = PaceDreamIcons.Close,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Error,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text("Decline", fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                     }
                 }
             }
 
             // Cancel button for Confirmed segment
             if (selectedSegment == "Confirmed") {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 OutlinedButton(
                     onClick = onCancelClick,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Error),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 10.dp)
+                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                 ) {
-                    Text("Cancel Booking", fontWeight = FontWeight.SemiBold)
+                    Text("Cancel Booking", fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                 }
             }
         }
