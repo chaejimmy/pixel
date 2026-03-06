@@ -501,7 +501,7 @@ class AuthSession @Inject constructor(
             tokenStorage.userId = user.id
             tokenStorage.cachedUserSummary = responseBody
 
-            Timber.d("User set: ${user.displayName}")
+            Timber.d("User set: id=${user.id}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
             if (!fromCache) {
