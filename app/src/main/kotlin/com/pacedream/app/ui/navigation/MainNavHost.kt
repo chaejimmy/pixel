@@ -50,7 +50,7 @@ import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
 import com.pacedream.app.feature.collections.CollectionsScreen
 import com.pacedream.app.feature.roommate.RoommateFinderScreen
-import com.pacedream.app.feature.search.SearchScreen
+import com.shourov.apps.pacedream.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -185,17 +185,16 @@ fun MainNavHost(
                 // Search Tab
                 composable(NavRoutes.SEARCH) {
                     SearchScreen(
-                        onListingClick = { item ->
-                            navController.currentBackStackEntry?.savedStateHandle?.apply {
-                                set("listing_initial_id", item.id)
-                                set("listing_initial_title", item.title)
-                                set("listing_initial_imageUrl", item.imageUrl)
-                                set("listing_initial_location", item.location)
-                                set("listing_initial_price", item.price)
-                                set("listing_initial_rating", item.rating)
-                                set("listing_initial_type", item.type)
-                            }
-                            navController.navigate(NavRoutes.listingDetail(item.id))
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        },
+                        onShowAuthSheet = {
+                            authSheetTitle = "Sign in"
+                            authSheetSubtitle = "Sign in to save favorites."
+                            showAuthSheet = true
                         }
                     )
                 }

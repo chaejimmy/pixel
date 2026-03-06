@@ -13,6 +13,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
@@ -36,6 +38,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -88,6 +92,64 @@ import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
+/**
+ * Category chips per marketplace mode (matching website CATEGORIES_BY_MODE)
+ */
+private val CATEGORIES_BY_MODE: Map<String, List<String>> = mapOf(
+    "USE" to listOf(
+        "Restrooms", "Nap Pods", "Meeting Rooms", "Study Rooms",
+        "Short Stays", "Studios", "Parking", "Storage Space"
+    ),
+    "BORROW" to listOf(
+        "Sports Gear", "Cameras", "Tech Gadgets", "E-Bikes",
+        "Scooters", "Musical Instruments", "Books", "Games"
+    ),
+    "SPLIT" to listOf(
+        "Subscription", "Sports", "WIFI", "Events"
+    )
+)
+
+/**
+ * Sort options matching the website's sort dropdown
+ */
+private data class SortOption(val value: String, val label: String)
+
+private val SORT_OPTIONS = listOf(
+    SortOption("relevance", "Relevance"),
+    SortOption("price_low", "Price: Low to High"),
+    SortOption("price_high", "Price: High to Low"),
+    SortOption("rating", "Rating")
+)
+
+/**
+ * Map frontend category names to backend category names (website parity)
+ */
+private fun mapCategoryToBackend(cat: String): String {
+    val categoryMap = mapOf(
+        "Restrooms" to "restroom",
+        "Nap Pods" to "nap_pod",
+        "Meeting Rooms" to "meeting_room",
+        "Study Rooms" to "study_room",
+        "Short Stays" to "short_stay",
+        "Studios" to "apartment",
+        "Parking" to "parking",
+        "Storage Space" to "storage_space",
+        "Sports Gear" to "sports_gear",
+        "Cameras" to "camera",
+        "Tech Gadgets" to "tech",
+        "E-Bikes" to "micromobility",
+        "Scooters" to "micromobility",
+        "Musical Instruments" to "instrument",
+        "Books" to "tech",
+        "Games" to "games",
+        "Subscription" to "subscription",
+        "Sports" to "sports",
+        "WIFI" to "wifi",
+        "Events" to "membership"
+    )
+    return categoryMap[cat] ?: cat.lowercase().replace(" ", "_")
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -105,6 +167,13 @@ fun SearchScreen(
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // Sort state
+    var selectedSort by remember { mutableStateOf("relevance") }
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    // Category filter state
+    var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     val locationService = remember {
         EntryPointAccessors.fromApplication(
@@ -143,6 +212,13 @@ fun SearchScreen(
         }
     }
 
+    // Clear categories when mode changes (categories differ per mode, like website)
+    val currentShareType = state.shareType?.uppercase() ?: "USE"
+    LaunchedEffect(currentShareType) {
+        val validCats = CATEGORIES_BY_MODE[currentShareType] ?: emptyList()
+        selectedCategories = selectedCategories.filter { it in validCats }.toSet()
+    }
+
     LaunchedEffect(initialQuery) {
         val q = initialQuery?.trim().orEmpty()
         if (q.isNotBlank() && viewModel.uiState.value.query.isBlank()) {
@@ -155,6 +231,15 @@ fun SearchScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            PaceDreamIcons.ArrowBack,
+                            contentDescription = "Go back",
+                            tint = PaceDreamColors.TextPrimary
+                        )
+                    }
+                },
                 title = {
                     Text(
                         "Explore",
@@ -163,7 +248,7 @@ fun SearchScreen(
                     )
                 },
                 actions = {
-                    // Map toggle button with modern pill shape
+                    // Map toggle button
                     Surface(
                         shape = RoundedCornerShape(PaceDreamRadius.SM),
                         color = if (mapMode) PaceDreamColors.Primary.copy(alpha = 0.12f) else Color.Transparent,
@@ -294,6 +379,7 @@ fun SearchScreen(
                     SuggestionsList(
                         suggestions = state.suggestions,
                         onClick = { suggestion ->
+                            whereQuery = suggestion.value
                             viewModel.onQueryChanged(suggestion.value)
                             viewModel.submitSearch()
                         }
@@ -310,8 +396,37 @@ fun SearchScreen(
                         MapPlaceholder()
                     } else {
                         Column {
-                            // Modern filters row
-                            FiltersRow()
+                            // Sort and category filters row (matching website)
+                            FiltersRow(
+                                selectedSort = selectedSort,
+                                showSortMenu = showSortMenu,
+                                onSortMenuToggle = { showSortMenu = it },
+                                onSortSelected = { sort ->
+                                    selectedSort = sort
+                                    showSortMenu = false
+                                    viewModel.updateSearchParams()
+                                    if (state.phase != SearchPhase.Idle) {
+                                        viewModel.submitSearch()
+                                    }
+                                },
+                                shareType = currentShareType,
+                                selectedCategories = selectedCategories,
+                                onCategoryToggle = { cat ->
+                                    selectedCategories = if (cat in selectedCategories) {
+                                        selectedCategories - cat
+                                    } else {
+                                        selectedCategories + cat
+                                    }
+                                    // Update category in ViewModel
+                                    val mappedCats = selectedCategories.map { mapCategoryToBackend(it) }
+                                    viewModel.updateSearchParams(
+                                        category = mappedCats.firstOrNull()
+                                    )
+                                    if (state.phase != SearchPhase.Idle) {
+                                        viewModel.submitSearch()
+                                    }
+                                }
+                            )
 
                             when (state.phase) {
                                 SearchPhase.Idle -> IdleState()
@@ -320,34 +435,39 @@ fun SearchScreen(
                                     message = state.errorMessage ?: "Search failed",
                                     onRetry = { viewModel.submitSearch() }
                                 )
-                                SearchPhase.Empty -> EmptyState()
-                                SearchPhase.Success, SearchPhase.LoadingMore -> ResultsList(
-                                    items = state.items,
-                                    isLoadingMore = state.phase == SearchPhase.LoadingMore,
-                                    hasMore = state.hasMore,
-                                    onLoadMore = { viewModel.loadMoreIfNeeded() },
-                                    onItemClick = onListingClick,
-                                    favoriteIds = favoriteIds,
-                                    onFavoriteClick = { listingId ->
-                                        if (authState == AuthState.Unauthenticated) {
-                                            onShowAuthSheet()
-                                            return@ResultsList
-                                        }
-                                        scope.launch {
-                                            val wasFavorited = favoriteIds.contains(listingId)
-                                            when (val res = viewModel.toggleFavorite(listingId)) {
-                                                is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                                                is ApiResult.Failure -> {
-                                                    if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                                                        onShowAuthSheet()
-                                                    } else {
-                                                        inlineBannerMessage = (res.error.message ?: "Failed to save")
+                                SearchPhase.Empty -> EmptyState(shareType = currentShareType)
+                                SearchPhase.Success, SearchPhase.LoadingMore -> {
+                                    ResultsList(
+                                        items = state.items,
+                                        isLoadingMore = state.phase == SearchPhase.LoadingMore,
+                                        hasMore = state.hasMore,
+                                        onLoadMore = { viewModel.loadMoreIfNeeded() },
+                                        onItemClick = onListingClick,
+                                        favoriteIds = favoriteIds,
+                                        onFavoriteClick = { listingId ->
+                                            if (authState == AuthState.Unauthenticated) {
+                                                onShowAuthSheet()
+                                                return@ResultsList
+                                            }
+                                            scope.launch {
+                                                val wasFavorited = favoriteIds.contains(listingId)
+                                                when (val res = viewModel.toggleFavorite(listingId)) {
+                                                    is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                                    is ApiResult.Failure -> {
+                                                        if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                                                            onShowAuthSheet()
+                                                        } else {
+                                                            inlineBannerMessage = (res.error.message ?: "Failed to save")
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                    }
-                                )
+                                        },
+                                        shareType = currentShareType,
+                                        displayLocation = state.city,
+                                        totalCount = state.items.size
+                                    )
+                                }
                             }
                         }
                     }
@@ -406,50 +526,117 @@ private fun SuggestionsList(
     }
 }
 
+/**
+ * Sort dropdown and category filter chips (website parity).
+ */
 @Composable
-private fun FiltersRow() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+private fun FiltersRow(
+    selectedSort: String,
+    showSortMenu: Boolean,
+    onSortMenuToggle: (Boolean) -> Unit,
+    onSortSelected: (String) -> Unit,
+    shareType: String,
+    selectedCategories: Set<String>,
+    onCategoryToggle: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        FilterChip(
-            selected = false,
-            onClick = { /* TODO */ },
-            label = { Text("Sort", style = PaceDreamTypography.Subheadline) },
-            leadingIcon = {
-                Icon(
-                    PaceDreamIcons.Tune,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+        // Sort row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Sort dropdown
+            Box {
+                val sortLabel = SORT_OPTIONS.find { it.value == selectedSort }?.label ?: "Relevance"
+                FilterChip(
+                    selected = selectedSort != "relevance",
+                    onClick = { onSortMenuToggle(!showSortMenu) },
+                    label = { Text(sortLabel, style = PaceDreamTypography.Subheadline) },
+                    leadingIcon = {
+                        Icon(
+                            PaceDreamIcons.Tune,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = PaceDreamColors.Surface,
+                        selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f),
+                        selectedLabelColor = PaceDreamColors.Primary
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
+                    border = null
                 )
-            },
-            colors = FilterChipDefaults.filterChipColors(
-                containerColor = PaceDreamColors.Surface,
-                selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f)
-            ),
-            shape = RoundedCornerShape(PaceDreamRadius.Round),
-            border = null
-        )
-        FilterChip(
-            selected = false,
-            onClick = { /* TODO */ },
-            label = { Text("Filters", style = PaceDreamTypography.Subheadline) },
-            leadingIcon = {
-                Icon(
-                    PaceDreamIcons.FilterList,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-            },
-            colors = FilterChipDefaults.filterChipColors(
-                containerColor = PaceDreamColors.Surface,
-                selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f)
-            ),
-            shape = RoundedCornerShape(PaceDreamRadius.Round),
-            border = null
-        )
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { onSortMenuToggle(false) }
+                ) {
+                    SORT_OPTIONS.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    option.label,
+                                    style = PaceDreamTypography.Callout,
+                                    fontWeight = if (option.value == selectedSort) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (option.value == selectedSort) PaceDreamColors.Primary else PaceDreamColors.TextPrimary
+                                )
+                            },
+                            onClick = { onSortSelected(option.value) },
+                            trailingIcon = if (option.value == selectedSort) {
+                                {
+                                    Icon(
+                                        PaceDreamIcons.Check,
+                                        contentDescription = null,
+                                        tint = PaceDreamColors.Primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else null
+                        )
+                    }
+                }
+            }
+        }
+
+        // Category filter chips - dynamic per mode (matching website)
+        val categories = CATEGORIES_BY_MODE[shareType] ?: emptyList()
+        if (categories.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+            ) {
+                categories.forEach { cat ->
+                    val isSelected = cat in selectedCategories
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onCategoryToggle(cat) },
+                        label = {
+                            Text(
+                                cat,
+                                style = PaceDreamTypography.Caption,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = PaceDreamColors.Surface,
+                            selectedContainerColor = PaceDreamColors.Primary,
+                            selectedLabelColor = Color.White,
+                            labelColor = PaceDreamColors.TextSecondary
+                        ),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
+                        border = null
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -471,16 +658,22 @@ private fun IdleState() {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(shareType: String = "") {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
+        val (title, description) = when (shareType) {
+            "USE" -> "No space listings available yet" to "Be the first to create a space listing!"
+            "BORROW" -> "No borrow listings available yet" to "Be the first to create a borrow listing!"
+            "SPLIT" -> "No split listings available yet" to "Be the first to create a split listing!"
+            else -> "No results" to "Try a different search or pull to refresh."
+        }
         PaceDreamEmptyState(
-            title = "No results",
-            description = "Try a different search or pull to refresh.",
+            title = title,
+            description = description,
             icon = PaceDreamIcons.Search,
             modifier = Modifier.fillMaxWidth()
         )
@@ -518,7 +711,6 @@ private fun SearchSkeleton() {
                 color = PaceDreamColors.Card
             ) {
                 Column {
-                    // Image skeleton
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -526,7 +718,6 @@ private fun SearchSkeleton() {
                             .background(PaceDreamColors.Surface)
                             .shimmerEffect()
                     )
-                    // Content skeleton
                     Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                         Box(
                             modifier = Modifier
@@ -576,13 +767,32 @@ private fun ResultsList(
     onLoadMore: () -> Unit,
     onItemClick: (String) -> Unit,
     favoriteIds: Set<String>,
-    onFavoriteClick: (String) -> Unit
+    onFavoriteClick: (String) -> Unit,
+    shareType: String = "",
+    displayLocation: String? = null,
+    totalCount: Int = 0
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
     ) {
+        // Mode-specific banner (matching website gradient banners)
+        if (shareType.isNotBlank()) {
+            item(key = "mode_banner") {
+                ModeBanner(shareType = shareType)
+            }
+        }
+
+        // Results count header (matching website)
+        item(key = "results_header") {
+            ResultsHeader(
+                totalCount = totalCount,
+                shareType = shareType,
+                displayLocation = displayLocation
+            )
+        }
+
         items(items, key = { it.id }) { item ->
             ModernSearchResultCard(
                 item = item,
@@ -625,6 +835,130 @@ private fun ResultsList(
                 }
             }
         }
+    }
+}
+
+/**
+ * Mode-specific gradient banner (matching website's mode banners)
+ */
+@Composable
+private fun ModeBanner(shareType: String) {
+    val (title, description) = when (shareType) {
+        "USE" -> "Share - Space Rentals" to "Discover restrooms, nap pods, meeting rooms, study spaces, parking, and more available by the hour"
+        "BORROW" -> "Borrow - Gear & Items" to "Borrow sports gear, cameras, e-bikes, scooters, musical instruments, and more"
+        "SPLIT" -> "Split - Share Costs" to "Split stays, find travel roommates, share rides, and split memberships"
+        else -> return
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFFF3EFFF),
+                            Color(0xFFEDE5FF),
+                            Color(0xFFE2D8FF)
+                        )
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFFD4C4FF),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
+                )
+                .padding(PaceDreamSpacing.MD)
+        ) {
+            Column {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Title2,
+                    fontWeight = FontWeight.Bold,
+                    color = PaceDreamColors.TextPrimary
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Text(
+                    text = description,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Results count header (matching website's results count display)
+ */
+@Composable
+private fun ResultsHeader(
+    totalCount: Int,
+    shareType: String,
+    displayLocation: String?
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Location chip
+        if (!displayLocation.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.padding(bottom = PaceDreamSpacing.SM),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Showing results in: ",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+                Surface(
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
+                    color = PaceDreamColors.Primary.copy(alpha = 0.08f),
+                    modifier = Modifier.border(
+                        width = 1.dp,
+                        color = PaceDreamColors.Primary.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round)
+                    )
+                ) {
+                    Text(
+                        text = displayLocation,
+                        style = PaceDreamTypography.Caption,
+                        fontWeight = FontWeight.Medium,
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.padding(
+                            horizontal = PaceDreamSpacing.SM,
+                            vertical = PaceDreamSpacing.XS
+                        )
+                    )
+                }
+            }
+        }
+
+        // Results count
+        val listingNoun = if (totalCount == 1) "listing" else "listings"
+        val typeLabel = when (shareType) {
+            "USE" -> "space"
+            "BORROW" -> "borrowable"
+            "SPLIT" -> "split"
+            else -> ""
+        }
+
+        Text(
+            text = buildString {
+                append("$totalCount $typeLabel $listingNoun".trim())
+                if (!displayLocation.isNullOrBlank()) {
+                    append(" in ${displayLocation.replaceFirstChar { it.uppercase() }}")
+                }
+            },
+            style = PaceDreamTypography.Headline,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
     }
 }
 
@@ -691,7 +1025,7 @@ private fun ModernSearchResultCard(
                     )
                 }
 
-                // Bottom gradient overlay for readability
+                // Bottom gradient overlay
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -707,7 +1041,7 @@ private fun ModernSearchResultCard(
                         )
                 )
 
-                // Favorite button - glass style
+                // Favorite button
                 Surface(
                     shape = CircleShape,
                     color = Color.Black.copy(alpha = 0.3f),

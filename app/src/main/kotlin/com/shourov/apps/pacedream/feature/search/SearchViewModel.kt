@@ -100,7 +100,9 @@ class SearchViewModel @Inject constructor(
         whatQuery: String? = null,
         city: String? = null,
         startDate: String? = null,
-        endDate: String? = null
+        endDate: String? = null,
+        category: String? = null,
+        sort: String? = null
     ) {
         _uiState.update { current ->
             current.copy(
@@ -109,6 +111,8 @@ class SearchViewModel @Inject constructor(
                 city = city ?: current.city,
                 startDate = startDate ?: current.startDate,
                 endDate = endDate ?: current.endDate,
+                category = category ?: current.category,
+                sort = sort ?: current.sort,
                 errorMessage = null
             )
         }
