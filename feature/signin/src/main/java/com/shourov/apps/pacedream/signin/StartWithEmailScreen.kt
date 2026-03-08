@@ -120,6 +120,23 @@ fun StartWithEmailScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 SignInButton(
+                    logo = R.drawable.apple_logo,
+                    text = R.string.core_ui_continue_with_apple,
+                    onClick = {
+                        viewModel.loginWithApple(
+                            activity = activity,
+                            onSuccess = { onContinueAccountSetup() },
+                            onError = { error ->
+                                errorMessage = error
+                                showDialog = true
+                            }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = uiState.isAppleLoading,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                SignInButton(
                     logo = R.drawable.google_logo,
                     text = R.string.core_ui_continue_with_google,
                     onClick = {

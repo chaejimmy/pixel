@@ -129,6 +129,23 @@ fun StartWithEmailOrPhoneScreen(
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
+                // Continue with Apple (Auth0 social connection)
+                SignInButton(
+                    logo = R.drawable.apple_logo,
+                    text = R.string.core_ui_continue_with_apple,
+                    onClick = {
+                        authViewModel.loginWithApple(
+                            activity = activity,
+                            onSuccess = { onAuthSuccess() },
+                            onError = { /* Error shown via uiState */ }
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = uiState.isAppleLoading,
+                )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
                 // Continue with Google (Auth0 social connection)
                 SignInButton(
                     logo = R.drawable.google_logo,

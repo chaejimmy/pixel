@@ -142,8 +142,14 @@ fun AuthFlowSheet(
                 when (mode) {
                     AuthFlowMode.Chooser -> ChooserContent(
                         isGoogleLoading = uiState.isGoogleLoading,
+                        isAppleLoading = uiState.isAppleLoading,
                         onSignIn = viewModel::goToSignIn,
                         onSignUp = viewModel::goToSignUp,
+                        onApple = {
+                            (context as? Activity)?.let { activity ->
+                                viewModel.loginWithAuth0(activity, Auth0Connection.Apple)
+                            }
+                        },
                         onGoogle = {
                             (context as? Activity)?.let { activity ->
                                 viewModel.loginWithAuth0(activity, Auth0Connection.Google)
@@ -189,8 +195,10 @@ fun AuthFlowSheet(
 @Composable
 private fun ChooserContent(
     isGoogleLoading: Boolean,
+    isAppleLoading: Boolean,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
+    onApple: () -> Unit,
     onGoogle: () -> Unit,
     onNotNow: () -> Unit
 ) {
@@ -228,6 +236,20 @@ private fun ChooserContent(
         }
 
         Spacer(modifier = Modifier.height(18.dp))
+
+        OutlinedButton(
+            onClick = onApple,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isAppleLoading
+        ) {
+            if (isAppleLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Text("Continue with Apple")
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedButton(
             onClick = onGoogle,
@@ -444,8 +466,10 @@ private fun PreviewAuthChooserContent() {
         Column(modifier = Modifier.padding(16.dp)) {
             ChooserContent(
                 isGoogleLoading = false,
+                isAppleLoading = false,
                 onSignIn = {},
                 onSignUp = {},
+                onApple = {},
                 onGoogle = {},
                 onNotNow = {}
             )
