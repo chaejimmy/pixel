@@ -35,15 +35,11 @@ class SearchRepository @Inject constructor(
     }
 
     /**
-     * iOS parity:
-     * - Primary: GET https://www.pacedream.com/api/search?... (frontend)
+     * Website parity:
+     * - Primary: backend /v1/poc/listings (for time-based, hourly-rental-gears)
+     *            or /v1/listings (for room-stays, find-roommates)
+     *   matching the website search page's fetchListings() logic.
      * - Fallback: GET /v1/search?... (backend) when primary fails.
-     *
-     * The web /api/search endpoint requires:
-     *   category = time-based | hourly-rental-gears | room-stays | find-roommates
-     *   q        = text/keyword search (WHAT field)
-     *   location = city/area filter   (WHERE field)
-     *   limit / offset  for pagination (NOT page/perPage)
      */
     suspend fun search(
         q: String,
@@ -57,7 +53,7 @@ class SearchRepository @Inject constructor(
         startDate: String? = null, // ISO date string
         endDate: String? = null // ISO date string
     ): ApiResult<SearchPage> {
-        // Map shareType to the web API's required "category" parameter
+        // Map shareType to the web category key
         val webCategory = category?.takeIf { it in VALID_WEB_CATEGORIES }
             ?: mapShareTypeToCategory(shareType)
 
@@ -67,24 +63,47 @@ class SearchRepository @Inject constructor(
         val textQuery = whatQuery?.takeIf { it.isNotBlank() }
             ?: q.takeIf { it.isNotBlank() }
 
-        val primaryUrl = appConfig.frontendBaseUrl.newBuilder()
-            .addPathSegment("api")
-            .addPathSegment("search")
-            .addQueryParameter("category", webCategory)
-            .addQueryParameter("limit", perPage.toString())
-            .addQueryParameter("offset", offset.toString())
-            .apply {
-                if (!textQuery.isNullOrBlank()) addQueryParameter("q", textQuery)
-                if (!city.isNullOrBlank()) addQueryParameter("location", city)
-                if (!sort.isNullOrBlank()) addQueryParameter("sort", sort)
-                if (!shareType.isNullOrBlank()) addQueryParameter("shareType", shareType)
-                if (!startDate.isNullOrBlank() && !endDate.isNullOrBlank()) {
-                    addQueryParameter("date", "$startDate,$endDate")
-                } else if (!startDate.isNullOrBlank()) {
-                    addQueryParameter("date", startDate)
-                }
-            }
-            .build()
+        // Website parity: map web category to backend category values
+        val backendCategory = BACKEND_CATEGORY_MAP[webCategory] ?: "time_based"
+
+        // Website parity: time-based and hourly-rental-gears use /poc/listings,
+        // others use /listings
+        val usePOCEndpoint = webCategory == "time-based" || webCategory == "hourly-rental-gears"
+
+        val queryParams = mutableMapOf<String, String?>(
+            "status" to "published",
+            "limit" to perPage.toString(),
+        )
+
+        // Pagination
+        if (page0 > 0) {
+            queryParams["skip"] = offset.toString()
+        } else {
+            queryParams["skip_pagination"] = "true"
+        }
+
+        // Category param differs by endpoint type (website parity)
+        if (usePOCEndpoint) {
+            queryParams["category"] = backendCategory
+        } else {
+            queryParams["shareType"] = shareType ?: mapCategoryToShareType(webCategory)
+        }
+
+        if (!textQuery.isNullOrBlank()) queryParams["q"] = textQuery
+        if (!city.isNullOrBlank()) queryParams["location"] = city
+        if (!sort.isNullOrBlank()) queryParams["sort"] = sort
+
+        if (!startDate.isNullOrBlank() && !endDate.isNullOrBlank()) {
+            queryParams["date"] = "$startDate,$endDate"
+        } else if (!startDate.isNullOrBlank()) {
+            queryParams["date"] = startDate
+        }
+
+        val primaryUrl = if (usePOCEndpoint) {
+            appConfig.buildApiUrlWithQuery("poc", "listings", queryParams = queryParams)
+        } else {
+            appConfig.buildApiUrlWithQuery("listings", queryParams = queryParams)
+        }
 
         Timber.d("Search primary URL: $primaryUrl")
         val primary = apiClient.get(primaryUrl, includeAuth = false)
@@ -122,12 +141,30 @@ class SearchRepository @Inject constructor(
             "time-based", "hourly-rental-gears", "room-stays", "find-roommates"
         )
 
+        /** Website parity: map web category keys to backend category values */
+        private val BACKEND_CATEGORY_MAP = mapOf(
+            "time-based" to "time_based",
+            "hourly-rental-gears" to "hourly_rental_gear",
+            "room-stays" to "room_stays",
+            "find-roommates" to "find_roommate"
+        )
+
         /** Map shareType (USE/BORROW/SPLIT) to the web API category */
         private fun mapShareTypeToCategory(shareType: String?): String {
             return when (shareType?.uppercase()) {
                 "BORROW" -> "hourly-rental-gears"
                 "SPLIT" -> "room-stays"
                 else -> "time-based" // USE or default
+            }
+        }
+
+        /** Reverse map: category to shareType for /v1/listings endpoint */
+        private fun mapCategoryToShareType(webCategory: String): String {
+            return when (webCategory) {
+                "room-stays" -> "SPLIT"
+                "find-roommates" -> "SPLIT"
+                "hourly-rental-gears" -> "BORROW"
+                else -> "USE"
             }
         }
     }

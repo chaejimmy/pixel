@@ -82,17 +82,42 @@ class SearchViewModel @Inject constructor(
             SearchTab.SPLIT -> "room-stays"
         }
 
-        // Primary: frontend search proxy (iOS parity)
-        val primaryUrl = appConfig.frontendBaseUrl.newBuilder()
-            .addPathSegment("api")
-            .addPathSegment("search")
-            .apply {
-                if (state.query.isNotBlank()) addQueryParameter("q", state.query)
-                addQueryParameter("category", category)
-                addQueryParameter("limit", "24")
-                addQueryParameter("offset", "0")
+        // Website parity: map web category to backend category values
+        val backendCategoryMap = mapOf(
+            "time-based" to "time_based",
+            "hourly-rental-gears" to "hourly_rental_gear",
+            "room-stays" to "room_stays",
+            "find-roommates" to "find_roommate"
+        )
+        val backendCategory = backendCategoryMap[category] ?: "time_based"
+
+        // Website parity: time-based and hourly-rental-gears use /poc/listings,
+        // others use /listings
+        val usePOCEndpoint = category == "time-based" || category == "hourly-rental-gears"
+
+        val queryParams = buildMap<String, String?> {
+            put("status", "published")
+            put("limit", "24")
+            put("skip_pagination", "true")
+            if (usePOCEndpoint) {
+                put("category", backendCategory)
+            } else {
+                val shareTypeValue = when (state.selectedTab) {
+                    SearchTab.SHARE -> "USE"
+                    SearchTab.BORROW -> "BORROW"
+                    SearchTab.SPLIT -> "SPLIT"
+                }
+                put("shareType", shareTypeValue)
             }
-            .build()
+            if (state.query.isNotBlank()) put("q", state.query)
+        }
+
+        // Primary: backend API directly (website parity)
+        val primaryUrl = if (usePOCEndpoint) {
+            appConfig.buildApiUrl("poc", "listings", queryParams = queryParams)
+        } else {
+            appConfig.buildApiUrl("listings", queryParams = queryParams)
+        }
 
         Timber.d("Search primary URL: $primaryUrl")
         val primaryResult = apiClient.get(primaryUrl, includeAuth = false)
