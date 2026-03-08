@@ -57,6 +57,7 @@ fun ChatListScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PaceDreamDesignSystem.PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
         PaceDreamHeroHeader(
             title = "Messages",

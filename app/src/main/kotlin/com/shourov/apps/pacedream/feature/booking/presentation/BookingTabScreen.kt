@@ -64,6 +64,7 @@ fun BookingTabScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
         // Header
         PaceDreamHeroHeader(

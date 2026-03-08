@@ -56,6 +56,7 @@ fun BookingScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
         PaceDreamHeroHeader(
             title = "My Bookings",

@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.profile.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -83,7 +84,9 @@ fun ProfileTabScreen(
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
             ) {
                 Box(
                     modifier = Modifier
@@ -99,7 +102,9 @@ fun ProfileTabScreen(
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
             ) {
                 LazyColumn(
                     modifier = Modifier
@@ -186,7 +191,8 @@ private fun RequiresAuthState(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PaceDreamColors.Background),
+            .background(PaceDreamColors.Background)
+            .statusBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
         Column(
