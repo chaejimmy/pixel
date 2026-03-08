@@ -55,6 +55,7 @@ fun BookingFormScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
         PaceDreamHeroHeader(
             title = "Book Property",
