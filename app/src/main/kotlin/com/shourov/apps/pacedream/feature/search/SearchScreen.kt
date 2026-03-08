@@ -974,21 +974,21 @@ private fun ModernSearchResultCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = {
-                ListingPreviewStore.put(
-                    ListingPreview(
-                        id = item.id,
-                        title = item.title.ifBlank { "Listing" },
-                        location = item.location?.takeIf { it.isNotBlank() },
-                        imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
-                        priceText = item.priceText?.takeIf { it.isNotBlank() },
-                        rating = item.rating
-                    )
+        onClick = {
+            ListingPreviewStore.put(
+                ListingPreview(
+                    id = item.id,
+                    title = item.title.ifBlank { "Listing" },
+                    location = item.location?.takeIf { it.isNotBlank() },
+                    imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
+                    priceText = item.priceText?.takeIf { it.isNotBlank() },
+                    rating = item.rating
                 )
-                onClick()
-            }),
+            )
+            onClick()
+        },
+        modifier = modifier
+            .fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = PaceDreamColors.Card,
         shadowElevation = 0.dp,
