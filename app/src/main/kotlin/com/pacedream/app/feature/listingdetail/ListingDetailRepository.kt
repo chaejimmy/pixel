@@ -38,6 +38,7 @@ class ListingDetailRepository @Inject constructor(
         listingType: String = ""
     ): ApiResult<ListingDetailModel> {
         val urls = buildDetailUrls(listingId, listingType)
+        var lastError: ApiError = ApiError.NotFound
 
         for (url in urls) {
             when (val result = apiClient.get(url, includeAuth = true)) {
@@ -46,11 +47,12 @@ class ListingDetailRepository @Inject constructor(
                     if (parsed != null) return ApiResult.Success(parsed)
                 }
                 is ApiResult.Failure -> {
-                    if (result.error !is ApiError.NotFound) return result
+                    Timber.d("Endpoint failed: $url — ${result.error.message}. Trying next…")
+                    lastError = result.error
                 }
             }
         }
-        return ApiResult.Failure(ApiError.NotFound)
+        return ApiResult.Failure(lastError)
     }
 
     private fun buildDetailUrls(
@@ -59,9 +61,11 @@ class ListingDetailRepository @Inject constructor(
     ): List<okhttp3.HttpUrl> {
         val typeSpecific = when (listingType) {
             "time-based" -> listOf(
-                appConfig.buildApiUrl("properties", listingId)
+                appConfig.buildApiUrl("properties", listingId),
+                appConfig.buildApiUrl("properties", "get-rentable-item", listingId)
             )
             "gear" -> listOf(
+                appConfig.buildApiUrl("gear-rentals", "hourly-rental-gear", listingId),
                 appConfig.buildApiUrl("gear-rentals", listingId),
                 appConfig.buildApiUrl("gear-rentals", "get", listingId)
             )
@@ -69,9 +73,15 @@ class ListingDetailRepository @Inject constructor(
                 appConfig.buildApiUrl("roommate", listingId),
                 appConfig.buildApiUrl("roommate", "get", listingId)
             )
-            else -> emptyList()
+            else -> listOf(
+                appConfig.buildApiUrl("properties", listingId),
+                appConfig.buildApiUrl("properties", "get-rentable-item", listingId)
+            )
         }
-        return typeSpecific + listOf(appConfig.buildApiUrl("listings", listingId))
+        return typeSpecific + listOf(
+            appConfig.buildApiUrl("listings", listingId),
+            appConfig.buildApiUrl("poc", "listings", listingId)
+        )
     }
 
     /**
