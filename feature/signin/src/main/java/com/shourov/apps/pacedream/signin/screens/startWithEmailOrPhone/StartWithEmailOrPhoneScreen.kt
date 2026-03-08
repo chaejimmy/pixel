@@ -21,12 +21,9 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -147,29 +144,6 @@ fun StartWithEmailOrPhoneScreen(
                     isLoading = uiState.isGoogleLoading,
                 )
 
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-                // Continue with Apple (Auth0 social connection) - iOS parity
-                SignInButton(
-                    logo = null,
-                    icon = PaceDreamIcons.PhoneAndroid,
-                    text = R.string.core_ui_continue_with_google,
-                    onClick = {
-                        authViewModel.loginWithApple(
-                            activity = activity,
-                            onSuccess = { onAuthSuccess() },
-                            onError = { /* Error shown via uiState */ }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            bottom = WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateBottomPadding(),
-                        ),
-                    isLoading = uiState.isAppleLoading,
-                )
             }
         }
     }

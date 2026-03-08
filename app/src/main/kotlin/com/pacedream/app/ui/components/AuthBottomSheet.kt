@@ -39,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -143,17 +142,11 @@ fun AuthFlowSheet(
                 when (mode) {
                     AuthFlowMode.Chooser -> ChooserContent(
                         isGoogleLoading = uiState.isGoogleLoading,
-                        isAppleLoading = uiState.isAppleLoading,
                         onSignIn = viewModel::goToSignIn,
                         onSignUp = viewModel::goToSignUp,
                         onGoogle = {
                             (context as? Activity)?.let { activity ->
                                 viewModel.loginWithAuth0(activity, Auth0Connection.Google)
-                            }
-                        },
-                        onApple = {
-                            (context as? Activity)?.let { activity ->
-                                viewModel.loginWithAuth0(activity, Auth0Connection.Apple)
                             }
                         },
                         onNotNow = {
@@ -196,14 +189,11 @@ fun AuthFlowSheet(
 @Composable
 private fun ChooserContent(
     isGoogleLoading: Boolean,
-    isAppleLoading: Boolean,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onGoogle: () -> Unit,
-    onApple: () -> Unit,
     onNotNow: () -> Unit
 ) {
-    val anySocialLoading = isGoogleLoading || isAppleLoading
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Button(
@@ -242,35 +232,13 @@ private fun ChooserContent(
         OutlinedButton(
             onClick = onGoogle,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !anySocialLoading
+            enabled = !isGoogleLoading
         ) {
             if (isGoogleLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Text("Continue with Google")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = onApple,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !anySocialLoading,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = Color.White
-            )
-        ) {
-            if (isAppleLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-            }
-            Text("Continue with Apple")
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -476,11 +444,9 @@ private fun PreviewAuthChooserContent() {
         Column(modifier = Modifier.padding(16.dp)) {
             ChooserContent(
                 isGoogleLoading = false,
-                isAppleLoading = false,
                 onSignIn = {},
                 onSignUp = {},
                 onGoogle = {},
-                onApple = {},
                 onNotNow = {}
             )
         }

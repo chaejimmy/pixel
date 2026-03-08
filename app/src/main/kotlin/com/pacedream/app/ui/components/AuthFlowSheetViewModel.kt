@@ -23,7 +23,6 @@ data class AuthFlowSheetUiState(
     val password: String = "",
     val isEmailLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
-    val isAppleLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false
 )
@@ -42,7 +41,6 @@ class AuthFlowSheetViewModel @Inject constructor(
                 mode = AuthFlowMode.Chooser,
                 isEmailLoading = false,
                 isGoogleLoading = false,
-                isAppleLoading = false,
                 error = null,
                 success = false
             )
@@ -58,7 +56,6 @@ class AuthFlowSheetViewModel @Inject constructor(
             it.copy(
                 isEmailLoading = false,
                 isGoogleLoading = false,
-                isAppleLoading = false,
                 error = null
             )
         }
@@ -82,7 +79,6 @@ class AuthFlowSheetViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isGoogleLoading = connection == Auth0Connection.Google,
-                    isAppleLoading = connection == Auth0Connection.Apple,
                     isEmailLoading = false,
                     error = null
                 )
@@ -94,20 +90,18 @@ class AuthFlowSheetViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isGoogleLoading = false,
-                            isAppleLoading = false,
                             success = true
                         )
                     }
                 }
                 SessionManager.AuthActionResult.Cancelled -> {
                     // Cancelling is not an error (iOS parity) - no-op.
-                    _uiState.update { it.copy(isGoogleLoading = false, isAppleLoading = false) }
+                    _uiState.update { it.copy(isGoogleLoading = false) }
                 }
                 is SessionManager.AuthActionResult.Error -> {
                     _uiState.update {
                         it.copy(
                             isGoogleLoading = false,
-                            isAppleLoading = false,
                             error = result.message
                         )
                     }
