@@ -103,6 +103,29 @@ class EmailSignInViewModel @Inject constructor(
         }
     }
 
+    fun loginWithApple(
+        activity: Activity,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        _uiState.value = _uiState.value.copy(isAppleLoading = true, error = null)
+
+        viewModelScope.launch {
+            val result = authSession.loginWithAuth0(activity, "apple")
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(isAppleLoading = false)
+                    onSuccess()
+                },
+                onFailure = { error ->
+                    val errorMessage = error.message ?: "Apple login failed"
+                    _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
+                    onError(errorMessage)
+                }
+            )
+        }
+    }
+
     fun forgotPassword(
         email: String,
         onSuccess: (String) -> Unit,
@@ -139,5 +162,6 @@ class EmailSignInViewModel @Inject constructor(
 data class EmailSignInUiState(
     val isLoading: Boolean = false,
     val isGoogleLoading: Boolean = false,
+    val isAppleLoading: Boolean = false,
     val error: String? = null,
 )

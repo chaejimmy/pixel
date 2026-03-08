@@ -46,6 +46,7 @@ fun PhoneEntryScreen(
     viewModel: PhoneEntryViewModel = hiltViewModel(),
     onOTPSent: (String) -> Unit,
     onNavigateToEmail: () -> Unit = {},
+    onNavigateToApple: () -> Unit = {},
     onNavigateToGoogle: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -165,6 +166,21 @@ fun PhoneEntryScreen(
                 ),
             ) {
                 Text("Continue with Email", style = PaceDreamTypography.Button)
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            OutlinedButton(
+                onClick = onNavigateToApple,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.MD),
+                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = PaceDreamColors.TextPrimary,
+                ),
+            ) {
+                Text("Continue with Apple", style = PaceDreamTypography.Button)
             }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
