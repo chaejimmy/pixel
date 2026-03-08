@@ -1,7 +1,6 @@
 package com.shourov.apps.pacedream.feature.homefeed
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -148,9 +147,9 @@ fun HomeSectionListScreen(
             ) {
                 items(viewModel.items, key = { it.id }) { item ->
                     Card(
+                        onClick = { onListingClick(item.id) },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onListingClick(item.id) },
+                            .fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card)
                     ) {
                         Row(

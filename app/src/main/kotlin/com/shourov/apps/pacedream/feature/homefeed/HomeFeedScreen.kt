@@ -486,22 +486,22 @@ private fun ListingCard(
     onFavorite: () -> Unit
 ) {
     Card(
+        onClick = {
+            ListingPreviewStore.put(
+                ListingPreview(
+                    id = item.id,
+                    title = item.title.ifBlank { "Listing" },
+                    location = item.location?.takeIf { it.isNotBlank() },
+                    imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
+                    priceText = item.priceText?.takeIf { it.isNotBlank() },
+                    rating = item.rating
+                )
+            )
+            onClick()
+        },
         modifier = Modifier
             .width(280.dp)
-            .height(320.dp)
-            .clickable(onClick = {
-                ListingPreviewStore.put(
-                    ListingPreview(
-                        id = item.id,
-                        title = item.title.ifBlank { "Listing" },
-                        location = item.location?.takeIf { it.isNotBlank() },
-                        imageUrl = item.imageUrl?.takeIf { it.isNotBlank() },
-                        priceText = item.priceText?.takeIf { it.isNotBlank() },
-                        rating = item.rating
-                    )
-                )
-                onClick()
-            }),
+            .height(320.dp),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
