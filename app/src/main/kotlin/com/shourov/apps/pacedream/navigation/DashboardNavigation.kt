@@ -9,9 +9,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -764,7 +769,14 @@ fun NavGraphBuilder.DashboardNavigation(
                             onDismissRequest = { selectedListingId = null },
                             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                             containerColor = PaceDreamColors.Background,
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                            dragHandle = { BottomSheetDefaults.DragHandle() },
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.93f)
+                            ) {
                             ListingDetailRoute(
                                 listingId = selectedListingId ?: return@ModalBottomSheet,
                                 onBackClick = { selectedListingId = null },
@@ -782,6 +794,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     navController.navigate("${BookingDestination.BOOKING_FORM.name}/${draft.listingId}")
                                 }
                             )
+                            } // end Box
                         }
 
                         if (showAuthSheetForDetail) {
