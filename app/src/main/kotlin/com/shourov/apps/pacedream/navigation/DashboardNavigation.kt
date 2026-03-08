@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
@@ -58,6 +61,8 @@ import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
 import com.shourov.apps.pacedream.feature.search.SearchScreen
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.shourov.apps.pacedream.feature.home.presentation.components.FilterScreen
 import com.shourov.apps.pacedream.feature.search.CategoryResultsScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.DestinationListScreen
@@ -135,9 +140,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 d.route == DashboardDestination.FAVORITES.name ||
                                 d.route == DashboardDestination.BOOKINGS.name ||
                                 d.route == DashboardDestination.INBOX.name ||
-                                d.route == DashboardDestination.PROFILE.name ||
-                                // Keep the bottom bar visible for Search even though it's not a tab.
-                                d.route == DashboardDestination.SEARCH.name
+                                d.route == DashboardDestination.PROFILE.name
                         }
                     }
 
@@ -154,6 +157,11 @@ fun NavGraphBuilder.DashboardNavigation(
                             else -> 0
                         }
                     }
+
+                    // iOS parity: listing detail presented as a modal bottom sheet
+                    var selectedListingId by rememberSaveable { mutableStateOf<String?>(null) }
+                    // iOS parity: search presented as full-screen cover
+                    var showSearchDialog by rememberSaveable { mutableStateOf(false) }
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -256,8 +264,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     var showAuthSheet by remember { mutableStateOf(false) }
                                     HomeFeedScreen(
                                         onListingClick = { listingId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$listingId")
+                                            selectedListingId = listingId
                                         },
+                                        onSearchClick = { showSearchDialog = true },
                                         onSeeAll = { section ->
                                             navController.navigate("home_section/${section.name}")
                                         },
@@ -287,7 +296,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         section = section,
                                         onBack = { navController.popBackStack() },
                                         onListingClick = { listingId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$listingId")
+                                            selectedListingId = listingId
                                         }
                                     )
                                 }
@@ -303,7 +312,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     SearchScreen(
                                         onBackClick = { navController.popBackStack() },
                                         onListingClick = { propertyId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
+                                            selectedListingId = propertyId
                                         },
                                         onShowAuthSheet = { showAuthSheet = true }
                                     )
@@ -355,10 +364,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                 
                                 WishlistScreen(
                                     onNavigateToTimeBasedDetail = { itemId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$itemId")
+                                        selectedListingId = itemId
                                     },
                                     onNavigateToGearDetail = { gearId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$gearId")
+                                        selectedListingId = gearId
                                     },
                                     onShowAuthSheet = {
                                         showAuthSheet = true
@@ -635,7 +644,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 SearchScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onListingClick = { propertyId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
+                                        selectedListingId = propertyId
                                     },
                                     initialQuery = initialQuery,
                                     onShowAuthSheet = { showAuthSheet = true }
@@ -744,6 +753,80 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onBack = { navController.popBackStack() }
                                 )
                             }
+                        }
+                    }
+
+                    // iOS parity: listing detail as modal bottom sheet (like iOS .sheet(item:))
+                    if (selectedListingId != null) {
+                        var showAuthSheetForDetail by remember { mutableStateOf(false) }
+
+                        ModalBottomSheet(
+                            onDismissRequest = { selectedListingId = null },
+                            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                            containerColor = PaceDreamColors.Background,
+                        ) {
+                            ListingDetailRoute(
+                                listingId = selectedListingId ?: return@ModalBottomSheet,
+                                onBackClick = { selectedListingId = null },
+                                onLoginRequired = { showAuthSheetForDetail = true },
+                                onNavigateToInbox = {
+                                    selectedListingId = null
+                                    navigateToTab(navController, DashboardDestination.INBOX.name)
+                                },
+                                onNavigateToCheckout = { draft ->
+                                    selectedListingId = null
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        "booking_draft_json_${draft.listingId}",
+                                        BookingDraftCodec.encode(draft)
+                                    )
+                                    navController.navigate("${BookingDestination.BOOKING_FORM.name}/${draft.listingId}")
+                                }
+                            )
+                        }
+
+                        if (showAuthSheetForDetail) {
+                            com.pacedream.app.ui.components.AuthFlowSheet(
+                                title = "Sign in",
+                                subtitle = "Sign in to book and save favorites.",
+                                onDismiss = { showAuthSheetForDetail = false },
+                                onSuccess = { showAuthSheetForDetail = false }
+                            )
+                        }
+                    }
+
+                    // iOS parity: search as full-screen cover (like iOS .fullScreenCover)
+                    if (showSearchDialog) {
+                        var showAuthSheetForSearch by remember { mutableStateOf(false) }
+
+                        Dialog(
+                            onDismissRequest = { showSearchDialog = false },
+                            properties = DialogProperties(
+                                usePlatformDefaultWidth = false,
+                                decorFitsSystemWindows = false
+                            )
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = PaceDreamColors.Background
+                            ) {
+                                SearchScreen(
+                                    onBackClick = { showSearchDialog = false },
+                                    onListingClick = { propertyId ->
+                                        showSearchDialog = false
+                                        selectedListingId = propertyId
+                                    },
+                                    onShowAuthSheet = { showAuthSheetForSearch = true }
+                                )
+                            }
+                        }
+
+                        if (showAuthSheetForSearch) {
+                            com.pacedream.app.ui.components.AuthFlowSheet(
+                                title = "Sign in",
+                                subtitle = "Sign in to save favorites.",
+                                onDismiss = { showAuthSheetForSearch = false },
+                                onSuccess = { showAuthSheetForSearch = false }
+                            )
                         }
                     }
                 }

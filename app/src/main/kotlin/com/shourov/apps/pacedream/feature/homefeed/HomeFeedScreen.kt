@@ -79,8 +79,6 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
-import com.shourov.apps.pacedream.navigation.TabRouter
-import com.shourov.apps.pacedream.navigation.DashboardDestination
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,6 +87,7 @@ fun HomeFeedScreen(
     onListingClick: (String) -> Unit,
     onSeeAll: (HomeSectionKey) -> Unit,
     onShowAuthSheet: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
 ) {
@@ -135,7 +134,7 @@ fun HomeFeedScreen(
                 // iOS-style clean white header with "Discover" title and search bar
                 item {
                     DiscoverHeader(
-                        onSearchClick = { TabRouter.switchTo(DashboardDestination.SEARCH) },
+                        onSearchClick = onSearchClick,
                         onFilterClick = { /* TODO: Open filters */ }
                     )
                 }
