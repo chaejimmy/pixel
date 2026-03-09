@@ -4,9 +4,11 @@ import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -154,15 +156,15 @@ class ApiClient @Inject constructor(
     private suspend fun executeWithRetry(
         url: HttpUrl,
         includeAuth: Boolean
-    ): ApiResult<String> {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
         var lastError: ApiError = ApiError.Unknown()
-        
+
         for (attempt in 0..AppConfig.MAX_RETRY_ATTEMPTS) {
             try {
                 val request = buildRequest(url, "GET", null, includeAuth)
                 val response = executeRequest(request)
-                
-                return when {
+
+                return@withContext when {
                     response.isSuccessful -> {
                         val body = response.body?.string() ?: ""
                         ApiResult.Success(body)
@@ -180,17 +182,17 @@ class ApiClient @Inject constructor(
 
                 // Only retry on timeout/transient errors
                 if (!isRetryableError(lastError) || attempt >= AppConfig.MAX_RETRY_ATTEMPTS) {
-                    return ApiResult.Failure(lastError)
+                    return@withContext ApiResult.Failure(lastError)
                 }
-                
+
                 // Exponential backoff
                 val delayMs = AppConfig.RETRY_DELAYS_MS.getOrElse(attempt) { 800L }
                 Timber.d("Retrying GET after ${delayMs}ms (attempt ${attempt + 1})")
                 delay(delayMs)
             }
         }
-        
-        return ApiResult.Failure(lastError)
+
+        ApiResult.Failure(lastError)
     }
     
     /**
@@ -232,11 +234,11 @@ class ApiClient @Inject constructor(
     suspend fun delete(
         url: HttpUrl,
         includeAuth: Boolean = false
-    ): ApiResult<String> {
-        return try {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
             val request = buildRequest(url, "DELETE", null, includeAuth)
             val response = executeRequest(request)
-            
+
             when {
                 response.isSuccessful -> {
                     ApiResult.Success(response.body?.string() ?: "")
@@ -262,8 +264,8 @@ class ApiClient @Inject constructor(
         url: HttpUrl,
         body: String,
         includeAuth: Boolean
-    ): ApiResult<String> {
-        return try {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
             val request = buildRequest(url, method, body, includeAuth)
             val response = executeRequest(request)
 
