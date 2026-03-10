@@ -2,38 +2,57 @@ package com.pacedream.app.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.pacedream.common.icon.PaceDreamIcons
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamRadius
 
 /**
- * HomeSectionListScreen - View All for a section
- * 
- * Shows grid of listings for a specific section type
+ * HomeSectionListScreen - View All for a section (iOS parity: vertical card list)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,11 +63,11 @@ fun HomeSectionListScreen(
     onListingClick: (HomeListingItem) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     LaunchedEffect(sectionType) {
         viewModel.loadSection(sectionType)
     }
-    
+
     val title = remember(sectionType) {
         when (sectionType) {
             "hourly-spaces" -> "Hourly Spaces"
@@ -57,16 +76,13 @@ fun HomeSectionListScreen(
             else -> "Listings"
         }
     }
-    
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        title,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
+            LargeTopAppBar(
+                title = { Text(title, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -75,12 +91,13 @@ fun HomeSectionListScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        containerColor = Color.White
+        }
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
@@ -88,40 +105,43 @@ fun HomeSectionListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             when {
                 uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        CircularProgressIndicator()
+                        items(6) {
+                            SkeletonCard()
+                        }
                     }
                 }
-                
-                uiState.error != null -> {
+
+                uiState.error != null && uiState.items.isEmpty() -> {
                     ErrorState(
+                        sectionTitle = title,
                         message = uiState.error!!,
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                
+
                 uiState.items.isEmpty() -> {
                     EmptyState(
+                        sectionTitle = title,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                
+
                 else -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        items(uiState.items) { item ->
-                            ListingGridCard(
+                        items(uiState.items, key = { it.id }) { item ->
+                            FeaturedListingCard(
                                 item = item,
                                 onClick = { onListingClick(item) }
                             )
@@ -133,8 +153,11 @@ fun HomeSectionListScreen(
     }
 }
 
+/**
+ * FeaturedListingCard - iOS parity card: image (120dp), title, location, rating + price row
+ */
 @Composable
-private fun ListingGridCard(
+private fun FeaturedListingCard(
     item: HomeListingItem,
     onClick: () -> Unit
 ) {
@@ -142,16 +165,15 @@ private fun ListingGridCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            // Image with fallback
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.2f)
+                    .height(120.dp)
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             ) {
                 if (!item.imageUrl.isNullOrBlank()) {
@@ -168,112 +190,23 @@ private fun ListingGridCard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
                                     color = PaceDreamColors.Primary
                                 )
                             }
                         },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(PaceDreamColors.Gray100),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Image,
-                                    contentDescription = null,
-                                    tint = PaceDreamColors.Gray400,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        }
+                        error = { ImagePlaceholder() }
                     )
                 } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(PaceDreamColors.Gray100),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Image,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                // Bottom gradient scrim
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.15f))
-                            )
-                        )
-                )
-
-                // Rating badge (bottom-right)
-                item.rating?.let { rating ->
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(8.dp),
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color.White
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFBBF24),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "%.1f".format(rating),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                // Favorite heart (top-right)
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(28.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.85f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = "Favorite",
-                            tint = Color(0xFF1A1A1A),
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                    ImagePlaceholder()
                 }
             }
 
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = item.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -281,31 +214,119 @@ private fun ListingGridCard(
 
                 item.location?.let { location ->
                     Spacer(modifier = Modifier.height(4.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = location,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val rating = item.rating
+                    if (rating != null && rating > 0) {
                         Icon(
-                            imageVector = PaceDreamIcons.LocationOn,
+                            imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = Color(0xFFFBBF24),
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = location,
+                            text = "%.1f".format(rating),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            fontWeight = FontWeight.Medium
+                        )
+                    } else {
+                        Text(
+                            text = "New",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    item.price?.let { price ->
+                        Text(
+                            text = price,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = PaceDreamColors.Primary
                         )
                     }
                 }
+            }
+        }
+    }
+}
 
-                item.price?.let { price ->
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = price,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PaceDreamColors.Primary
+@Composable
+private fun ImagePlaceholder() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PaceDreamColors.Gray100),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = PaceDreamIcons.Image,
+            contentDescription = null,
+            tint = PaceDreamColors.Gray400,
+            modifier = Modifier.size(32.dp)
+        )
+    }
+}
+
+@Composable
+private fun SkeletonCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(PaceDreamColors.Gray100)
+            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(16.dp)
+                        .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(12.dp)
+                        .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Box(
+                        modifier = Modifier
+                            .width(50.dp)
+                            .height(12.dp)
+                            .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(14.dp)
+                            .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
                     )
                 }
             }
@@ -315,6 +336,7 @@ private fun ListingGridCard(
 
 @Composable
 private fun ErrorState(
+    sectionTitle: String,
     message: String,
     onRetryClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -324,41 +346,40 @@ private fun ErrorState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Something went wrong",
-            style = MaterialTheme.typography.titleMedium
+        Icon(
+            imageVector = PaceDreamIcons.Warning,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(40.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Couldn't load $sectionTitle", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetryClick) {
-            Text("Try Again")
-        }
+        Button(onClick = onRetryClick) { Text("Retry") }
     }
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
+private fun EmptyState(
+    sectionTitle: String,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "No listings found",
-            style = MaterialTheme.typography.titleMedium
+        Icon(
+            imageVector = PaceDreamIcons.Search,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(40.dp)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Check back later for new listings",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("No ${sectionTitle.lowercase()} available", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text("Pull to refresh.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
-
-
