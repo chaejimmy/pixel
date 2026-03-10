@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
+import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
 import com.shourov.apps.pacedream.ui.PaceDreamApp
@@ -98,21 +99,12 @@ class MainActivity : ComponentActivity() {
             Timber.d("Deep link parsed: $deepLinkResult")
             return
         }
-        
-        // Handle push notification intents
-        when {
-            intent.hasExtra("chat_id") -> {
-                // Navigate to specific chat
-                val chatId = intent.getStringExtra("chat_id")
-                Timber.d("Navigate to chat: $chatId")
-                // Navigation will be handled by the app state
-            }
-            intent.hasExtra("booking_id") -> {
-                // Navigate to specific booking
-                val bookingId = intent.getStringExtra("booking_id")
-                Timber.d("Navigate to booking: $bookingId")
-                // Navigation will be handled by the app state
-            }
+
+        // Handle push notification intents via NotificationRouter (iOS parity).
+        // Routes to the correct tab and screen based on notification data extras.
+        if (NotificationRouter.handleIntent(intent)) {
+            Timber.d("Notification intent routed by NotificationRouter")
+            return
         }
     }
     

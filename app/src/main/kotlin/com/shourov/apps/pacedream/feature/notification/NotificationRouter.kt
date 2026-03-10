@@ -1,8 +1,10 @@
 package com.shourov.apps.pacedream.feature.notification
 
+import android.content.Intent
 import com.shourov.apps.pacedream.navigation.DashboardDestination
 import com.shourov.apps.pacedream.navigation.BookingDestination
 import com.shourov.apps.pacedream.navigation.InboxDestination
+import com.shourov.apps.pacedream.navigation.NavigationRouter
 import com.shourov.apps.pacedream.navigation.PropertyDestination
 import com.shourov.apps.pacedream.navigation.TabRouter
 import kotlinx.coroutines.CoroutineScope
@@ -11,131 +13,255 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * Push notification routing matching iOS NotificationRouter.swift.
+ * Push notification routing matching iOS NotificationRouter.swift (iOS parity).
  *
  * Routes push notification payloads to the correct in-app screen based on the
- * `screen` key in the notification data. Falls back to deep link URL routing
- * if no screen key is found.
+ * `screen` key in the notification data. Falls back to notification type-based
+ * routing and then deep link URL routing if no screen key is found.
  *
- * Supported screens (iOS parity):
+ * Uses [TabRouter] for tab switching and [NavigationRouter] for in-tab navigation,
+ * both of which are observed by the Dashboard composable.
+ *
+ * Supported screens (full iOS parity):
  * - chat / messages -> Inbox tab, optionally open specific thread
- * - booking_detail / checkin / checkout -> Bookings tab + booking detail
+ * - booking_detail / checkin / checkout / extend / receipt -> Bookings tab + detail
  * - listing_detail / edit / calendar -> Home tab + listing detail
- * - payment_methods / payment_history -> Profile tab + payment screen
+ * - payment_methods / payment_history / payout_* -> Profile tab
  * - split_detail / split_payment -> Bookings tab + split detail
- * - write_review / review_detail -> respective screens
- * - verification / host_onboarding -> Profile tab
- * - dispute_detail / support -> Support screen
- * - deals / safety_alert -> Home tab
+ * - write_review / review_detail / reviews -> respective screens
+ * - verification / host_onboarding / host_dashboard -> Profile/Home tab
+ * - dispute_detail / support / support_detail -> Support screen
+ * - deals / safety_alert / explore -> Home tab
+ * - wishlist / favorites -> Favorites tab
+ * - profile / edit_profile / security_settings -> Profile tab
  */
 object NotificationRouter {
 
     /**
      * Route a push notification payload to the correct screen.
-     * Call this from FirebaseMessagingService.onMessageReceived() when the app
-     * is in the foreground, or from the pending-intent handler on cold start.
      *
      * @param data The notification data payload (key-value map)
-     * @param navigateTo Callback to navigate to a specific route string
      */
-    fun handleNotification(
-        data: Map<String, String>,
-        navigateTo: (String) -> Unit
-    ) {
-        // Extract the data dict (may be nested under "data" or "custom.a" keys)
+    fun handleNotification(data: Map<String, String>) {
+        // Extract the screen value
         val screen = data["screen"]
             ?: data["notification_type"]
-            ?: return
 
-        Timber.d("NotificationRouter: routing to screen=$screen")
+        // 1. Screen-based routing (iOS parity: data.screen)
+        if (!screen.isNullOrBlank()) {
+            routeToScreen(screen, data)
+            return
+        }
 
-        // Extract common IDs with fallbacks for various naming conventions
+        // 2. Thread-based routing (messaging notifications)
         val threadId = data["threadId"]
             ?: data["thread_id"]
             ?: data["conversationId"]
             ?: data["conversation_id"]
+            ?: data["chat_id"]
 
-        val bookingId = data["bookingId"]
-            ?: data["booking_id"]
+        if (!threadId.isNullOrBlank()) {
+            CoroutineScope(Dispatchers.Main).launch {
+                TabRouter.switchTo(DashboardDestination.INBOX)
+                NavigationRouter.navigateTo("${InboxDestination.THREAD.name}/$threadId")
+            }
+            return
+        }
 
-        val propertyId = data["propertyId"]
-            ?: data["property_id"]
-            ?: data["listingId"]
-            ?: data["listing_id"]
+        // 3. Type-based routing fallback
+        val type = data["type"]
+        if (!type.isNullOrBlank()) {
+            routeByType(type, data)
+            return
+        }
+
+        // 4. Deep link URL routing
+        val deepLink = data["deep_link"] ?: data["deepLink"]
+        if (!deepLink.isNullOrBlank()) {
+            Timber.d("NotificationRouter: deep link routing to $deepLink")
+            // Deep links are handled by MainActivity's existing DeepLinkHandler
+        }
+    }
+
+    /**
+     * Route from an Android Intent (notification tap).
+     * Extracts extras and delegates to handleNotification.
+     */
+    fun handleIntent(intent: Intent): Boolean {
+        if (!intent.getBooleanExtra("from_notification", false)) return false
+
+        val data = mutableMapOf<String, String>()
+        intent.extras?.let { extras ->
+            for (key in extras.keySet()) {
+                extras.getString(key)?.let { data[key] = it }
+            }
+        }
+
+        if (data.isEmpty()) return false
+
+        Timber.d("NotificationRouter: handling intent with keys=${data.keys}")
+        handleNotification(data)
+        return true
+    }
+
+    private fun routeToScreen(screen: String, data: Map<String, String>) {
+        Timber.d("NotificationRouter: routing to screen=$screen")
+
+        val bookingId = data["bookingId"] ?: data["booking_id"]
+        val propertyId = data["propertyId"] ?: data["property_id"]
+            ?: data["listingId"] ?: data["listing_id"]
+        val threadId = data["threadId"] ?: data["thread_id"]
+            ?: data["conversationId"] ?: data["conversation_id"]
+            ?: data["chat_id"]
 
         CoroutineScope(Dispatchers.Main).launch {
             when (screen.lowercase()) {
-                // ── Chat / Messages ──────────────────────────────
+                // ── Chat / Messages (iOS parity) ──────────────
                 "chat", "messages", "message", "new_message" -> {
                     TabRouter.switchTo(DashboardDestination.INBOX)
-                    if (threadId != null) {
-                        navigateTo("${InboxDestination.THREAD.name}/$threadId")
+                    if (!threadId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${InboxDestination.THREAD.name}/$threadId")
                     }
                 }
 
-                // ── Booking ──────────────────────────────────────
-                "booking_detail", "booking", "checkin", "checkout",
+                // ── Bookings (iOS parity) ─────────────────────
+                "booking_detail", "booking", "booking_checkin", "booking_checkout",
+                "booking_extend", "booking_receipt", "checkin", "checkout",
                 "extend", "receipt", "booking_confirmed",
                 "booking_cancelled", "booking_reminder" -> {
                     TabRouter.switchTo(DashboardDestination.BOOKINGS)
-                    if (bookingId != null) {
-                        navigateTo("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                    if (!bookingId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
                     }
                 }
 
-                // ── Listing / Property ───────────────────────────
+                // ── Listing / Property (iOS parity) ───────────
                 "listing_detail", "listing", "property",
                 "listing_edit", "listing_calendar",
                 "new_review", "price_change" -> {
                     TabRouter.switchTo(DashboardDestination.HOME)
-                    if (propertyId != null) {
-                        navigateTo("${PropertyDestination.DETAIL.name}/$propertyId")
+                    if (!propertyId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${PropertyDestination.DETAIL.name}/$propertyId")
                     }
                 }
 
-                // ── Payment ──────────────────────────────────────
+                // ── Payment / Payout (iOS parity) ─────────────
                 "payment_methods", "payment_history",
                 "payout_history", "payout_settings",
                 "payment_received", "payment_failed" -> {
                     TabRouter.switchTo(DashboardDestination.PROFILE)
                 }
 
-                // ── Split Booking ────────────────────────────────
+                // ── Split Booking (iOS parity) ────────────────
                 "split_detail", "split_payment", "split_invite" -> {
                     TabRouter.switchTo(DashboardDestination.BOOKINGS)
-                    if (bookingId != null) {
-                        navigateTo("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                    if (!bookingId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
                     }
                 }
 
-                // ── Reviews ──────────────────────────────────────
-                "write_review", "review_detail" -> {
+                // ── Reviews (iOS parity) ──────────────────────
+                "write_review", "review_detail", "reviews" -> {
                     TabRouter.switchTo(DashboardDestination.BOOKINGS)
                 }
 
-                // ── Profile / Settings ───────────────────────────
-                "profile", "security_settings", "verification",
-                "host_onboarding", "host_dashboard" -> {
+                // ── Profile / Settings / Security (iOS parity) ─
+                "profile", "edit_profile", "security_settings",
+                "security_activity", "account_status",
+                "verification", "verification_status",
+                "verification_upload" -> {
                     TabRouter.switchTo(DashboardDestination.PROFILE)
                 }
 
-                // ── Support ──────────────────────────────────────
-                "dispute_detail", "support", "help" -> {
-                    navigateTo("support")
-                }
-
-                // ── General ──────────────────────────────────────
-                "deals", "safety_alert", "promotion" -> {
+                // ── Host (iOS parity) ─────────────────────────
+                "host_onboarding", "host_dashboard", "host_verification" -> {
                     TabRouter.switchTo(DashboardDestination.HOME)
                 }
 
-                // ── Favorites ────────────────────────────────────
+                // ── Disputes / Support (iOS parity) ───────────
+                "dispute_detail", "support", "support_detail", "help" -> {
+                    NavigationRouter.navigateTo("support")
+                }
+
+                // ── Marketing / Explore (iOS parity) ──────────
+                "deals", "explore", "safety_alert", "promotion" -> {
+                    TabRouter.switchTo(DashboardDestination.HOME)
+                }
+
+                // ── Favorites (iOS parity) ────────────────────
                 "wishlist", "favorites" -> {
                     TabRouter.switchTo(DashboardDestination.FAVORITES)
                 }
 
                 else -> {
                     Timber.w("NotificationRouter: unhandled screen=$screen")
+                }
+            }
+        }
+    }
+
+    /**
+     * Route based on notification type when no screen key is provided.
+     */
+    private fun routeByType(type: String, data: Map<String, String>) {
+        Timber.d("NotificationRouter: routing by type=$type")
+
+        val bookingId = data["bookingId"] ?: data["booking_id"]
+        val threadId = data["threadId"] ?: data["thread_id"]
+            ?: data["chat_id"]
+
+        CoroutineScope(Dispatchers.Main).launch {
+            when (type.lowercase()) {
+                "message", "message_received" -> {
+                    TabRouter.switchTo(DashboardDestination.INBOX)
+                    if (!threadId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${InboxDestination.THREAD.name}/$threadId")
+                    }
+                }
+
+                "booking", "booking_request", "booking_confirmed",
+                "booking_cancelled", "booking_receipt", "booking_refund",
+                "checkin_reminder", "extend_prompt", "overtime_warning",
+                "session_ended", "split_invite", "split_payment_needed",
+                "split_completed", "split_credit" -> {
+                    TabRouter.switchTo(DashboardDestination.BOOKINGS)
+                    if (!bookingId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                    }
+                }
+
+                "payment_received", "payment_failed",
+                "payout_initiated", "payout_failed",
+                "chargeback_created", "chargeback_resolved" -> {
+                    TabRouter.switchTo(DashboardDestination.PROFILE)
+                }
+
+                "review_received" -> {
+                    TabRouter.switchTo(DashboardDestination.BOOKINGS)
+                }
+
+                "friend_request", "friend_accepted",
+                "roommate_request", "roommate_accepted" -> {
+                    TabRouter.switchTo(DashboardDestination.INBOX)
+                }
+
+                "property_approved", "property_rejected",
+                "listing_paused", "listing_reported",
+                "listing_inquiry" -> {
+                    TabRouter.switchTo(DashboardDestination.HOME)
+                }
+
+                "security_alert", "verification_status",
+                "account_warning", "account_suspended" -> {
+                    TabRouter.switchTo(DashboardDestination.PROFILE)
+                }
+
+                "marketing" -> {
+                    TabRouter.switchTo(DashboardDestination.HOME)
+                }
+
+                else -> {
+                    Timber.w("NotificationRouter: unhandled type=$type")
                 }
             }
         }

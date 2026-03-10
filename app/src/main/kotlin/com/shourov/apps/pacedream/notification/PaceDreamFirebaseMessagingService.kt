@@ -16,6 +16,27 @@ import kotlinx.serialization.json.Json
 import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * Firebase Cloud Messaging service matching iOS push notification handling (iOS parity).
+ *
+ * Handles all notification types that iOS supports via OneSignal/APNs:
+ * - Booking notifications (request, confirmed, cancelled, receipt, refund)
+ * - Payment notifications (received, failed, payout)
+ * - Message notifications (new message)
+ * - Review notifications
+ * - Social notifications (friend request, roommate)
+ * - Property notifications (approved, rejected, inquiry)
+ * - Check-in reminders, extend prompts, overtime warnings
+ * - Split booking notifications
+ * - Security alerts, verification
+ * - Chargeback/dispute notifications
+ * - Support, marketing, system updates
+ *
+ * Key behavior:
+ * - Data-only payloads: parsed into NotificationData and displayed via PaceDreamNotificationService
+ * - Notification+data payloads: only processes data to avoid duplicate display
+ *   (FCM auto-displays notification payload when app is in background)
+ */
 @AndroidEntryPoint
 class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -40,89 +61,54 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
 
         Timber.d("FCM message received from: %s", remoteMessage.from)
-        Timber.d("FCM message type: %s", remoteMessage.data["type"] ?: "unknown")
 
-        // Handle data payload
-        remoteMessage.data.let { data ->
-            val type = data["type"]
-            when (type) {
-                "message" -> handleMessageNotification(data)
-                "booking" -> handleBookingNotification(data)
-                "general" -> handleGeneralNotification(data)
-                else -> handleDefaultNotification(remoteMessage)
+        val data = remoteMessage.data
+        val hasDataPayload = data.isNotEmpty()
+        val hasNotificationPayload = remoteMessage.notification != null
+
+        Timber.d(
+            "FCM payload: hasData=%s, hasNotification=%s, type=%s",
+            hasDataPayload, hasNotificationPayload, data["type"] ?: "unknown"
+        )
+
+        if (hasDataPayload) {
+            // Parse structured notification data (iOS parity)
+            val notificationData = NotificationData.fromMap(data)
+
+            // Merge title/body from notification payload if data payload lacks them
+            val mergedData = if (hasNotificationPayload) {
+                notificationData.copy(
+                    title = notificationData.title ?: remoteMessage.notification?.title,
+                    message = notificationData.message ?: remoteMessage.notification?.body
+                )
+            } else {
+                notificationData
             }
+
+            // Display the notification
+            notificationService.showNotification(mergedData)
+        } else if (hasNotificationPayload) {
+            // Notification-only payload (no data) — display as general notification.
+            // This is rare; most backend messages include a data payload.
+            notificationService.showGeneralNotification(
+                title = remoteMessage.notification?.title ?: "PaceDream",
+                message = remoteMessage.notification?.body ?: ""
+            )
         }
 
-        // Handle notification payload
-        remoteMessage.notification?.let { notification ->
-            handleNotificationPayload(notification.title, notification.body)
-        }
-    }
-
-    private fun handleMessageNotification(data: Map<String, String>) {
-        val chatId = data["chat_id"] ?: return
-        val senderName = data["sender_name"] ?: "Unknown"
-        val message = data["message"] ?: ""
-        val chatName = data["chat_name"]
-
-        notificationService.showMessageNotification(
-            chatId = chatId,
-            senderName = senderName,
-            message = message,
-            chatName = chatName
-        )
-    }
-
-    private fun handleBookingNotification(data: Map<String, String>) {
-        val bookingId = data["booking_id"] ?: return
-        val title = data["title"] ?: "Booking Update"
-        val message = data["message"] ?: ""
-        val propertyName = data["property_name"] ?: "Property"
-
-        notificationService.showBookingNotification(
-            bookingId = bookingId,
-            title = title,
-            message = message,
-            propertyName = propertyName
-        )
-    }
-
-    private fun handleGeneralNotification(data: Map<String, String>) {
-        val title = data["title"] ?: "PaceDream"
-        val message = data["message"] ?: ""
-
-        notificationService.showGeneralNotification(
-            title = title,
-            message = message
-        )
-    }
-
-    private fun handleDefaultNotification(remoteMessage: RemoteMessage) {
-        val title = remoteMessage.data["title"] ?: "PaceDream"
-        val message = remoteMessage.data["message"] ?: remoteMessage.notification?.body ?: ""
-
-        notificationService.showGeneralNotification(
-            title = title,
-            message = message
-        )
-    }
-
-    private fun handleNotificationPayload(title: String?, body: String?) {
-        notificationService.showGeneralNotification(
-            title = title ?: "PaceDream",
-            message = body ?: ""
-        )
+        // Note: We do NOT separately handle remoteMessage.notification here.
+        // When the app is in the background, FCM auto-displays the notification payload.
+        // When in the foreground, we display via our NotificationService above.
+        // This prevents the duplicate notification bug that existed before.
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Timber.d("FCM token refreshed")
-
         sendTokenToServer(token)
     }
 
     private fun sendTokenToServer(token: String) {
-        // Only register if user is authenticated
         if (!tokenStorage.hasTokens()) {
             Timber.d("Skipping FCM token registration: user not authenticated")
             return
