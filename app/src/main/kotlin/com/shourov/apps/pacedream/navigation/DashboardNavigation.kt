@@ -105,6 +105,13 @@ fun NavGraphBuilder.DashboardNavigation(
                     }
                 }
 
+                // iOS-parity: handle push notification in-tab navigation.
+                LaunchedEffect(navController) {
+                    NavigationRouter.events.collectLatest { route ->
+                        navController.navigate(route)
+                    }
+                }
+
                 // Tab order (matches requested): Home, Favorites, Bookings, Messages, Profile
                 val bottomNavigationItems = remember(inboxUnread) {
                     listOf(
