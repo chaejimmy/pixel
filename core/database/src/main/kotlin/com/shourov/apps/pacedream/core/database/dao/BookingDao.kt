@@ -25,6 +25,9 @@ interface BookingDao {
     @Query("SELECT * FROM bookings WHERE id = :bookingId")
     fun getBookingById(bookingId: String): Flow<BookingEntity?>
 
+    @Query("SELECT * FROM bookings WHERE id = :bookingId LIMIT 1")
+    suspend fun getBookingByIdOnce(bookingId: String): BookingEntity?
+
     @Query("SELECT * FROM bookings WHERE userName = :userName ORDER BY checkInTime DESC")
     fun getBookingsByUserName(userName: String): Flow<List<BookingEntity>>
 

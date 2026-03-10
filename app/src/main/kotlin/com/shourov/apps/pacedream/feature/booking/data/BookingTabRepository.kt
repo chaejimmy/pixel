@@ -41,6 +41,15 @@ class BookingTabRepository @Inject constructor(
     /**
      * Fetch bookings for the authenticated user, scoped by [role].
      *
+     * For RENTER role, uses iOS fallback chain if primary returns empty:
+     *   1. GET /account/bookings?role=renter (web platform primary)
+     *   2. GET /bookings/mine              (iOS primary)
+     *   3. GET /guest/bookings             (iOS fallback)
+     *   4. GET /account/bookings?role=guest (iOS fallback)
+     *
+     * For HOST role, uses the single endpoint:
+     *   GET /account/bookings?role=host
+     *
      * @param role   "renter" for guest/trips, "host" for hosting bookings
      * @param limit  page size
      * @param offset pagination offset
@@ -50,17 +59,62 @@ class BookingTabRepository @Inject constructor(
         limit: Int = 20,
         offset: Int = 0
     ): ApiResult<BookingsResult> {
-        val url = appConfig.buildApiUrlWithQuery(
-            "account", "bookings",
-            queryParams = mapOf(
-                "role" to role.apiValue,
-                "limit" to limit.toString(),
-                "offset" to offset.toString()
+        // For host role, use single endpoint
+        if (role == BookingRole.HOST) {
+            return fetchFromUrl(
+                appConfig.buildApiUrlWithQuery(
+                    "account", "bookings",
+                    queryParams = mapOf(
+                        "role" to role.apiValue,
+                        "limit" to limit.toString(),
+                        "offset" to offset.toString()
+                    )
+                )
             )
+        }
+
+        // For renter role, try multiple routes (iOS parity)
+        data class Route(val pathSegments: List<String>, val queryParams: Map<String, String>)
+
+        val routes = listOf(
+            Route(listOf("account", "bookings"), mapOf("role" to "renter", "limit" to limit.toString(), "offset" to offset.toString())),
+            Route(listOf("bookings", "mine"), mapOf("limit" to limit.toString(), "offset" to offset.toString())),
+            Route(listOf("guest", "bookings"), mapOf("limit" to limit.toString(), "offset" to offset.toString())),
+            Route(listOf("account", "bookings"), mapOf("role" to "guest", "limit" to limit.toString(), "offset" to offset.toString()))
         )
 
-        Timber.d("BookingTab: fetching bookings role=${role.apiValue} limit=$limit offset=$offset")
+        var bestResult: BookingsResult? = null
+        var lastError: ApiResult.Failure<BookingsResult>? = null
 
+        for ((index, route) in routes.withIndex()) {
+            val url = appConfig.buildApiUrlWithQuery(
+                *route.pathSegments.toTypedArray(),
+                queryParams = route.queryParams
+            )
+
+            Timber.d("BookingTab: trying ${route.pathSegments.joinToString("/")} (attempt ${index + 1}/${routes.size})")
+
+            when (val result = fetchFromUrl(url)) {
+                is ApiResult.Success -> {
+                    if (result.data.bookings.isNotEmpty()) {
+                        return result
+                    }
+                    // Got 0 bookings, keep as best but try next route
+                    if (bestResult == null) bestResult = result.data
+                }
+                is ApiResult.Failure -> {
+                    Timber.w("BookingTab: ${route.pathSegments.joinToString("/")} failed: ${result.error.message}")
+                    lastError = result
+                }
+            }
+        }
+
+        // Return best empty result or last error
+        bestResult?.let { return ApiResult.Success(it) }
+        return lastError ?: ApiResult.Failure(ApiError.ServerError("Failed to load bookings"))
+    }
+
+    private suspend fun fetchFromUrl(url: okhttp3.HttpUrl): ApiResult<BookingsResult> {
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
