@@ -56,6 +56,10 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         loadAllSections()
     }
+
+    fun selectCategory(category: String) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
     
     private fun loadAllSections() {
         viewModelScope.launch {
@@ -273,16 +277,33 @@ data class HomeUiState(
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
     val splitStaysError: String? = null,
-    val heroImageUrl: String? = null // Hero background image URL
+    val heroImageUrl: String? = null,
+    val selectedCategory: String = "All"
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays
-    
+
     val hasErrors: Boolean
         get() = hourlySpacesError != null || rentGearError != null || splitStaysError != null
-    
+
     val isEmpty: Boolean
-        get() = hourlySpaces.isEmpty() && rentGear.isEmpty() && splitStays.isEmpty()
+        get() = filteredHourlySpaces.isEmpty() && filteredRentGear.isEmpty() && filteredSplitStays.isEmpty()
+
+    /** Filter listings by selected category (case-insensitive title match) */
+    val filteredHourlySpaces: List<HomeListingItem>
+        get() = if (selectedCategory == "All") hourlySpaces
+                else hourlySpaces.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
+
+    val filteredRentGear: List<HomeListingItem>
+        get() = if (selectedCategory == "All") rentGear
+                else rentGear.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
+
+    val filteredSplitStays: List<HomeListingItem>
+        get() = if (selectedCategory == "All") splitStays
+                else splitStays.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
 }
 
 

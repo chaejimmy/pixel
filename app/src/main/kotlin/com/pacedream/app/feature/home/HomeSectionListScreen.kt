@@ -1,10 +1,12 @@
 package com.pacedream.app.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -14,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -21,6 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 
 /**
  * HomeSectionListScreen - View All for a section
@@ -53,7 +61,12 @@ fun HomeSectionListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = {
+                    Text(
+                        title,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -61,9 +74,13 @@ fun HomeSectionListScreen(
                             contentDescription = "Back"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
-        }
+        },
+        containerColor = Color.White
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
@@ -125,19 +142,132 @@ private fun ListingGridCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            AsyncImage(
-                model = item.imageUrl,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
+            // Image with fallback
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1.2f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-            )
-            
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            ) {
+                if (!item.imageUrl.isNullOrBlank()) {
+                    SubcomposeAsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(PaceDreamColors.Gray100),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = PaceDreamColors.Primary
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(PaceDreamColors.Gray100),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Image,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.Gray400,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                        }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(PaceDreamColors.Gray100),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Image,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Gray400,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                // Bottom gradient scrim
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.15f))
+                            )
+                        )
+                )
+
+                // Rating badge (bottom-right)
+                item.rating?.let { rating ->
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color.White
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "%.1f".format(rating),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Favorite heart (top-right)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(28.dp),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.85f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = "Favorite",
+                            tint = Color(0xFF1A1A1A),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
@@ -148,39 +278,35 @@ private fun ListingGridCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 item.location?.let { location ->
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = location,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Gray400,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = location,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item.price?.let { price ->
-                        Text(
-                            text = price,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    item.rating?.let { rating ->
-                        Text(
-                            text = "★ ${"%.1f".format(rating)}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+
+                item.price?.let { price ->
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = price,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PaceDreamColors.Primary
+                    )
                 }
             }
         }

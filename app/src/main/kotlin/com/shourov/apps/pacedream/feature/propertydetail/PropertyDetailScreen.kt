@@ -92,52 +92,6 @@ fun PropertyDetailScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = detail?.title ?: preview?.title ?: "Listing",
-                        style = PaceDreamTypography.Headline,
-                        maxLines = 1
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onShareClick) {
-                        Icon(PaceDreamIcons.Share, contentDescription = "Share")
-                    }
-                    IconButton(
-                        onClick = {
-                            if (authState == AuthState.Unauthenticated) {
-                                onShowAuthSheet()
-                                return@IconButton
-                            }
-                            scope.launch {
-                                when (val res = viewModel.toggleFavorite(propertyId)) {
-                                    is ApiResult.Success -> snackbarHostState.showSnackbar(
-                                        if (isFavorited) "Removed from Favorites" else "Saved to Favorites"
-                                    )
-                                    is ApiResult.Failure -> snackbarHostState.showSnackbar(
-                                        res.error.message ?: "Failed"
-                                    )
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorited) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
-                            contentDescription = if (isFavorited) "Unfavorite" else "Favorite",
-                            tint = if (isFavorited) PaceDreamColors.Error else PaceDreamColors.TextPrimary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
-            )
-        },
         containerColor = PaceDreamColors.Background
     ) { padding ->
         if (preview == null && detail == null && uiState.errorMessage != null) {
@@ -168,7 +122,13 @@ fun PropertyDetailScreen(
 
         val title = detail?.title ?: preview?.title ?: "Listing"
         val locationText = detail?.cityState ?: preview?.location
-        val priceText = preview?.priceText?.takeIf { it.isNotBlank() }
+        // Build price text from detail hourlyFrom or preview
+        val priceText = detail?.hourlyFrom?.let { hourly ->
+            val symbol = when ((detail.currency ?: "USD").uppercase()) {
+                "USD" -> "$"; "EUR" -> "€"; "GBP" -> "£"; "INR" -> "₹"; else -> "$"
+            }
+            "$symbol${String.format("%.0f", hourly)}/hr"
+        } ?: preview?.priceText?.takeIf { it.isNotBlank() }
         val rating = detail?.rating ?: preview?.rating
         val images = detail?.imageUrls?.takeIf { it.isNotEmpty() } ?: listOfNotNull(preview?.imageUrl)
 
@@ -182,14 +142,77 @@ fun PropertyDetailScreen(
                 contentPadding = PaddingValues(bottom = 120.dp)
             ) {
             item {
-                HeroGallery(
-                    title = title,
-                    imageUrls = images,
+                // Image gallery with overlaid back/share/favorite buttons (iOS parity)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(330.dp)
-                        .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
-                )
+                ) {
+                    HeroGallery(
+                        title = title,
+                        imageUrls = images,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    // Back button (top-left)
+                    androidx.compose.material3.Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = Color.Black.copy(alpha = 0.35f),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(PaceDreamSpacing.LG)
+                            .padding(top = PaceDreamSpacing.XL)
+                    ) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        }
+                    }
+                    // Share + Favorite (top-right)
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(PaceDreamSpacing.LG)
+                            .padding(top = PaceDreamSpacing.XL),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        androidx.compose.material3.Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = Color.Black.copy(alpha = 0.35f)
+                        ) {
+                            IconButton(onClick = onShareClick) {
+                                Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = Color.White)
+                            }
+                        }
+                        androidx.compose.material3.Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = Color.Black.copy(alpha = 0.35f)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (authState == AuthState.Unauthenticated) {
+                                        onShowAuthSheet()
+                                        return@IconButton
+                                    }
+                                    scope.launch {
+                                        when (val res = viewModel.toggleFavorite(propertyId)) {
+                                            is ApiResult.Success -> snackbarHostState.showSnackbar(
+                                                if (isFavorited) "Removed from Favorites" else "Saved to Favorites"
+                                            )
+                                            is ApiResult.Failure -> snackbarHostState.showSnackbar(
+                                                res.error.message ?: "Failed"
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (isFavorited) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
+                                    contentDescription = if (isFavorited) "Unfavorite" else "Favorite",
+                                    tint = if (isFavorited) PaceDreamColors.Error else Color.White
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             if (uiState.inlineErrorMessage != null) {
@@ -280,7 +303,7 @@ fun PropertyDetailScreen(
             item {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 Text(
-                    text = "About",
+                    text = "About this space",
                     style = PaceDreamTypography.Title3,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
@@ -315,7 +338,7 @@ fun PropertyDetailScreen(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG))
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 SectionChips(
-                    title = "Highlights",
+                    title = "What this place offers",
                     items = detail?.amenities.orEmpty(),
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                 )
@@ -352,7 +375,7 @@ fun PropertyDetailScreen(
                         .padding(horizontal = PaceDreamSpacing.LG),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Location", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
+                    Text("Where you'll be", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = { /* TODO open maps */ }) { Text("Open in Maps", color = PaceDreamColors.Primary) }
                 }
@@ -364,11 +387,37 @@ fun PropertyDetailScreen(
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray100)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(PaceDreamIcons.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text("Map preview (hooking up next)", color = PaceDreamColors.TextSecondary)
+                    val lat = detail?.latitude
+                    val lng = detail?.longitude
+                    val address = detail?.fullAddress ?: detail?.cityState
+                    if (lat != null && lng != null) {
+                        // Show static map using coordinates
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            val staticMapUrl = "https://staticmap.openstreetmap.de/staticmap.php" +
+                                "?center=$lat,$lng&zoom=15&size=600x400&maptype=mapnik" +
+                                "&markers=$lat,$lng,red-pushpin"
+                            AsyncImage(
+                                model = staticMapUrl,
+                                contentDescription = "Map location",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Icon(
+                                PaceDreamIcons.LocationOn,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .align(Alignment.Center)
+                            )
+                        }
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(PaceDreamIcons.LocationOn, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("Location not available", color = PaceDreamColors.TextSecondary)
+                            }
                         }
                     }
                 }
@@ -410,7 +459,7 @@ fun PropertyDetailScreen(
                             color = if (priceText != null) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
                         )
                         Text(
-                            "Taxes shown at checkout",
+                            "You won't be charged yet",
                             style = PaceDreamTypography.Caption,
                             color = PaceDreamColors.TextSecondary
                         )
