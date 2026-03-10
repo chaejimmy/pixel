@@ -117,35 +117,6 @@ fun StartWithEmailOrPhoneScreen(
             contentAlignment = Alignment.BottomCenter,
         ) {
             Column {
-                // Toggle email/phone
-                SignInButton(
-                    logo = if (startWithPhone) R.drawable.google_gmail else null,
-                    icon = if (!startWithPhone) PaceDreamIcons.PhoneAndroid else null,
-                    text = if (startWithPhone) R.string.core_ui_continue_with_email else R.string.core_ui_continue_with_phone,
-                    onClick = { startWithPhone = !startWithPhone },
-                    modifier = Modifier.fillMaxWidth(),
-                    isLoading = false,
-                )
-
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-                // Continue with Apple (Auth0 social connection)
-                SignInButton(
-                    logo = R.drawable.apple_logo,
-                    text = R.string.core_ui_continue_with_apple,
-                    onClick = {
-                        authViewModel.loginWithApple(
-                            activity = activity,
-                            onSuccess = { onAuthSuccess() },
-                            onError = { /* Error shown via uiState */ }
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    isLoading = uiState.isAppleLoading,
-                )
-
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
                 // Continue with Google (Auth0 social connection)
                 SignInButton(
                     logo = R.drawable.google_logo,
@@ -159,6 +130,18 @@ fun StartWithEmailOrPhoneScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     isLoading = uiState.isGoogleLoading,
+                )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                // Toggle email/phone
+                SignInButton(
+                    logo = if (startWithPhone) R.drawable.google_gmail else null,
+                    icon = if (!startWithPhone) PaceDreamIcons.PhoneAndroid else null,
+                    text = if (startWithPhone) R.string.core_ui_continue_with_email else R.string.core_ui_continue_with_phone,
+                    onClick = { startWithPhone = !startWithPhone },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = false,
                 )
 
             }

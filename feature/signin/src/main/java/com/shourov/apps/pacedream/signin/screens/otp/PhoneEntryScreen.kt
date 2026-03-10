@@ -171,21 +171,6 @@ fun PhoneEntryScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
             OutlinedButton(
-                onClick = onNavigateToApple,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PaceDreamColors.TextPrimary,
-                ),
-            ) {
-                Text("Continue with Apple", style = PaceDreamTypography.Button)
-            }
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            OutlinedButton(
                 onClick = onNavigateToGoogle,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -178,13 +178,6 @@ fun NavGraphBuilder.userOnBoardingScreen(
             onNavigateToEmail = {
                 onNavigateToSignInWithEmail()
             },
-            onNavigateToApple = {
-                authViewModel.loginWithApple(
-                    activity = activity,
-                    onSuccess = { onNavigateToAccountSetup() },
-                    onError = { /* Error handled via uiState */ }
-                )
-            },
             onNavigateToGoogle = {
                 authViewModel.loginWithGoogle(
                     activity = activity,
