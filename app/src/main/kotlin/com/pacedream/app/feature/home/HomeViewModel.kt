@@ -138,14 +138,16 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Fetch split stays
-     * GET /v1/roommate/get/room-stay
+     * Fetch split stays (iOS parity: GET /v1/listings?shareType=SPLIT)
      */
     private suspend fun fetchSplitStays(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingSplitStays = true) }
-        
-        val url = appConfig.buildApiUrl("roommate", "get", "room-stay")
-        
+
+        val url = appConfig.buildApiUrl(
+            "listings",
+            queryParams = mapOf("shareType" to "SPLIT", "page" to "1", "limit" to "24")
+        )
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "split-stay")
@@ -167,10 +169,13 @@ class HomeViewModel @Inject constructor(
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
             
-            // Find data array in common locations
+            // Find data array in common locations (tolerate multiple response shapes)
             val dataArray = obj["data"]?.jsonArray
+                ?: obj["results"]?.jsonArray
                 ?: obj["items"]?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("results")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("listings")?.jsonArray
                 ?: return emptyList()
             
             dataArray.mapNotNull { item ->
@@ -184,10 +189,15 @@ class HomeViewModel @Inject constructor(
                             ?: itemObj["title"]?.jsonPrimitive?.content
                             ?: "Listing",
                         imageUrl = itemObj["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                            ?: itemObj["primaryImage"]?.jsonPrimitive?.content
                             ?: itemObj["image"]?.jsonPrimitive?.content,
                         location = itemObj["location"]?.let { loc ->
                             when (loc) {
-                                is JsonObject -> loc["city"]?.jsonPrimitive?.content
+                                is JsonObject -> {
+                                    val city = loc["city"]?.jsonPrimitive?.content
+                                    val state = loc["state"]?.jsonPrimitive?.content
+                                    listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+                                }
                                 else -> loc.jsonPrimitive.content
                             }
                         },
