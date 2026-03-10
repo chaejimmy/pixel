@@ -101,7 +101,6 @@ fun ListingDetailScreen(
     var showReviewsSheet by remember { mutableStateOf(false) }
     var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
-    var showProposalSheet by remember { mutableStateOf(false) }
 
     val listing = uiState.listing
 
@@ -111,8 +110,7 @@ fun ListingDetailScreen(
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
                 available = listing?.available,
-                onReserveClick = { showReserveSheet = true },
-                onSendProposalClick = { showProposalSheet = true }
+                onReserveClick = { showReserveSheet = true }
             )
         }
     ) { padding ->
@@ -452,7 +450,7 @@ fun ListingDetailScreen(
             ) {
                 ReserveSheet(
                     listingId = listing?.id.orEmpty(),
-                    hourlyFrom = listing?.pricing?.hourlyFrom,
+                    hourlyFrom = listing?.pricing?.hourlyFrom ?: listing?.pricing?.basePrice,
                     currency = listing?.pricing?.currency,
                     onClose = { showReserveSheet = false },
                     onConfirm = { draft ->
@@ -464,21 +462,7 @@ fun ListingDetailScreen(
             }
         }
 
-        if (showProposalSheet) {
-            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ModalBottomSheet(
-                onDismissRequest = { showProposalSheet = false },
-                sheetState = sheetState
-            ) {
-                ProposalSheet(
-                    listingTitle = listing?.title.orEmpty(),
-                    hostName = listing?.host?.name,
-                    onClose = { showProposalSheet = false },
-                    onSend = { showProposalSheet = false }
-                )
-                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
-            }
-        }
+
     }
 }
 
@@ -533,7 +517,7 @@ private fun ReserveSheet(
     val taxes = subtotal?.let { it * 0.20 }
     val total = if (subtotal != null && taxes != null) subtotal + taxes else null
 
-    val canConfirm = selectedDate != null && selectedSlotStart != null && total != null && total > 0
+    val canConfirm = selectedDate != null && selectedSlotStart != null
 
     BottomSheetHeader(title = "Reserve", onClose = onClose)
 
@@ -788,10 +772,9 @@ private fun trimTrailingZeros(value: Double): String {
 private fun BookingBar(
     pricingLabel: String?,
     available: Boolean? = null,
-    onReserveClick: () -> Unit,
-    onSendProposalClick: () -> Unit
+    onReserveClick: () -> Unit
 ) {
-    val isAvailable = available != false // Default to available if null
+    val isAvailable = available != false
     Surface(shadowElevation = 8.dp) {
         Row(
             modifier = Modifier
@@ -807,37 +790,17 @@ private fun BookingBar(
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                if (available != null) {
-                    Text(
-                        text = if (isAvailable) "Available" else "Unavailable",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444)
-                    )
-                } else {
-                    Text(
-                        text = "You won't be charged yet",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            OutlinedButton(
-                onClick = onSendProposalClick,
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                Text(
+                    text = "You won't be charged yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Propose")
             }
             Button(
                 onClick = onReserveClick,
                 enabled = isAvailable
             ) {
-                Text(if (pricingLabel != null) "Reserve" else "Select time")
+                Text("Reserve")
             }
         }
     }
@@ -2254,103 +2217,6 @@ private fun PricingRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProposalSheet(
-    listingTitle: String,
-    hostName: String?,
-    onClose: () -> Unit,
-    onSend: () -> Unit
-) {
-    var message by remember { mutableStateOf("") }
-    var proposedPrice by remember { mutableStateOf("") }
-    var proposedDuration by remember { mutableStateOf("") }
-
-    BottomSheetHeader(title = "Send Proposal", onClose = onClose)
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = "Send a proposal to ${hostName ?: "the host"} for \"$listingTitle\"",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Your offer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = proposedPrice,
-            onValueChange = { proposedPrice = it },
-            label = { Text("Proposed price (e.g. \$25/hr)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = proposedDuration,
-            onValueChange = { proposedDuration = it },
-            label = { Text("Duration (e.g. 3 hours, 1 week)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text("Message", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Describe your needs, special requests...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            maxLines = 5
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    PaceDreamIcons.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "The host will review your proposal and respond through the messaging system.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onSend,
-            enabled = message.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(PaceDreamIcons.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Send Proposal")
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Property Details Row (bedrooms, beds, bathrooms, guests)
