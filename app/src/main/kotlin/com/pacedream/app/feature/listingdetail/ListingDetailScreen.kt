@@ -29,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,9 +63,12 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
+import BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
@@ -489,61 +491,249 @@ private fun ReserveSheet(
     onClose: () -> Unit,
     onConfirm: (BookingDraft) -> Unit
 ) {
-    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
-    var startTime by remember { mutableStateOf<LocalTime?>(null) }
-    var endTime by remember { mutableStateOf<LocalTime?>(null) }
+    val durationOptions = listOf(30, 60, 120)
+    var selectedDuration by remember { mutableStateOf(60) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    var selectedSlotStart by remember { mutableStateOf<LocalTime?>(null) }
     var guests by remember { mutableStateOf(1) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val today = remember { LocalDate.now() }
+    val next7Days = remember { (0L..6L).map { today.plusDays(it) } }
+
+    // Generate 30-min time slots from 8 AM to 10 PM
+    val timeSlots = remember(selectedDate, selectedDuration) {
+        if (selectedDate == null) emptyList()
+        else {
+            val now = LocalTime.now()
+            val isToday = selectedDate == LocalDate.now()
+            val slots = mutableListOf<LocalTime>()
+            var slot = LocalTime.of(8, 0)
+            val lastSlotEnd = LocalTime.of(22, 0)
+            while (true) {
+                val slotEnd = slot.plusMinutes(selectedDuration.toLong())
+                if (slotEnd.isAfter(lastSlotEnd) || slotEnd.isBefore(slot)) break
+                if (!isToday || slot.isAfter(now)) {
+                    slots.add(slot)
+                }
+                slot = slot.plusMinutes(30)
+            }
+            slots
+        }
+    }
+
+    val selectedEnd = selectedSlotStart?.plusMinutes(selectedDuration.toLong())
+    val currencySymbol = when ((currency ?: "USD").uppercase()) {
+        "USD" -> "$"; "EUR" -> "€"; "GBP" -> "£"; "INR" -> "₹"
+        "AED" -> "د.إ"; "CAD" -> "CA$"; "AUD" -> "A$"; else -> "$"
+    }
+
+    val subtotal = if (selectedSlotStart != null && hourlyFrom != null) {
+        hourlyFrom * selectedDuration / 60.0
+    } else null
+    val taxes = subtotal?.let { it * 0.20 }
+    val total = if (subtotal != null && taxes != null) subtotal + taxes else null
+
+    val canConfirm = selectedDate != null && selectedSlotStart != null && total != null && total > 0
 
     BottomSheetHeader(title = "Reserve", onClose = onClose)
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Select date", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp)
+    ) {
+        // Duration selection chips
+        Text("Duration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
-
-        val datePickerState = androidx.compose.material3.rememberDatePickerState()
-        androidx.compose.material3.DatePicker(state = datePickerState)
-        selectedDateMillis = datePickerState.selectedDateMillis
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            FilledTonalButton(
-                onClick = {
-                    val now = startTime ?: LocalTime.of(9, 0)
-                    val picker = android.app.TimePickerDialog(
-                        /* context = */ context,
-                        /* listener = */ { _, h, m -> startTime = LocalTime.of(h, m) },
-                        /* hourOfDay = */ now.hour,
-                        /* minute = */ now.minute,
-                        /* is24HourView = */ false
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(durationOptions) { duration ->
+                val isSelected = duration == selectedDuration
+                val label = when {
+                    duration < 60 -> "${duration} min"
+                    duration % 60 == 0 -> "${duration / 60} hr"
+                    else -> "${duration / 60}h ${duration % 60}m"
+                }
+                Surface(
+                    onClick = {
+                        selectedDuration = duration
+                        selectedSlotStart = null // reset slot on duration change
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
+                ) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium
                     )
-                    picker.show()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(startTime?.let { "Start: ${it.format(DateTimeFormatter.ofPattern("h:mm a"))}" } ?: "Start time")
-            }
-            FilledTonalButton(
-                onClick = {
-                    val now = endTime ?: LocalTime.of(10, 0)
-                    val picker = android.app.TimePickerDialog(
-                        /* context = */ context,
-                        /* listener = */ { _, h, m -> endTime = LocalTime.of(h, m) },
-                        /* hourOfDay = */ now.hour,
-                        /* minute = */ now.minute,
-                        /* is24HourView = */ false
-                    )
-                    picker.show()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(endTime?.let { "End: ${it.format(DateTimeFormatter.ofPattern("h:mm a"))}" } ?: "End time")
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
+        // 7-day date strip
+        Text("Date", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(next7Days) { date ->
+                val isSelected = date == selectedDate
+                val isToday = date == today
+                val dayLabel = date.dayOfWeek.name.take(3).lowercase()
+                    .replaceFirstChar { it.uppercase() }
+                val dateNum = date.dayOfMonth.toString()
+                Surface(
+                    onClick = {
+                        selectedDate = date
+                        selectedSlotStart = null // reset slot on date change
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    border = when {
+                        isSelected -> null
+                        isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = dayLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = dateNum,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Time slots grid
+        Text("Available times", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (selectedDate == null) {
+            Text(
+                "Select a date to see available times",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else if (timeSlots.isEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 12.dp)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "No available times for this day",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            // 3-column grid of time slot buttons
+            val rows = timeSlots.chunked(3)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                rows.forEach { rowSlots ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowSlots.forEach { slot ->
+                            val isSelected = slot == selectedSlotStart
+                            val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
+                            Surface(
+                                onClick = { selectedSlotStart = slot },
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                        // Fill remaining columns if row is incomplete
+                        repeat(3 - rowSlots.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
+        // Price breakdown card (shows when a time slot is selected)
+        if (subtotal != null && taxes != null && total != null && selectedSlotStart != null && selectedEnd != null) {
+            Spacer(modifier = Modifier.height(18.dp))
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    val durationLabel = when {
+                        selectedDuration < 60 -> "$selectedDuration min"
+                        selectedDuration % 60 == 0 -> "${selectedDuration / 60} hr"
+                        else -> "${selectedDuration / 60}h ${selectedDuration % 60}m"
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$durationLabel × ${currencySymbol}${hourlyFrom?.let { trimTrailingZeros(it) } ?: ""}/hr", style = MaterialTheme.typography.bodyMedium)
+                        Text("${currencySymbol}${trimTrailingZeros(subtotal)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        val timeRange = "${selectedSlotStart!!.format(DateTimeFormatter.ofPattern("h:mm a"))} – ${selectedEnd!!.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+                        Text(timeRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Taxes & fees", style = MaterialTheme.typography.bodyMedium)
+                        Text("${currencySymbol}${trimTrailingZeros(taxes)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Guests
+        Spacer(modifier = Modifier.height(18.dp))
         Text("Guests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -554,29 +744,14 @@ private fun ReserveSheet(
             OutlinedButton(onClick = { guests = (guests + 1).coerceAtMost(20) }) { Text("+") }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        val date = selectedDateMillis?.toLocalDate()
-        val valid = !listingId.isBlank() && date != null && startTime != null && endTime != null && endTime!!.isAfter(startTime)
-        val totalEstimate = if (valid && hourlyFrom != null) {
-            val minutes = java.time.Duration.between(startTime, endTime).toMinutes().toDouble()
-            val hours = minutes / 60.0
-            hourlyFrom * hours
-        } else null
-
-        if (!valid) {
-            Text(
-                "Pick a date and valid start/end time to continue.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-
+        // Confirm button
         Button(
             onClick = {
-                val d = requireNotNull(date)
-                val start = requireNotNull(startTime)
-                val end = requireNotNull(endTime)
+                val d = requireNotNull(selectedDate)
+                val start = requireNotNull(selectedSlotStart)
+                val end = requireNotNull(selectedEnd)
                 val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
                 val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
@@ -587,29 +762,26 @@ private fun ReserveSheet(
                         startTimeISO = startIso,
                         endTimeISO = endIso,
                         guests = guests,
-                        totalAmountEstimate = totalEstimate
+                        totalAmountEstimate = total
                     )
                 )
             },
-            enabled = valid,
+            enabled = canConfirm,
             modifier = Modifier.fillMaxWidth()
         ) {
-            val prefix = when ((currency ?: "USD").uppercase()) {
-                "USD" -> "$"
-                else -> "$"
-            }
             Text(
-                text = when {
-                    totalEstimate != null -> "Continue ($prefix${String.format("%.0f", totalEstimate)})"
-                    else -> "Continue"
-                }
+                text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
+                       else "Select a time slot"
             )
         }
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
-private fun Long.toLocalDate(): LocalDate {
-    return Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
+private fun trimTrailingZeros(value: Double): String {
+    val asLong = value.toLong()
+    return if (value == asLong.toDouble()) asLong.toString()
+    else "%.2f".format(value).trimEnd('0').trimEnd('.')
 }
 
 @Composable
