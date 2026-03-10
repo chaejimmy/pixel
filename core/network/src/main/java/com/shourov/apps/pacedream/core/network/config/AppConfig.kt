@@ -217,8 +217,8 @@ class AppConfig @Inject constructor() {
         
         // Auth0 defaults - configure in secrets.defaults.properties or BuildConfig
         // The actual client ID must be set in secrets.defaults.properties as AUTH0_CLIENT_ID
-        private const val DEFAULT_AUTH0_DOMAIN = "dev-pacedream.us.auth0.com"
-        private const val DEFAULT_AUTH0_CLIENT_ID = "" // Empty string - must be configured in secrets file
+        private const val DEFAULT_AUTH0_DOMAIN = "dev-ygmeh25wmmszid8u.us.auth0.com"
+        private const val DEFAULT_AUTH0_CLIENT_ID = "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"
         
         // Timeout configurations (matching iOS)
         const val REQUEST_TIMEOUT_SECONDS = 30L

@@ -24,8 +24,8 @@ android {
         }
         
         // Auth0 Configuration from secrets file
-        val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "dev-pacedream.us.auth0.com"
-        val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: ""
+        val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "dev-ygmeh25wmmszid8u.us.auth0.com"
+        val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"
         val auth0Audience = secretsProperties.getProperty("AUTH0_AUDIENCE") ?: "https://$auth0Domain/api/v2/"
         
         buildConfigField("String", "AUTH0_DOMAIN", "\"$auth0Domain\"")
