@@ -53,7 +53,7 @@ fun HomeScreen(
     onCategoryFilterClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedCategoryFilter by remember { mutableStateOf("All") }
+    val selectedCategoryFilter = uiState.selectedCategory
 
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
@@ -79,7 +79,7 @@ fun HomeScreen(
                 CategoryFilterTabs(
                     selectedCategory = selectedCategoryFilter,
                     onCategorySelected = { category ->
-                        selectedCategoryFilter = category
+                        viewModel.selectCategory(category)
                         onCategoryFilterClick(category)
                     },
                     modifier = Modifier.padding(top = 4.dp)
@@ -105,12 +105,12 @@ fun HomeScreen(
             }
 
             // ── Hourly Spaces ──
-            if (uiState.hourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
+            if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
                     ListingSection(
                         title = "Hourly Spaces",
                         subtitle = "Flexible spaces for short stays",
-                        items = uiState.hourlySpaces,
+                        items = uiState.filteredHourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick,
@@ -120,12 +120,12 @@ fun HomeScreen(
             }
 
             // ── Rent Gear ──
-            if (uiState.rentGear.isNotEmpty() || uiState.isLoadingRentGear) {
+            if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
                 item {
                     ListingSection(
                         title = "Rent Gear",
                         subtitle = "Equipment and tools for every need",
-                        items = uiState.rentGear,
+                        items = uiState.filteredRentGear,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick,
@@ -135,12 +135,12 @@ fun HomeScreen(
             }
 
             // ── Split Stays ──
-            if (uiState.splitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
+            if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
                     ListingSection(
                         title = "Split Stays",
                         subtitle = "Flexible long-term rentals",
-                        items = uiState.splitStays,
+                        items = uiState.filteredSplitStays,
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },
                         onItemClick = onListingClick,

@@ -39,6 +39,7 @@ import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import androidx.compose.foundation.layout.navigationBars
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamIconSize
 
@@ -59,14 +60,13 @@ fun AppBottomNavigation(
     onItemClick: (Int) -> Unit,
 ) {
     NavigationBar(
-        windowInsets = NavigationBarDefaults.windowInsets,
+        windowInsets = WindowInsets.navigationBars,
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp)
             .border(
                 width = 0.5.dp,
                 color = PaceDreamColors.Border.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                shape = RoundedCornerShape(0.dp)
             ),
         containerColor = PaceDreamColors.Background.copy(alpha = PaceDreamGlass.ThickAlpha),
         tonalElevation = 0.dp

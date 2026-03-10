@@ -632,7 +632,7 @@ private fun BookingBar(
                 Text(
                     text = pricingLabel ?: "Select time",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 if (available != null) {
@@ -643,7 +643,7 @@ private fun BookingBar(
                     )
                 } else {
                     Text(
-                        text = "Taxes shown at checkout",
+                        text = "You won't be charged yet",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1137,7 +1137,7 @@ private fun SectionAbout(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text("About", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text("About this space", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
         if (description.isNullOrBlank()) {
             Text("No description available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1168,7 +1168,7 @@ private fun SectionAmenities(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Highlights", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("What this place offers", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onSeeAll, enabled = amenities.isNotEmpty()) {
                 Text("See all")
@@ -1731,7 +1731,7 @@ private fun SectionLocation(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Location", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("Where you'll be", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onOpenInMaps, enabled = location?.fullAddress != null || location?.cityState != null) {
                 Text("Open in Maps")
@@ -1780,6 +1780,29 @@ private fun MapPreviewCard(
                     title = "Location"
                 )
             }
+        } else if (mapCoordinate != null && !mapsEnabled) {
+            // Static map fallback using OpenStreetMap tile image when no Google Maps key
+            Box(modifier = Modifier.fillMaxSize()) {
+                val staticMapUrl = "https://staticmap.openstreetmap.de/staticmap.php" +
+                    "?center=${mapCoordinate.latitude},${mapCoordinate.longitude}" +
+                    "&zoom=15&size=600x400&maptype=mapnik" +
+                    "&markers=${mapCoordinate.latitude},${mapCoordinate.longitude},red-pushpin"
+                AsyncImage(
+                    model = staticMapUrl,
+                    contentDescription = "Map location",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Location pin overlay in center
+                Icon(
+                    PaceDreamIcons.LocationOn,
+                    contentDescription = null,
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier
+                        .size(36.dp)
+                        .align(Alignment.Center)
+                )
+            }
         } else {
             Box(
                 modifier = Modifier
@@ -1794,7 +1817,6 @@ private fun MapPreviewCard(
                     Text(
                         text = when {
                             isGeocoding -> "Finding location…"
-                            !mapsEnabled -> "Map preview unavailable"
                             else -> "Location not found"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
