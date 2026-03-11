@@ -5,13 +5,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.Scaffold
@@ -32,6 +38,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
@@ -47,15 +55,17 @@ fun SettingsLoginSecurityScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val showDeactivateDialog = remember { mutableStateOf(false) }
+    val showDeleteDialog = remember { mutableStateOf(false) }
+    val deleteConfirmText = remember { mutableStateOf("") }
 
-    LaunchedEffect(uiState.errorMessage, uiState.successMessage, uiState.deactivateSuccess) {
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage, uiState.deactivateSuccess, uiState.deleteSuccess) {
         uiState.errorMessage?.let { msg ->
             scope.launch { snackbarHostState.showSnackbar(msg) }
         }
         uiState.successMessage?.let { msg ->
             scope.launch { snackbarHostState.showSnackbar(msg) }
         }
-        if (uiState.deactivateSuccess) {
+        if (uiState.deactivateSuccess || uiState.deleteSuccess) {
             onAccountDeactivated()
         }
     }
@@ -81,10 +91,15 @@ fun SettingsLoginSecurityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Change Password")
+            Text(
+                text = "Change Password",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
 
             OutlinedTextField(
                 value = uiState.currentPassword,
@@ -124,11 +139,19 @@ fun SettingsLoginSecurityScreen(
                 Text("Update Password")
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Deactivate Account")
             Text(
-                text = "Deactivating your account will log you out and disable future logins until reactivated.",
+                text = "Deactivate Account",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Deactivating your account will log you out and disable future logins until reactivated. Your data will be preserved.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Button(
@@ -138,6 +161,38 @@ fun SettingsLoginSecurityScreen(
             ) {
                 Text("Deactivate Account")
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Delete Account",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "Permanently delete your account and all associated data including your profile, listings, bookings, messages, reviews, and wishlists. This action cannot be undone.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Button(
+                onClick = {
+                    deleteConfirmText.value = ""
+                    showDeleteDialog.value = true
+                },
+                enabled = !uiState.isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete Account")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
@@ -158,6 +213,62 @@ fun SettingsLoginSecurityScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeactivateDialog.value = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showDeleteDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog.value = false },
+            title = {
+                Text(
+                    "Delete Account Permanently",
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("This will permanently delete all your data including:")
+                    Text(
+                        "\u2022 Profile and personal information\n" +
+                        "\u2022 All listings and bookings\n" +
+                        "\u2022 Messages and conversations\n" +
+                        "\u2022 Reviews and ratings\n" +
+                        "\u2022 Wishlists and notifications",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Type DELETE to confirm:",
+                        fontWeight = FontWeight.Bold
+                    )
+                    OutlinedTextField(
+                        value = deleteConfirmText.value,
+                        onValueChange = { deleteConfirmText.value = it },
+                        placeholder = { Text("DELETE") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog.value = false
+                        viewModel.deleteAccount()
+                    },
+                    enabled = deleteConfirmText.value == "DELETE",
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete Forever")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog.value = false }) {
                     Text("Cancel")
                 }
             }

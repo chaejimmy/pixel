@@ -6,6 +6,7 @@ import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.settings.AccountSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,7 +39,8 @@ class ThreadViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val tokenStorage: TokenStorage,
-    private val json: Json
+    private val json: Json,
+    val accountSettingsRepository: AccountSettingsRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ThreadUiState())
@@ -130,12 +132,15 @@ class ThreadViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val (messages, nextCursor) = parseMessagesResponse(result.data)
                     beforeCursor = nextCursor
+                    // Derive opponent ID from messages if not set from thread info
+                    val opponentId = messages.firstOrNull { it.senderId != null && it.senderId != currentUserId }?.senderId
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             messages = messages,
                             hasMore = nextCursor != null,
-                            error = null
+                            error = null,
+                            participantId = it.participantId ?: opponentId
                         )
                     }
                 }
@@ -249,15 +254,19 @@ class ThreadViewModel @Inject constructor(
             
             val participantAvatar = participant?.get("avatar")?.jsonPrimitive?.content
                 ?: participant?.get("profileImage")?.jsonPrimitive?.content
-            
+
+            val participantId = participant?.get("_id")?.jsonPrimitive?.content
+                ?: participant?.get("id")?.jsonPrimitive?.content
+
             val listing = data["listing"]?.jsonObject
             val listingName = listing?.get("name")?.jsonPrimitive?.content
                 ?: listing?.get("title")?.jsonPrimitive?.content
-            
+
             _uiState.update {
                 it.copy(
                     participantName = participantName,
                     participantAvatar = participantAvatar,
+                    participantId = participantId,
                     listingName = listingName
                 )
             }
@@ -306,6 +315,7 @@ data class ThreadUiState(
     val messages: List<ThreadMessage> = emptyList(),
     val participantName: String = "",
     val participantAvatar: String? = null,
+    val participantId: String? = null,
     val listingName: String? = null,
     val hasMore: Boolean = false,
     val error: String? = null,

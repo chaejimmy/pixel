@@ -17,6 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pacedream.common.R
@@ -30,6 +35,7 @@ import com.pacedream.common.composables.texts.ClickableText
 import com.pacedream.common.composables.texts.TitleText
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.signin.navigation.SignInRoutes
 
@@ -148,6 +154,27 @@ fun SignIn(
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+
+                VerticalSpacer(height = 12)
+
+                Text(
+                    text = buildAnnotatedString {
+                        append("By continuing, you agree to PaceDream's ")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Terms of Service")
+                        }
+                        append(" and ")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Privacy Policy")
+                        }
+                        append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
+                    },
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                )
             }
         }
     }

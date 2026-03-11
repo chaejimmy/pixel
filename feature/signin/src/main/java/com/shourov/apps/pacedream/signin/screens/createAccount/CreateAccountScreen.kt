@@ -45,7 +45,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,6 +59,7 @@ import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.texts.TitleText
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -68,6 +74,7 @@ fun CreateAccountScreen(
 
     val createAccountViewModel = hiltViewModel<CreateAccountViewModel>()
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(key1 = createAccountViewModel.toastMessage.value) {
         if (createAccountViewModel.toastMessage.value.isNotBlank()){
@@ -153,6 +160,31 @@ fun CreateAccountScreen(
                             )
                     }
                 }
+
+                VerticalSpacer(height = 12)
+
+                Text(
+                    text = buildAnnotatedString {
+                        append("By continuing, you agree to PaceDream's ")
+                        pushStringAnnotation(tag = "terms", annotation = "https://www.pacedream.com/terms")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Terms of Service")
+                        }
+                        pop()
+                        append(" and ")
+                        pushStringAnnotation(tag = "privacy", annotation = "https://www.pacedream.com/privacy")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Privacy Policy")
+                        }
+                        pop()
+                        append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
+                    },
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                )
 
             }
         }

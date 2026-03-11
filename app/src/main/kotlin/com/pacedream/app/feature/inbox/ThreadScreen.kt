@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,7 +44,9 @@ fun ThreadScreen(
     val scope = rememberCoroutineScope()
     
     var messageText by remember { mutableStateOf("") }
-    
+    var showReportSheet by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+
     LaunchedEffect(threadId) {
         viewModel.loadThread(threadId)
     }
@@ -92,6 +95,28 @@ fun ThreadScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
+                    }
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = "More options"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Report / Block") },
+                                onClick = {
+                                    showMenu = false
+                                    showReportSheet = true
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -173,6 +198,15 @@ fun ThreadScreen(
                 }
             }
         }
+    }
+
+    if (showReportSheet) {
+        ReportBlockSheet(
+            reportedUserId = uiState.participantId,
+            reportedUserName = uiState.participantName.ifEmpty { "User" },
+            repository = viewModel.accountSettingsRepository,
+            onDismiss = { showReportSheet = false }
+        )
     }
 }
 
