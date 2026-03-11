@@ -21,7 +21,8 @@ data class LoginSecurityUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val deactivateSuccess: Boolean = false
+    val deactivateSuccess: Boolean = false,
+    val deleteSuccess: Boolean = false
 )
 
 @HiltViewModel
@@ -67,6 +68,35 @@ class SettingsLoginSecurityViewModel @Inject constructor(
                             newPassword = "",
                             confirmPassword = "",
                             successMessage = "Password updated successfully"
+                        )
+                    }
+                }
+                is ApiResult.Failure -> {
+                    if (result.error is ApiError.Unauthorized) {
+                        sessionManager.signOut()
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = result.error.message
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
+            when (val result = repository.deleteAccount()) {
+                is ApiResult.Success -> {
+                    sessionManager.signOut()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            deleteSuccess = true,
+                            successMessage = "Account permanently deleted."
                         )
                     }
                 }
