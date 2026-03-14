@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import androidx.compose.foundation.layout.Arrangement
 
 /**
  * InboxScreen - Thread list with unread counts
@@ -40,7 +41,7 @@ fun InboxScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Inbox")
                         if (uiState.unreadCount > 0) {
@@ -54,12 +55,49 @@ fun InboxScreen(
             )
         }
     ) { padding ->
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
-            onRefresh = { viewModel.refresh() },
+        // iOS PR #201 parity: Guest/Host mode toggle
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = uiState.selectedMode == "guest",
+                    onClick = { viewModel.switchMode("guest") },
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Guest")
+                            if (uiState.guestUnreadCount > 0) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Badge { Text(uiState.guestUnreadCount.toString()) }
+                            }
+                        }
+                    }
+                )
+                FilterChip(
+                    selected = uiState.selectedMode == "host",
+                    onClick = { viewModel.switchMode("host") },
+                    label = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Host")
+                            if (uiState.hostUnreadCount > 0) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Badge { Text(uiState.hostUnreadCount.toString()) }
+                            }
+                        }
+                    }
+                )
+            }
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize()
         ) {
             when {
                 uiState.isLoading -> {
@@ -117,6 +155,7 @@ fun InboxScreen(
                 }
             }
         }
+        } // end Column
     }
 }
 

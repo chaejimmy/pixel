@@ -108,28 +108,64 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
         sendTokenToServer(token)
     }
 
+    /**
+     * iOS PR #201 parity: register FCM token with backend at /push-devices.
+     * Sends fcmToken, platform, and deviceInfo for push notification routing.
+     * Fire-and-forget: deduplicates by token+userId pair.
+     */
     private fun sendTokenToServer(token: String) {
         if (!tokenStorage.hasTokens()) {
             Timber.d("Skipping FCM token registration: user not authenticated")
             return
         }
 
+        // Deduplication: skip if same token+user already sent
+        val deduplicationKey = "${token}_${tokenStorage.userId}"
+        if (lastRegisteredKey == deduplicationKey) {
+            Timber.d("FCM token already registered for this user, skipping")
+            return
+        }
+
         serviceScope.launch {
             try {
-                val url = appConfig.buildApiUrl("notifications", "register-device")
+                // Try the iOS-parity endpoint first (/push-devices)
+                val url = appConfig.buildApiUrl("push-devices")
+                val deviceInfo = mapOf(
+                    "model" to android.os.Build.MODEL,
+                    "systemVersion" to "Android ${android.os.Build.VERSION.RELEASE}",
+                    "appVersion" to try {
+                        applicationContext.packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+                    } catch (_: Exception) { "" }
+                )
                 val body = json.encodeToString(
                     RegisterDeviceRequest.serializer(),
                     RegisterDeviceRequest(
-                        token = token,
-                        platform = "android"
+                        fcmToken = token,
+                        platform = "android",
+                        deviceInfo = deviceInfo
                     )
                 )
                 when (val result = apiClient.post(url, body, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        Timber.d("FCM token registered with server")
+                        Timber.d("FCM token registered with server via /push-devices")
+                        lastRegisteredKey = deduplicationKey
                     }
                     is ApiResult.Failure -> {
-                        Timber.e("Failed to register FCM token: ${result.error.message}")
+                        // Fallback to legacy endpoint
+                        val legacyUrl = appConfig.buildApiUrl("notifications", "register-device")
+                        val legacyBody = json.encodeToString(
+                            LegacyRegisterDeviceRequest.serializer(),
+                            LegacyRegisterDeviceRequest(token = token, platform = "android")
+                        )
+                        when (val legacyResult = apiClient.post(legacyUrl, legacyBody, includeAuth = true)) {
+                            is ApiResult.Success -> {
+                                Timber.d("FCM token registered via legacy endpoint")
+                                lastRegisteredKey = deduplicationKey
+                            }
+                            is ApiResult.Failure -> {
+                                Timber.e("Failed to register FCM token: ${legacyResult.error.message}")
+                            }
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -140,7 +176,19 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     @Serializable
     private data class RegisterDeviceRequest(
+        val fcmToken: String,
+        val platform: String,
+        val deviceInfo: Map<String, String> = emptyMap()
+    )
+
+    @Serializable
+    private data class LegacyRegisterDeviceRequest(
         val token: String,
         val platform: String
     )
+
+    companion object {
+        @Volatile
+        private var lastRegisteredKey: String? = null
+    }
 }

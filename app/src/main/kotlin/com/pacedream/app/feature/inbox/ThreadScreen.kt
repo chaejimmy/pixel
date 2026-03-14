@@ -1,5 +1,8 @@
 package com.pacedream.app.feature.inbox
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -131,7 +137,12 @@ fun ThreadScreen(
                         messageText = ""
                     }
                 },
-                isSending = uiState.isSending
+                isSending = uiState.isSending,
+                attachmentsEnabled = uiState.attachmentsEnabled,
+                attachmentDisabledReason = uiState.attachmentDisabledReason,
+                onMediaSelected = { uri ->
+                    viewModel.sendMediaFromUri(uri)
+                }
             )
         }
     ) { padding ->
@@ -215,45 +226,80 @@ private fun MessageInputBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSendClick: () -> Unit,
-    isSending: Boolean
+    isSending: Boolean,
+    attachmentsEnabled: Boolean = false,
+    attachmentDisabledReason: String? = null,
+    onMediaSelected: (Uri) -> Unit = {}
 ) {
+    val mediaPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { onMediaSelected(it) }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 4.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = text,
-                onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Type a message...") },
-                shape = RoundedCornerShape(24.dp),
-                maxLines = 4,
-                enabled = !isSending
-            )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            IconButton(
-                onClick = onSendClick,
-                enabled = text.isNotBlank() && !isSending
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Show reason why attachments are disabled
+            if (!attachmentsEnabled && attachmentDisabledReason != null) {
+                Text(
+                    text = attachmentDisabledReason,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isSending) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
+                // iOS PR #207 parity: attachment button
+                IconButton(
+                    onClick = { mediaPickerLauncher.launch("image/*") },
+                    enabled = attachmentsEnabled && !isSending
+                ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = if (text.isNotBlank()) 
-                            MaterialTheme.colorScheme.primary 
-                        else 
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Attach media",
+                        tint = if (attachmentsEnabled)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
+                }
+
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Type a message...") },
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 4,
+                    enabled = !isSending
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = onSendClick,
+                    enabled = text.isNotBlank() && !isSending
+                ) {
+                    if (isSending) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    } else {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            tint = if (text.isNotBlank())
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -277,31 +323,65 @@ private fun MessageBubble(
                 bottomStart = if (isFromCurrentUser) 16.dp else 4.dp,
                 bottomEnd = if (isFromCurrentUser) 4.dp else 16.dp
             ),
-            color = if (isFromCurrentUser) 
-                MaterialTheme.colorScheme.primary 
-            else 
+            color = if (isFromCurrentUser)
+                MaterialTheme.colorScheme.primary
+            else
                 MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-                Text(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isFromCurrentUser) 
-                        MaterialTheme.colorScheme.onPrimary 
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
+                // iOS PR #207 parity: display inline image/video attachments
+                message.attachments.forEach { attachment ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        AsyncImage(
+                            model = attachment.url,
+                            contentDescription = attachment.fileName ?: "Attachment",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        // Video play button overlay
+                        if (attachment.type == "video") {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play video",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .align(Alignment.Center)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                    .padding(8.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                if (message.text.isNotBlank()) {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isFromCurrentUser)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Text(
                     text = message.formattedTime,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isFromCurrentUser) 
-                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) 
-                    else 
+                    color = if (isFromCurrentUser)
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                    else
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }

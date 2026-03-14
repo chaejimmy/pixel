@@ -48,12 +48,25 @@ class InboxViewModel @Inject constructor(
     
     private var cursor: String? = null
     private var mode: String = "guest"
-    
+
     init {
         loadThreads()
         loadUnreadCounts()
     }
-    
+
+    /**
+     * iOS PR #201 parity: switch between guest and host mode
+     */
+    fun switchMode(newMode: String) {
+        if (mode != newMode) {
+            mode = newMode
+            cursor = null
+            _uiState.update { it.copy(selectedMode = newMode) }
+            loadThreads()
+            loadUnreadCounts()
+        }
+    }
+
     fun refresh() {
         cursor = null
         loadThreads()
@@ -246,15 +259,27 @@ class InboxViewModel @Inject constructor(
         )
     }
     
+    /**
+     * iOS PR #201 parity: parse unread counts with guest/host breakdown
+     */
     private fun parseUnreadCountResponse(responseBody: String): Int {
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
+
+            // Try to extract guest/host specific counts
+            val guestUnread = obj["guestUnread"]?.jsonPrimitive?.intOrNull
+                ?: obj["guest"]?.jsonPrimitive?.intOrNull ?: 0
+            val hostUnread = obj["hostUnread"]?.jsonPrimitive?.intOrNull
+                ?: obj["host"]?.jsonPrimitive?.intOrNull ?: 0
+
+            _uiState.update { it.copy(guestUnreadCount = guestUnread, hostUnreadCount = hostUnread) }
+
+            // Return total or mode-specific count
             obj["count"]?.jsonPrimitive?.intOrNull
                 ?: obj["unreadCount"]?.jsonPrimitive?.intOrNull
                 ?: (obj["data"] as? JsonObject)?.get("count")?.jsonPrimitive?.intOrNull
-                ?: 0
+                ?: (guestUnread + hostUnread)
         } catch (e: Exception) {
             0
         }
@@ -311,7 +336,11 @@ data class InboxUiState(
     val threads: List<InboxThread> = emptyList(),
     val unreadCount: Int = 0,
     val hasMore: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // iOS PR #201 parity: guest/host mode toggle
+    val selectedMode: String = "guest",
+    val guestUnreadCount: Int = 0,
+    val hostUnreadCount: Int = 0
 )
 
 /**

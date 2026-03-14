@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.host.data
 
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -8,6 +9,29 @@ class StripeConnectRepository @Inject constructor(
     private val hostApiService: HostApiService
 ) {
 
+    /**
+     * iOS PR #206 parity: extract user-facing error message from error response body.
+     * Shows server error messages for ALL status codes (not just 4xx).
+     */
+    private fun extractErrorMessage(response: retrofit2.Response<*>, fallback: String): String {
+        return try {
+            val errorBody = response.errorBody()?.string()
+            if (!errorBody.isNullOrBlank()) {
+                // Try to extract message from JSON error body
+                val json = org.json.JSONObject(errorBody)
+                json.optString("message", null)
+                    ?: json.optString("error", null)
+                    ?: json.optJSONObject("error")?.optString("message", null)
+                    ?: fallback
+            } else {
+                fallback
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Could not parse error body, using fallback")
+            fallback
+        }
+    }
+
     // Connect Account
     suspend fun getConnectAccountStatus(): Result<ConnectAccount> {
         return try {
@@ -15,7 +39,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: ConnectAccount())
             } else {
-                Result.failure(Exception("Failed to fetch connect account: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch connect account")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -30,7 +54,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: ConnectAccount())
             } else {
-                Result.failure(Exception("Failed to create connect account: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to create connect account")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -38,13 +62,13 @@ class StripeConnectRepository @Inject constructor(
     }
 
     // Onboarding & Dashboard Links
-    suspend fun createOnboardingLink(): Result<PayoutLinkResponse> {
+    suspend fun createOnboardingLink(platform: String = "android"): Result<PayoutLinkResponse> {
         return try {
-            val response = hostApiService.createOnboardingLink()
+            val response = hostApiService.createOnboardingLink(platform)
             if (response.isSuccessful) {
                 Result.success(response.body() ?: throw Exception("Empty response"))
             } else {
-                Result.failure(Exception("Failed to create onboarding link: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Couldn't start Stripe setup")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -57,7 +81,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: throw Exception("Empty response"))
             } else {
-                Result.failure(Exception("Failed to create login link: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Couldn't open Stripe dashboard")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -71,7 +95,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: ConnectBalance())
             } else {
-                Result.failure(Exception("Failed to fetch balance: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch balance")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -85,7 +109,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: emptyList())
             } else {
-                Result.failure(Exception("Failed to fetch transfers: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch transfers")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -99,7 +123,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: emptyList())
             } else {
-                Result.failure(Exception("Failed to fetch payouts: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payouts")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -112,7 +136,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: throw Exception("Empty response"))
             } else {
-                Result.failure(Exception("Failed to create payout: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to request payout")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -134,7 +158,7 @@ class StripeConnectRepository @Inject constructor(
                 } ?: emptyList()
                 Result.success(methods)
             } else {
-                Result.failure(Exception("Failed to fetch payout methods: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payout methods")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -148,7 +172,7 @@ class StripeConnectRepository @Inject constructor(
             if (response.isSuccessful) {
                 Result.success(response.body() ?: PayoutStatusResponse())
             } else {
-                Result.failure(Exception("Failed to fetch payout status: ${response.code()}"))
+                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payout status")))
             }
         } catch (e: Exception) {
             Result.failure(e)
