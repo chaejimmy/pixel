@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -352,6 +353,47 @@ class ApiClient @Inject constructor(
             is ApiError.ServiceUnavailable,
             is ApiError.NoConnection -> true
             else -> false
+        }
+    }
+
+    /**
+     * POST multipart/form-data request (for file uploads, no retry).
+     * iOS parity: APIClient.requestMultipart()
+     */
+    suspend fun postMultipart(
+        url: HttpUrl,
+        parts: List<MultipartBody.Part>,
+        includeAuth: Boolean = false
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val bodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
+            parts.forEach { bodyBuilder.addPart(it) }
+            val multipartBody = bodyBuilder.build()
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                .post(multipartBody)
+
+            if (includeAuth) {
+                tokenStorage.accessToken?.let { token ->
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+            }
+
+            val response = executeRequest(requestBuilder.build())
+            when {
+                response.isSuccessful -> ApiResult.Success(response.body?.string() ?: "")
+                else -> {
+                    val responseBody = response.body?.string()
+                    val serverMessage = ApiError.extractServerMessage(responseBody)
+                    ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ApiResult.Failure(mapException(e))
         }
     }
 }

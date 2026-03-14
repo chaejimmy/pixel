@@ -44,7 +44,19 @@ class DeepLinkHandler @Inject constructor(
             return null
         }
 
+        // iOS PR #200 parity: also handle pacedream:// scheme deep links
+        val scheme = uri.scheme?.lowercase()
+
         return when {
+            // Stripe Connect return deep links (iOS PR #200 parity)
+            scheme == "pacedream" && (host == "stripe-connect-return" || host == "stripe-connect-refresh") -> {
+                DeepLinkResult.StripeConnectReturn
+            }
+
+            path.contains("stripe-connect-return") || path.contains("stripe-connect-refresh") -> {
+                DeepLinkResult.StripeConnectReturn
+            }
+
             path.contains("booking-success") -> {
                 val sessionId = uri.getQueryParameter("session_id")
                 if (sessionId != null && isValidId(sessionId)) {
@@ -60,7 +72,6 @@ class DeepLinkHandler @Inject constructor(
                 DeepLinkResult.BookingCancelled
             }
 
-            // Could add more deep link patterns here
             path.contains("listing") || path.contains("property") -> {
                 val listingId = uri.lastPathSegment
                 if (listingId != null && isValidId(listingId)) {
@@ -124,12 +135,15 @@ sealed class DeepLinkResult {
         val sessionId: String,
         val bookingType: BookingType? = null
     ) : DeepLinkResult()
-    
+
     object BookingCancelled : DeepLinkResult()
-    
+
     data class ListingDetail(val listingId: String) : DeepLinkResult()
-    
+
     data class GearDetail(val gearId: String) : DeepLinkResult()
+
+    /** iOS PR #200 parity: Stripe Connect onboarding return */
+    object StripeConnectReturn : DeepLinkResult()
 }
 
 

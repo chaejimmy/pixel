@@ -268,6 +268,51 @@ fun BookingDetailScreen(
                         }
                     }
 
+                    // iOS PR #202 parity: Verification PIN Card
+                    if (!booking.verificationPin.isNullOrBlank()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(PaceDreamRadius.LG),
+                            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(PaceDreamSpacing.LG),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "Verification PIN",
+                                    style = PaceDreamTypography.Headline,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = PaceDreamColors.TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                                Text(
+                                    text = booking.verificationPin,
+                                    style = PaceDreamTypography.Title2.copy(
+                                        letterSpacing = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                                    ),
+                                    fontWeight = FontWeight.Bold,
+                                    color = PaceDreamColors.Primary
+                                )
+                                if (!booking.pinStatus.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                                    Text(
+                                        text = booking.pinStatus.replaceFirstChar { it.uppercase() },
+                                        style = PaceDreamTypography.Caption,
+                                        color = PaceDreamColors.TextSecondary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                                Text(
+                                    text = "Share this PIN with your host/guest at check-in",
+                                    style = PaceDreamTypography.Caption,
+                                    color = PaceDreamColors.TextTertiary
+                                )
+                            }
+                        }
+                    }
+
                     // Pricing Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),

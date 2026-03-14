@@ -73,7 +73,9 @@ interface HostApiService {
     suspend fun getPayoutStatus(): Response<PayoutStatusResponse>
 
     @POST(ApiEndPoints.HOST_PAYOUT_ONBOARDING_LINK)
-    suspend fun createOnboardingLink(): Response<PayoutLinkResponse>
+    suspend fun createOnboardingLink(
+        @Query("platform") platform: String = "android"
+    ): Response<PayoutLinkResponse>
 
     @POST(ApiEndPoints.HOST_PAYOUT_LOGIN_LINK)
     suspend fun createLoginLink(): Response<PayoutLinkResponse>
@@ -274,8 +276,24 @@ data class HostBookingDTO(
     val guests: Int = 0,
     val createdAt: String? = null,
     val guest: GuestInfo? = null,
-    val listing: ListingInfo? = null
+    val listing: ListingInfo? = null,
+    // iOS PR #202 parity: verification PIN for guest/host check-in
+    val verificationPin: String? = null,
+    val verification_pin: String? = null,
+    val verificationCode: String? = null,
+    val verification_code: String? = null,
+    val pinStatus: String? = null,
+    val pin_status: String? = null,
+    val verificationStatus: String? = null,
+    val verification_status: String? = null
 ) {
+    /** Resolved verification PIN */
+    val resolvedVerificationPin: String?
+        get() = verificationPin ?: verification_pin ?: verificationCode ?: verification_code
+
+    /** Resolved PIN status */
+    val resolvedPinStatus: String?
+        get() = pinStatus ?: pin_status ?: verificationStatus ?: verification_status
     /** Resolved total matching iOS b.total logic */
     val resolvedTotal: Double get() = when {
         total > 0 -> total
