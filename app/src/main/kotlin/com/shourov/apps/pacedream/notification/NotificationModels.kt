@@ -110,10 +110,12 @@ data class NotificationData(
     val payoutId: String? = null,
     val ticketId: String? = null,
     val promotionId: String? = null,
+    val searchId: String? = null, // iOS parity
     val amount: Double? = null,
     val currency: String? = null,
     val deepLink: String? = null,
-    val actionUrl: String? = null
+    val actionUrl: String? = null,
+    val metadata: Map<String, String>? = null // iOS parity
 ) {
     /**
      * Determine the notification channel based on the notification type.
@@ -205,6 +207,7 @@ data class NotificationData(
                 payoutId = data["payoutId"] ?: data["payout_id"],
                 ticketId = data["ticketId"] ?: data["ticket_id"],
                 promotionId = data["promotionId"] ?: data["promotion_id"],
+                searchId = data["searchId"] ?: data["search_id"],
                 amount = (data["amount"] ?: data["total"])?.toDoubleOrNull(),
                 currency = data["currency"],
                 deepLink = data["deep_link"] ?: data["deepLink"],
