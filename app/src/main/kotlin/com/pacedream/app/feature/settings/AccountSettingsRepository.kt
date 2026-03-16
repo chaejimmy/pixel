@@ -209,6 +209,14 @@ class AccountSettingsRepository @Inject constructor(
 
     // region Notifications
 
+    /**
+     * Notification settings matching iOS NotificationSettings model (iOS parity).
+     *
+     * iOS has: emailNotifications, pushNotifications, smsNotifications,
+     * marketingNotifications, bookingNotifications, messageNotifications,
+     * reviewNotifications, friendRequestNotifications, systemNotifications,
+     * quietHours (with start/end/timezone).
+     */
     @Serializable
     data class NotificationSettings(
         val emailGeneral: Boolean = false,
@@ -216,7 +224,17 @@ class AccountSettingsRepository @Inject constructor(
         val messageNotifications: Boolean = false,
         val bookingUpdates: Boolean = false,
         val bookingAlerts: Boolean = false,
-        val marketingPromotions: Boolean = false
+        val marketingPromotions: Boolean = false,
+        // iOS parity: additional notification categories
+        val reviewNotifications: Boolean = true,
+        val friendRequestNotifications: Boolean = true,
+        val systemNotifications: Boolean = true,
+        val smsNotifications: Boolean = false,
+        // iOS parity: quiet hours
+        val quietHoursEnabled: Boolean = false,
+        val quietHoursStart: String? = null,
+        val quietHoursEnd: String? = null,
+        val quietHoursTimezone: String? = null
     )
 
     suspend fun getNotificationSettings(): ApiResult<NotificationSettings> {

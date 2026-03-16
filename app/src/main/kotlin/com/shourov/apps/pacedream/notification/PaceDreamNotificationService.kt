@@ -198,6 +198,15 @@ class PaceDreamNotificationService @Inject constructor(
             return
         }
 
+        // iOS parity: suppress notification banner when user is actively viewing
+        // the same chat thread (mirrors ActiveChatTracker in AppDelegate.swift).
+        if (data.type == NotificationType.MESSAGE_RECEIVED &&
+            ActiveChatTracker.shouldSuppress(data.threadId)
+        ) {
+            Timber.d("Suppressing notification for active chat thread: %s", data.threadId)
+            return
+        }
+
         val title = data.title ?: getDefaultTitle(data.type)
         val message = data.message ?: ""
 

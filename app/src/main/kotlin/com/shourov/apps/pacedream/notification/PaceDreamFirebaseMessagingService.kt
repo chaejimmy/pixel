@@ -55,6 +55,9 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     @Inject
     lateinit var json: Json
 
+    @Inject
+    lateinit var fcmTokenStore: FcmTokenStore
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -112,16 +115,21 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
      * iOS PR #201 parity: register FCM token with backend at /push-devices.
      * Sends fcmToken, platform, and deviceInfo for push notification routing.
      * Fire-and-forget: deduplicates by token+userId pair.
+     *
+     * iOS parity: uses FcmTokenStore for persistent deduplication across process
+     * restarts, matching PushDeviceRegistrar + PushTokenStore on iOS.
      */
     private fun sendTokenToServer(token: String) {
+        // Persist token (iOS parity: PushTokenStore.save)
+        fcmTokenStore.saveToken(token)
+
         if (!tokenStorage.hasTokens()) {
             Timber.d("Skipping FCM token registration: user not authenticated")
             return
         }
 
-        // Deduplication: skip if same token+user already sent
-        val deduplicationKey = "${token}_${tokenStorage.userId}"
-        if (lastRegisteredKey == deduplicationKey) {
+        // Persistent deduplication (iOS parity: PushDeviceRegistrar dedup)
+        if (fcmTokenStore.isAlreadyRegistered(token, tokenStorage.userId)) {
             Timber.d("FCM token already registered for this user, skipping")
             return
         }
@@ -148,7 +156,7 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
                 when (val result = apiClient.post(url, body, includeAuth = true)) {
                     is ApiResult.Success -> {
                         Timber.d("FCM token registered with server via /push-devices")
-                        lastRegisteredKey = deduplicationKey
+                        fcmTokenStore.markRegistered(token, tokenStorage.userId)
                     }
                     is ApiResult.Failure -> {
                         // Fallback to legacy endpoint
@@ -160,7 +168,7 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
                         when (val legacyResult = apiClient.post(legacyUrl, legacyBody, includeAuth = true)) {
                             is ApiResult.Success -> {
                                 Timber.d("FCM token registered via legacy endpoint")
-                                lastRegisteredKey = deduplicationKey
+                                fcmTokenStore.markRegistered(token, tokenStorage.userId)
                             }
                             is ApiResult.Failure -> {
                                 Timber.e("Failed to register FCM token: ${legacyResult.error.message}")
@@ -187,8 +195,5 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
         val platform: String
     )
 
-    companion object {
-        @Volatile
-        private var lastRegisteredKey: String? = null
-    }
+    companion object
 }
