@@ -1,5 +1,8 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -11,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +45,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -61,6 +66,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,9 +75,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamElevation
@@ -82,9 +92,13 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.host.data.AvailabilityPayload
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
+import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
 import com.shourov.apps.pacedream.feature.host.data.PricingPayload
+import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.model.PricingUnit
+import kotlinx.coroutines.launch
+import java.util.TimeZone
 
 /**
  * Listing type matching iOS: share | borrow | split.
@@ -212,6 +226,7 @@ private val DAY_LABELS = listOf(
 @Composable
 fun CreateListingScreen(
     listingMode: ListingMode = ListingMode.SHARE,
+    imageUploadService: ImageUploadService? = null,
     onBackClick: () -> Unit = {},
     onPublishSuccess: (String) -> Unit = {},
     onPublishListing: (CreateListingRequest) -> Unit = {},
@@ -241,6 +256,7 @@ fun CreateListingScreen(
         "wizard" -> CreateListingWizardScreen(
             listingMode = selectedMode,
             subCategory = selectedSubCategory,
+            imageUploadService = imageUploadService,
             onBackClick = { phase = "subcategory" },
             onPublishSuccess = { id, title ->
                 publishedTitle = title
@@ -508,6 +524,7 @@ private fun SubcategoryCard(
 private fun CreateListingWizardScreen(
     listingMode: ListingMode,
     subCategory: String,
+    imageUploadService: ImageUploadService? = null,
     onBackClick: () -> Unit,
     onPublishSuccess: (String, String) -> Unit,
     onPublishListing: (CreateListingRequest) -> Unit,
@@ -530,6 +547,11 @@ private fun CreateListingWizardScreen(
     var requirements by remember { mutableStateOf("") }
     var totalCost by remember { mutableStateOf("") }
 
+    // Photos – iOS parity: selected image URIs + uploaded Cloudinary URLs
+    val selectedImageUris = remember { mutableStateListOf<Uri>() }
+    val uploadedImageUrls = remember { mutableStateListOf<String>() }
+    var isUploadingImages by remember { mutableStateOf(false) }
+
     // Photos/Location/Pricing
     var address by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -541,17 +563,22 @@ private fun CreateListingWizardScreen(
     val allowedUnits = getAllowedPricingUnits(listingMode, subCategory)
     var selectedPricingUnit by remember { mutableStateOf(allowedUnits.firstOrNull() ?: PricingUnit.HOUR) }
 
-    // Schedule/Availability
+    // Schedule/Availability – use device timezone (iOS parity: TimeZone.current.identifier)
     val selectedDurations = remember { mutableStateListOf<Int>() }
     val selectedDays = remember { mutableStateListOf<Int>() }
     var startTime by remember { mutableStateOf("09:00") }
     var endTime by remember { mutableStateOf("17:00") }
-    var timezone by remember { mutableStateOf("America/New_York") }
+    var timezone by remember { mutableStateOf(TimeZone.getDefault().id) }
 
     var validationMessage by remember { mutableStateOf<String?>(null) }
+    var isPublishing by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val progress = (currentStep + 1).toFloat() / totalSteps
 
+    // iOS parity: validate each step including photo requirement
     fun validate(): String? {
         return when (currentStep) {
             0 -> if (title.isBlank()) "Title is required." else null
@@ -562,6 +589,10 @@ private fun CreateListingWizardScreen(
                     basePrice.toDoubleOrNull() ?: 0.0
                 }
                 if (price <= 0) return "Price must be greater than 0."
+                // iOS parity: require at least 1 photo for non-split listings
+                if (listingMode != ListingMode.SPLIT && selectedImageUris.isEmpty() && uploadedImageUrls.isEmpty()) {
+                    return "Add at least 1 photo."
+                }
                 if (listingMode != ListingMode.SPLIT) {
                     if (address.isBlank()) return "Address is required."
                     if (city.isBlank() || state.isBlank()) return "City and state are required."
@@ -624,48 +655,89 @@ private fun CreateListingWizardScreen(
                         currentStep++
                     } else {
                         // Build payload matching iOS ListingsPublisherService
-                        val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
-                            totalCost.toDoubleOrNull() ?: 0.0
-                        } else {
-                            basePrice.toDoubleOrNull() ?: 0.0
-                        }
-                        val request = CreateListingRequest(
-                            listing_type = listingMode.backendValue,
-                            subCategory = subCategory,
-                            title = title,
-                            description = description.ifBlank { null },
-                            price = resolvedPrice,
-                            pricing_type = selectedPricingUnit.backendPricingType,
-                            pricing = PricingPayload(
-                                base_price = resolvedPrice,
-                                unit = selectedPricingUnit.value,
+                        isPublishing = true
+                        scope.launch {
+                            // iOS parity: upload images to Cloudinary first, fallback to base64
+                            val imageUrls = mutableListOf<String>()
+                            imageUrls.addAll(uploadedImageUrls)
+
+                            if (imageUploadService != null && selectedImageUris.isNotEmpty()) {
+                                isUploadingImages = true
+                                for (uri in selectedImageUris) {
+                                    if (uploadedImageUrls.any { it.contains(uri.lastPathSegment ?: "") }) continue
+                                    when (val result = imageUploadService.uploadImage(context, uri)) {
+                                        is ApiResult.Success -> imageUrls.add(result.data)
+                                        is ApiResult.Failure -> {
+                                            // iOS fallback: encode as base64 data URL
+                                            try {
+                                                val stream = context.contentResolver.openInputStream(uri)
+                                                val bytes = stream?.readBytes()
+                                                stream?.close()
+                                                if (bytes != null) {
+                                                    val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                                                    imageUrls.add("data:image/jpeg;base64,$b64")
+                                                }
+                                            } catch (_: Exception) { }
+                                        }
+                                    }
+                                }
+                                isUploadingImages = false
+                            }
+
+                            val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
+                                totalCost.toDoubleOrNull() ?: 0.0
+                            } else {
+                                basePrice.toDoubleOrNull() ?: 0.0
+                            }
+
+                            // iOS parity: summary is first 150 chars of description
+                            val trimmedDesc = description.trim()
+                            val summary = if (trimmedDesc.isNotBlank()) {
+                                trimmedDesc.take(150)
+                            } else null
+
+                            val request = CreateListingRequest(
+                                listing_type = listingMode.backendValue,
+                                subCategory = subCategory,
+                                title = title.trim(),
+                                description = trimmedDesc.ifBlank { null },
+                                summary = summary,
+                                price = resolvedPrice,
                                 pricing_type = selectedPricingUnit.backendPricingType,
-                                currency = "USD",
-                                frequency = selectedPricingUnit.backendFrequency,
-                            ),
-                            address = if (listingMode != ListingMode.SPLIT) address else null,
-                            amenities = amenities.ifEmpty { null },
-                            location = if (listingMode != ListingMode.SPLIT && city.isNotBlank()) {
-                                LocationPayload(lat = 0.0, lng = 0.0, city = city, state = state)
-                            } else null,
-                            durations = if (hasSchedule) selectedDurations.toList() else null,
-                            availability = if (hasSchedule) AvailabilityPayload(
-                                start_time = startTime,
-                                end_time = endTime,
-                                available_days = selectedDays.toList(),
-                                timezone = timezone,
-                                instant_booking = false,
-                            ) else null,
-                            shareType = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
-                            share_type = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
-                            totalCost = totalCost.toDoubleOrNull(),
-                            deadlineAt = deadlineAt.ifBlank { null },
-                            requirements = requirements.ifBlank { null },
-                        )
-                        onPublishListing(request)
-                        onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
+                                pricing = PricingPayload(
+                                    base_price = resolvedPrice,
+                                    unit = selectedPricingUnit.value,
+                                    pricing_type = selectedPricingUnit.backendPricingType,
+                                    currency = "USD",
+                                    frequency = selectedPricingUnit.backendFrequency,
+                                ),
+                                address = if (listingMode != ListingMode.SPLIT) address else null,
+                                amenities = amenities.ifEmpty { null },
+                                images = imageUrls.ifEmpty { null },
+                                location = if (listingMode != ListingMode.SPLIT && city.isNotBlank()) {
+                                    LocationPayload(lat = 0.0, lng = 0.0, city = city, state = state)
+                                } else null,
+                                durations = if (hasSchedule) selectedDurations.toList() else null,
+                                availability = if (hasSchedule) AvailabilityPayload(
+                                    start_time = startTime,
+                                    end_time = endTime,
+                                    available_days = selectedDays.toList(),
+                                    timezone = timezone,
+                                    instant_booking = false,
+                                ) else null,
+                                shareType = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
+                                share_type = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
+                                totalCost = totalCost.toDoubleOrNull(),
+                                deadlineAt = deadlineAt.ifBlank { null },
+                                requirements = requirements.ifBlank { null },
+                            )
+                            onPublishListing(request)
+                            isPublishing = false
+                            onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
+                        }
                     }
                 },
+                isPublishing = isPublishing,
             )
         },
         containerColor = PaceDreamColors.Background,
@@ -712,6 +784,14 @@ private fun CreateListingWizardScreen(
                     step == 1 -> PhotosLocationPricingStep(
                         listingMode = listingMode,
                         subCategory = subCategory,
+                        selectedImageUris = selectedImageUris,
+                        onImagesSelected = { uris ->
+                            val remaining = MAX_PHOTOS - selectedImageUris.size
+                            selectedImageUris.addAll(uris.take(remaining))
+                        },
+                        onRemoveImage = { index ->
+                            if (index in selectedImageUris.indices) selectedImageUris.removeAt(index)
+                        },
                         address = address,
                         city = city,
                         state = state,
@@ -865,6 +945,9 @@ private fun BasicsStep(
 private fun PhotosLocationPricingStep(
     listingMode: ListingMode,
     subCategory: String,
+    selectedImageUris: List<Uri>,
+    onImagesSelected: (List<Uri>) -> Unit,
+    onRemoveImage: (Int) -> Unit,
     address: String,
     city: String,
     state: String,
@@ -883,24 +966,71 @@ private fun PhotosLocationPricingStep(
 ) {
     val isSplit = listingMode == ListingMode.SPLIT
 
+    // iOS parity: image picker using ActivityResultContracts
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onImagesSelected(uris)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
     ) {
-        // Photos
+        // Photos – iOS parity: show selected images + add button
         FormSection(title = if (isSplit) "Photos (optional)" else "Photos") {
             Text(
-                text = "Add at least 1 photo for Share/Borrow listings.",
+                text = if (isSplit) "Add photos to help describe your split."
+                       else "Add at least 1 photo (up to $MAX_PHOTOS).",
                 style = PaceDreamTypography.Callout,
                 color = PaceDreamColors.TextSecondary,
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                PhotoUploadPlaceholder(onClick = { /* TODO: open image picker */ })
-                PhotoUploadPlaceholder(onClick = {})
-                PhotoUploadPlaceholder(onClick = {})
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                // Show selected image thumbnails
+                selectedImageUris.forEachIndexed { index, uri ->
+                    Box(modifier = Modifier.size(100.dp)) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Photo ${index + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                        )
+                        // Remove button
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .clickable { onRemoveImage(index) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Close,
+                                contentDescription = "Remove",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
+                // Add photo button (if under limit)
+                if (selectedImageUris.size < MAX_PHOTOS) {
+                    PhotoUploadPlaceholder(
+                        onClick = { imagePickerLauncher.launch("image/*") },
+                        photoCount = selectedImageUris.size,
+                    )
+                }
             }
         }
 
@@ -1409,6 +1539,7 @@ private fun WizardBottomBar(
     validationMessage: String?,
     onBack: () -> Unit,
     onNext: () -> Unit,
+    isPublishing: Boolean = false,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1456,11 +1587,22 @@ private fun WizardBottomBar(
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                     shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    enabled = !isPublishing,
                 ) {
-                    Text(
-                        text = if (currentStep == totalSteps - 1) "Publish" else "Next",
-                        style = PaceDreamTypography.Button,
-                    )
+                    if (isPublishing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text("Publishing\u2026", style = PaceDreamTypography.Button)
+                    } else {
+                        Text(
+                            text = if (currentStep == totalSteps - 1) "Publish" else "Next",
+                            style = PaceDreamTypography.Button,
+                        )
+                    }
                 }
             }
         }
@@ -1621,7 +1763,7 @@ private fun FormSection(
 }
 
 @Composable
-private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
+private fun PhotoUploadPlaceholder(onClick: () -> Unit, photoCount: Int = 0) {
     Card(
         modifier = Modifier
             .size(100.dp)
@@ -1631,26 +1773,62 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Icon(
-                PaceDreamIcons.Add,
-                contentDescription = "Add photo",
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(28.dp),
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    PaceDreamIcons.Add,
+                    contentDescription = "Add photo",
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(28.dp),
+                )
+                if (photoCount == 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Add",
+                        style = PaceDreamTypography.Caption2,
+                        color = PaceDreamColors.TextSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
         }
     }
 }
 
+// iOS parity: max 10 photos per listing
+private const val MAX_PHOTOS = 10
+
+/**
+ * Amenities per subcategory – iOS parity (Amenity.swift).
+ * Each group matches the iOS Amenity model's subcategory grouping.
+ */
 private fun getAmenities(subCategory: String): List<String> {
     return when (subCategory.lowercase()) {
-        "restroom" -> listOf("Soap", "Paper towels", "Hand dryer", "Accessible", "Clean")
-        "nap_pod" -> listOf("Blanket", "Pillow", "Privacy", "Charger", "Quiet")
-        "meeting_room" -> listOf("Whiteboard", "Projector", "WiFi", "Coffee", "AC")
-        "gym" -> listOf("Weights", "Cardio", "Showers", "Lockers", "Towels")
-        "parking" -> listOf("Covered", "EV Charging", "24/7 Access", "Security")
-        "storage_space" -> listOf("Climate Control", "24/7 Access", "Security", "Indoor")
-        "wifi" -> listOf("High Speed", "Unlimited", "5G", "Portable")
-        "short_stay" -> listOf("WiFi", "AC", "Kitchen", "Bathroom", "TV")
+        // Share
+        "restroom" -> listOf("Toilet Paper", "Hand Soap", "Hand Towels", "Air Freshener", "Paper Towels")
+        "nap_pod" -> listOf(
+            "Noise Cancellation", "Soundproof Walls", "White Noise Machine", "Earplugs",
+            "Calming Music", "Reclining Chair", "Blanket", "Pillow", "Eye Mask", "Temperature Control"
+        )
+        "meeting_room" -> listOf("WiFi", "Power Outlets", "Projector", "Whiteboard", "Monitor/TV", "Desk Space", "Chairs")
+        "gym" -> listOf("Exercise Equipment", "Locker Room", "Showers", "Water Fountain", "Towel Service", "Air Conditioning")
+        "parking" -> listOf("Covered Parking", "Security Camera", "EV Charging", "Gated Access", "Well Lit", "24/7 Access")
+        "storage_space" -> listOf("Climate Controlled", "Security Camera", "Gated Access", "24/7 Access", "Ground Floor", "Drive-Up Access")
+        "wifi" -> listOf("High Speed", "Unlimited Data", "Router Included", "5G Support", "Password Protected")
+        "short_stay", "apartment", "luxury_room" -> listOf(
+            "WiFi", "Kitchen", "Parking", "Washer/Dryer", "Heating", "Air Conditioning",
+            "TV", "Bathroom Essentials", "Bed Linens"
+        )
+        // Borrow
+        "sports_gear" -> listOf("Adjustable Straps", "Carrying Case", "Extra Batteries", "Charger", "Quick Release")
+        "camera" -> listOf("Lens Included", "Extra Batteries", "Memory Card", "Camera Bag", "Tripod", "Filters", "Remote Control")
+        "tech" -> listOf("Charger Included", "Case/Cover", "Screen Protector", "Headphones", "Warranty", "Extra Cable")
+        "instrument" -> listOf("Case/Bag", "Strap Included", "Tuner", "Extra Strings", "Metronome", "Stand")
+        "tools" -> listOf("Carrying Case", "Safety Gear", "Extra Blades", "Charger", "Manual Included", "Extension Cord")
+        "games" -> listOf("All Pieces Included", "Instructions", "Extra Controllers", "Carrying Case", "Batteries")
+        "toys" -> listOf("Batteries Included", "All Parts Included", "Carrying Case", "Safety Certified", "Instructions")
+        "micromobility" -> listOf("Helmet Included", "Lock Included", "Charger", "Lights", "Bell", "Basket")
+        // Split
+        "membership" -> listOf("24/7 Access", "Guest Pass", "Parking", "Locker", "Towel Service", "Sauna", "Classes")
         else -> listOf("WiFi", "AC", "Parking", "Clean", "Accessible")
     }
 }

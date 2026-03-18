@@ -1,5 +1,7 @@
 package com.shourov.apps.pacedream.model
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * Pricing unit matching the backend enum: 'hour' | 'day' | 'week' | 'month'.
  * Maps directly to the web platform's pricing_type / pricing.unit fields.
@@ -28,6 +30,7 @@ enum class PricingUnit(
  * Property model for host features
  */
 data class Property(
+    @SerializedName(value = "id", alternate = ["_id", "listingId"])
     val id: String = "",
     val title: String = "",
     val description: String = "",

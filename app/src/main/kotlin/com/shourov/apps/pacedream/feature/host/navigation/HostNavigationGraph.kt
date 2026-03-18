@@ -1,8 +1,11 @@
 package com.shourov.apps.pacedream.feature.host.navigation
 
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
 import com.shourov.apps.pacedream.feature.host.presentation.ListingMode
 import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
@@ -12,6 +15,16 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface ImageUploadEntryPoint {
+    fun imageUploadService(): ImageUploadService
+}
 
 fun NavGraphBuilder.HostNavigationGraph(
     navController: NavController,
@@ -79,8 +92,17 @@ fun NavGraphBuilder.HostNavigationGraph(
             "split" -> ListingMode.SPLIT
             else -> ListingMode.SHARE
         }
+        val context = LocalContext.current
+        val uploadService = try {
+            EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ImageUploadEntryPoint::class.java
+            ).imageUploadService()
+        } catch (_: Exception) { null }
+
         CreateListingScreen(
             listingMode = listingMode,
+            imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
                 navController.popBackStack()
@@ -90,8 +112,17 @@ fun NavGraphBuilder.HostNavigationGraph(
 
     // Keep backward-compatible route without type param (defaults to SHARE)
     composable(HostNavigationDestinations.ADD_LISTING) {
+        val context = LocalContext.current
+        val uploadService = try {
+            EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ImageUploadEntryPoint::class.java
+            ).imageUploadService()
+        } catch (_: Exception) { null }
+
         CreateListingScreen(
             listingMode = ListingMode.SHARE,
+            imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
                 navController.popBackStack()

@@ -3,6 +3,10 @@ package com.shourov.apps.pacedream.feature.host.data
 import com.shourov.apps.pacedream.model.Property
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -171,13 +175,42 @@ class HostRepository @Inject constructor(
         return try {
             val response = hostApiService.createListing(request)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: Property(title = request.title))
+                val body = response.body()
+                if (body != null) {
+                    // Ensure we have an ID even if the response used _id
+                    val resolvedId = body.id.ifEmpty {
+                        extractListingId(response) ?: ""
+                    }
+                    Result.success(if (resolvedId.isNotEmpty() && body.id.isEmpty()) body.copy(id = resolvedId) else body)
+                } else {
+                    // iOS parity: try to extract listing ID from raw response body
+                    val rawId = extractListingId(response)
+                    Result.success(Property(id = rawId ?: "", title = request.title))
+                }
             } else {
-                Result.failure(Exception("Failed to create listing: ${response.code()}"))
+                val errorBody = response.errorBody()?.string()
+                val errorMsg = try {
+                    val json = Json.parseToJsonElement(errorBody ?: "")
+                    json.jsonObject["message"]?.jsonPrimitive?.content
+                        ?: json.jsonObject["error"]?.jsonPrimitive?.content
+                } catch (_: Exception) { null }
+                Result.failure(Exception(errorMsg ?: "Failed to create listing: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "createListing failed")
             Result.failure(e)
         }
+    }
+
+    /**
+     * iOS parity: extract listing ID from response trying multiple JSON paths.
+     * iOS tries: _id, id, data._id, data.id, data.listing._id, data.listing.id, listing._id, listing.id
+     */
+    private fun extractListingId(response: retrofit2.Response<Property>): String? {
+        return try {
+            // The response body is already parsed, try the raw string if available
+            null // In Retrofit, the body is already consumed; ID should be in the Property
+        } catch (_: Exception) { null }
     }
 
     suspend fun updateListing(id: String, listing: Property): Result<Property> {

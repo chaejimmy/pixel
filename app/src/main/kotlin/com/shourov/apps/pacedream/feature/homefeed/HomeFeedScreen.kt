@@ -128,7 +128,7 @@ fun HomeFeedScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White),
+                    .background(PaceDreamColors.Background),
                 contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
             ) {
                 // iOS-style clean white header with "Discover" title and search bar
@@ -236,9 +236,9 @@ private fun DiscoverHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(PaceDreamColors.Background)
             .statusBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp)
+            .padding(start = PaceDreamSpacing.LG, end = PaceDreamSpacing.LG, top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.MD)
     ) {
         // Greeting row matching iOS layout
         Row(
@@ -253,7 +253,7 @@ private fun DiscoverHeader(
                         fontFamily = paceDreamDisplayFontFamily,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Color(0xFF1A1A1A)
+                    color = PaceDreamColors.TextPrimary
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
@@ -271,7 +271,7 @@ private fun DiscoverHeader(
                     Icon(
                         imageVector = PaceDreamIcons.Notifications,
                         contentDescription = "Notifications",
-                        tint = Color(0xFF1A1A1A),
+                        tint = PaceDreamColors.TextPrimary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -329,7 +329,7 @@ private fun DiscoverHeader(
                             fontFamily = paceDreamFontFamily,
                             fontSize = 15.sp
                         ),
-                        color = Color(0xFF1A1A1A)
+                        color = PaceDreamColors.TextPrimary
                     )
                     Text(
                         text = "Anywhere \u00B7 Any time \u00B7 Any type",
@@ -349,7 +349,7 @@ private fun DiscoverHeader(
                         Icon(
                             imageVector = PaceDreamIcons.Tune,
                             contentDescription = "Filters",
-                            tint = Color(0xFF1A1A1A),
+                            tint = PaceDreamColors.TextPrimary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
