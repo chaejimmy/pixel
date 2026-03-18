@@ -39,7 +39,14 @@ fun ProfileTabScreen(
     onLogoutClick: () -> Unit = {},
     onSwitchToHostMode: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
-    isHostMode: Boolean = false
+    isHostMode: Boolean = false,
+    // iOS/Web parity: new feature navigation callbacks
+    onReviewsClick: () -> Unit = {},
+    onBlogClick: () -> Unit = {},
+    onTripPlannerClick: () -> Unit = {},
+    onSplitBookingsClick: () -> Unit = {},
+    onBidsClick: () -> Unit = {},
+    onDestinationsClick: () -> Unit = {}
 ) {
     val viewModel: ProfileTabViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -50,9 +57,20 @@ fun ProfileTabScreen(
                 title = "Account",
                 items = listOf(
                     ProfileMenuItem("Edit Profile", PaceDreamIcons.Person, onEditProfileClick),
+                    ProfileMenuItem("My Reviews", PaceDreamIcons.Star, onReviewsClick),
                     ProfileMenuItem("Payment Methods", PaceDreamIcons.Payment, {}),
                     ProfileMenuItem("Addresses", PaceDreamIcons.LocationOn, {}),
                     ProfileMenuItem("Notifications", PaceDreamIcons.Notifications, {})
+                )
+            ),
+            ProfileMenuSection(
+                title = "Explore",
+                items = listOf(
+                    ProfileMenuItem("Trip Planner", PaceDreamIcons.Map, onTripPlannerClick),
+                    ProfileMenuItem("Destinations", PaceDreamIcons.LocationOn, onDestinationsClick),
+                    ProfileMenuItem("Blog", PaceDreamIcons.Article, onBlogClick),
+                    ProfileMenuItem("My Bids", PaceDreamIcons.Gavel, onBidsClick),
+                    ProfileMenuItem("Split Bookings", PaceDreamIcons.Group, onSplitBookingsClick)
                 )
             ),
             ProfileMenuSection(

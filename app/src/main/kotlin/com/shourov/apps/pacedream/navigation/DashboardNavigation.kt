@@ -494,7 +494,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onSwitchToGuestMode = {
                                         hostModeManager.setHostMode(false)
                                     },
-                                    isHostMode = isHostMode
+                                    isHostMode = isHostMode,
+                                    // iOS/Web parity: navigate to new feature screens
+                                    onReviewsClick = { navController.navigate("reviews") },
+                                    onBlogClick = { navController.navigate("blog") },
+                                    onTripPlannerClick = { navController.navigate("trip_planner") },
+                                    onSplitBookingsClick = { navController.navigate("split_bookings") },
+                                    onBidsClick = { navController.navigate("bids") },
+                                    onDestinationsClick = { navController.navigate("destinations") }
                                 )
 
                                     if (showAuthSheet) {
@@ -763,6 +770,108 @@ fun NavGraphBuilder.DashboardNavigation(
                                 BookingDetailScreen(
                                     bookingId = bookingId,
                                     onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            // ── New Feature Screens (iOS/Web parity) ─────────────
+
+                            // Reviews Screen
+                            composable("reviews") {
+                                com.pacedream.app.feature.reviews.ReviewsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Blog Screens
+                            composable("blog") {
+                                com.pacedream.app.feature.blog.BlogListScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onPostClick = { postId ->
+                                        navController.navigate("blog_detail/$postId")
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "blog_detail/{postId}",
+                                arguments = listOf(navArgument("postId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val postId = backStackEntry.arguments?.getString("postId") ?: ""
+                                com.pacedream.app.feature.blog.BlogDetailScreen(
+                                    postId = postId,
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Trip Planner Screen
+                            composable("trip_planner") {
+                                com.pacedream.app.feature.tripplanner.TripPlannerScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Split Booking Screens
+                            composable("split_bookings") {
+                                com.pacedream.app.feature.splitbooking.SplitBookingListScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onSplitClick = { splitId ->
+                                        navController.navigate("split_booking_detail/$splitId")
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "split_booking_detail/{splitId}",
+                                arguments = listOf(navArgument("splitId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val splitId = backStackEntry.arguments?.getString("splitId") ?: ""
+                                com.pacedream.app.feature.splitbooking.SplitBookingScreen(
+                                    splitId = splitId,
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Bidding Screen
+                            composable("bids") {
+                                com.pacedream.app.feature.bidding.BiddingScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Destination Screens
+                            composable("destinations") {
+                                com.pacedream.app.feature.destination.DestinationLandingScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onDestinationClick = { destId ->
+                                        navController.navigate("destination_listings/$destId")
+                                    },
+                                    onListingClick = { listingId ->
+                                        selectedListingId = listingId
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "destination_listings/{destinationId}",
+                                arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val destId = backStackEntry.arguments?.getString("destinationId") ?: ""
+                                com.pacedream.app.feature.destination.DestinationListingsScreen(
+                                    destinationId = destId,
+                                    onBackClick = { navController.popBackStack() },
+                                    onListingClick = { listingId ->
+                                        selectedListingId = listingId
+                                    }
+                                )
+                            }
+
+                            // Edit Listing (Host)
+                            composable(
+                                route = "edit_listing/{listingId}",
+                                arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
+                                com.shourov.apps.pacedream.feature.host.presentation.EditListingScreen(
+                                    listingId = listingId,
+                                    onBackClick = { navController.popBackStack() },
+                                    onSaveSuccess = { navController.popBackStack() }
                                 )
                             }
                         }

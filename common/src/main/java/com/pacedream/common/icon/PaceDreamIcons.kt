@@ -359,4 +359,15 @@ object PaceDreamIcons {
     val Build: ImageVector = Icons.Rounded.Build
     val SportsEsports: ImageVector = Icons.Rounded.SportsEsports
     val SmartToy: ImageVector = Icons.Rounded.SmartToy
+
+    // ── iOS/Web Feature Parity Icons ────────────────────────────
+    val Article: ImageVector = Icons.Rounded.Article
+    val Gavel: ImageVector = Icons.Rounded.Gavel
+    val Flag: ImageVector = Icons.Rounded.Flag
+    val ThumbUp: ImageVector = Icons.Rounded.ThumbUp
+    val SwapHoriz: ImageVector = Icons.Rounded.SwapHoriz
+    val FlightTakeoff: ImageVector = Icons.Rounded.FlightTakeoff
+    val Explore: ImageVector = Icons.Rounded.Explore
+    val TravelExplore: ImageVector = Icons.Rounded.TravelExplore
+    val Sort: ImageVector = Icons.Rounded.Sort
 }

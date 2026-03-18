@@ -101,6 +101,7 @@ fun ListingDetailScreen(
     var showReviewsSheet by remember { mutableStateOf(false) }
     var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
+    var showReportSheet by remember { mutableStateOf(false) }
 
     val listing = uiState.listing
 
@@ -311,8 +312,29 @@ fun ListingDetailScreen(
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
                         )
                     }
+
+                    // Report Listing (iOS/Web parity)
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item {
+                        SectionReportListing(
+                            onReportClick = { showReportSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                        )
+                    }
                 }
             }
+        }
+
+        // Report Listing Bottom Sheet (iOS/Web parity)
+        if (showReportSheet) {
+            ReportListingSheet(
+                listingId = listing?.id ?: "",
+                listingTitle = listing?.title ?: "Listing",
+                onDismiss = { showReportSheet = false },
+                onReportSubmitted = { showReportSheet = false }
+            )
         }
 
         if (showAboutSheet) {
@@ -2447,3 +2469,136 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
     }
 }
 
+// ── Report Listing (iOS/Web parity) ─────────────────────────────
+
+@Composable
+private fun SectionReportListing(
+    onReportClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                PaceDreamIcons.Flag,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Report this listing",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { onReportClick() }
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "If something looks wrong with this listing, let us know.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReportListingSheet(
+    listingId: String,
+    listingTitle: String,
+    onDismiss: () -> Unit,
+    onReportSubmitted: () -> Unit
+) {
+    val reportReasons = listOf(
+        "Spam or scam",
+        "Offensive or inappropriate content",
+        "Harassment or bullying",
+        "Misleading or fraudulent listing",
+        "Safety concern",
+        "Impersonation",
+        "Other"
+    )
+
+    var selectedReason by remember { mutableStateOf<String?>(null) }
+    var details by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                "Report Listing",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Why are you reporting \"$listingTitle\"?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+
+            reportReasons.forEach { reason ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedReason = reason }
+                        .padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedReason == reason,
+                        onClick = { selectedReason = reason }
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(reason, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            OutlinedTextField(
+                value = details,
+                onValueChange = { if (it.length <= 5000) details = it },
+                label = { Text("Additional details (optional)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                shape = RoundedCornerShape(12.dp),
+                maxLines = 5
+            )
+
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = {
+                    isSubmitting = true
+                    onReportSubmitted()
+                },
+                enabled = selectedReason != null && !isSubmitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Text("Submit Report", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}

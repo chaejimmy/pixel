@@ -63,7 +63,7 @@ fun PaceDreamApp(
                 // TODO: Navigate to add listing
             },
             onNavigateToEditListing = { listingId ->
-                // TODO: Navigate to edit listing
+                appState.navController.navigate("edit_listing/$listingId")
             },
             onNavigateToAnalytics = {
                 // TODO: Navigate to analytics
