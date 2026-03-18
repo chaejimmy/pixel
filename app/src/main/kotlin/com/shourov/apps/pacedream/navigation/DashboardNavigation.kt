@@ -444,10 +444,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
-                                        // Navigate to edit profile
+                                        navController.navigate("settings_personal_info")
                                     },
                                     onSettingsClick = {
-                                        // Navigate to settings
+                                        navController.navigate("settings_root")
                                     },
                                     onHelpClick = {
                                         navController.navigate("support")
@@ -456,7 +456,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         navController.navigate("faq")
                                     },
                                     onAboutClick = {
-                                        // Navigate to about
+                                        navController.navigate("about")
                                     },
                                     onPrivacyPolicyClick = {
                                         try {
@@ -861,6 +861,63 @@ fun NavGraphBuilder.DashboardNavigation(
                                     listingId = listingId,
                                     onBackClick = { navController.popBackStack() },
                                     onSaveSuccess = { navController.popBackStack() }
+                                )
+                            }
+
+                            // ── Settings & Account Screens (iOS parity) ──────────
+
+                            // Settings Root Screen
+                            composable("settings_root") {
+                                com.pacedream.app.feature.settings.SettingsRootScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onPersonalInfoClick = { navController.navigate("settings_personal_info") },
+                                    onLoginSecurityClick = { navController.navigate("settings_login_security") },
+                                    onNotificationsClick = { navController.navigate("settings_notifications") },
+                                    onPreferencesClick = { navController.navigate("settings_preferences") },
+                                    onPaymentMethodsClick = { navController.navigate("settings_payment_methods") },
+                                    onHelpSupportClick = { navController.navigate("support") }
+                                )
+                            }
+
+                            // Personal Info Screen
+                            composable("settings_personal_info") {
+                                com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Login & Security Screen
+                            composable("settings_login_security") {
+                                com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Notifications Settings Screen
+                            composable("settings_notifications") {
+                                com.pacedream.app.feature.settings.notifications.SettingsNotificationsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Preferences Screen (Language & Region)
+                            composable("settings_preferences") {
+                                com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Payment Methods Screen
+                            composable("settings_payment_methods") {
+                                com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // About Us Screen
+                            composable("about") {
+                                com.pacedream.app.feature.about.AboutUsScreen(
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
                         }

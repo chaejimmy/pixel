@@ -36,10 +36,15 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
 
             if (hasGoogleServices) {
                 extensions.configure<ApplicationExtension> {
-                    buildTypes.configureEach {
-                        // Disable the Crashlytics mapping file upload. This feature should only
-                        // be enabled if a Firebase backend is available and configured in
-                        // google-services.json.
+                    // Enable Crashlytics mapping file upload for release builds so that
+                    // R8-obfuscated stack traces are symbolicated in the Firebase console.
+                    // Disable for debug builds to speed up build times.
+                    buildTypes.getByName("release") {
+                        configure<CrashlyticsExtension> {
+                            mappingFileUploadEnabled = true
+                        }
+                    }
+                    buildTypes.getByName("debug") {
                         configure<CrashlyticsExtension> {
                             mappingFileUploadEnabled = false
                         }

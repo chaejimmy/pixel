@@ -31,6 +31,13 @@ class PaceDreamApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Plant Timber tree for debug builds only.
+        // Release builds intentionally have no Timber tree, so all Timber.d/e/w calls
+        // become no-ops (zero overhead). Crashlytics captures fatal crashes separately.
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
+
         // Initialize Firebase before any network calls. The firebase-perf gradle plugin
         // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
         // prior to any OkHttpClient.execute() call (including those in authSession.initialize()).
