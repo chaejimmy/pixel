@@ -29,6 +29,7 @@ class SignInViewModel @Inject constructor(
 
     fun login(onSuccess: () -> Unit) {
         val state = _uiState.value
+        if (state.isLoading) return // Prevent duplicate submissions
         if (state.email.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(error = "Email and password are required")
             return
@@ -54,6 +55,7 @@ class SignInViewModel @Inject constructor(
     }
 
     fun forgotPassword(onSuccess: (String) -> Unit) {
+        if (_uiState.value.isLoading) return // Prevent duplicate submissions
         val email = _uiState.value.email
         if (email.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Please enter your email first")
@@ -80,6 +82,7 @@ class SignInViewModel @Inject constructor(
     }
 
     fun loginWithGoogle(activity: Activity, onSuccess: () -> Unit) {
+        if (_uiState.value.isGoogleLoading) return // Prevent duplicate submissions
         _uiState.value = _uiState.value.copy(isGoogleLoading = true, error = null)
 
         viewModelScope.launch {

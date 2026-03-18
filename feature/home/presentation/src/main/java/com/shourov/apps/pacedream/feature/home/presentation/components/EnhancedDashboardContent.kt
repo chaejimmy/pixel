@@ -237,7 +237,7 @@ fun EnhancedDashboardContent(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
-                items(categories) { category ->
+                items(categories, key = { it.title }) { category ->
                     PaceDreamCategoryPill(
                         title = category.title,
                         icon = when (category.title) {
@@ -285,7 +285,7 @@ fun EnhancedDashboardContent(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
-                items(destinations) { destination ->
+                items(destinations, key = { it.title }) { destination ->
                     PaceDreamDestinationCard(
                         name = destination.title,
                         imageUrl = null, // Will use drawable resource
@@ -327,7 +327,7 @@ fun EnhancedDashboardContent(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     val dealRooms = roomsState.rooms.filter { it.available }.take(6)
-                    items(dealRooms) { room ->
+                    items(dealRooms, key = { it.id }) { room ->
                         val discountPercent = 20 + (abs(room.id.hashCode()) % 21) // 20-40%
                         val spotsLeft = 1 + (abs(room.id.hashCode()) % 5) // 1-5
                         LastMinuteDealCard(
@@ -386,7 +386,7 @@ fun EnhancedDashboardContent(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
-                    items(splitStaysState.splitStays) { stay ->
+                    items(splitStaysState.splitStays, key = { it._id ?: it.hashCode() }) { stay ->
                         PaceDreamPropertyCard(
                             title = stay.name ?: "Roommate Listing",
                             location = stay.location ?: stay.city ?: "Location",
@@ -498,7 +498,7 @@ fun EnhancedDashboardContent(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
-                    items(roomsState.rooms) { room ->
+                    items(roomsState.rooms, key = { it.id }) { room ->
                         PaceDreamPropertyCard(
                             title = room.title,
                             location = room.location.city,
@@ -604,7 +604,7 @@ fun EnhancedDashboardContent(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
-                    items(gearsState.rentedGears) { gear ->
+                    items(gearsState.rentedGears, key = { it.id }) { gear ->
                         PaceDreamPropertyCard(
                             title = gear.name,
                             location = gear.location,
@@ -664,7 +664,7 @@ fun EnhancedDashboardContent(
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
-                    items(splitStaysState.splitStays) { stay ->
+                    items(splitStaysState.splitStays, key = { it._id ?: it.hashCode() }) { stay ->
                         PaceDreamPropertyCard(
                             title = stay.name ?: "Split Stay",
                             location = stay.location ?: stay.city ?: "Location",

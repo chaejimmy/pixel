@@ -1,6 +1,5 @@
 package com.shourov.apps.pacedream.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -19,7 +18,8 @@ fun PaceDreamNavHost(
 ) {
     val navController = appState.navController
 
-    // iOS 26 parity: 200ms easeInOut for all transitions
+    // Top-level NavHost: fade-only transitions to avoid double-animation jank
+    // (the nested dashboard NavHost handles its own slide transitions for tab switches)
     val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
 
     NavHost(
@@ -27,20 +27,10 @@ fun PaceDreamNavHost(
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
-            fadeIn(
-                animationSpec = tween(200, easing = iOSEaseInOut),
-            ) + slideIntoContainer(
-                animationSpec = tween(200, easing = iOSEaseInOut),
-                towards = AnimatedContentTransitionScope.SlideDirection.Start,
-            )
+            fadeIn(animationSpec = tween(150, easing = iOSEaseInOut))
         },
         exitTransition = {
-            fadeOut(
-                animationSpec = tween(200, easing = iOSEaseInOut),
-            ) + slideOutOfContainer(
-                animationSpec = tween(200, easing = iOSEaseInOut),
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-            )
+            fadeOut(animationSpec = tween(150, easing = iOSEaseInOut))
         },
     ) {
         userOnBoardingScreen(

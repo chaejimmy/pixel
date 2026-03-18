@@ -132,10 +132,13 @@ class BookingFormViewModel @Inject constructor(
         }
     }
     
+    private var isSubmitting = false
+
     fun createBooking(onSuccess: (String) -> Unit) {
+        if (isSubmitting) return // Prevent duplicate submissions
         viewModelScope.launch {
             val currentState = _uiState.value
-            
+
             if (currentState.startDate.isEmpty() || currentState.endDate.isEmpty()) {
                 _uiState.value = currentState.copy(error = "Please select start and end dates")
                 return@launch
@@ -151,6 +154,7 @@ class BookingFormViewModel @Inject constructor(
                 return@launch
             }
 
+            isSubmitting = true
             val user = authSession.currentUser.value
             val userId = user?.id.orEmpty()
             
@@ -173,9 +177,11 @@ class BookingFormViewModel @Inject constructor(
             
             when (val result = bookingRepository.createBooking(booking)) {
                 is Result.Success -> {
+                    isSubmitting = false
                     onSuccess(booking.id)
                 }
                 is Result.Error -> {
+                    isSubmitting = false
                     _uiState.value = currentState.copy(error = result.exception.message)
                 }
                 is Result.Loading -> { /* No-op */ }

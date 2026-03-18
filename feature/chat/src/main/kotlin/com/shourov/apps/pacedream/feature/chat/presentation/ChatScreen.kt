@@ -77,6 +77,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(PaceDreamDesignSystem.PaceDreamColors.Background)
+                .imePadding()
         ) {
             // Chat Header
             ChatHeader(
