@@ -66,6 +66,8 @@ import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamLoadingState
 import com.pacedream.common.composables.shimmerEffect
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -383,7 +385,11 @@ private fun ThreadCard(
             ) {
                 if (thread.avatarUrl != null) {
                     AsyncImage(
-                        model = thread.avatarUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(thread.avatarUrl)
+                            .crossfade(200)
+                            .size(coil.size.Size(96, 96))
+                            .build(),
                         contentDescription = thread.displayName,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
