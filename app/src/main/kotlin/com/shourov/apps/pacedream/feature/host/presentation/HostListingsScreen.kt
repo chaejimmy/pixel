@@ -16,9 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.*
@@ -321,27 +323,42 @@ fun HostListingCard(
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
         Column {
-            // Property Image placeholder
+            // Property Image – iOS parity: show first image or placeholder
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                PaceDreamColors.Primary.copy(alpha = 0.08f),
-                                PaceDreamColors.Primary.copy(alpha = 0.03f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+                    .height(160.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Home,
-                    contentDescription = "Property",
-                    tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
-                    modifier = Modifier.size(PaceDreamIconSize.XXL)
-                )
+                if (listing.images.isNotEmpty()) {
+                    AsyncImage(
+                        model = listing.images.first(),
+                        contentDescription = listing.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                        PaceDreamColors.Primary.copy(alpha = 0.03f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Home,
+                            contentDescription = "Property",
+                            tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
+                            modifier = Modifier.size(PaceDreamIconSize.XXL)
+                        )
+                    }
+                }
 
                 // Status badge overlay
                 Box(
@@ -415,7 +432,7 @@ fun HostListingCard(
                     )
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                     Text(
-                        text = "${listing.location.city}, ${listing.location.country}",
+                        text = "${listing.location.city}, ${listing.location.state}".trim(' ', ','),
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
@@ -430,7 +447,7 @@ fun HostListingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "$${listing.pricing.basePrice.toInt()}/hour",
+                        text = "$${listing.pricing.basePrice.toInt()}/${listing.pricing.unit.ifBlank { "hr" }}",
                         style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold
