@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,6 +72,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.inbox.model.Message
+import com.shourov.apps.pacedream.feature.inbox.model.MessageStatus
 import com.shourov.apps.pacedream.feature.inbox.model.ThreadDetailEvent
 import com.shourov.apps.pacedream.feature.inbox.model.ThreadDetailUiState
 
@@ -151,14 +153,14 @@ private fun SuccessState(
 ) {
     val listState = rememberLazyListState()
     var messageText by remember { mutableStateOf("") }
-    
+
     // Scroll to bottom when new message is sent
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
             listState.scrollToItem(0)
         }
     }
-    
+
     Column(modifier = modifier.fillMaxSize()) {
         // Messages list (reversed so newest at bottom, displayed from top)
         PullToRefreshBox(
@@ -193,10 +195,11 @@ private fun SuccessState(
                         isCurrentUser = isCurrentUser,
                         isGroupedWithPrevious = prevSameSender,
                         isGroupedWithNext = nextSameSender,
+                        onRetry = { onEvent(ThreadDetailEvent.RetryMessage(message.id)) },
                         modifier = Modifier.animateItemPlacement()
                     )
                 }
-                
+
                 // Load more indicator
                 if (state.hasMore) {
                     item {
@@ -211,7 +214,7 @@ private fun SuccessState(
                                 modifier = Modifier.size(24.dp)
                             )
                         }
-                        
+
                         LaunchedEffect(Unit) {
                             onEvent(ThreadDetailEvent.LoadMore)
                         }
@@ -219,7 +222,15 @@ private fun SuccessState(
                 }
             }
         }
-        
+
+        // Send error banner (matches iOS moderation/error banner pattern)
+        state.sendError?.let { error ->
+            SendErrorBanner(
+                message = error,
+                onDismiss = { onEvent(ThreadDetailEvent.DismissSendError) }
+            )
+        }
+
         // Message input
         MessageInputBar(
             text = messageText,
@@ -241,6 +252,7 @@ private fun MessageBubble(
     isCurrentUser: Boolean,
     isGroupedWithPrevious: Boolean,
     isGroupedWithNext: Boolean,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val configuration = LocalConfiguration.current
@@ -248,7 +260,6 @@ private fun MessageBubble(
 
     // When messages are consecutive from the same sender, tighten the bubble corners
     // so the conversation reads as grouped “blocks”.
-    // We keep the “outer” side rounded and tighten the “inner” side when grouped.
     val topStart = if (isCurrentUser) {
         PaceDreamRadius.MD
     } else {
@@ -269,54 +280,152 @@ private fun MessageBubble(
     } else {
         PaceDreamRadius.MD
     }
-    
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (isCurrentUser) Arrangement.End else Arrangement.Start
     ) {
-        Card(
-            modifier = Modifier.widthIn(max = maxWidth),
-            shape = RoundedCornerShape(
-                topStart = topStart,
-                topEnd = topEnd,
-                bottomStart = bottomStart,
-                bottomEnd = bottomEnd,
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isCurrentUser) 
-                    PaceDreamColors.Primary 
-                else 
-                    PaceDreamColors.Surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        Column(
+            horizontalAlignment = if (isCurrentUser) Alignment.End else Alignment.Start,
+            modifier = Modifier.widthIn(max = maxWidth)
         ) {
-            Column(
-                modifier = Modifier.padding(
-                    horizontal = PaceDreamSpacing.MD,
-                    vertical = PaceDreamSpacing.SM
-                )
+            Card(
+                modifier = if (message.isFailed) {
+                    Modifier.clickable(onClick = onRetry)
+                } else {
+                    Modifier
+                },
+                shape = RoundedCornerShape(
+                    topStart = topStart,
+                    topEnd = topEnd,
+                    bottomStart = bottomStart,
+                    bottomEnd = bottomEnd,
+                ),
+                colors = CardDefaults.cardColors(
+                    containerColor = when {
+                        message.isFailed && isCurrentUser -> PaceDreamColors.Primary.copy(alpha = 0.6f)
+                        isCurrentUser -> PaceDreamColors.Primary
+                        else -> PaceDreamColors.Surface
+                    }
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Text(
-                    text = message.text,
-                    style = PaceDreamTypography.Body,
-                    color = if (isCurrentUser) Color.White else PaceDreamColors.TextPrimary
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                // Only show timestamp at the end of a grouped block to reduce noise.
-                if (!isGroupedWithNext) {
-                    Text(
-                        text = message.formattedTime,
-                        style = PaceDreamTypography.Caption,
-                        color = if (isCurrentUser)
-                            Color.White.copy(alpha = 0.7f)
-                        else
-                            PaceDreamColors.TextSecondary,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = PaceDreamSpacing.MD,
+                        vertical = PaceDreamSpacing.SM
                     )
+                ) {
+                    Text(
+                        text = message.text,
+                        style = PaceDreamTypography.Body,
+                        color = if (isCurrentUser) Color.White else PaceDreamColors.TextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Only show timestamp at the end of a grouped block to reduce noise.
+                    if (!isGroupedWithNext) {
+                        Text(
+                            text = message.formattedTime,
+                            style = PaceDreamTypography.Caption,
+                            color = if (isCurrentUser)
+                                Color.White.copy(alpha = 0.7f)
+                            else
+                                PaceDreamColors.TextSecondary,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
+            }
+
+            // Message status indicator - matches iOS “Sending…” / “Failed • Tap to retry”
+            if (message.isTemp) {
+                Spacer(modifier = Modifier.height(2.dp))
+                when (message.status) {
+                    MessageStatus.SENDING -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(10.dp),
+                                strokeWidth = 1.5.dp,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = “Sending\u2026”,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                        }
+                    }
+                    MessageStatus.FAILED -> {
+                        Text(
+                            text = “Failed \u2022 Tap to retry”,
+                            style = PaceDreamTypography.Caption,
+                            color = Color(0xFFE53935),
+                            modifier = Modifier
+                                .padding(horizontal = PaceDreamSpacing.SM)
+                                .clickable(onClick = onRetry)
+                        )
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Error banner shown above composer when send fails.
+ * Matches iOS error/moderation warning banner pattern.
+ */
+@Composable
+private fun SendErrorBanner(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFF3E0) // Light orange background
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = null,
+                tint = Color(0xFFE65100),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = message,
+                style = PaceDreamTypography.Caption,
+                color = Color(0xFFE65100),
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = “Dismiss”,
+                    modifier = Modifier.size(14.dp),
+                    tint = Color(0xFFE65100)
+                )
             }
         }
     }
@@ -400,5 +509,3 @@ private fun MessageInputBar(
     }
 }
 
-@Composable
-private fun UnusedPlaceholder() { /* keep file structure stable */ }

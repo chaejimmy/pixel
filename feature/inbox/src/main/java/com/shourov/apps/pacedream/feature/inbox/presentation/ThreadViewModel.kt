@@ -7,9 +7,14 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.feature.inbox.data.InboxRepository
 import com.shourov.apps.pacedream.feature.inbox.model.Message
+import com.shourov.apps.pacedream.feature.inbox.model.MessageStatus
 import com.shourov.apps.pacedream.feature.inbox.model.ThreadDetailEvent
 import com.shourov.apps.pacedream.feature.inbox.model.ThreadDetailUiState
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,13 +61,18 @@ class ThreadViewModel @Inject constructor(
         when (event) {
             is ThreadDetailEvent.Refresh -> refresh()
             is ThreadDetailEvent.SendMessage -> sendMessage(event.text)
+            is ThreadDetailEvent.RetryMessage -> retryMessage(event.tempId)
+            is ThreadDetailEvent.DismissSendError -> dismissSendError()
             is ThreadDetailEvent.LoadMore -> loadMore()
         }
     }
     
     private fun loadMessages() {
         viewModelScope.launch {
-            _uiState.value = ThreadDetailUiState.Loading
+            // Only show full loading state when we have no existing content
+            if (_uiState.value !is ThreadDetailUiState.Success) {
+                _uiState.value = ThreadDetailUiState.Loading
+            }
             
             val result = inboxRepository.getMessages(
                 threadId = threadId,
@@ -73,12 +83,14 @@ class ThreadViewModel @Inject constructor(
             when (result) {
                 is ApiResult.Success -> {
                     beforeCursor = result.data.messages.lastOrNull()?.id
-                    
+                    val existingState = _uiState.value as? ThreadDetailUiState.Success
+
                     // Get current user ID
-                    val currentUserId = authSession.currentUser.value?.id ?: ""
-                    
-                    // Create a minimal thread object
-                    val thread = Thread(
+                    val currentUserId = existingState?.currentUserId
+                        ?: authSession.currentUser.value?.id ?: ""
+
+                    // Reuse existing thread on refresh, or create minimal object
+                    val thread = existingState?.thread ?: Thread(
                         id = threadId,
                         participants = emptyList(),
                         lastMessage = result.data.messages.firstOrNull(),
@@ -87,7 +99,7 @@ class ThreadViewModel @Inject constructor(
                         listing = null,
                         opponent = null
                     )
-                    
+
                     _uiState.value = ThreadDetailUiState.Success(
                         thread = thread,
                         messages = result.data.messages,
@@ -98,9 +110,15 @@ class ThreadViewModel @Inject constructor(
                     )
                 }
                 is ApiResult.Failure -> {
-                    _uiState.value = ThreadDetailUiState.Error(
-                        result.error.message ?: "Failed to load messages"
-                    )
+                    // On refresh failure, show error only if we have no existing content
+                    val existing = _uiState.value as? ThreadDetailUiState.Success
+                    if (existing != null) {
+                        _uiState.value = existing.copy(isRefreshing = false)
+                    } else {
+                        _uiState.value = ThreadDetailUiState.Error(
+                            result.error.message ?: "Failed to load messages"
+                        )
+                    }
                 }
             }
         }
@@ -144,37 +162,120 @@ class ThreadViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Send message with optimistic insert and proper failure tracking.
+     * Matches iOS behavior: temp message shown immediately, marked failed on error,
+     * user can retry.
+     */
     private fun sendMessage(text: String) {
         if (text.isBlank()) return
 
         val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        val trimmedText = text.trim()
+
+        // Create optimistic temp message (iOS uses "temp-" prefix)
+        val tempId = "temp-${UUID.randomUUID()}"
+        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date())
+        val tempMessage = Message(
+            id = tempId,
+            text = trimmedText,
+            senderId = currentState.currentUserId,
+            timestamp = nowIso,
+            status = MessageStatus.SENDING
+        )
+
+        // Optimistic insert: show message immediately with "Sending" status
+        _uiState.value = currentState.copy(
+            messages = listOf(tempMessage) + currentState.messages,
+            isSending = true,
+            sendError = null
+        )
 
         viewModelScope.launch {
-            // Mark as sending
-            _uiState.value = currentState.copy(isSending = true)
-
             val result = inboxRepository.sendMessage(
                 threadId = threadId,
-                text = text.trim()
+                text = trimmedText
             )
+
+            val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
 
             when (result) {
                 is ApiResult.Success -> {
-                    // Use latest state to avoid overwriting concurrent mutations
-                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
-                    val newMessage = result.data
+                    // Replace temp message with real server message
+                    val serverMessage = result.data
                     _uiState.value = latestState.copy(
-                        messages = listOf(newMessage) + latestState.messages,
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) serverMessage else msg
+                        },
                         isSending = false
                     )
                 }
                 is ApiResult.Failure -> {
                     Timber.e("Failed to send message: ${result.error.message}")
-                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
-                    _uiState.value = latestState.copy(isSending = false)
+                    // Mark temp message as FAILED (visible to user)
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                        },
+                        isSending = false,
+                        sendError = result.error.message ?: "Failed to send message"
+                    )
                 }
             }
         }
+    }
+
+    /**
+     * Retry sending a failed temp message. Matches iOS "Failed • Tap to retry" behavior.
+     */
+    private fun retryMessage(tempId: String) {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        val failedMessage = currentState.messages.find { it.id == tempId && it.isFailed } ?: return
+
+        // Mark as sending again
+        _uiState.value = currentState.copy(
+            messages = currentState.messages.map { msg ->
+                if (msg.id == tempId) msg.copy(status = MessageStatus.SENDING) else msg
+            },
+            isSending = true,
+            sendError = null
+        )
+
+        viewModelScope.launch {
+            val result = inboxRepository.sendMessage(
+                threadId = threadId,
+                text = failedMessage.text
+            )
+
+            val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+
+            when (result) {
+                is ApiResult.Success -> {
+                    val serverMessage = result.data
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) serverMessage else msg
+                        },
+                        isSending = false
+                    )
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Retry failed for message: ${result.error.message}")
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                        },
+                        isSending = false,
+                        sendError = result.error.message ?: "Failed to send message"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun dismissSendError() {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        _uiState.value = currentState.copy(sendError = null)
     }
 }
 
