@@ -135,6 +135,53 @@ object ApiEndPoints {
     const val TRACK_EVENT = "analytics/event"
     const val TRACK_PROPERTY_VIEW = "analytics/property-view"
 
+    // ── Reviews (iOS parity: full CRUD) ────────────────────
+    const val UPDATE_REVIEW = "reviews/{reviewId}"
+    const val DELETE_REVIEW = "reviews/{reviewId}"
+    const val REVIEW_HELPFUL = "reviews/{reviewId}/helpful"
+    const val REVIEW_REPORT = "reviews/{reviewId}/report"
+    const val REVIEW_REPLY = "reviews/{reviewId}/reply"
+
+    // ── Blog (iOS BlogService parity) ────────────────────
+    const val GET_BLOG_POSTS = "blog/posts"
+    const val GET_BLOG_POST = "blog/posts/{postId}"
+
+    // ── Trip Planner (iOS TripPlannerService parity) ─────
+    const val GET_TRIPS = "trips"
+    const val CREATE_TRIP = "trips"
+    const val DELETE_TRIP = "trips/{tripId}"
+    const val GET_TOURS = "tours"
+
+    // ── Bidding (iOS BidService parity) ──────────────────
+    const val GET_BIDS = "bids"
+    const val CREATE_BID = "bids"
+    const val GET_BID = "bids/{bidId}"
+    const val WITHDRAW_BID = "bids/{bidId}/withdraw"
+    const val GET_LISTING_BIDS = "bids/listing/{listingId}"
+    const val ACCEPT_BID = "bids/{bidId}/accept"
+    const val REJECT_BID = "bids/{bidId}/reject"
+
+    // ── Split Booking (iOS SplitStayService parity) ──────
+    const val CREATE_SPLIT_BOOKING = "split-bookings"
+    const val GET_SPLIT_BOOKING = "split-bookings/{splitId}"
+    const val JOIN_SPLIT_BOOKING = "split-bookings/join"
+    const val DECLINE_SPLIT_BOOKING = "split-bookings/decline"
+    const val SPLIT_BOOKING_PAYMENT = "split-bookings/payment"
+    const val GET_ACTIVE_SPLITS = "split-bookings/active"
+    const val GET_SPLIT_HISTORY = "split-bookings/history"
+
+    // ── Destinations (iOS parity) ────────────────────────
+    const val GET_DESTINATIONS = "destinations"
+    const val GET_DESTINATION = "destinations/{destinationId}"
+    const val GET_DESTINATION_LISTINGS = "destinations/{destinationId}/listings"
+
+    // ── Chat Media (iOS/Web photo sharing parity) ────────
+    const val CHAT_ATTACHMENT_STATUS = "inbox/threads/{threadId}/attachment-status"
+    const val CHAT_SEND_MEDIA = "inbox/threads/{threadId}/messages/media"
+
+    // ── Content Reporting (iOS/Web parity) ───────────────
+    const val REPORT_CONTENT = "users/report"
+
     // ── Legacy ────────────────────────────────────────────
     const val GET_ALREADY_BOOKED = "bookings/mine"
     const val HOURLY_RENTED_GEAR = "gear-rentals/get/hourly-rental-gear/{type}"

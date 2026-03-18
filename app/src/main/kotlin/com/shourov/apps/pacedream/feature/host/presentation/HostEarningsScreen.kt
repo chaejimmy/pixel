@@ -276,6 +276,11 @@ private fun BalanceTabContent(
                 }
             }
 
+            // Settlement Status (iOS/Web parity: pending_settlement state)
+            item {
+                SettlementStatusCard(balance = balance)
+            }
+
             // Balance Breakdown
             item {
                 Card(
@@ -301,6 +306,11 @@ private fun BalanceTabContent(
                         }
                     }
                 }
+            }
+
+            // Payout Timeline Explainer (iOS/Web parity)
+            item {
+                PayoutTimelineCard()
             }
         } else {
             item {
@@ -772,6 +782,176 @@ private fun formatDate(dateString: String): String {
             date?.let { outputFormat.format(it) } ?: dateString
         } catch (_: Exception) {
             dateString
+        }
+    }
+}
+
+// ── Settlement Status Card (iOS/Web parity: pending_settlement state) ────
+
+@Composable
+private fun SettlementStatusCard(balance: ConnectBalance) {
+    val settlingAmount = balance.pending.firstOrNull()?.amount ?: 0
+    val availableAmount = balance.available.firstOrNull()?.amount ?: 0
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text(
+                text = "Payout Settlement Status",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Three columns: Available, Settling, Lifetime
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                SettlementColumn(
+                    label = "Available Now",
+                    amount = formatAmount(availableAmount),
+                    color = PaceDreamColors.Success
+                )
+                SettlementColumn(
+                    label = "Settling on Stripe",
+                    amount = formatAmount(settlingAmount),
+                    color = PaceDreamColors.Warning
+                )
+                SettlementColumn(
+                    label = "Lifetime Earnings",
+                    amount = formatAmount(availableAmount + settlingAmount),
+                    color = PaceDreamColors.Primary
+                )
+            }
+
+            // Settlement explanation
+            if (settlingAmount > 0) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                Surface(
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
+                    color = PaceDreamColors.Warning.copy(alpha = 0.08f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(PaceDreamSpacing.SM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Info,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Warning,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "Stripe holds funds for 2-7 business days after a booking completes before they become available for payout. This is standard payment processing.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettlementColumn(
+    label: String,
+    amount: String,
+    color: Color
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = amount,
+            style = PaceDreamTypography.Headline,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+// ── Payout Timeline Explainer (iOS/Web parity) ───────────────────
+
+@Composable
+private fun PayoutTimelineCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text(
+                text = "How Payouts Work",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            val steps = listOf(
+                "Guest completes booking" to "Payment is captured by Stripe",
+                "Settlement period" to "Funds settle in your Stripe Connect account (2-7 days)",
+                "Available for payout" to "Funds move to your available balance",
+                "Bank deposit" to "Automatic daily rolling payout to your bank account"
+            )
+
+            steps.forEachIndexed { index, (title, description) ->
+                Row(modifier = Modifier.padding(vertical = PaceDreamSpacing.XS)) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(PaceDreamColors.Primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${index + 1}",
+                                style = PaceDreamTypography.Caption,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (index < steps.size - 1) {
+                            Box(
+                                modifier = Modifier
+                                    .width(2.dp)
+                                    .height(24.dp)
+                                    .background(PaceDreamColors.Divider)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Column {
+                        Text(
+                            text = title,
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = description,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                }
+            }
         }
     }
 }
