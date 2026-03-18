@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.*
@@ -46,10 +47,16 @@ fun ProfileTabScreen(
     onTripPlannerClick: () -> Unit = {},
     onSplitBookingsClick: () -> Unit = {},
     onBidsClick: () -> Unit = {},
-    onDestinationsClick: () -> Unit = {}
+    onDestinationsClick: () -> Unit = {},
+    // iOS parity: navigate to bookings/wishlist from quick actions
+    onBookingsClick: () -> Unit = {},
+    onWishlistClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {}
 ) {
     val viewModel: ProfileTabViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val bookingsCount by viewModel.bookingsCount.collectAsStateWithLifecycle()
+    val wishlistCount by viewModel.wishlistCount.collectAsStateWithLifecycle()
 
     val menuSections = remember {
         listOf(
@@ -60,7 +67,7 @@ fun ProfileTabScreen(
                     ProfileMenuItem("My Reviews", PaceDreamIcons.Star, onReviewsClick),
                     ProfileMenuItem("Payment Methods", PaceDreamIcons.Payment, {}),
                     ProfileMenuItem("Addresses", PaceDreamIcons.LocationOn, {}),
-                    ProfileMenuItem("Notifications", PaceDreamIcons.Notifications, {})
+                    ProfileMenuItem("Notifications", PaceDreamIcons.Notifications, onNotificationsClick)
                 )
             ),
             ProfileMenuSection(
@@ -130,14 +137,34 @@ fun ProfileTabScreen(
                         .background(PaceDreamColors.Background),
                     contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
                 ) {
-                    // Profile Header
+                    // Profile Header with stats (iOS parity)
                     item {
                         ProfileHeader(
                             name = state.user.displayName,
                             email = state.user.email ?: "",
                             memberSince = "",
-                            onEditClick = onEditProfileClick
+                            onEditClick = onEditProfileClick,
+                            bookingsCount = bookingsCount,
+                            wishlistCount = wishlistCount
                         )
+                    }
+
+                    // iOS parity: Quick action chips
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        QuickActionChips(
+                            onEditProfile = onEditProfileClick,
+                            onBookings = onBookingsClick,
+                            onWishlist = onWishlistClick,
+                            onHostMode = onSwitchToHostMode,
+                            onBids = onBidsClick
+                        )
+                    }
+
+                    // iOS parity: Create a listing CTA
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        CreateListingCTA(onClick = onSwitchToHostMode)
                     }
 
                     // Host Mode Toggle
@@ -276,7 +303,9 @@ fun ProfileHeader(
     name: String,
     email: String,
     memberSince: String,
-    onEditClick: () -> Unit
+    onEditClick: () -> Unit,
+    bookingsCount: Int = 0,
+    wishlistCount: Int = 0
 ) {
     Card(
         modifier = Modifier
@@ -348,6 +377,23 @@ fun ProfileHeader(
                 )
             }
 
+            // iOS parity: stat pills showing bookings & wishlist count
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatPill(
+                    icon = PaceDreamIcons.CalendarToday,
+                    label = "$bookingsCount Bookings"
+                )
+                StatPill(
+                    icon = PaceDreamIcons.Favorite,
+                    label = "$wishlistCount Wishlist"
+                )
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             OutlinedButton(
@@ -375,6 +421,159 @@ fun ProfileHeader(
             }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        }
+    }
+}
+
+/** iOS parity: small pill showing an icon + label (e.g., "3 Bookings") */
+@Composable
+private fun StatPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String
+) {
+    Surface(
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
+        color = PaceDreamColors.Primary.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = label,
+                style = PaceDreamTypography.Caption2,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+/** iOS parity: horizontally scrolling quick action chips */
+@Composable
+private fun QuickActionChips(
+    onEditProfile: () -> Unit,
+    onBookings: () -> Unit,
+    onWishlist: () -> Unit,
+    onHostMode: () -> Unit,
+    onBids: () -> Unit
+) {
+    val chips = remember {
+        listOf(
+            Triple(PaceDreamIcons.Edit, "Edit profile", onEditProfile),
+            Triple(PaceDreamIcons.CalendarToday, "Bookings", onBookings),
+            Triple(PaceDreamIcons.Favorite, "Wishlist", onWishlist),
+            Triple(PaceDreamIcons.Home, "Host Mode", onHostMode),
+            Triple(PaceDreamIcons.Gavel, "My Bids", onBids)
+        )
+    }
+
+    androidx.compose.foundation.lazy.LazyRow(
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+    ) {
+        items(chips.size) { index ->
+            val (icon, label, onClick) = chips[index]
+            AssistChip(
+                onClick = onClick,
+                label = {
+                    Text(
+                        label,
+                        style = PaceDreamTypography.Caption,
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = PaceDreamColors.Card,
+                    labelColor = PaceDreamColors.TextPrimary,
+                    leadingIconContentColor = PaceDreamColors.Primary
+                ),
+                border = AssistChipDefaults.assistChipBorder(
+                    borderColor = PaceDreamColors.Border
+                )
+            )
+        }
+    }
+}
+
+/** iOS parity: prominent "Create a listing" CTA with gradient background */
+@Composable
+private fun CreateListingCTA(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            PaceDreamColors.Primary,
+                            PaceDreamColors.Primary.copy(alpha = 0.8f)
+                        )
+                    )
+                )
+                .padding(PaceDreamSpacing.MD)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Add,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(PaceDreamIconSize.MD)
+                    )
+                }
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Create a listing",
+                        style = PaceDreamTypography.Callout,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Start hosting and earning",
+                        style = PaceDreamTypography.Caption2,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+                Icon(
+                    imageVector = PaceDreamIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
+            }
         }
     }
 }

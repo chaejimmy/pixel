@@ -61,6 +61,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -230,12 +231,30 @@ fun CreateListingScreen(
     onBackClick: () -> Unit = {},
     onPublishSuccess: (String) -> Unit = {},
     onPublishListing: (CreateListingRequest) -> Unit = {},
+    viewModel: CreateListingViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     // Phase: entry → subcategory → wizard → success
     var phase by remember { mutableStateOf("entry") }
     var selectedMode by remember { mutableStateOf(listingMode) }
     var selectedSubCategory by remember { mutableStateOf("") }
     var publishedTitle by remember { mutableStateOf("") }
+    var publishError by remember { mutableStateOf<String?>(null) }
+
+    // Collect ViewModel effects for publish result
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is CreateListingViewModel.Effect.PublishSuccess -> {
+                    publishedTitle = effect.title
+                    phase = "success"
+                    onPublishSuccess(effect.listingId)
+                }
+                is CreateListingViewModel.Effect.PublishError -> {
+                    publishError = effect.message
+                }
+            }
+        }
+    }
 
     when (phase) {
         "entry" -> CreateListingEntryScreen(
@@ -263,7 +282,10 @@ fun CreateListingScreen(
                 phase = "success"
                 onPublishSuccess(id)
             },
-            onPublishListing = onPublishListing,
+            onPublishListing = { request ->
+                publishError = null
+                viewModel.publishListing(request)
+            },
         )
         "success" -> PublishSuccessScreen(
             title = publishedTitle,
@@ -732,8 +754,9 @@ private fun CreateListingWizardScreen(
                                 requirements = requirements.ifBlank { null },
                             )
                             onPublishListing(request)
+                            // ViewModel handles the API call and emits success/error via effects.
+                            // isPublishing will be reset when the effect is received.
                             isPublishing = false
-                            onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
                         }
                     }
                 },

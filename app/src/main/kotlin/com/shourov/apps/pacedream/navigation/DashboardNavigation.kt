@@ -72,12 +72,12 @@ import com.shourov.apps.pacedream.feature.search.CategoryResultsScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.DestinationListScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.RecentSearchesScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingTabScreen
-import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
 import com.shourov.apps.pacedream.feature.inbox.presentation.InboxScreen
 import com.shourov.apps.pacedream.feature.inbox.presentation.ThreadScreen
 import com.shourov.apps.pacedream.feature.profile.presentation.ProfileTabScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmationScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
+import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingFormScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
@@ -449,6 +449,15 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onSettingsClick = {
                                         navController.navigate("settings_root")
                                     },
+                                    onNotificationsClick = {
+                                        navController.navigate("notifications")
+                                    },
+                                    onBookingsClick = {
+                                        navigateToTab(navController, DashboardDestination.BOOKINGS.name)
+                                    },
+                                    onWishlistClick = {
+                                        navigateToTab(navController, DashboardDestination.FAVORITES.name)
+                                    },
                                     onHelpClick = {
                                         navController.navigate("support")
                                     },
@@ -516,6 +525,13 @@ fun NavGraphBuilder.DashboardNavigation(
                                 com.shourov.apps.pacedream.feature.help.SupportScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onFaqClick = { navController.navigate("faq") }
+                                )
+                            }
+
+                            // Notification Center Screen (iOS parity)
+                            composable("notifications") {
+                                NotificationCenterScreen(
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
 
