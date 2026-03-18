@@ -17,7 +17,12 @@
 package com.pacedream.common.composables.buttons
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,40 +36,69 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
- * iOS 26 Liquid Glass styled process button.
+ * iOS-matched primary process button.
  *
  * - 44dp minimum height (iOS HIG tap target)
- * - 12dp corner radius (Liquid Glass button radius)
- * - No elevation (iOS 26 flat material style)
+ * - 12dp corner radius (matches iOS PaceDreamDesignSystem.CornerRadius.md)
+ * - No elevation (iOS flat style)
  * - 17sp Semi-Bold text (iOS button label)
+ * - Press scale 0.95 animation (matches iOS PaceDreamButtonStyle)
  */
 @Composable
 fun ProcessButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    colors: ButtonColors = ButtonDefaults.buttonColors(),
+    colors: ButtonColors = ButtonDefaults.buttonColors(
+        containerColor = PaceDreamColors.Primary,
+        contentColor = Color.White,
+        disabledContainerColor = PaceDreamColors.Gray200,
+        disabledContentColor = PaceDreamColors.TextSecondary,
+    ),
     text: String = "",
     isEnabled: Boolean = true,
     isProcessing: Boolean = false,
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "button_press_scale"
+    )
+
     Button(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(PaceDreamButtonHeight.MD),
+            .height(PaceDreamButtonHeight.MD)
+            .scale(scale),
         enabled = !isProcessing && isEnabled,
         colors = colors,
-        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { source ->
+            val pressed = androidx.compose.foundation.interaction.collectIsPressedAsState(source)
+            isPressed = pressed.value
+        },
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -86,4 +120,118 @@ fun ProcessButton(
             }
         }
     }
+}
+
+/**
+ * Gradient primary button matching iOS PaceDreamDesignSystem.Gradients.primary.
+ * Uses a gradient background (primary → primaryDark) with press scale animation.
+ */
+@Composable
+fun GradientProcessButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    text: String = "",
+    isEnabled: Boolean = true,
+    isProcessing: Boolean = false,
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "gradient_button_press_scale"
+    )
+
+    val buttonShape = RoundedCornerShape(PaceDreamRadius.MD)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(PaceDreamButtonHeight.LG)
+            .scale(scale)
+            .clip(buttonShape)
+            .background(
+                brush = if (isEnabled) {
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            PaceDreamColors.Primary,
+                            PaceDreamColors.PrimaryDark
+                        )
+                    )
+                } else {
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            PaceDreamColors.Gray200,
+                            PaceDreamColors.Gray300
+                        )
+                    )
+                },
+                shape = buttonShape
+            )
+            .pointerInput(isEnabled) {
+                if (isEnabled && !isProcessing) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                            onClick()
+                        }
+                    )
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = text,
+                style = PaceDreamTypography.Button,
+                color = if (isEnabled) Color.White else PaceDreamColors.TextSecondary,
+            )
+            if (isProcessing) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(start = PaceDreamSpacing.XS),
+                    strokeWidth = 2.dp,
+                    color = Color.White,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Outline button variant matching iOS PaceDreamButtonStyle.outline.
+ */
+@Composable
+fun OutlineProcessButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    text: String = "",
+    isEnabled: Boolean = true,
+    isProcessing: Boolean = false,
+) {
+    ProcessButton(
+        modifier = modifier,
+        onClick = onClick,
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = PaceDreamColors.Primary,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = PaceDreamColors.TextTertiary,
+        ),
+        text = text,
+        isEnabled = isEnabled,
+        isProcessing = isProcessing,
+    )
+}
+
+@Composable
+private fun androidx.compose.foundation.interaction.collectIsPressedAsState(
+    source: androidx.compose.foundation.interaction.MutableInteractionSource
+): androidx.compose.runtime.State<Boolean> {
+    return source.collectIsPressedAsState()
 }

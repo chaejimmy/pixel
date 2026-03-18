@@ -20,9 +20,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.pacedream.common.icon.PaceDreamIcons
@@ -39,13 +38,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.pacedream.common.composables.theme.stronglyDeemphasizedAlpha
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 
+/**
+ * iOS-matched text input field.
+ *
+ * - Gray fill background (0.2 opacity) matching iOS CustomTextField
+ * - No underline indicator (filled style)
+ * - 12dp corner radius (iOS CornerRadius.md)
+ * - Clear button when text present
+ */
 @Composable
 fun CustomInputTextField(
     modifier: Modifier = Modifier,
@@ -57,30 +64,36 @@ fun CustomInputTextField(
     enabled: Boolean = true,
     leadingIcon: @Composable (() -> Unit)? = null,
     colors: TextFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.outlineVariant,
-        unfocusedContainerColor = MaterialTheme.colorScheme.outlineVariant.copy(
-            stronglyDeemphasizedAlpha,
-        ),
+        // iOS-matched: gray fill background
+        focusedContainerColor = PaceDreamColors.Gray100,
+        unfocusedContainerColor = PaceDreamColors.Gray50,
+        disabledContainerColor = PaceDreamColors.Gray50.copy(alpha = 0.5f),
+        // No underline indicator
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
         disabledIndicatorColor = Color.Transparent,
         errorIndicatorColor = Color.Transparent,
-        errorTextColor = MaterialTheme.colorScheme.error,
-        errorLeadingIconColor = MaterialTheme.colorScheme.error,
-
-        ),
-    shape: Shape = MaterialTheme.shapes.medium,
-    hasError:Boolean = false,
-
-    ) {
+        // Text colors
+        focusedTextColor = PaceDreamColors.TextPrimary,
+        unfocusedTextColor = PaceDreamColors.TextPrimary,
+        // Label/placeholder
+        focusedLabelColor = PaceDreamColors.TextSecondary,
+        unfocusedLabelColor = PaceDreamColors.TextSecondary,
+        // Error
+        errorTextColor = PaceDreamColors.Error,
+        errorLeadingIconColor = PaceDreamColors.Error,
+    ),
+    shape: Shape = RoundedCornerShape(PaceDreamRadius.MD),
+    hasError: Boolean = false,
+) {
     var text by remember { mutableStateOf(value) }
     val color by animateColorAsState(
         targetValue = if (hasError) {
-            MaterialTheme.colorScheme.error
+            PaceDreamColors.Error
         } else {
-            MaterialTheme.colorScheme.onSurface
+            PaceDreamColors.TextPrimary
         },
-        label = "phone_number_text_color",
+        label = "text_field_color",
     )
     TextField(
         modifier = modifier,
@@ -110,7 +123,7 @@ fun CustomInputTextField(
                     Icon(
                         imageVector = PaceDreamIcons.Cancel,
                         contentDescription = "clear text",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(20.dp),
                         tint = color
                     )
                 }
@@ -122,6 +135,6 @@ fun CustomInputTextField(
 
 @Preview
 @Composable
-fun PrevInput(){
+fun PrevInput() {
     CustomInputTextField(onValueChange = {})
 }

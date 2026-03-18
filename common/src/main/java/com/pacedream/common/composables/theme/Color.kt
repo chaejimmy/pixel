@@ -99,29 +99,29 @@ val iOSTertiarySystemFillDark = Color(0x3D767680) // #767680 at 24% alpha
 val iOSQuaternarySystemFillDark = Color(0x2E747480) // #747480 at 18% alpha
 
 // ============================================================================
-// PaceDream Brand Colors (remapped to iOS 26 palette)
-// Primary uses SystemIndigo to align with iOS Liquid Glass purple tones
+// PaceDream Brand Colors - Matched to iOS app (PDDesignSystem.swift)
+// Primary: #5527D7, Secondary: #3B82F6, Accent: #7B4DFF
 // ============================================================================
-val PaceDreamPrimary = SystemIndigo // #5856D6 - closer to iOS system indigo
-val PaceDreamPrimaryLight = SystemIndigo.copy(alpha = 0.12f)
-val PaceDreamPrimaryDark = SystemIndigo.copy(alpha = 0.8f)
+val PaceDreamPrimary = Color(0xFF5527D7) // iOS PD.Color.primary
+val PaceDreamPrimaryLight = PaceDreamPrimary.copy(alpha = 0.10f)
+val PaceDreamPrimaryDark = PaceDreamPrimary.copy(alpha = 0.80f)
 
-val PaceDreamSecondary = SystemBlue // #007AFF - iOS system blue
-val PaceDreamAccent = SystemPurple // #AF52DE - iOS system purple
+val PaceDreamSecondary = Color(0xFF3B82F6) // iOS PD.Color.secondary
+val PaceDreamAccent = Color(0xFF7B4DFF) // iOS PD.Color.accent / DesignTokens.Colors.primary
 
 val PaceDreamBackground = iOSSystemBackground // #FFFFFF
 val PaceDreamSurface = iOSSecondarySystemBackground // #F2F2F7 (iOS grouped bg)
 val PaceDreamCardColor = iOSSecondarySystemGroupedBackground // #FFFFFF
 val PaceDreamCard = PaceDreamCardColor
 
-val PaceDreamTextPrimary = iOSLabel // #000000
-val PaceDreamTextSecondary = iOSSecondaryLabel // 60% opacity
+val PaceDreamTextPrimary = Color(0xFF111827) // iOS DesignTokens.Colors.text
+val PaceDreamTextSecondary = Color(0xFF6B7280) // iOS DesignTokens.Colors.muted
 val PaceDreamTextTertiary = iOSTertiaryLabel // 30% opacity
 
-val PaceDreamSuccess = SystemGreen // #34C759
-val PaceDreamWarning = SystemOrange // #FF9500
-val PaceDreamError = SystemRed // #FF3B30
-val PaceDreamInfo = SystemBlue // #007AFF
+val PaceDreamSuccess = Color(0xFF10B981) // iOS PD.Color.success
+val PaceDreamWarning = Color(0xFFF59E0B) // iOS PD.Color.warning
+val PaceDreamError = Color(0xFFEF4444) // iOS PD.Color.error
+val PaceDreamInfo = Color(0xFF3B82F6) // iOS PD.Color.info
 
 // iOS 26 Gray Scale (mapped to PaceDream naming)
 val PaceDreamGray50 = SystemGray6 // #F2F2F7
@@ -184,7 +184,7 @@ object PaceDreamColors {
     val OnSurfaceVariant = SystemGray // #8E8E93
     val ErrorContainer = Color(0xFFFFDAD6)
     val OnErrorContainer = Color(0xFF410002)
-    val Border = iOSSeparator
+    val Border = Color(0xFFE5E7EB) // iOS DesignTokens.Colors.border
     val OnPrimary = Color(0xFFFFFFFF)
     val Outline = SystemGray2
     val OnCard = iOSLabel
@@ -192,6 +192,35 @@ object PaceDreamColors {
     val OnWarning = Color(0xFFFFFFFF)
     val OnError = Color(0xFFFFFFFF)
     val OnBackground = iOSLabel
+
+    // Category colors (matched to iOS DesignTokens.Colors)
+    val CategoryRestRoom = Color(0xFF3B82F6) // Blue
+    val CategoryTimeBased = Color(0xFF5527D7) // Purple (brand primary)
+    val CategoryParking = Color(0xFFF59E0B) // Orange
+    val CategoryRentalGear = Color(0xFF10B981) // Green
+    val CategoryEVParking = Color(0xFFEC4899) // Pink
+    val CategoryMeetingRoom = Color(0xFF8B5CF6) // Indigo
+
+    // Semantic colors (matched to iOS Colors.swift)
+    val StarRating = Color(0xFFFFBE0B) // iOS ratingStar
+    val ChatBubbleSent = PaceDreamPrimary // iOS chatBubbleSent
+    val ChatBubbleReceived = Color(0xFFE5E7EB) // iOS chatBubbleReceived (gray 0.2)
+    val BookingConfirmed = Color(0xFF10B981) // green
+    val BookingPending = Color(0xFFF59E0B) // orange
+    val BookingCancelled = Color(0xFFEF4444) // red
+    val ModalOverlay = Color(0xFF000000).copy(alpha = 0.40f) // iOS modalOverlay
+    val InputBorder = Color(0xFFD1D5DB) // iOS inputBorder (gray 0.3)
+    val InputPlaceholder = Color(0xFF9CA3AF) // iOS inputPlaceholder (gray 0.5)
+
+    // Border aligned with iOS DesignTokens
+    val BorderLight = Color(0xFFE5E7EB) // iOS DesignTokens.Colors.border
+
+    // Shadow color aligned with iOS DesignTokens
+    val ShadowColor = Color(0xFF101828).copy(alpha = 0.08f) // iOS DesignTokens.Colors.shadow
+
+    // Brand gradient endpoints (iOS DesignTokens.Colors)
+    val GradientStart = Color(0xFF3B82F6) // iOS gradientStart
+    val GradientEnd = Color(0xFF5527D7) // iOS gradientEnd
 
     // Liquid Glass specific colors
     val GlassSurface = Color(0xFFFFFFFF).copy(alpha = 0.72f) // translucent white
@@ -207,15 +236,15 @@ object PaceDreamColors {
 val primaryLight = PaceDreamPrimary
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = PaceDreamPrimaryLight
-val onPrimaryContainerLight = SystemIndigo
+val onPrimaryContainerLight = PaceDreamPrimary
 val secondaryLight = PaceDreamSecondary
 val onSecondaryLight = Color(0xFFFFFFFF)
-val secondaryContainerLight = SystemBlue.copy(alpha = 0.12f)
-val onSecondaryContainerLight = SystemBlue
+val secondaryContainerLight = PaceDreamSecondary.copy(alpha = 0.12f)
+val onSecondaryContainerLight = PaceDreamSecondary
 val tertiaryLight = PaceDreamAccent
 val onTertiaryLight = Color(0xFFFFFFFF)
-val tertiaryContainerLight = SystemPurple.copy(alpha = 0.12f)
-val onTertiaryContainerLight = SystemPurple
+val tertiaryContainerLight = PaceDreamAccent.copy(alpha = 0.12f)
+val onTertiaryContainerLight = PaceDreamAccent
 val errorLight = PaceDreamError
 val onErrorLight = Color(0xFFFFFFFF)
 val errorContainerLight = Color(0xFFFFDAD6)
@@ -231,7 +260,7 @@ val outlineVariantLight = SystemGray3
 val scrimLight = Color(0xFF000000)
 val inverseSurfaceLight = PaceDreamGray800
 val inverseOnSurfaceLight = PaceDreamGray50
-val inversePrimaryLight = SystemIndigoDark
+val inversePrimaryLight = primaryDark
 val surfaceDimLight = SystemGray5
 val surfaceBrightLight = iOSSystemBackground
 val surfaceContainerLowestLight = Color(0xFFFFFFFF)
@@ -280,17 +309,17 @@ val surfaceContainerHighestLightAndroid = surfaceContainerHighestLight
 // ============================================================================
 // Dark Theme Colors (iOS 26 aligned)
 // ============================================================================
-val primaryDark = SystemIndigoDark // #5E5CE6
+val primaryDark = Color(0xFF7B4DFF) // iOS accent as dark mode primary (brighter variant)
 val onPrimaryDark = Color(0xFFFFFFFF)
-val primaryContainerDark = SystemIndigo.copy(alpha = 0.24f)
+val primaryContainerDark = PaceDreamPrimary.copy(alpha = 0.24f)
 val onPrimaryContainerDark = Color(0xFFE8DDFF)
-val secondaryDark = SystemBlueDark // #0A84FF
+val secondaryDark = Color(0xFF60A5FA) // brighter blue for dark mode
 val onSecondaryDark = Color(0xFFFFFFFF)
-val secondaryContainerDark = SystemBlue.copy(alpha = 0.24f)
+val secondaryContainerDark = PaceDreamSecondary.copy(alpha = 0.24f)
 val onSecondaryContainerDark = Color(0xFFD1E4FF)
-val tertiaryDark = SystemPurpleDark // #BF5AF2
+val tertiaryDark = Color(0xFF9B7DFF) // brighter accent for dark mode
 val onTertiaryDark = Color(0xFFFFFFFF)
-val tertiaryContainerDark = SystemPurple.copy(alpha = 0.24f)
+val tertiaryContainerDark = PaceDreamAccent.copy(alpha = 0.24f)
 val onTertiaryContainerDark = Color(0xFFE9DDFF)
 val errorDark = SystemRedDark // #FF453A
 val onErrorDark = Color(0xFFFFFFFF)
@@ -406,5 +435,5 @@ val WhiteTextColor = Color(0xFFECECEC)
 val GreyTextColor = PaceDreamTextSecondary
 val HeadlineColor = PaceDreamTextPrimary
 val ViewAllColor = PaceDreamTextTertiary
-val BorderColor = iOSSeparator
+val BorderColor = PaceDreamColors.Border // iOS-aligned border color
 val SubHeadingColor = PaceDreamTextSecondary

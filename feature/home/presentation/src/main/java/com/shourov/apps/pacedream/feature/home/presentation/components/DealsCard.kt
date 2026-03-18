@@ -53,6 +53,8 @@ import com.pacedream.common.composables.theme.HeadlineColor
 import com.pacedream.common.composables.theme.LargePadding
 import com.pacedream.common.composables.theme.MediumPadding
 import com.pacedream.common.composables.theme.NormalPadding
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.ViewAllColor
 import com.pacedream.common.util.toCurrencySymbol
 import com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel
@@ -91,7 +93,7 @@ fun DealsCard(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)
-                            .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Row(
@@ -189,7 +191,7 @@ fun LastMinuteDealCard(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
-                        .background(Color(0xFFEF4444), RoundedCornerShape(6.dp))
+                        .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Row(
@@ -216,7 +218,7 @@ fun LastMinuteDealCard(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(8.dp)
-                            .background(Color(0xFFF59E0B), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Warning, RoundedCornerShape(PaceDreamRadius.XS))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
@@ -260,7 +262,7 @@ fun LastMinuteDealCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     MediumTitleText(
                         text = "${price?.currency?.ifBlank { "USD" }?.toCurrencySymbol()}$discountedAmount",
-                        color = Color(0xFFEF4444),
+                        color = PaceDreamColors.Error,
                     )
                     SmallTitleText(
                         text = "/ ${price?.frequency}",

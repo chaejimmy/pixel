@@ -143,7 +143,7 @@ fun DashboardHeader(
                                 onClick = { },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF8A2BE2), CircleShape),
+                                    .background(DashboardHeaderColor, CircleShape),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_search),

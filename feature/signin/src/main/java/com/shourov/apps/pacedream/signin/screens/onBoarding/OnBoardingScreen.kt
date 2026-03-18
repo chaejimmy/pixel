@@ -49,7 +49,7 @@ import androidx.navigation.NavHostController
 import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamGlass
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.signin.R
@@ -141,7 +141,7 @@ fun OnBoardingScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(PaceDreamButtonHeight.MD),
-                        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                     ) {
                         Text(
                             text = stringResource(id = R.string.feature_signin_onboarding_create_account),
@@ -167,7 +167,7 @@ fun OnBoardingScreen(
                                     .asPaddingValues()
                                     .calculateBottomPadding()
                             ),
-                        shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     ) {
                         Text(
