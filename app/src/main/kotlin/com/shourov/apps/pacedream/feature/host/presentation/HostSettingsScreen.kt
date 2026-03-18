@@ -39,7 +39,9 @@ fun HostSettingsScreen(
     onPaymentSetupClick: () -> Unit = {},
     onEarningsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
-    onListingsClick: () -> Unit = {}
+    onListingsClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onHelpClick: () -> Unit = {}
 ) {
     val sections = remember {
         listOf(
@@ -89,14 +91,14 @@ fun HostSettingsScreen(
                         title = "Notifications",
                         subtitle = "Manage notification preferences",
                         tint = PaceDreamColors.Error,
-                        onClick = { /* TODO */ }
+                        onClick = onNotificationsClick
                     ),
                     SettingsItem(
                         icon = PaceDreamIcons.Help,
                         title = "Help & Support",
                         subtitle = "Get help with hosting",
                         tint = PaceDreamColors.TextSecondary,
-                        onClick = { /* TODO */ }
+                        onClick = onHelpClick
                     )
                 )
             )
