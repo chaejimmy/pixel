@@ -120,6 +120,51 @@ class PropertyDetailRepository @Inject constructor(
             val rating = listing.double("rating")
             val reviewCount = listing.int("reviewCount", "reviewsCount", "review_count")
 
+            // Host profile details (iOS parity)
+            val hostBio = hostObj?.string("bio", "about", "description")
+            val hostIsSuperhost = hostObj?.bool("isSuperhost", "is_superhost")
+            val hostIsVerified = hostObj?.bool("isVerified", "is_verified")
+
+            // Property details (iOS parity)
+            val propertyType = listing.string("propertyType", "property_type", "type", "category")
+            val maxGuests = listing.int("maxGuests", "max_guests", "guests", "capacity")
+            val bedrooms = listing.int("bedrooms", "bedroom_count")
+            val beds = listing.int("beds", "bed_count")
+            val bathrooms = listing.int("bathrooms", "bathroom_count")
+
+            // House rules (iOS parity)
+            val houseRules = (listing["houseRules"]?.asArrayOrNull() ?: listing["house_rules"]?.asArrayOrNull())
+                ?.mapNotNull { el -> el.asStringOrNull() ?: el.asObjectOrNull()?.string("rule", "text", "name") }
+                ?.filter { it.isNotBlank() }
+                ?: emptyList()
+            val checkInTime = listing.string("checkInTime", "check_in_time", "checkIn")
+            val checkOutTime = listing.string("checkOutTime", "check_out_time", "checkOut")
+
+            // Safety features (iOS parity)
+            val safetyFeatures = (listing["safetyFeatures"]?.asArrayOrNull() ?: listing["safety_features"]?.asArrayOrNull())
+                ?.mapNotNull { el -> el.asStringOrNull() ?: el.asObjectOrNull()?.string("name", "feature") }
+                ?.filter { it.isNotBlank() }
+                ?: emptyList()
+
+            // Pricing breakdown (iOS parity)
+            val basePrice = pricingObj?.double("basePrice", "base_price", "price")
+                ?: listing.double("basePrice", "base_price", "price")
+            val cleaningFee = pricingObj?.double("cleaningFee", "cleaning_fee")
+            val serviceFee = pricingObj?.double("serviceFee", "service_fee")
+            val weeklyDiscountPercent = pricingObj?.int("weeklyDiscountPercent", "weekly_discount_percent", "weeklyDiscount")
+            val frequencyLabel = pricingObj?.string("frequencyLabel", "frequency_label", "frequency")
+
+            // Status (iOS parity)
+            val available = listing.bool("available", "isAvailable", "is_available")
+            val instantBook = listing.bool("instantBook", "instant_book", "instantBooking")
+
+            // Cancellation policy (iOS parity)
+            val cancelObj = listing["cancellationPolicy"]?.asObjectOrNull()
+                ?: listing["cancellation_policy"]?.asObjectOrNull()
+            val cancellationPolicyType = cancelObj?.string("type") ?: listing.string("cancellationPolicy", "cancellation_policy")
+            val cancellationPolicyDescription = cancelObj?.string("description")
+            val cancellationFreeHoursBefore = cancelObj?.int("freeHoursBefore", "free_hours_before")
+
             PropertyDetailModel(
                 id = id,
                 title = title,
@@ -134,9 +179,31 @@ class PropertyDetailRepository @Inject constructor(
                 currency = currency,
                 hostName = hostName,
                 hostAvatarUrl = hostAvatar,
+                hostBio = hostBio,
+                hostIsSuperhost = hostIsSuperhost,
+                hostIsVerified = hostIsVerified,
                 amenities = amenities,
                 rating = rating,
-                reviewCount = reviewCount
+                reviewCount = reviewCount,
+                propertyType = propertyType,
+                maxGuests = maxGuests,
+                bedrooms = bedrooms,
+                beds = beds,
+                bathrooms = bathrooms,
+                houseRules = houseRules,
+                checkInTime = checkInTime,
+                checkOutTime = checkOutTime,
+                safetyFeatures = safetyFeatures,
+                basePrice = basePrice,
+                cleaningFee = cleaningFee,
+                serviceFee = serviceFee,
+                weeklyDiscountPercent = weeklyDiscountPercent,
+                frequencyLabel = frequencyLabel,
+                available = available,
+                instantBook = instantBook,
+                cancellationPolicyType = cancellationPolicyType,
+                cancellationPolicyDescription = cancellationPolicyDescription,
+                cancellationFreeHoursBefore = cancellationFreeHoursBefore
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse listing detail")
@@ -157,4 +224,7 @@ private fun JsonObject.double(vararg keys: String): Double? =
 
 private fun JsonObject.int(vararg keys: String): Int? =
     keys.firstNotNullOfOrNull { k -> this[k]?.jsonPrimitive?.intOrNull }
+
+private fun JsonObject.bool(vararg keys: String): Boolean? =
+    keys.firstNotNullOfOrNull { k -> this[k]?.jsonPrimitive?.booleanOrNull }
 
