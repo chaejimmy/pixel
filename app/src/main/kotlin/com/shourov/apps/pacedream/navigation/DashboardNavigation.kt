@@ -70,6 +70,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.shourov.apps.pacedream.feature.home.presentation.components.FilterScreen
 import com.shourov.apps.pacedream.feature.search.CategoryResultsScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.DestinationListScreen
+import com.shourov.apps.pacedream.feature.destinations.DestinationsViewModel
 import com.shourov.apps.pacedream.feature.home.presentation.components.RecentSearchesScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingTabScreen
 import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
@@ -697,11 +698,18 @@ fun NavGraphBuilder.DashboardNavigation(
                             
                             // Destination List Screen
                             composable(PropertyDestination.DESTINATION_LIST.name) {
+                                val destinationsViewModel: DestinationsViewModel = hiltViewModel()
+                                val destState by destinationsViewModel.state.collectAsStateWithLifecycle()
                                 DestinationListScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onDestinationClick = { destination ->
                                         navController.navigate("${PropertyDestination.SEARCH.name}?destination=$destination")
-                                    }
+                                    },
+                                    popularDestinations = destState.popularDestinations,
+                                    allDestinations = destState.allDestinations,
+                                    isLoading = destState.isLoading,
+                                    errorMessage = destState.errorMessage,
+                                    onRetry = { destinationsViewModel.retry() }
                                 )
                             }
                             

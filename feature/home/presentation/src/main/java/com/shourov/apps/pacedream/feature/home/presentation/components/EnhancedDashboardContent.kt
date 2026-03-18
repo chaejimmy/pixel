@@ -504,7 +504,7 @@ fun EnhancedDashboardContent(
                             location = room.location.city,
                             price = "$${room.price?.firstOrNull()?.amount ?: 0}/hour",
                             rating = room.rating.toDouble(),
-                            reviewCount = 0, // TODO: Add review count to model
+                            reviewCount = 0, // Not provided by listings API; available on detail view
                             imageUrl = room.gallery.images.firstOrNull(),
                             onClick = { onPropertyClick(room.id) }
                         )
@@ -610,7 +610,7 @@ fun EnhancedDashboardContent(
                             location = gear.location,
                             price = "$${gear.hourlyRate}/hour",
                             rating = 0.0, // Gear model doesn't have rating
-                            reviewCount = 0, // TODO: Add review count to model
+                            reviewCount = 0, // Not provided by listings API; available on detail view
                             imageUrl = gear.images?.firstOrNull(),
                             onClick = { onPropertyClick(gear.id) }
                         )

@@ -10,35 +10,35 @@ class PaceDreamNetworkRepositoryImpl @Inject constructor(
     private val retrofitPaceDreamApiService: RetrofitPaceDreamApiService,
 ) : PaceDreamNetworkRepository {
     override suspend fun getAllProperties() {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.getAllProperties()
     }
 
     override suspend fun sendOtp(sendOtpRequestModel: SendOtpRequestModel) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.sendOtp(sendOtpRequestModel)
     }
 
     override suspend fun signInRequest(signInRequestModel: SignInRequestModel) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.signInRequest(signInRequestModel)
     }
 
     override suspend fun sendSignUpRequest(description: SignupRequestModel) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.sendSignUpRequest(description)
     }
 
     override suspend fun getUserInformation(authorization: String) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.getUserInformation(authorization)
     }
 
     override suspend fun updateUserInformation(authorization: String, aData: UpdatedProfileData) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.updateUserInformation(authorization, aData)
     }
 
     override suspend fun getUserReviews(authorization: String) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.getUserReviews(authorization)
     }
 
     override suspend fun getProfileAlreadyBookedList(authorization: String) {
-        TODO("Not yet implemented")
+        retrofitPaceDreamApiService.getProfileAlreadyBookedList(authorization)
     }
 }
 

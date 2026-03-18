@@ -52,7 +52,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
@@ -356,10 +359,15 @@ fun PropertyDetailScreen(
                 ) {
                     Text("Reviews", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { /* TODO */ }) { Text("See all", color = PaceDreamColors.Primary) }
+                    TextButton(
+                        onClick = {
+                            scope.launch { snackbarHostState.showSnackbar("Reviews list coming soon.") }
+                        },
+                        enabled = (detail?.reviewCount ?: 0) > 0
+                    ) { Text("See all", color = PaceDreamColors.Primary) }
                 }
                 Text(
-                    text = if ((detail?.reviewCount ?: 0) > 0) "Reviews preview coming soon." else "No reviews yet",
+                    text = if ((detail?.reviewCount ?: 0) > 0) "${detail?.reviewCount} reviews" else "No reviews yet",
                     color = PaceDreamColors.TextSecondary,
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                 )
@@ -377,7 +385,23 @@ fun PropertyDetailScreen(
                 ) {
                     Text("Where you'll be", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { /* TODO open maps */ }) { Text("Open in Maps", color = PaceDreamColors.Primary) }
+                    val context = LocalContext.current
+                    TextButton(onClick = {
+                        val lat = detail?.latitude
+                        val lng = detail?.longitude
+                        val label = detail?.fullAddress ?: title
+                        if (lat != null && lng != null) {
+                            val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(label)})")
+                            val intent = Intent(Intent.ACTION_VIEW, uri)
+                            if (intent.resolveActivity(context.packageManager) != null) {
+                                context.startActivity(intent)
+                            } else {
+                                // Fallback to browser-based maps
+                                val webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng")
+                                context.startActivity(Intent(Intent.ACTION_VIEW, webUri))
+                            }
+                        }
+                    }) { Text("Open in Maps", color = PaceDreamColors.Primary) }
                 }
                 Card(
                     modifier = Modifier
@@ -678,11 +702,12 @@ private fun InlineError(message: String, onRetry: () -> Unit, modifier: Modifier
 
 @Composable
 private fun SectionChips(title: String, items: List<String>, modifier: Modifier = Modifier) {
+    var showAllSheet by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = { /* TODO */ }, enabled = items.isNotEmpty()) { Text("See all", color = PaceDreamColors.Primary) }
+            TextButton(onClick = { showAllSheet = true }, enabled = items.isNotEmpty()) { Text("See all", color = PaceDreamColors.Primary) }
         }
         if (items.isEmpty()) {
             Text("No highlights listed.", color = PaceDreamColors.TextSecondary)
@@ -694,6 +719,30 @@ private fun SectionChips(title: String, items: List<String>, modifier: Modifier 
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 shown.drop(3).take(3).forEach { Chip(text = it) }
+            }
+        }
+
+        if (showAllSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAllSheet = false },
+                containerColor = PaceDreamColors.Background,
+                shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showAllSheet = false }) {
+                            Text("Done", style = PaceDreamTypography.Callout, color = PaceDreamColors.Primary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    items.forEach { item ->
+                        Chip(text = item)
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                }
             }
         }
     }

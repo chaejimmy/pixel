@@ -51,6 +51,7 @@ fun EnhancedDashboardScreen(
     splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
     isRefreshing: Boolean = false,
     userName: String = "",
+    profileImageUrl: String? = null,
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
     onSplitStaysRetry: () -> Unit = {},
@@ -84,6 +85,7 @@ fun EnhancedDashboardScreen(
             // Enhanced Header
             EnhancedDashboardHeader(
                 userName = userName,
+                profileImageUrl = profileImageUrl,
                 onSearchClick = onSearchClick,
                 onFilterClick = onFilterClick,
                 onNotificationClick = onNotificationClick

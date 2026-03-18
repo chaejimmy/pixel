@@ -38,6 +38,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pacedream.common.composables.components.PaceDreamSearchBar
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.home.presentation.R
@@ -55,6 +56,7 @@ import com.shourov.apps.pacedream.feature.home.presentation.R
 @Composable
 fun EnhancedDashboardHeader(
     userName: String = "",
+    profileImageUrl: String? = null,
     onSearchClick: () -> Unit = {},
     onFilterClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
@@ -93,13 +95,24 @@ fun EnhancedDashboardHeader(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // User Avatar - 56dp circle (iOS standard)
-                        Image(
-                            painter = painterResource(R.drawable.ic_dummy_user),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape),
-                        )
+                        if (!profileImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = profileImageUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape),
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.ic_dummy_user),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape),
+                            )
+                        }
 
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
