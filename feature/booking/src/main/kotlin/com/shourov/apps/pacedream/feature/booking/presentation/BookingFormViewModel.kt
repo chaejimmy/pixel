@@ -102,6 +102,10 @@ class BookingFormViewModel @Inject constructor(
     fun onSpecialRequestsChange(requests: String) {
         _uiState.value = _uiState.value.copy(specialRequests = requests)
     }
+
+    fun onGuestCountChange(count: Int) {
+        _uiState.value = _uiState.value.copy(guestCount = count.coerceIn(1, 20))
+    }
     
     private fun calculateTotalPrice() {
         val currentState = _uiState.value
