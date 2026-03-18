@@ -116,13 +116,42 @@ data class ChatResponse(
     @SerializedName("otherUserAvatar") val otherUserAvatar: String = ""
 )
 
+data class AttachmentResponse(
+    @SerializedName("url") val url: String = "",
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("type") val type: String? = null,
+    @SerializedName("size") val size: Long? = null,
+    @SerializedName("width") val width: Int? = null,
+    @SerializedName("height") val height: Int? = null,
+    @SerializedName("mimeType") val mimeType: String? = null
+)
+
 data class MessageResponse(
     @SerializedName("_id") val id: String = "",
     @SerializedName("chatId") val chatId: String = "",
     @SerializedName("senderId") val senderId: String = "",
     @SerializedName("text") val text: String = "",
+    @SerializedName("content") val content: String = "",
+    @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
+    @SerializedName("messageType") val messageType: String? = null,
     @SerializedName("createdAt") val createdAt: String = "",
-    @SerializedName("isRead") val isRead: Boolean = false
+    @SerializedName("isRead") val isRead: Boolean = false,
+    @SerializedName("status") val status: String? = null
+)
+
+data class MediaUploadResponse(
+    @SerializedName("id") val id: String = "",
+    @SerializedName("text") val text: String = "",
+    @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
+    @SerializedName("createdAt") val createdAt: String = ""
+)
+
+data class AttachmentStatusResponse(
+    @SerializedName("attachmentsEnabled") val attachmentsEnabled: Boolean = false,
+    @SerializedName("reason") val reason: String? = null,
+    @SerializedName("maxFileSize") val maxFileSize: Long? = null,
+    @SerializedName("allowedTypes") val allowedTypes: List<String> = emptyList()
 )
 
 // ── Notification ─────────────────────────────────────────────────────────────

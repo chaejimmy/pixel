@@ -15,6 +15,8 @@ import com.shourov.apps.pacedream.core.network.model.DestinationResponse
 import com.shourov.apps.pacedream.core.network.model.HostAnalyticsResponse
 import com.shourov.apps.pacedream.core.network.model.HostEarningsResponse
 import com.shourov.apps.pacedream.core.network.model.HostListingResponse
+import com.shourov.apps.pacedream.core.network.model.AttachmentStatusResponse
+import com.shourov.apps.pacedream.core.network.model.MediaUploadResponse
 import com.shourov.apps.pacedream.core.network.model.MessageResponse
 import com.shourov.apps.pacedream.core.network.model.NotificationResponse
 import com.shourov.apps.pacedream.core.network.model.PaymentHistoryResponse
@@ -291,6 +293,19 @@ interface PaceDreamApiService {
         @Path("chatId") chatId: String,
         @Path("messageId") messageId: String
     ): Response<ApiResponse<MessageResponse>>
+
+    @GET(ApiEndPoints.CHAT_ATTACHMENT_STATUS)
+    suspend fun getAttachmentStatus(
+        @Path("threadId") threadId: String
+    ): Response<ApiResponse<AttachmentStatusResponse>>
+
+    @Multipart
+    @POST(ApiEndPoints.CHAT_SEND_MEDIA)
+    suspend fun uploadChatMedia(
+        @Path("threadId") threadId: String,
+        @Part images: List<okhttp3.MultipartBody.Part>,
+        @Part("text") text: okhttp3.RequestBody? = null
+    ): Response<MediaUploadResponse>
 
     // ── Notification APIs ──────────────────────────────────────
     @GET(ApiEndPoints.GET_USER_NOTIFICATIONS)
