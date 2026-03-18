@@ -2,7 +2,9 @@ package com.pacedream.app.feature.checkout
 
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,16 +36,19 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,228 +101,269 @@ fun CheckoutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(PaceDreamSpacing.MD),
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
         ) {
-            // Booking Details Card
-            Text(
-                "Your booking",
-                style = PaceDreamTypography.Title3,
-                fontWeight = FontWeight.SemiBold,
-                color = PaceDreamColors.TextPrimary
-            )
-
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = PaceDreamSpacing.MD),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
-                Column(
-                    modifier = Modifier.padding(PaceDreamSpacing.MD),
-                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    SummaryRow(
-                        label = "Date",
-                        value = draft.date,
-                        icon = PaceDreamIcons.CalendarToday
-                    )
-                    SummaryRow(
-                        label = "Check-in",
-                        value = formatTimeDisplay(draft.startTimeISO),
-                        icon = PaceDreamIcons.Schedule
-                    )
-                    SummaryRow(
-                        label = "Check-out",
-                        value = formatTimeDisplay(draft.endTimeISO),
-                        icon = PaceDreamIcons.Schedule
-                    )
-                    SummaryRow(
-                        label = "Guests",
-                        value = "${draft.guests} guest${if (draft.guests != 1) "s" else ""}",
-                        icon = PaceDreamIcons.Person
-                    )
-                }
-            }
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
-            // Price Breakdown Card
-            draft.totalAmountEstimate?.let { total ->
-                Text(
-                    "Price details",
-                    style = PaceDreamTypography.Title3,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PaceDreamColors.TextPrimary
-                )
+                // Listing info card with type icon
+                ListingInfoCard(draft = draft)
 
+                // Booking summary card
                 Card(
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
                 ) {
-                    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                        // Subtotal (before taxes)
-                        val taxes = total * 0.20
-                        val subtotal = total - taxes
-                        PriceRow("Subtotal", "$${String.format("%.2f", subtotal)}")
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                        PriceRow("Taxes & fees", "$${String.format("%.2f", taxes)}")
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        HorizontalDivider(color = PaceDreamColors.Border.copy(alpha = 0.15f))
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Column(
+                        modifier = Modifier.padding(PaceDreamSpacing.MD),
+                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                    ) {
+                        Text(
+                            "Booking details",
+                            style = PaceDreamTypography.Callout,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PaceDreamColors.TextPrimary
+                        )
+                        HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                        SummaryRow("Date", draft.date)
+                        SummaryRow("Check-in", formatTimeDisplay(draft.startTimeISO))
+                        SummaryRow("Check-out", formatTimeDisplay(draft.endTimeISO))
+                        SummaryRow("Guests", "${draft.guests} guest${if (draft.guests != 1) "s" else ""}")
+                    }
+                }
+
+                // Price breakdown
+                draft.totalAmountEstimate?.let { total ->
+                    PriceBreakdownCard(total = total)
+                }
+
+                // Cancellation policy
+                CancellationPolicyCard()
+
+                // Inline error banner (iOS parity: inline, not snackbar)
+                uiState.errorMessage?.let {
+                    Card(
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.ErrorContainer)
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.padding(PaceDreamSpacing.MD),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                "Total",
-                                style = PaceDreamTypography.Headline,
-                                fontWeight = FontWeight.Bold,
-                                color = PaceDreamColors.TextPrimary
+                            Icon(
+                                imageVector = PaceDreamIcons.Warning,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Error,
+                                modifier = Modifier.size(20.dp)
                             )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
-                                "$${String.format("%.2f", total)}",
-                                style = PaceDreamTypography.Headline,
-                                fontWeight = FontWeight.Bold,
-                                color = PaceDreamColors.Primary
+                                it.removePrefix("Server error 200: "),
+                                color = PaceDreamColors.OnErrorContainer,
+                                style = PaceDreamTypography.Callout,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             }
 
-            // Cancellation info
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary.copy(alpha = 0.05f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            // Sticky bottom bar with pay button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PaceDreamColors.Card)
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD)
             ) {
-                Row(
-                    modifier = Modifier.padding(PaceDreamSpacing.MD),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        PaceDreamIcons.Info,
-                        contentDescription = null,
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        "Free cancellation up to 2 hours before check-in",
-                        style = PaceDreamTypography.Callout,
+                        "You won't be charged yet",
+                        style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
-                }
-            }
-
-            // Inline Error Banner (iOS parity: inline, not snackbar)
-            uiState.errorMessage?.let { error ->
-                Card(
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = CardDefaults.cardColors(
-                        containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(PaceDreamSpacing.MD),
-                        verticalAlignment = Alignment.CenterVertically
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Button(
+                        onClick = { viewModel.submitBooking() },
+                        enabled = !uiState.isSubmitting,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
-                        Icon(
-                            PaceDreamIcons.Error,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Error,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        if (uiState.isSubmitting) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                color = PaceDreamColors.OnPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        }
                         Text(
-                            error.removePrefix("Server error 200: "),
-                            color = PaceDreamColors.TextPrimary,
-                            style = PaceDreamTypography.Callout
+                            text = if (uiState.isSubmitting) "Confirming…"
+                            else draft.totalAmountEstimate?.let { "Pay $${String.format("%.2f", it)}" }
+                                ?: "Confirm Booking",
+                            style = PaceDreamTypography.Button,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Reassurance text
-            Text(
-                "You won't be charged yet",
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-
-            // Confirm Button
-            Button(
-                onClick = { viewModel.submitBooking() },
-                enabled = !uiState.isSubmitting,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                contentPadding = PaddingValues(vertical = 14.dp),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+/** Listing image + type card at top of checkout */
+@Composable
+private fun ListingInfoCard(draft: BookingDraft) {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
             ) {
-                if (uiState.isSubmitting) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = PaceDreamColors.OnPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
-                Text(
-                    if (uiState.isSubmitting) "Confirming…" else "Confirm Booking",
-                    style = PaceDreamTypography.Button
+                Icon(
+                    imageVector = when (draft.listingType) {
+                        "gear" -> PaceDreamIcons.ShoppingBag
+                        "split-stay" -> PaceDreamIcons.Group
+                        else -> PaceDreamIcons.Home
+                    },
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when (draft.listingType) {
+                        "gear" -> "Gear Rental"
+                        "split-stay" -> "Split Stay"
+                        else -> "Hourly Space"
+                    },
+                    style = PaceDreamTypography.Callout,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PaceDreamColors.TextPrimary
+                )
+                Text(
+                    text = "Booking for ${draft.date}",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
         }
     }
 }
 
+/** Price breakdown with subtotal, service fee, total */
 @Composable
-private fun SummaryRow(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+private fun PriceBreakdownCard(total: Double) {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(16.dp)
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Text(
+                "Price details",
+                style = PaceDreamTypography.Callout,
+                fontWeight = FontWeight.SemiBold,
+                color = PaceDreamColors.TextPrimary
             )
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-            Text(label, color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
+            HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+            SummaryRow("Subtotal", "$${String.format("%.2f", total)}")
+            SummaryRow("Service fee", "$0.00")
+            HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Total",
+                    fontWeight = FontWeight.Bold,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary
+                )
+                Text(
+                    "$${String.format("%.2f", total)}",
+                    fontWeight = FontWeight.Bold,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary
+                )
+            }
         }
-        Text(
-            value,
-            fontWeight = FontWeight.Medium,
-            style = PaceDreamTypography.Callout,
-            color = PaceDreamColors.TextPrimary
-        )
+    }
+}
+
+/** Cancellation policy summary */
+@Composable
+private fun CancellationPolicyCard() {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = PaceDreamIcons.Info,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Info,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                Text(
+                    "Cancellation policy",
+                    style = PaceDreamTypography.Callout,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PaceDreamColors.TextPrimary
+                )
+            }
+            Text(
+                "Free cancellation before the booking start time. " +
+                    "After that, cancel before check-in and get a full refund, minus the service fee.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
     }
 }
 
 @Composable
-private fun PriceRow(label: String, value: String) {
+private fun SummaryRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Body)
-        Text(value, style = PaceDreamTypography.Body, color = PaceDreamColors.TextPrimary)
+        Text(label, color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
+        Text(value, fontWeight = FontWeight.Medium, style = PaceDreamTypography.Callout, color = PaceDreamColors.TextPrimary)
     }
 }
 

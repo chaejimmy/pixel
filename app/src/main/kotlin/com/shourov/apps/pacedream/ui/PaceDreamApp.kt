@@ -53,22 +53,22 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
             },
             onNavigateToProperty = { propertyId ->
-                // TODO: Navigate to property details
+                appState.navController.navigate("listing_details/$propertyId")
             },
             onNavigateToBooking = { bookingId ->
-                // TODO: Navigate to booking details
+                appState.navController.navigate("booking_details/$bookingId")
             },
             onNavigateToAddListing = {
-                // TODO: Navigate to add listing
+                appState.navController.navigate("add_listing")
             },
             onNavigateToEditListing = { listingId ->
                 appState.navController.navigate("edit_listing/$listingId")
             },
             onNavigateToAnalytics = {
-                // TODO: Navigate to analytics
+                appState.navController.navigate("host_analytics")
             },
             onNavigateToWithdraw = {
-                // TODO: Navigate to withdraw earnings
+                appState.navController.navigate("withdraw_earnings")
             }
         )
     } else {

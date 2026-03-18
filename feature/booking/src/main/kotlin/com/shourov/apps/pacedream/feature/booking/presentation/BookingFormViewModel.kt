@@ -174,7 +174,7 @@ class BookingFormViewModel @Inject constructor(
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = BookingStatus.PENDING,
-                hostName = "Host", // TODO: wire host info from property payload when available
+                hostName = "", // Resolved server-side; property list API only provides host_id
                 checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
                 checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
             )

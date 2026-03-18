@@ -24,12 +24,12 @@ import androidx.compose.ui.unit.sp
 // Prefer PaceDreamSpacing for new code
 // ============================================================================
 val ExtraSmallPadding = 4.dp   // = PaceDreamSpacing.XS
-val SmallPadding = 6.dp
+val SmallPadding = 8.dp        // = PaceDreamSpacing.SM
 val NormalPadding = 8.dp       // = PaceDreamSpacing.SM
-val MediumPadding = 12.dp
+val MediumPadding = 12.dp     // = PaceDreamSpacing.SM2
 val LargePadding = 16.dp      // = PaceDreamSpacing.MD
-val ExtraLargePadding = 20.dp  // = PaceDreamSpacing.LG
-val LargerPadding = 24.dp     // = PaceDreamSpacing.XL
+val ExtraLargePadding = 24.dp  // = PaceDreamSpacing.LG
+val LargerPadding = 32.dp     // = PaceDreamSpacing.XL
 
 val BorderWidth = 1.dp
 

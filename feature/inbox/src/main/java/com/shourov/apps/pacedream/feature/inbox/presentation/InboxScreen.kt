@@ -74,6 +74,7 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.inbox.model.InboxEvent
 import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
+import com.shourov.apps.pacedream.feature.inbox.model.InboxSegment
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
 import kotlinx.coroutines.flow.collectLatest
@@ -89,11 +90,14 @@ fun InboxScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val loadMoreRequestedForSize = remember { mutableIntStateOf(-1) }
     
-    // Handle navigation
+    // Handle navigation - mark thread as read locally when navigating (matches iOS)
     LaunchedEffect(Unit) {
         viewModel.navigation.collectLatest { navigation ->
             when (navigation) {
-                is InboxNavigation.ToThread -> onNavigateToThread(navigation.threadId)
+                is InboxNavigation.ToThread -> {
+                    viewModel.markThreadReadLocally(navigation.threadId)
+                    onNavigateToThread(navigation.threadId)
+                }
             }
         }
     }
@@ -194,103 +198,199 @@ private fun SuccessState(
         modifier = Modifier.fillMaxSize()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Mode toggle chips (Guest/Host)
-            ModeToggleRow(
-                selectedMode = state.mode,
-                guestUnread = state.unreadCounts.guestUnread,
-                hostUnread = state.unreadCounts.hostUnread,
-                onModeSelected = { onEvent(InboxEvent.ModeChanged(it)) }
+            // Chats/Notifications segmented picker (matches iOS InboxMessagesView)
+            SegmentedTabRow(
+                selectedSegment = state.segment,
+                onSegmentSelected = { onEvent(InboxEvent.SegmentChanged(it)) }
             )
-            
-            // Thread list
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    horizontal = PaceDreamSpacing.MD,
-                    vertical = PaceDreamSpacing.SM
-                ),
-                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(
-                    items = state.threads,
-                    key = { it.id }
-                ) { thread ->
-                    val dismissState = rememberSwipeToDismissBoxState(
-                        confirmValueChange = { value ->
-                            if (value == SwipeToDismissBoxValue.EndToStart) {
-                                onEvent(InboxEvent.ArchiveThread(thread))
-                                true
-                            } else {
-                                false
-                            }
-                        }
+
+            when (state.segment) {
+                InboxSegment.CHATS -> {
+                    // Mode toggle chips (Guest/Host) - only for chats
+                    ModeToggleRow(
+                        selectedMode = state.mode,
+                        guestUnread = state.unreadCounts.guestUnread,
+                        hostUnread = state.unreadCounts.hostUnread,
+                        onModeSelected = { onEvent(InboxEvent.ModeChanged(it)) }
                     )
 
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        enableDismissFromStartToEnd = false,
-                        enableDismissFromEndToStart = true,
-                        backgroundContent = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                    .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
-                                    .padding(horizontal = PaceDreamSpacing.MD),
-                                contentAlignment = Alignment.CenterEnd
+                    // Thread list
+                    LazyColumn(
+                        contentPadding = PaddingValues(
+                            horizontal = PaceDreamSpacing.MD,
+                            vertical = PaceDreamSpacing.SM
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = state.threads,
+                            key = { it.id }
+                        ) { thread ->
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.EndToStart) {
+                                        onEvent(InboxEvent.ArchiveThread(thread))
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }
+                            )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                enableDismissFromEndToStart = true,
+                                backgroundContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                            .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
+                                            .padding(horizontal = PaceDreamSpacing.MD),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                                        ) {
+                                            Text(
+                                                text = "Archive",
+                                                style = PaceDreamTypography.Callout,
+                                                color = PaceDreamColors.TextPrimary,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Icon(
+                                                imageVector = PaceDreamIcons.Archive,
+                                                contentDescription = null,
+                                                tint = PaceDreamColors.TextPrimary
+                                            )
+                                        }
+                                    }
+                                }
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                                ThreadCard(
+                                    thread = thread,
+                                    onClick = { onEvent(InboxEvent.ThreadClicked(thread)) },
+                                    modifier = Modifier.animateItemPlacement()
+                                )
+                            }
+                        }
+
+                        // Load more indicator
+                        if (state.hasMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(PaceDreamSpacing.MD),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "Archive",
-                                        style = PaceDreamTypography.Callout,
-                                        color = PaceDreamColors.TextPrimary,
-                                        fontWeight = FontWeight.SemiBold
+                                    CircularProgressIndicator(
+                                        color = PaceDreamColors.Primary,
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                    Icon(
-                                        imageVector = PaceDreamIcons.Archive,
-                                        contentDescription = null,
-                                        tint = PaceDreamColors.TextPrimary
-                                    )
+                                }
+
+                                // Trigger pagination only once per list-size to avoid event spam.
+                                LaunchedEffect(state.threads.size) {
+                                    if (loadMoreRequestedForSize.intValue != state.threads.size) {
+                                        loadMoreRequestedForSize.intValue = state.threads.size
+                                        onEvent(InboxEvent.LoadMore)
+                                    }
                                 }
                             }
                         }
-                    ) {
-                        ThreadCard(
-                            thread = thread,
-                            onClick = { onEvent(InboxEvent.ThreadClicked(thread)) },
-                            modifier = Modifier.animateItemPlacement()
-                        )
                     }
                 }
-                
-                // Load more indicator
-                if (state.hasMore) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(PaceDreamSpacing.MD),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = PaceDreamColors.Primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        
-                        // Trigger pagination only once per list-size to avoid event spam.
-                        LaunchedEffect(state.threads.size) {
-                            if (loadMoreRequestedForSize.intValue != state.threads.size) {
-                                loadMoreRequestedForSize.intValue = state.threads.size
-                                onEvent(InboxEvent.LoadMore)
-                            }
-                        }
-                    }
+
+                InboxSegment.NOTIFICATIONS -> {
+                    NotificationsPlaceholder()
                 }
             }
+        }
+    }
+}
+
+/**
+ * Segmented tab row matching iOS Picker(.segmented) for Chats/Notifications
+ */
+@Composable
+private fun SegmentedTabRow(
+    selectedSegment: InboxSegment,
+    onSegmentSelected: (InboxSegment) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+            .background(
+                PaceDreamColors.Border.copy(alpha = 0.2f),
+                RoundedCornerShape(PaceDreamRadius.MD)
+            )
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        InboxSegment.entries.forEach { segment ->
+            val isSelected = segment == selectedSegment
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                    .background(
+                        if (isSelected) PaceDreamColors.Card else Color.Transparent
+                    )
+                    .clickable { onSegmentSelected(segment) }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = segment.displayName,
+                    style = PaceDreamTypography.Callout,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Notifications placeholder matching iOS NotificationsPlaceholderView.
+ * Backend integration follows when notification endpoints are confirmed.
+ */
+@Composable
+private fun NotificationsPlaceholder() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaceDreamSpacing.LG),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Notifications,
+                contentDescription = null,
+                modifier = Modifier.size(56.dp),
+                tint = PaceDreamColors.Primary.copy(alpha = 0.5f)
+            )
+            Text(
+                text = "No notifications yet",
+                style = PaceDreamTypography.Title3,
+                fontWeight = FontWeight.Bold,
+                color = PaceDreamColors.TextPrimary
+            )
+            Text(
+                text = "Booking updates, messages, and alerts will show up here.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+            )
         }
     }
 }

@@ -37,6 +37,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.HorizontalSpacer
 import com.pacedream.common.composables.theme.GreyTextColor
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.SmallPadding
 
 @Composable
@@ -50,7 +52,7 @@ fun GeneralSearchBar(
     BasicTextField(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFFF8F8F8), shape = RoundedCornerShape(48.dp))
+            .background(PaceDreamColors.Gray50, shape = RoundedCornerShape(PaceDreamRadius.Round))
             .padding(SmallPadding),
         value = text,
         onValueChange = {

@@ -54,7 +54,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -92,7 +95,6 @@ fun PropertyDetailScreen(
     val detail = uiState.detail
 
     var showAboutSheet by remember { mutableStateOf(false) }
-    var showAmenitiesSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -417,7 +419,6 @@ fun PropertyDetailScreen(
                     SectionChips(
                         title = "What this place offers",
                         items = detail?.amenities.orEmpty(),
-                        onSeeAll = { showAmenitiesSheet = true },
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
                     )
                 }
@@ -580,48 +581,6 @@ fun PropertyDetailScreen(
             }
         }
 
-        // ── Amenities Bottom Sheet ─────────────────────────────
-        if (showAmenitiesSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showAmenitiesSheet = false },
-                containerColor = PaceDreamColors.Background,
-                shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
-            ) {
-                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("What this place offers", style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showAmenitiesSheet = false }) {
-                            Text("Done", style = PaceDreamTypography.Callout, color = PaceDreamColors.Primary)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                    val all = detail?.amenities.orEmpty()
-                    if (all.isEmpty()) {
-                        Text("No highlights listed.", color = PaceDreamColors.TextSecondary)
-                    } else {
-                        all.forEach { amenity ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = PaceDreamSpacing.SM),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    PaceDreamIcons.CheckCircle,
-                                    contentDescription = null,
-                                    tint = PaceDreamColors.Primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                                Text(amenity, style = PaceDreamTypography.Body)
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-                }
-            }
-        }
     }
 }
 
@@ -936,19 +895,13 @@ private fun InlineError(message: String, onRetry: () -> Unit, modifier: Modifier
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SectionChips(
-    title: String,
-    items: List<String>,
-    onSeeAll: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun SectionChips(title: String, items: List<String>, modifier: Modifier = Modifier) {
+    var showAllSheet by remember { mutableStateOf(false) }
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
-            if (items.size > 6) {
-                TextButton(onClick = onSeeAll) { Text("See all", color = PaceDreamColors.Primary) }
-            }
+            TextButton(onClick = { showAllSheet = true }, enabled = items.isNotEmpty()) { Text("See all", color = PaceDreamColors.Primary) }
         }
         if (items.isEmpty()) {
             Text("No highlights listed.", color = PaceDreamColors.TextSecondary)
@@ -962,8 +915,32 @@ private fun SectionChips(
             }
             if (items.size > 8) {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                TextButton(onClick = onSeeAll) {
+                TextButton(onClick = { showAllSheet = true }) {
                     Text("+${items.size - 8} more", color = PaceDreamColors.Primary)
+                }
+            }
+        }
+
+        if (showAllSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showAllSheet = false },
+                containerColor = PaceDreamColors.Background,
+                shape = RoundedCornerShape(topStart = PaceDreamRadius.XL, topEnd = PaceDreamRadius.XL),
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, style = PaceDreamTypography.Title3, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.weight(1f))
+                        TextButton(onClick = { showAllSheet = false }) {
+                            Text("Done", style = PaceDreamTypography.Callout, color = PaceDreamColors.Primary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    items.forEach { item ->
+                        Chip(text = item)
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                 }
             }
         }
