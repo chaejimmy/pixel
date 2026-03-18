@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,6 +28,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -35,13 +38,13 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 /**
  * SettingsRootScreen
  *
- * Root Settings screen with sections:
- * - Personal Information
- * - Login & Security
+ * Root Settings screen with grouped sections:
+ * - Account: Personal Information, Login & Security
  * - Notifications
- * - Preferences (Language & Region)
- * - Payment Methods
- * - Help & Support
+ * - Preferences: Language & Region, Payment Methods
+ * - Privacy & Sharing
+ * - Support: Help & Support
+ * - App version footer
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,15 +85,18 @@ fun SettingsRootScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = PaceDreamSpacing.MD),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
         ) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
+            // Account section
+            SectionLabel("Account")
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column {
                     SettingsRow(
@@ -99,7 +105,10 @@ fun SettingsRootScreen(
                         subtitle = "Name, email, and phone",
                         onClick = onPersonalInfoClick
                     )
-                    HorizontalDivider(color = PaceDreamColors.Border)
+                    HorizontalDivider(
+                        color = PaceDreamColors.Border,
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                    )
 
                     SettingsRow(
                         icon = PaceDreamIcons.Lock,
@@ -107,30 +116,42 @@ fun SettingsRootScreen(
                         subtitle = "Password and authentication",
                         onClick = onLoginSecurityClick
                     )
-                    HorizontalDivider(color = PaceDreamColors.Border)
-
-                    SettingsRow(
-                        icon = PaceDreamIcons.Notifications,
-                        title = "Notifications",
-                        subtitle = "Push and email preferences",
-                        onClick = onNotificationsClick
-                    )
                 }
             }
 
+            // Notifications section
+            SectionLabel("Notifications")
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                SettingsRow(
+                    icon = PaceDreamIcons.Notifications,
+                    title = "Notifications",
+                    subtitle = "Push, email, and SMS preferences",
+                    onClick = onNotificationsClick
+                )
+            }
+
+            // Preferences section
+            SectionLabel("Preferences")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column {
                     SettingsRow(
-                        icon = PaceDreamIcons.Tune,
-                        title = "Preferences",
-                        subtitle = "Language and region",
+                        icon = PaceDreamIcons.Language,
+                        title = "Language & Region",
+                        subtitle = "Language, currency, and timezone",
                         onClick = onPreferencesClick
                     )
-                    HorizontalDivider(color = PaceDreamColors.Border)
+                    HorizontalDivider(
+                        color = PaceDreamColors.Border,
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                    )
 
                     SettingsRow(
                         icon = PaceDreamIcons.CreditCard,
@@ -141,10 +162,12 @@ fun SettingsRootScreen(
                 }
             }
 
+            // Support section
+            SectionLabel("Support")
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 SettingsRow(
                     icon = PaceDreamIcons.HelpOutline,
@@ -153,8 +176,31 @@ fun SettingsRootScreen(
                     onClick = onHelpSupportClick
                 )
             }
+
+            // App version footer
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            Text(
+                text = "PaceDream v${getAppVersion()}",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = PaceDreamSpacing.XL)
+            )
         }
     }
+}
+
+@Composable
+private fun SectionLabel(title: String) {
+    Text(
+        text = title.uppercase(),
+        style = PaceDreamTypography.Caption,
+        color = PaceDreamColors.TextTertiary,
+        modifier = Modifier.padding(start = PaceDreamSpacing.XS)
+    )
 }
 
 @Composable
@@ -196,10 +242,18 @@ private fun SettingsRow(
         }
 
         Icon(
-            imageVector = PaceDreamIcons.ArrowForward,
+            imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
             modifier = Modifier.size(18.dp)
         )
+    }
+}
+
+private fun getAppVersion(): String {
+    return try {
+        com.shourov.apps.pacedream.BuildConfig.VERSION_NAME
+    } catch (_: Exception) {
+        "1.0.0"
     }
 }
