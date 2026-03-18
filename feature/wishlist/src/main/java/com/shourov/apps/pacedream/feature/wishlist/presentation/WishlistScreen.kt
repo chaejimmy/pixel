@@ -60,6 +60,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -243,7 +245,11 @@ private fun WishlistItemCard(
                     .aspectRatio(1.2f)
             ) {
                 AsyncImage(
-                    model = item.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.imageUrl)
+                        .crossfade(200)
+                        .size(coil.size.Size(400, 400))
+                        .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

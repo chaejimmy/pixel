@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamSectionHeader
 import com.pacedream.common.composables.shimmerEffect
@@ -132,15 +134,15 @@ fun HomeFeedScreen(
                 contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
             ) {
                 // iOS-style clean white header with "Discover" title and search bar
-                item {
+                item(key = "discover_header", contentType = "header") {
                     DiscoverHeader(
                         onSearchClick = onSearchClick,
-                        onFilterClick = { /* TODO: Open filters */ }
+                        onFilterClick = onSearchClick
                     )
                 }
 
                 // iOS-style horizontal category filter tabs with icons
-                item {
+                item(key = "category_tabs", contentType = "filter") {
                     CategoryFilterTabs(
                         selectedCategory = selectedCategoryFilter,
                         onCategorySelected = { selectedCategoryFilter = it },
@@ -161,7 +163,7 @@ fun HomeFeedScreen(
                 }
 
                 state.sections.forEach { section ->
-                    item {
+                    item(key = "section_header_${section.key.name}") {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                         PaceDreamSectionHeader(
                             title = section.key.displayTitle,
@@ -370,22 +372,24 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val categories = listOf(
-        Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-        Triple("Entire Home", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
-        Triple("Private Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-        Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
-        Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
-        Triple("Meeting Room", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business),
-        Triple("Workspace", PaceDreamIcons.LaptopOutlined, PaceDreamIcons.Laptop),
-        Triple("EV Parking", PaceDreamIcons.ElectricCarOutlined, PaceDreamIcons.ElectricCar),
-        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-        Triple("Short Stay", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
-        Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
-        Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
-        Triple("Luxury Room", PaceDreamIcons.StarOutlined, PaceDreamIcons.Star),
-        Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
-    )
+    val categories = remember {
+        listOf(
+            Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
+            Triple("Entire Home", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
+            Triple("Private Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
+            Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
+            Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
+            Triple("Meeting Room", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business),
+            Triple("Workspace", PaceDreamIcons.LaptopOutlined, PaceDreamIcons.Laptop),
+            Triple("EV Parking", PaceDreamIcons.ElectricCarOutlined, PaceDreamIcons.ElectricCar),
+            Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
+            Triple("Short Stay", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
+            Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
+            Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
+            Triple("Luxury Room", PaceDreamIcons.StarOutlined, PaceDreamIcons.Star),
+            Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
+        )
+    }
 
     Column(modifier = modifier) {
         LazyRow(
@@ -512,7 +516,11 @@ private fun ListingCard(
                     .height(180.dp)
             ) {
                 AsyncImage(
-                    model = item.imageUrl?.takeIf { it.isNotBlank() },
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.imageUrl?.takeIf { it.isNotBlank() })
+                        .crossfade(200)
+                        .size(coil.size.Size(560, 360))
+                        .build(),
                     contentDescription = item.title.ifBlank { "Listing" },
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

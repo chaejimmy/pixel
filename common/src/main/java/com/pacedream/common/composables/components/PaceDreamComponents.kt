@@ -139,7 +139,8 @@ fun PaceDreamHeroHeader(
 }
 
 // ============================================================================
-// Search Bar - iOS 26 compact floating search field
+// Search Bar - Matched to iOS DesignTokens.Sizes.searchBarHeight (48dp)
+// iOS uses systemBackground with 1pt shadow, 12pt corner radius
 // ============================================================================
 @Composable
 fun PaceDreamSearchBar(
@@ -147,7 +148,7 @@ fun PaceDreamSearchBar(
     onQueryChange: (String) -> Unit,
     onSearchClick: () -> Unit = {},
     onFilterClick: () -> Unit = {},
-    placeholder: String = "Search properties...",
+    placeholder: String = "Where to? Anywhere \u2022 Any week \u2022 Add guests",
     modifier: Modifier = Modifier
 ) {
     val searchShape = RoundedCornerShape(PaceDreamSearchBar.CornerRadius)
@@ -156,8 +157,14 @@ fun PaceDreamSearchBar(
         modifier = modifier
             .fillMaxWidth()
             .height(PaceDreamSearchBar.ExpandedHeight)
-            .glassSurface(shape = searchShape)
-            .padding(horizontal = PaceDreamSpacing.SM),
+            .clip(searchShape)
+            .background(PaceDreamColors.Background)
+            .border(
+                width = 0.5.dp,
+                color = PaceDreamColors.Border.copy(alpha = 0.5f),
+                shape = searchShape
+            )
+            .padding(horizontal = PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -176,7 +183,7 @@ fun PaceDreamSearchBar(
                 Text(
                     text = placeholder,
                     color = PaceDreamTextTertiary,
-                    style = PaceDreamTypography.Body
+                    style = PaceDreamTypography.Callout
                 )
             },
             modifier = Modifier.weight(1f),
@@ -188,7 +195,7 @@ fun PaceDreamSearchBar(
                 focusedTextColor = PaceDreamTextPrimary,
                 unfocusedTextColor = PaceDreamTextPrimary
             ),
-            textStyle = PaceDreamTypography.Body,
+            textStyle = PaceDreamTypography.Callout,
             singleLine = true
         )
 
@@ -295,7 +302,7 @@ fun PaceDreamCategoryPill(
 
             Text(
                 text = title,
-                style = PaceDreamTypography.Footnote,
+                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                 color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }
@@ -356,7 +363,7 @@ fun PaceDreamPropertyCard(
             .width(200.dp)
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamPropertyCard.Elevation),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
         shape = cardShape
     ) {
         Column {
@@ -421,7 +428,7 @@ fun PaceDreamPropertyCard(
                         Icon(
                             imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
-                            tint = PaceDreamWarning,
+                            tint = PaceDreamColors.StarRating,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
 
@@ -820,7 +827,7 @@ fun PaceDreamCategoryPillSimple(
 
             Text(
                 text = title,
-                style = PaceDreamTypography.Footnote,
+                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                 color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }

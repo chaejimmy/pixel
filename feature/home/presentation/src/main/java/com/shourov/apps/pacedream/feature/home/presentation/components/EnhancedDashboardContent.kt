@@ -165,72 +165,72 @@ fun EnhancedDashboardContent(
                 CategoryModel(
                     stringResource(R.string.feature_home_entire_home),
                     R.drawable.ic_apartment,
-                    Color(0xFFEF4444),
+                    PaceDreamColors.Error,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_private_room),
                     R.drawable.ic_luxury_room,
-                    Color(0xFFEC4899),
+                    PaceDreamColors.CategoryEVParking,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_rest_room),
                     R.drawable.ic_rest_room,
-                    Color(0xFF21BDF2),
+                    PaceDreamColors.CategoryRestRoom,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_nap_room),
                     R.drawable.ic_nap_pod,
-                    Color(0xFF8B5CF6),
+                    PaceDreamColors.CategoryMeetingRoom,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_meeting_room),
                     R.drawable.ic_meeting_room,
-                    Color(0xFF3B82F6),
+                    PaceDreamColors.Secondary,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_workspace),
                     R.drawable.ic_study_room,
-                    Color(0xFF10B981),
+                    PaceDreamColors.CategoryRentalGear,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_ev_parking),
                     R.drawable.ic_ev_parking,
-                    Color(0xCCB452DA),
+                    PaceDreamColors.CategoryEVParking,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_nap_pod),
                     R.drawable.ic_nap_pod,
-                    Color(0xFF7C3AED),
+                    PaceDreamColors.Accent,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_study_room),
                     R.drawable.ic_study_room,
-                    Color(0xFF059669),
+                    PaceDreamColors.CategoryRentalGear,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_short_stay),
                     R.drawable.ic_short_stay,
-                    Color(0xFFF59E0B),
+                    PaceDreamColors.CategoryParking,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_apartment),
                     R.drawable.ic_apartment,
-                    Color(0xFFDC2626),
+                    PaceDreamColors.Error,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_parking),
                     R.drawable.ic_ev_parking,
-                    Color(0xFF6366F1),
+                    PaceDreamColors.CategoryTimeBased,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_luxury_room),
                     R.drawable.ic_luxury_room,
-                    Color(0xFFD97706),
+                    PaceDreamColors.CategoryParking,
                 ),
                 CategoryModel(
                     stringResource(R.string.feature_home_storage_space),
                     R.drawable.ic_storage_room,
-                    Color(0xCC5753FA),
+                    PaceDreamColors.CategoryTimeBased,
                 ),
             )
             
@@ -504,7 +504,7 @@ fun EnhancedDashboardContent(
                             location = room.location.city,
                             price = "$${room.price?.firstOrNull()?.amount ?: 0}/hour",
                             rating = room.rating.toDouble(),
-                            reviewCount = 0, // TODO: Add review count to model
+                            reviewCount = 0, // Not provided by listings API; available on detail view
                             imageUrl = room.gallery.images.firstOrNull(),
                             onClick = { onPropertyClick(room.id) }
                         )
@@ -610,7 +610,7 @@ fun EnhancedDashboardContent(
                             location = gear.location,
                             price = "$${gear.hourlyRate}/hour",
                             rating = 0.0, // Gear model doesn't have rating
-                            reviewCount = 0, // TODO: Add review count to model
+                            reviewCount = 0, // Not provided by listings API; available on detail view
                             imageUrl = gear.images?.firstOrNull(),
                             onClick = { onPropertyClick(gear.id) }
                         )

@@ -57,11 +57,13 @@ import com.pacedream.common.composables.theme.MediumPadding
 import com.pacedream.common.composables.theme.MediumText
 import com.pacedream.common.composables.theme.NotificationsBgColor
 import com.pacedream.common.composables.theme.WhiteTextColor
+import coil.compose.AsyncImage
 import com.shourov.apps.pacedream.feature.home.presentation.R
 
 @Composable
 fun DashboardHeader(
     userName: String = "",
+    profileImageUrl: String? = null,
 ) {
     Box(
         modifier = Modifier
@@ -86,13 +88,24 @@ fun DashboardHeader(
                     ),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(R.drawable.ic_dummy_user),
-                        contentDescription = null,
-                        modifier = Modifier.size(70.dp).clip(
-                            CircleShape,
-                        ),
-                    )
+                    if (!profileImageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(70.dp).clip(
+                                CircleShape,
+                            ),
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.ic_dummy_user),
+                            contentDescription = null,
+                            modifier = Modifier.size(70.dp).clip(
+                                CircleShape,
+                            ),
+                        )
+                    }
                     val annotatedString = buildAnnotatedString {
                         append(stringResource(R.string.feature_home_good_morning))
                         if (userName.isNotBlank()) {
@@ -143,7 +156,7 @@ fun DashboardHeader(
                                 onClick = { },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF8A2BE2), CircleShape),
+                                    .background(DashboardHeaderColor, CircleShape),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_search),

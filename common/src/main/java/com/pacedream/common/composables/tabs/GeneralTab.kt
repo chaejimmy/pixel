@@ -39,6 +39,7 @@ import com.pacedream.common.composables.theme.HeadlineColor
 import com.pacedream.common.composables.theme.LargerPadding
 import com.pacedream.common.composables.theme.MediumPadding
 import com.pacedream.common.composables.theme.NormalPadding
+import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.SmallPadding
 import com.pacedream.common.composables.theme.SmallText
 
@@ -62,7 +63,7 @@ fun GeneralTab(
                 modifier = Modifier
                     .padding(ExtraSmallPadding)
                     .clip(if (index == selectedTabIndex) CircleShape else MaterialTheme.shapes.small)
-                    .background(if (index == selectedTabIndex) Color(0xFF5A36F2) else Color.Transparent)
+                    .background(if (index == selectedTabIndex) PaceDreamColors.Primary else Color.Transparent)
                     .clickable { onTabSelected(index) },
                 contentAlignment = Alignment.Center,
             ) {

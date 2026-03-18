@@ -3,6 +3,11 @@ package com.shourov.apps.pacedream
 import android.app.Application
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import coil.request.CachePolicy
 import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
@@ -17,7 +22,7 @@ import javax.inject.Inject
  * [Application] class for PaceDream
  */
 @HiltAndroidApp
-class PaceDreamApplication : Application() {
+class PaceDreamApplication : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var profileVerifierLogger: ProfileVerifierLogger
@@ -30,6 +35,13 @@ class PaceDreamApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Plant Timber tree for debug builds only.
+        // Release builds intentionally have no Timber tree, so all Timber.d/e/w calls
+        // become no-ops (zero overhead). Crashlytics captures fatal crashes separately.
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
 
         // Initialize Firebase before any network calls. The firebase-perf gradle plugin
         // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
@@ -48,5 +60,24 @@ class PaceDreamApplication : Application() {
             authSession.initialize()
             sessionManager.initialize()
         }
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .crossfade(200)
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.20)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB
+                    .build()
+            }
+            .build()
     }
 }

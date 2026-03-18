@@ -34,6 +34,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.home.domain.models.DestinationModel
 import com.shourov.apps.pacedream.feature.home.presentation.R
@@ -140,7 +142,10 @@ fun EnhancedPropertyCard(
                 // Property Image
                 if (!imageUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model = imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUrl)
+                            .crossfade(200)
+                            .build(),
                         contentDescription = propertyName,
                         modifier = Modifier
                             .fillMaxSize()
@@ -443,7 +448,10 @@ fun PropertyImageCarousel(
         val currentUrl = images.getOrNull(currentImageIndex)
         if (!currentUrl.isNullOrBlank()) {
             AsyncImage(
-                model = currentUrl,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(currentUrl)
+                    .crossfade(200)
+                    .build(),
                 contentDescription = "Property image",
                 modifier = Modifier
                     .fillMaxSize()

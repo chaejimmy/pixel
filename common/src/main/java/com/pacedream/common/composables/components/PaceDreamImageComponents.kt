@@ -69,7 +69,7 @@ fun PaceDreamAsyncImage(
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .data(imageUrl)
-                .crossfade(true)
+                .crossfade(200)
                 .memoryCachePolicy(CachePolicy.ENABLED)
                 .diskCachePolicy(CachePolicy.ENABLED)
                 .build(),

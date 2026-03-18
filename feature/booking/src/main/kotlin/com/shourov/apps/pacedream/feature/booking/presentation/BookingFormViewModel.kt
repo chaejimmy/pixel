@@ -102,6 +102,10 @@ class BookingFormViewModel @Inject constructor(
     fun onSpecialRequestsChange(requests: String) {
         _uiState.value = _uiState.value.copy(specialRequests = requests)
     }
+
+    fun onGuestCountChange(count: Int) {
+        _uiState.value = _uiState.value.copy(guestCount = count.coerceIn(1, 20))
+    }
     
     private fun calculateTotalPrice() {
         val currentState = _uiState.value
@@ -170,7 +174,7 @@ class BookingFormViewModel @Inject constructor(
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = BookingStatus.PENDING,
-                hostName = "Host", // TODO: wire host info from property payload when available
+                hostName = "", // Resolved server-side; property list API only provides host_id
                 checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
                 checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
             )

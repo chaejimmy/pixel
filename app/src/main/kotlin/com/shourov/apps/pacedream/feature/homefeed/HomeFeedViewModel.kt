@@ -93,8 +93,11 @@ class HomeFeedViewModel @Inject constructor(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadAll(refresh: Boolean = false) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
 
             // Set all sections to loading if initial load

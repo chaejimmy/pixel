@@ -29,7 +29,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pacedream.common.composables.tabs.GeneralTab
@@ -73,42 +72,42 @@ fun DashboardContent(
             CategoryModel(
                 stringResource(R.string.feature_home_rest_room),
                 R.drawable.ic_rest_room,
-                PaceDreamColors.Cyan,
+                PaceDreamColors.CategoryRestRoom,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_nap_pod),
                 R.drawable.ic_nap_pod,
-                PaceDreamColors.Purple,
+                PaceDreamColors.CategoryMeetingRoom,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_meeting_room),
                 R.drawable.ic_meeting_room,
-                PaceDreamColors.Blue,
+                PaceDreamColors.Secondary,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_study_room),
                 R.drawable.ic_study_room,
-                PaceDreamColors.Green,
+                PaceDreamColors.CategoryRentalGear,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_short_stay),
                 R.drawable.ic_short_stay,
-                PaceDreamColors.Orange,
+                PaceDreamColors.CategoryParking,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_apartment),
                 R.drawable.ic_apartment,
-                PaceDreamColors.Red,
+                PaceDreamColors.Error,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_parking),
                 R.drawable.ic_ev_parking,
-                PaceDreamColors.Purple.copy(alpha = 0.8f),
+                PaceDreamColors.CategoryEVParking,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_storage_space),
                 R.drawable.ic_storage_room,
-                PaceDreamColors.Indigo.copy(alpha = 0.8f),
+                PaceDreamColors.CategoryTimeBased,
             ),
         )
 
@@ -220,8 +219,8 @@ fun DashboardContent(
 fun HelpYouFindText() {
     Text(
         stringResource(R.string.help_you_what_needed),
-        fontSize = SmallText,
-        color = SubHeadingColor,
+        style = PaceDreamTypography.Caption2,
+        color = PaceDreamColors.TextSecondary,
     )
 }
 

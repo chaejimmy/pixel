@@ -28,15 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.theme.*
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Composable
 fun BookingFormScreen(
@@ -46,11 +43,11 @@ fun BookingFormScreen(
     onBookingCreated: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     LaunchedEffect(propertyId) {
         viewModel.loadProperty(propertyId)
     }
-    
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -61,7 +58,7 @@ fun BookingFormScreen(
             title = "Book Property",
             subtitle = "Complete your reservation"
         )
-        
+
         if (uiState.isLoading) {
             BookingFormLoadingState()
         } else {
@@ -72,6 +69,8 @@ fun BookingFormScreen(
                 onStartTimeChange = viewModel::onStartTimeChange,
                 onEndTimeChange = viewModel::onEndTimeChange,
                 onSpecialRequestsChange = viewModel::onSpecialRequestsChange,
+                onGuestCountChange = viewModel::onGuestCountChange,
+                onClearError = viewModel::clearError,
                 onBookNow = {
                     viewModel.createBooking {
                         onBookingCreated(it)
@@ -90,6 +89,8 @@ private fun BookingFormContent(
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
     onSpecialRequestsChange: (String) -> Unit,
+    onGuestCountChange: (Int) -> Unit,
+    onClearError: () -> Unit,
     onBookNow: () -> Unit
 ) {
     Column(
@@ -106,9 +107,44 @@ private fun BookingFormContent(
             basePrice = uiState.basePrice,
             currency = uiState.currency
         )
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
+
+        // Error Banner (iOS parity: inline error, not toast)
+        uiState.error?.let { error ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = CardDefaults.cardColors(
+                    containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(PaceDreamSpacing.MD),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        PaceDreamIcons.Error,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text(
+                        text = error.removePrefix("Server error 200: "),
+                        modifier = Modifier.weight(1f),
+                        color = PaceDreamColors.TextPrimary,
+                        style = PaceDreamTypography.Callout
+                    )
+                    TextButton(onClick = onClearError) {
+                        Text("Dismiss", color = PaceDreamColors.Primary, style = PaceDreamTypography.Caption)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        }
+
         // Booking Details Form
         BookingDetailsForm(
             startDate = uiState.startDate,
@@ -116,24 +152,36 @@ private fun BookingFormContent(
             startTime = uiState.startTime,
             endTime = uiState.endTime,
             specialRequests = uiState.specialRequests,
+            guestCount = uiState.guestCount,
             onStartDateChange = onStartDateChange,
             onEndDateChange = onEndDateChange,
             onStartTimeChange = onStartTimeChange,
             onEndTimeChange = onEndTimeChange,
-            onSpecialRequestsChange = onSpecialRequestsChange
+            onSpecialRequestsChange = onSpecialRequestsChange,
+            onGuestCountChange = onGuestCountChange
         )
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
+
         // Price Summary
         PriceSummaryCard(
             basePrice = uiState.basePrice,
             currency = uiState.currency,
             totalPrice = uiState.totalPrice
         )
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        
+
+        // Reassurance text
+        Text(
+            "You won't be charged yet",
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
         // Book Now Button - iOS 26 style
         Button(
             onClick = onBookNow,
@@ -147,11 +195,17 @@ private fun BookingFormContent(
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
             Text(
-                text = "Book Now - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}",
+                text = if (uiState.totalPrice > 0) {
+                    "Book Now - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}"
+                } else {
+                    "Book Now"
+                },
                 style = PaceDreamTypography.Button,
                 color = PaceDreamColors.OnPrimary
             )
         }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
     }
 }
 
@@ -178,9 +232,9 @@ private fun PropertySummaryCard(
                     .size(80.dp)
                     .clip(RoundedCornerShape(PaceDreamRadius.SM))
             )
-            
+
             Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-            
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -190,9 +244,9 @@ private fun PropertySummaryCard(
                     color = PaceDreamColors.OnCard,
                     fontWeight = FontWeight.SemiBold
                 )
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
+
                 Text(
                     text = "$currency ${String.format("%.2f", basePrice)} per hour",
                     style = PaceDreamTypography.Callout,
@@ -211,11 +265,13 @@ private fun BookingDetailsForm(
     startTime: String,
     endTime: String,
     specialRequests: String,
+    guestCount: Int,
     onStartDateChange: (String) -> Unit,
     onEndDateChange: (String) -> Unit,
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
-    onSpecialRequestsChange: (String) -> Unit
+    onSpecialRequestsChange: (String) -> Unit,
+    onGuestCountChange: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -232,9 +288,9 @@ private fun BookingDetailsForm(
                 color = PaceDreamColors.OnCard,
                 fontWeight = FontWeight.SemiBold
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
             // Date Fields
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -250,7 +306,7 @@ private fun BookingDetailsForm(
                         Icon(PaceDreamIcons.CalendarToday, contentDescription = "Select date")
                     }
                 )
-                
+
                 OutlinedTextField(
                     value = endDate,
                     onValueChange = onEndDateChange,
@@ -262,9 +318,9 @@ private fun BookingDetailsForm(
                     }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
             // Time Fields
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -280,7 +336,7 @@ private fun BookingDetailsForm(
                         Icon(PaceDreamIcons.AccessTime, contentDescription = "Select time")
                     }
                 )
-                
+
                 OutlinedTextField(
                     value = endTime,
                     onValueChange = onEndTimeChange,
@@ -292,9 +348,78 @@ private fun BookingDetailsForm(
                     }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
+            // Guest Count Selector (iOS parity)
+            HorizontalDivider(color = PaceDreamColors.Outline.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        "Guests",
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.OnCard,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "How many guests?",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { onGuestCountChange((guestCount - 1).coerceAtLeast(1)) },
+                        enabled = guestCount > 1
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
+                            color = if (guestCount > 1) PaceDreamColors.Gray100 else PaceDreamColors.Gray100.copy(alpha = 0.5f)
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Remove,
+                                contentDescription = "Decrease",
+                                modifier = Modifier.padding(6.dp).size(18.dp),
+                                tint = if (guestCount > 1) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary
+                            )
+                        }
+                    }
+                    Text(
+                        "$guestCount",
+                        style = PaceDreamTypography.Headline,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.width(32.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    IconButton(
+                        onClick = { onGuestCountChange((guestCount + 1).coerceAtMost(20)) },
+                        enabled = guestCount < 20
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
+                            color = if (guestCount < 20) PaceDreamColors.Gray100 else PaceDreamColors.Gray100.copy(alpha = 0.5f)
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Add,
+                                contentDescription = "Increase",
+                                modifier = Modifier.padding(6.dp).size(18.dp),
+                                tint = if (guestCount < 20) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            HorizontalDivider(color = PaceDreamColors.Outline.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             // Special Requests
             OutlinedTextField(
                 value = specialRequests,
@@ -329,9 +454,9 @@ private fun PriceSummaryCard(
                 color = PaceDreamColors.OnCard,
                 fontWeight = FontWeight.SemiBold
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -339,7 +464,7 @@ private fun PriceSummaryCard(
                 Text(
                     text = "Base Price",
                     style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.OnCard
+                    color = PaceDreamColors.TextSecondary
                 )
                 Text(
                     text = "$currency ${String.format("%.2f", basePrice)}",
@@ -347,9 +472,10 @@ private fun PriceSummaryCard(
                     color = PaceDreamColors.OnCard
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
+            val serviceFee = totalPrice * 0.1
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -357,21 +483,21 @@ private fun PriceSummaryCard(
                 Text(
                     text = "Service Fee",
                     style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.OnCard
+                    color = PaceDreamColors.TextSecondary
                 )
                 Text(
-                    text = "$currency ${String.format("%.2f", totalPrice * 0.1)}",
+                    text = "$currency ${String.format("%.2f", serviceFee)}",
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.OnCard
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Divider(color = PaceDreamColors.Outline)
-            
+
+            HorizontalDivider(color = PaceDreamColors.Border.copy(alpha = 0.15f))
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -417,6 +543,7 @@ data class BookingFormUiState(
     val startTime: String = "",
     val endTime: String = "",
     val specialRequests: String = "",
+    val guestCount: Int = 1,
     val totalPrice: Double = 0.0,
     val error: String? = null
 )
