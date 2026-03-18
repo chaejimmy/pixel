@@ -1,10 +1,14 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,9 +63,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
@@ -179,6 +187,20 @@ class EditListingViewModel @Inject constructor(
         val current = _uiState.value.amenities.toMutableList()
         if (current.contains(amenity)) current.remove(amenity) else current.add(amenity)
         _uiState.value = _uiState.value.copy(amenities = current)
+    }
+
+    fun removeImage(index: Int) {
+        val current = _uiState.value.images.toMutableList()
+        if (index in current.indices) {
+            current.removeAt(index)
+            _uiState.value = _uiState.value.copy(images = current)
+        }
+    }
+
+    fun addImageUrls(urls: List<String>) {
+        val current = _uiState.value.images.toMutableList()
+        current.addAll(urls)
+        _uiState.value = _uiState.value.copy(images = current)
     }
 
     fun saveListing() {
@@ -311,6 +333,8 @@ fun EditListingScreen(
                 onStateChange = viewModel::updateState,
                 onToggleAmenity = viewModel::toggleAmenity,
                 onAvailabilityChange = viewModel::updateAvailability,
+                onRemoveImage = viewModel::removeImage,
+                onAddImageUrls = viewModel::addImageUrls,
                 onSave = viewModel::saveListing,
                 modifier = Modifier.padding(padding),
             )
@@ -332,9 +356,20 @@ private fun EditListingForm(
     onStateChange: (String) -> Unit,
     onToggleAmenity: (String) -> Unit,
     onAvailabilityChange: (Boolean) -> Unit,
+    onRemoveImage: (Int) -> Unit,
+    onAddImageUrls: (List<String>) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Image picker for adding new photos
+    val newImageUris = remember { mutableStateListOf<Uri>() }
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            newImageUris.addAll(uris)
+        }
+    }
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = PaceDreamSpacing.LG)
@@ -403,25 +438,86 @@ private fun EditListingForm(
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
 
-        // Images
-        CollapsibleSection("Images", PaceDreamIcons.CameraAlt) {
-            if (uiState.images.isEmpty()) {
-                Text("No images yet. Tap to add photos.",
+        // Images – iOS parity: show actual thumbnails with remove, working add button
+        CollapsibleSection(
+            "Images" + if (uiState.images.isNotEmpty() || newImageUris.isNotEmpty())
+                " (${uiState.images.size + newImageUris.size})" else "",
+            PaceDreamIcons.CameraAlt,
+        ) {
+            if (uiState.images.isEmpty() && newImageUris.isEmpty()) {
+                Text("No images yet. Tap + to add photos.",
                     style = PaceDreamTypography.Callout, color = PaceDreamColors.TextSecondary)
-            } else {
-                Text("${uiState.images.size} image(s) uploaded", style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             }
-            Spacer(Modifier.height(PaceDreamSpacing.MD))
-            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                repeat(3) { EditPhotoPlaceholder(onClick = { /* TODO: open image picker */ }) }
+            Spacer(Modifier.height(PaceDreamSpacing.SM))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                // Show existing uploaded image thumbnails
+                uiState.images.forEachIndexed { index, url ->
+                    Box(modifier = Modifier.size(92.dp)) {
+                        AsyncImage(
+                            model = url,
+                            contentDescription = "Photo ${index + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .clickable { onRemoveImage(index) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Close, contentDescription = "Remove",
+                                tint = Color.White, modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+                // Show newly selected (not yet uploaded) image URIs
+                newImageUris.forEachIndexed { index, uri ->
+                    Box(modifier = Modifier.size(92.dp)) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "New photo ${index + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.6f))
+                                .clickable { newImageUris.removeAt(index) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Close, contentDescription = "Remove",
+                                tint = Color.White, modifier = Modifier.size(12.dp),
+                            )
+                        }
+                    }
+                }
+                // Add photo button
+                if (uiState.images.size + newImageUris.size < 10) {
+                    EditPhotoPlaceholder(onClick = { imagePickerLauncher.launch("image/*") })
+                }
             }
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
 
-        // Amenities
+        // Amenities – use subcategory-specific amenities matching iOS parity
         CollapsibleSection("Amenities", PaceDreamIcons.CheckCircle) {
-            EditAmenitiesChips(uiState.amenities, onToggleAmenity)
+            EditAmenitiesChips(uiState.amenities, onToggleAmenity, uiState.propertyType)
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
 
@@ -543,10 +639,35 @@ private val COMMON_AMENITIES = listOf(
     "Lockers", "Security", "24/7 Access", "EV Charging", "Kitchen", "TV", "Quiet", "Charger",
 )
 
+/**
+ * Subcategory-specific amenities matching iOS parity (Amenity.swift).
+ * Falls back to COMMON_AMENITIES if no matching subcategory found.
+ */
+private fun getSubcategoryAmenities(propertyType: String): List<String> {
+    return when (propertyType.lowercase()) {
+        "restroom" -> listOf("Toilet Paper", "Hand Soap", "Hand Towels", "Air Freshener", "Paper Towels")
+        "nap_pod" -> listOf("Noise Cancellation", "Soundproof Walls", "White Noise Machine", "Earplugs",
+            "Calming Music", "Reclining Chair", "Blanket", "Pillow", "Eye Mask", "Temperature Control")
+        "meeting_room" -> listOf("WiFi", "Power Outlets", "Projector", "Whiteboard", "Monitor/TV", "Desk Space", "Chairs")
+        "gym" -> listOf("Exercise Equipment", "Locker Room", "Showers", "Water Fountain", "Towel Service", "Air Conditioning")
+        "parking" -> listOf("Covered Parking", "Security Camera", "EV Charging", "Gated Access", "Well Lit", "24/7 Access")
+        "storage_space" -> listOf("Climate Controlled", "Security Camera", "Gated Access", "24/7 Access", "Ground Floor", "Drive-Up Access")
+        "wifi" -> listOf("High Speed", "Unlimited Data", "Router Included", "5G Support", "Password Protected")
+        "camera" -> listOf("Lens Included", "Extra Batteries", "Memory Card", "Camera Bag", "Tripod", "Filters", "Remote Control")
+        "tech" -> listOf("Charger Included", "Case/Cover", "Screen Protector", "Headphones", "Warranty", "Extra Cable")
+        "sports_gear" -> listOf("Adjustable Straps", "Carrying Case", "Extra Batteries", "Charger", "Quick Release")
+        "instrument" -> listOf("Case/Bag", "Strap Included", "Tuner", "Extra Strings", "Metronome", "Stand")
+        "tools" -> listOf("Carrying Case", "Safety Gear", "Extra Blades", "Charger", "Manual Included", "Extension Cord")
+        "micromobility" -> listOf("Helmet Included", "Lock Included", "Charger", "Lights", "Bell", "Basket")
+        else -> COMMON_AMENITIES
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EditAmenitiesChips(selected: List<String>, onToggle: (String) -> Unit) {
-    val all = (COMMON_AMENITIES + selected).distinct()
+private fun EditAmenitiesChips(selected: List<String>, onToggle: (String) -> Unit, propertyType: String = "") {
+    val subcategoryAmenities = if (propertyType.isNotBlank()) getSubcategoryAmenities(propertyType) else COMMON_AMENITIES
+    val all = (subcategoryAmenities + selected).distinct()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),

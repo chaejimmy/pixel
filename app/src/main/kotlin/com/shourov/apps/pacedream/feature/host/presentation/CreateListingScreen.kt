@@ -594,16 +594,22 @@ private fun CreateListingWizardScreen(
 
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isPublishing by remember { mutableStateOf(false) }
+    var isUploadingOverlay by remember { mutableStateOf(false) }
+    var uploadProgressText by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val progress = (currentStep + 1).toFloat() / totalSteps
 
-    // iOS parity: validate each step including photo requirement
+    // iOS parity: validate each step including photo requirement and description
     fun validate(): String? {
         return when (currentStep) {
-            0 -> if (title.isBlank()) "Title is required." else null
+            0 -> {
+                if (title.isBlank()) return "Title is required."
+                if (description.isNotBlank() && description.trim().length < 20) return "Description must be at least 20 characters."
+                null
+            }
             1 -> {
                 val price = if (listingMode == ListingMode.SPLIT) {
                     totalCost.toDoubleOrNull() ?: 0.0
@@ -678,6 +684,7 @@ private fun CreateListingWizardScreen(
                     } else {
                         // Build payload matching iOS ListingsPublisherService
                         isPublishing = true
+                        isUploadingOverlay = true
                         scope.launch {
                             // iOS parity: upload images to Cloudinary first, fallback to base64
                             val imageUrls = mutableListOf<String>()
@@ -685,8 +692,15 @@ private fun CreateListingWizardScreen(
 
                             if (imageUploadService != null && selectedImageUris.isNotEmpty()) {
                                 isUploadingImages = true
+                                val totalImages = selectedImageUris.size
+                                var uploadedCount = 0
                                 for (uri in selectedImageUris) {
-                                    if (uploadedImageUrls.any { it.contains(uri.lastPathSegment ?: "") }) continue
+                                    if (uploadedImageUrls.any { it.contains(uri.lastPathSegment ?: "") }) {
+                                        uploadedCount++
+                                        continue
+                                    }
+                                    val pct = ((uploadedCount.toFloat() / totalImages) * 100).toInt()
+                                    uploadProgressText = "Uploading photos\u2026 $pct%"
                                     when (val result = imageUploadService.uploadImage(context, uri)) {
                                         is ApiResult.Success -> imageUrls.add(result.data)
                                         is ApiResult.Failure -> {
@@ -702,8 +716,12 @@ private fun CreateListingWizardScreen(
                                             } catch (_: Exception) { }
                                         }
                                     }
+                                    uploadedCount++
                                 }
+                                uploadProgressText = "Publishing\u2026"
                                 isUploadingImages = false
+                            } else {
+                                uploadProgressText = "Publishing\u2026"
                             }
 
                             val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
@@ -757,6 +775,8 @@ private fun CreateListingWizardScreen(
                             // ViewModel handles the API call and emits success/error via effects.
                             // isPublishing will be reset when the effect is received.
                             isPublishing = false
+                            isUploadingOverlay = false
+                            onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
                         }
                     }
                 },
@@ -765,6 +785,7 @@ private fun CreateListingWizardScreen(
         },
         containerColor = PaceDreamColors.Background,
     ) { padding ->
+      Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -856,6 +877,7 @@ private fun CreateListingWizardScreen(
                         listingMode = listingMode,
                         subCategory = subCategory,
                         title = title,
+                        description = description,
                         address = address,
                         city = city,
                         state = state,
@@ -868,6 +890,42 @@ private fun CreateListingWizardScreen(
                         startTime = startTime,
                         endTime = endTime,
                         timezone = timezone,
+                        selectedImageUris = selectedImageUris,
+                        amenities = amenities,
+                    )
+                }
+            }
+        }
+
+        // iOS parity: full-screen publish overlay with progress
+        if (isUploadingOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable(enabled = false) { },
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(48.dp),
+                        strokeWidth = 3.dp,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                    Text(
+                        text = uploadProgressText.ifBlank { "Publishing\u2026" },
+                        style = PaceDreamTypography.Headline,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        text = "If this takes too long, check your connection and try again.",
+                        style = PaceDreamTypography.Caption,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.XXXL),
                     )
                 }
             }
@@ -1004,8 +1062,11 @@ private fun PhotosLocationPricingStep(
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
     ) {
-        // Photos – iOS parity: show selected images + add button
-        FormSection(title = if (isSplit) "Photos (optional)" else "Photos") {
+        // Photos – iOS parity: show selected images + add button with count badge
+        FormSection(
+            title = if (isSplit) "Photos (optional)"
+                    else "Photos" + if (selectedImageUris.isNotEmpty()) " (${selectedImageUris.size}/$MAX_PHOTOS)" else "",
+        ) {
             Text(
                 text = if (isSplit) "Add photos to help describe your split."
                        else "Add at least 1 photo (up to $MAX_PHOTOS).",
@@ -1341,6 +1402,7 @@ private fun ReviewPublishStep(
     listingMode: ListingMode,
     subCategory: String,
     title: String,
+    description: String = "",
     address: String,
     city: String,
     state: String,
@@ -1353,6 +1415,8 @@ private fun ReviewPublishStep(
     startTime: String,
     endTime: String,
     timezone: String,
+    selectedImageUris: List<Uri> = emptyList(),
+    amenities: List<String> = emptyList(),
 ) {
     val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
         totalCost.toDoubleOrNull() ?: 0.0
@@ -1379,33 +1443,45 @@ private fun ReviewPublishStep(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-        // Preview card
+        // Preview card – iOS parity: show first photo or placeholder
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
             elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(190.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                PaceDreamColors.Primary.copy(alpha = 0.08f),
-                                PaceDreamColors.Primary.copy(alpha = 0.03f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    PaceDreamIcons.CameraAlt,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(32.dp),
+            if (selectedImageUris.isNotEmpty()) {
+                AsyncImage(
+                    model = selectedImageUris.first(),
+                    contentDescription = "Cover photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(190.dp)
+                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG)),
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(190.dp)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                    PaceDreamColors.Primary.copy(alpha = 0.03f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        PaceDreamIcons.CameraAlt,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
             }
             Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 Row(
@@ -1462,13 +1538,23 @@ private fun ReviewPublishStep(
         SummaryRow("Subcategory", subCategory)
         SummaryRow("Pricing", selectedPricingUnit.displayLabel)
         SummaryRow("Price", priceDisplay)
+        if (description.isNotBlank()) {
+            SummaryRow("Description", description.trim().take(100) + if (description.trim().length > 100) "\u2026" else "")
+        }
+        if (selectedImageUris.isNotEmpty()) {
+            SummaryRow("Photos", "${selectedImageUris.size} photo${if (selectedImageUris.size > 1) "s" else ""}")
+        }
         if (listingMode != ListingMode.SPLIT) {
             SummaryRow("Address", address.ifBlank { "\u2014" })
             SummaryRow("City/State", "$city, $state".trim(' ', ',').ifBlank { "\u2014" })
         }
+        if (amenities.isNotEmpty()) {
+            SummaryRow("Amenities", amenities.joinToString(", "))
+        }
         if (hasSchedule) {
             SummaryRow("Durations", selectedDurations.joinToString(", ") { "$it min" }.ifBlank { "\u2014" })
-            SummaryRow("Days", selectedDays.sorted().joinToString(", ").ifBlank { "\u2014" })
+            val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+            SummaryRow("Days", selectedDays.sorted().joinToString(", ") { dayNames.getOrElse(it) { "$it" } }.ifBlank { "\u2014" })
             SummaryRow("Time window", "$startTime\u2013$endTime")
             SummaryRow("Timezone", timezone)
         }

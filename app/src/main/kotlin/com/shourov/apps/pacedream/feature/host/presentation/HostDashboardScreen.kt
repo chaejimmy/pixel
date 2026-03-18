@@ -594,8 +594,9 @@ private fun YourListingsSection(
                     ListingMiniCard(
                         title = listing.title,
                         location = "${listing.location.city}, ${listing.location.state}",
-                        price = "$${listing.pricing.basePrice.toInt()}",
-                        onClick = { onListingClick(listing.id) }
+                        price = "$${listing.pricing.basePrice.toInt()}/${listing.pricing.unit.ifBlank { "hr" }}",
+                        imageUrl = listing.images.firstOrNull() ?: "",
+                        onClick = { onListingClick(listing.id) },
                     )
                 }
             }
@@ -608,7 +609,8 @@ private fun ListingMiniCard(
     title: String,
     location: String,
     price: String,
-    onClick: () -> Unit
+    imageUrl: String = "",
+    onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.width(200.dp),
@@ -621,23 +623,38 @@ private fun ListingMiniCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                PaceDreamColors.Primary.copy(alpha = 0.08f),
-                                PaceDreamColors.Primary.copy(alpha = 0.04f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
+                    .height(120.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Home,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
-                    modifier = Modifier.size(PaceDreamIconSize.XL)
-                )
+                if (imageUrl.isNotBlank()) {
+                    coil.compose.AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                        PaceDreamColors.Primary.copy(alpha = 0.04f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Home,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
+                            modifier = Modifier.size(PaceDreamIconSize.XL)
+                        )
+                    }
+                }
             }
 
             Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
