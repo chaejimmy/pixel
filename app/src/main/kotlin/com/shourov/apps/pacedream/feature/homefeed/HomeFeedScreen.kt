@@ -135,7 +135,7 @@ fun HomeFeedScreen(
                 item {
                     DiscoverHeader(
                         onSearchClick = onSearchClick,
-                        onFilterClick = { /* TODO: Open filters */ }
+                        onFilterClick = onSearchClick
                     )
                 }
 
