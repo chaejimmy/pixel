@@ -16,15 +16,25 @@
 
 package com.shourov.apps.pacedream.core.data.repository
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.database.dao.MessageDao
-import com.shourov.apps.pacedream.core.database.entity.MessageEntity
 import com.shourov.apps.pacedream.core.database.entity.asEntity
 import com.shourov.apps.pacedream.core.database.entity.asExternalModel
+import com.shourov.apps.pacedream.core.network.model.AttachmentResponse
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
+import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,7 +43,43 @@ class MessageRepository @Inject constructor(
     private val apiService: PaceDreamApiService,
     private val messageDao: MessageDao
 ) {
-    
+
+    fun getChatMessages(chatId: String): Flow<Result<List<MessageModel>>> {
+        return flow {
+            try {
+                val response = apiService.getChatMessages(chatId)
+                if (response.isSuccessful) {
+                    val messages = response.body()?.data?.map { resp ->
+                        MessageModel(
+                            id = resp.id,
+                            chatId = chatId,
+                            senderId = resp.senderId,
+                            content = resp.text.ifBlank { resp.content },
+                            messageType = resp.messageType ?: if (resp.attachments.isNotEmpty()) "IMAGE" else "TEXT",
+                            attachments = resp.attachments.map { it.toModel() },
+                            isRead = resp.isRead,
+                            timestamp = resp.createdAt,
+                            createdAt = resp.createdAt,
+                            status = resp.status
+                        )
+                    } ?: emptyList()
+
+                    // Cache to local database
+                    messages.forEach { messageDao.insertMessage(it.asEntity()) }
+
+                    emit(Result.Success(messages))
+                } else {
+                    emit(Result.Error(Exception("Failed to load messages: ${response.message()}")))
+                }
+            } catch (e: Exception) {
+                // Fall back to cached messages
+                messageDao.getChatMessages(chatId).collect { entities ->
+                    emit(Result.Success(entities.map { it.asExternalModel() }))
+                }
+            }
+        }
+    }
+
     fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {
         return messageDao.getMessagesByUser(userName).map { entities ->
             Result.Success(entities.map { it.asExternalModel() })
@@ -62,7 +108,6 @@ class MessageRepository @Inject constructor(
         return try {
             val response = apiService.sendMessage(chatId, message)
             if (response.isSuccessful) {
-                // Save to local database
                 messageDao.insertMessage(message.asEntity())
                 Result.Success(message)
             } else {
@@ -73,16 +118,94 @@ class MessageRepository @Inject constructor(
         }
     }
 
+    /**
+     * Upload images to a chat thread as attachments.
+     * Compresses and downscales images before upload.
+     */
+    suspend fun uploadChatMedia(
+        context: Context,
+        threadId: String,
+        imageUris: List<Uri>,
+        text: String? = null
+    ): Result<MessageModel> {
+        return try {
+            val parts = mutableListOf<MultipartBody.Part>()
+
+            for (uri in imageUris) {
+                val inputStream = context.contentResolver.openInputStream(uri) ?: continue
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+                if (bitmap == null) continue
+
+                // Downscale to max 1280px
+                val scaled = downscaleBitmap(bitmap, MAX_UPLOAD_DIMENSION)
+                val outputStream = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
+                val bytes = outputStream.toByteArray()
+
+                if (scaled != bitmap) scaled.recycle()
+                bitmap.recycle()
+
+                val fileName = "photo_${System.currentTimeMillis()}.jpg"
+                val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
+                parts.add(MultipartBody.Part.createFormData("images", fileName, requestBody))
+            }
+
+            if (parts.isEmpty()) {
+                return Result.Error(Exception("No valid images to upload"))
+            }
+
+            val textBody = text?.toRequestBody("text/plain".toMediaType())
+            val response = apiService.uploadChatMedia(threadId, parts, textBody)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                val message = MessageModel(
+                    id = body?.id ?: "",
+                    chatId = threadId,
+                    content = body?.text ?: text ?: "",
+                    messageType = "IMAGE",
+                    attachments = body?.attachments?.map { it.toModel() } ?: emptyList(),
+                    createdAt = body?.createdAt ?: "",
+                    status = "sent"
+                )
+                Result.Success(message)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMsg = when (response.code()) {
+                    403 -> "Photos can only be shared after a booking is confirmed"
+                    400 -> errorBody ?: "Invalid file type or size"
+                    else -> "Failed to upload photos: ${response.message()}"
+                }
+                Result.Error(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * Check if attachments are enabled for a thread.
+     */
+    suspend fun getAttachmentStatus(threadId: String): Result<Boolean> {
+        return try {
+            val response = apiService.getAttachmentStatus(threadId)
+            if (response.isSuccessful) {
+                Result.Success(response.body()?.data?.attachmentsEnabled ?: false)
+            } else {
+                Result.Success(false)
+            }
+        } catch (_: Exception) {
+            Result.Success(false)
+        }
+    }
+
     suspend fun createChat(userId: String, otherUserId: String): Result<String> {
         return try {
-            val chatData = mapOf(
-                "userId" to userId,
-                "otherUserId" to otherUserId
-            )
+            val chatData = mapOf("userId" to userId, "otherUserId" to otherUserId)
             val response = apiService.createChat(chatData)
             if (response.isSuccessful) {
-                // Extract chat ID from response
-                val chatId = "generated_chat_id" // This would come from the response
+                val chatId = response.body()?.data?.id ?: ""
                 Result.Success(chatId)
             } else {
                 Result.Error(Exception("Failed to create chat: ${response.message()}"))
@@ -94,7 +217,6 @@ class MessageRepository @Inject constructor(
 
     suspend fun markMessagesAsRead(userName: String): Result<Unit> {
         return try {
-            // Update local database
             messageDao.markMessagesAsRead(userName)
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -106,8 +228,6 @@ class MessageRepository @Inject constructor(
         return try {
             val response = apiService.getChatMessages(chatId)
             if (response.isSuccessful) {
-                // Handle response and save to database
-                // This would need to be implemented based on your API response structure
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to refresh messages: ${response.message()}"))
@@ -121,8 +241,6 @@ class MessageRepository @Inject constructor(
         return try {
             val response = apiService.getUserChats(userId)
             if (response.isSuccessful) {
-                // Handle response and save to database
-                // This would need to be implemented based on your API response structure
                 Result.Success(Unit)
             } else {
                 Result.Error(Exception("Failed to refresh chats: ${response.message()}"))
@@ -131,4 +249,28 @@ class MessageRepository @Inject constructor(
             Result.Error(e)
         }
     }
+
+    private fun downscaleBitmap(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= maxDimension && height <= maxDimension) return bitmap
+        val ratio = minOf(maxDimension.toFloat() / width, maxDimension.toFloat() / height)
+        return Bitmap.createScaledBitmap(bitmap, (width * ratio).toInt(), (height * ratio).toInt(), true)
+    }
+
+    companion object {
+        private const val MAX_UPLOAD_DIMENSION = 1280
+        private const val JPEG_QUALITY = 80
+    }
 }
+
+private fun AttachmentResponse.toModel() = MessageAttachment(
+    url = url,
+    thumbnailUrl = thumbnailUrl,
+    name = name,
+    type = type,
+    size = size,
+    width = width,
+    height = height,
+    mimeType = mimeType
+)

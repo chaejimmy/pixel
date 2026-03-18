@@ -23,7 +23,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MessageDao {
     @Query("SELECT * FROM messages WHERE id = :messageId")
-    fun getMessageById(messageId: Int): Flow<MessageEntity?>
+    fun getMessageById(messageId: String): Flow<MessageEntity?>
+
+    @Query("SELECT * FROM messages WHERE chatId = :chatId ORDER BY createdAt ASC")
+    fun getChatMessages(chatId: String): Flow<List<MessageEntity>>
 
     @Query("SELECT * FROM messages WHERE userName = :userName ORDER BY messageTime ASC")
     fun getMessagesByUser(userName: String): Flow<List<MessageEntity>>
@@ -50,7 +53,7 @@ interface MessageDao {
     suspend fun deleteMessage(message: MessageEntity)
 
     @Query("DELETE FROM messages WHERE id = :messageId")
-    suspend fun deleteMessageById(messageId: Int)
+    suspend fun deleteMessageById(messageId: String)
 
     @Query("DELETE FROM messages WHERE userName = :userName")
     suspend fun deleteMessagesByUser(userName: String)

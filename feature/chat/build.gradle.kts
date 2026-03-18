@@ -12,4 +12,5 @@ dependencies {
     implementation(project(":common"))
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.coil.kt.compose)
 }
