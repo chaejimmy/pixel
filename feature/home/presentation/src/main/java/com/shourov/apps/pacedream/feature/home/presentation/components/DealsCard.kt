@@ -45,6 +45,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.texts.MediumTitleText
@@ -75,7 +77,10 @@ fun DealsCard(
         ) {
             Box {
                 AsyncImage(
-                    model = gallery.thumbnail,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(gallery.thumbnail)
+                        .crossfade(200)
+                        .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -176,7 +181,10 @@ fun LastMinuteDealCard(
         ) {
             Box {
                 AsyncImage(
-                    model = gallery.thumbnail,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(gallery.thumbnail)
+                        .crossfade(200)
+                        .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -293,8 +301,11 @@ fun RentedGearDealsCard(
                 .clickable { onClick() },
         ) {
             AsyncImage(
-                model = if (images.isNullOrEmpty()) R.drawable.no_image else images?.get(0)
-                    ?: R.drawable.no_image,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(if (images.isNullOrEmpty()) R.drawable.no_image else images?.get(0)
+                        ?: R.drawable.no_image)
+                    .crossfade(200)
+                    .build(),
                 contentDescription = "",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

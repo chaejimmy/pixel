@@ -118,6 +118,8 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    private var searchJob: Job? = null
+
     fun submitSearch() {
         _uiState.update {
             it.copy(
@@ -143,7 +145,8 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun loadPage(reset: Boolean) {
-        viewModelScope.launch {
+        if (reset) searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             val current = uiState.value
             val whereQuery = current.query.trim()
             val whatQ = current.whatQuery?.trim().orEmpty()

@@ -73,6 +73,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
@@ -1018,7 +1019,11 @@ private fun ModernSearchResultCard(
                     }
                 } else {
                     AsyncImage(
-                        model = item.imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(item.imageUrl)
+                            .crossfade(200)
+                            .size(coil.size.Size(800, 600))
+                            .build(),
                         contentDescription = item.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

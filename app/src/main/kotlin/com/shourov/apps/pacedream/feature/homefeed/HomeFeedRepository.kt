@@ -46,15 +46,10 @@ class HomeFeedRepository @Inject constructor(
             }
         }
 
-        // Backend attempts (param-name + value normalization + optional status)
+        // Backend attempts: primary + fallback with status filter (avoid excessive retries)
         val attempts = listOf(
             mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType.lowercase()),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType.lowercase()),
-            // Some backends require status=published
             mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType, "status" to "published"),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType, "status" to "published"),
         )
 
         var lastFailure: ApiResult.Failure? = null
@@ -65,31 +60,8 @@ class HomeFeedRepository @Inject constructor(
             }
         }
 
-        // Last backend attempt: no filters (at least show something)
-        when (val unfiltered = tryBackend(mapOf("page" to page1.toString(), "limit" to limit.toString()))) {
-            is ApiResult.Success -> if (unfiltered.data.isNotEmpty()) return unfiltered
-            is ApiResult.Failure -> lastFailure = unfiltered
-        }
-
-        // Fallback only if backend fails
-        val fallbackUrl = appConfig.buildFrontendUrl("api", "proxy", "listings")
-            .newBuilder()
-            .addQueryParameter("shareType", shareType)
-            .addQueryParameter("status", "published")
-            .addQueryParameter("limit", limit.toString())
-            .addQueryParameter("skip_pagination", "true")
-            .build()
-
-        Timber.w("HomeFeed listings backend empty/failing, trying frontend proxy fallback: ${fallbackUrl}")
-        val fallback = apiClient.get(fallbackUrl, includeAuth = false)
-        return when (fallback) {
-            is ApiResult.Success -> {
-                val cards = parseListingsToCards(fallback.data)
-                if (cards.isNotEmpty()) ApiResult.Success(cards)
-                else ApiResult.Failure(ApiError.DecodingError("No listings returned for $shareType (backend + proxy empty)."))
-            }
-            is ApiResult.Failure -> lastFailure ?: fallback
-        }
+        // Return whatever the backend gave us (even empty) rather than spamming fallbacks
+        return lastFailure ?: ApiResult.Success(emptyList())
     }
 
     /**

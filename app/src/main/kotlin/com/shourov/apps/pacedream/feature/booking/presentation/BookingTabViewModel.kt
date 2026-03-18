@@ -181,7 +181,13 @@ class BookingTabViewModel @Inject constructor(
 
         currentRole = role
         currentOffset = 0
-        _uiState.value = BookingTabUiState.Loading
+        // Show refreshing state on existing content instead of full loading flash
+        val existing = _uiState.value
+        if (existing is BookingTabUiState.Success) {
+            _uiState.value = existing.copy(isRefreshing = true, bookings = emptyList(), filteredBookings = emptyList())
+        } else {
+            _uiState.value = BookingTabUiState.Loading
+        }
 
         viewModelScope.launch {
             loadBookings()
