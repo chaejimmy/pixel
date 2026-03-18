@@ -31,6 +31,8 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
  * - Guest mode: show profile, bookings, favorites, settings
  * - Host mode: switch to host dashboard
  * - Persisted mode preference (SharedPreferences)
+ * - Logout confirmation dialog
+ * - Verified badge when identity is verified
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,9 +45,12 @@ fun ProfileScreen(
     onIdentityVerificationClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
-    onMyListsClick: () -> Unit = {}
+    onMyListsClick: () -> Unit = {},
+    onBookingsClick: () -> Unit = {},
+    onFavoritesClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -92,12 +97,56 @@ fun ProfileScreen(
                     )
                 }
 
+                // Quick actions section
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.LG),
                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column {
+                            ProfileMenuItem(
+                                icon = PaceDreamIcons.DateRange,
+                                title = "Bookings",
+                                subtitle = "View your upcoming and past bookings",
+                                onClick = onBookingsClick
+                            )
+
+                            HorizontalDivider(
+                                color = PaceDreamColors.Border,
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                            )
+
+                            ProfileMenuItem(
+                                icon = PaceDreamIcons.FavoriteBorder,
+                                title = "Favorites",
+                                subtitle = "Saved listings and collections",
+                                onClick = onFavoritesClick
+                            )
+
+                            HorizontalDivider(
+                                color = PaceDreamColors.Border,
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                            )
+
+                            ProfileMenuItem(
+                                icon = PaceDreamIcons.ListIcon,
+                                title = "My Lists",
+                                subtitle = "Create and manage your curated lists",
+                                onClick = onMyListsClick
+                            )
+                        }
+                    }
+                }
+
+                // Verification section
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         ProfileMenuItem(
                             icon = PaceDreamIcons.VerifiedUser,
@@ -108,32 +157,63 @@ fun ProfileScreen(
                     }
                 }
 
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        ProfileMenuItem(
-                            icon = PaceDreamIcons.ListIcon,
-                            title = "My Lists",
-                            subtitle = "Create and manage your curated lists",
-                            onClick = onMyListsClick
-                        )
-                    }
-                }
-
+                // Settings and support section
                 item {
                     ProfileMenuSection(
                         onSettingsClick = onSettingsClick,
                         onHelpClick = onHelpClick,
                         onAboutClick = onAboutClick,
-                        onLogoutClick = { viewModel.logout() }
+                        onLogoutClick = { showLogoutDialog = true }
                     )
                 }
             }
         }
+    }
+
+    // Logout confirmation dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    "Sign Out",
+                    style = PaceDreamTypography.Title3
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to sign out of your account?",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Error
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD)
+                ) {
+                    Text("Sign Out", style = PaceDreamTypography.Button)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
+                    Text(
+                        "Cancel",
+                        color = PaceDreamColors.TextPrimary
+                    )
+                }
+            },
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            containerColor = PaceDreamColors.Card
+        )
     }
 }
 
@@ -207,11 +287,12 @@ private fun UserProfileHeader(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onEditClick)
                 .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -258,15 +339,21 @@ private fun UserProfileHeader(
                         color = PaceDreamColors.TextSecondary
                     )
                 }
-            }
 
-            IconButton(onClick = onEditClick) {
-                Icon(
-                    imageVector = PaceDreamIcons.Edit,
-                    contentDescription = "Edit profile",
-                    tint = PaceDreamColors.Primary
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Text(
+                    text = "Show profile",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.Primary
                 )
             }
+
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = "Edit profile",
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
@@ -281,7 +368,7 @@ private fun HostModeCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD)
@@ -326,7 +413,7 @@ private fun HostModeCard(
                     ),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Icon(PaceDreamIcons.Home, contentDescription = null)
+                    Icon(PaceDreamIcons.Dashboard, contentDescription = null)
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text("Go to Host Dashboard", style = PaceDreamTypography.Button)
                 }
@@ -346,7 +433,7 @@ private fun ProfileMenuSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column {
             ProfileMenuItem(
@@ -356,7 +443,10 @@ private fun ProfileMenuSection(
                 onClick = onSettingsClick
             )
 
-            HorizontalDivider(color = PaceDreamColors.Border)
+            HorizontalDivider(
+                color = PaceDreamColors.Border,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+            )
 
             ProfileMenuItem(
                 icon = PaceDreamIcons.Help,
@@ -365,7 +455,10 @@ private fun ProfileMenuSection(
                 onClick = onHelpClick
             )
 
-            HorizontalDivider(color = PaceDreamColors.Border)
+            HorizontalDivider(
+                color = PaceDreamColors.Border,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+            )
 
             ProfileMenuItem(
                 icon = PaceDreamIcons.Info,
@@ -374,7 +467,10 @@ private fun ProfileMenuSection(
                 onClick = onAboutClick
             )
 
-            HorizontalDivider(color = PaceDreamColors.Border)
+            HorizontalDivider(
+                color = PaceDreamColors.Border,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+            )
 
             ProfileMenuItem(
                 icon = PaceDreamIcons.ExitToApp,
@@ -426,7 +522,7 @@ private fun ProfileMenuItem(
         }
 
         Icon(
-            imageVector = PaceDreamIcons.ArrowForward,
+            imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
             modifier = Modifier.size(18.dp)

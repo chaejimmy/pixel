@@ -4,27 +4,31 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,11 +48,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import kotlinx.coroutines.launch
 
 /**
@@ -86,163 +92,215 @@ fun SettingsNotificationsScreen(
                 title = {
                     Text(
                         "Notifications",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
+                        style = PaceDreamTypography.Title2
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = PaceDreamIcons.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors()
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = PaceDreamColors.Background
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(horizontal = PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
         ) {
-            // ── General Section ──────────────────────────
-            SectionHeader("General")
-            ModernToggleRow(
-                title = "Email notifications",
-                description = "Receive notifications via email",
-                icon = Icons.Filled.Email,
-                iconColor = MaterialTheme.colorScheme.primary,
-                checked = uiState.emailGeneral,
-                onCheckedChange = { viewModel.toggleEmailGeneral() }
-            )
-            ModernToggleRow(
-                title = "Push notifications",
-                description = "Receive push notifications on your device",
-                icon = Icons.Filled.Notifications,
-                iconColor = MaterialTheme.colorScheme.primary,
-                checked = uiState.pushGeneral,
-                onCheckedChange = { viewModel.togglePushGeneral() }
-            )
-            ModernToggleRow(
-                title = "SMS notifications",
-                description = "Receive important updates via text message",
-                icon = Icons.Filled.Sms,
-                iconColor = MaterialTheme.colorScheme.tertiary,
-                checked = uiState.smsNotifications,
-                onCheckedChange = { viewModel.toggleSmsNotifications() }
-            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // General Section
+            SectionLabel("General")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Email notifications",
+                        description = "Receive notifications via email",
+                        icon = Icons.Filled.Email,
+                        iconColor = PaceDreamColors.Primary,
+                        checked = uiState.emailGeneral,
+                        onCheckedChange = { viewModel.toggleEmailGeneral() }
+                    )
+                    ModernToggleRow(
+                        title = "Push notifications",
+                        description = "Receive push notifications on your device",
+                        icon = Icons.Filled.Notifications,
+                        iconColor = PaceDreamColors.Primary,
+                        checked = uiState.pushGeneral,
+                        onCheckedChange = { viewModel.togglePushGeneral() }
+                    )
+                    ModernToggleRow(
+                        title = "SMS notifications",
+                        description = "Receive important updates via text message",
+                        icon = Icons.Filled.Sms,
+                        iconColor = PaceDreamColors.Accent,
+                        checked = uiState.smsNotifications,
+                        onCheckedChange = { viewModel.toggleSmsNotifications() }
+                    )
+                }
+            }
 
-            // ── Messages Section ─────────────────────────
-            SectionHeader("Messages")
-            ModernToggleRow(
-                title = "Message notifications",
-                description = "Get notified about new messages",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
-                iconColor = MaterialTheme.colorScheme.secondary,
-                checked = uiState.messageNotifications,
-                onCheckedChange = { viewModel.toggleMessageNotifications() }
-            )
+            // Messages Section
+            SectionLabel("Messages")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Message notifications",
+                        description = "Get notified about new messages",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
+                        iconColor = PaceDreamColors.Secondary,
+                        checked = uiState.messageNotifications,
+                        onCheckedChange = { viewModel.toggleMessageNotifications() }
+                    )
+                }
+            }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // Bookings Section
+            SectionLabel("Bookings")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Booking updates",
+                        description = "Notifications about booking changes",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
+                        iconColor = PaceDreamColors.Success,
+                        checked = uiState.bookingUpdates,
+                        onCheckedChange = { viewModel.toggleBookingUpdates() }
+                    )
+                    ModernToggleRow(
+                        title = "Booking alerts",
+                        description = "Important alerts about your bookings",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = PaceDreamColors.Warning,
+                        checked = uiState.bookingAlerts,
+                        onCheckedChange = { viewModel.toggleBookingAlerts() }
+                    )
+                }
+            }
 
-            // ── Bookings Section ─────────────────────────
-            SectionHeader("Bookings")
-            ModernToggleRow(
-                title = "Booking updates",
-                description = "Notifications about booking changes",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
-                iconColor = Color(0xFF4CAF50),
-                checked = uiState.bookingUpdates,
-                onCheckedChange = { viewModel.toggleBookingUpdates() }
-            )
-            ModernToggleRow(
-                title = "Booking alerts",
-                description = "Important alerts about your bookings",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                iconColor = Color(0xFFFF9800),
-                checked = uiState.bookingAlerts,
-                onCheckedChange = { viewModel.toggleBookingAlerts() }
-            )
+            // Social Section
+            SectionLabel("Social")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Friend requests",
+                        description = "Notifications for friend and roommate requests",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
+                        iconColor = PaceDreamColors.Info,
+                        checked = uiState.friendRequestNotifications,
+                        onCheckedChange = { viewModel.toggleFriendRequestNotifications() }
+                    )
+                    ModernToggleRow(
+                        title = "Reviews",
+                        description = "Get notified when you receive reviews",
+                        icon = Icons.Filled.Star,
+                        iconColor = Color(0xFFFFC107),
+                        checked = uiState.reviewNotifications,
+                        onCheckedChange = { viewModel.toggleReviewNotifications() }
+                    )
+                }
+            }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // System Section
+            SectionLabel("System")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "System notifications",
+                        description = "Updates about maintenance and system changes",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = PaceDreamColors.Gray500,
+                        checked = uiState.systemNotifications,
+                        onCheckedChange = { viewModel.toggleSystemNotifications() }
+                    )
+                }
+            }
 
-            // ── Social Section (iOS parity) ──────────────
-            SectionHeader("Social")
-            ModernToggleRow(
-                title = "Friend requests",
-                description = "Notifications for friend and roommate requests",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
-                iconColor = Color(0xFF2196F3),
-                checked = uiState.friendRequestNotifications,
-                onCheckedChange = { viewModel.toggleFriendRequestNotifications() }
-            )
-            ModernToggleRow(
-                title = "Reviews",
-                description = "Get notified when you receive reviews",
-                icon = Icons.Filled.Star,
-                iconColor = Color(0xFFFFC107),
-                checked = uiState.reviewNotifications,
-                onCheckedChange = { viewModel.toggleReviewNotifications() }
-            )
+            // Marketing Section
+            SectionLabel("Marketing")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Marketing & promotions",
+                        description = "Receive promotional offers and updates",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = Color(0xFFE91E63),
+                        checked = uiState.marketingPromotions,
+                        onCheckedChange = { viewModel.toggleMarketingPromotions() }
+                    )
+                }
+            }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            // Quiet Hours Section
+            SectionLabel("Quiet Hours")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ModernToggleRow(
+                        title = "Quiet hours",
+                        description = if (uiState.quietHoursEnabled)
+                            "${uiState.quietHoursStart} - ${uiState.quietHoursEnd}"
+                        else
+                            "Mute notifications during set hours",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = PaceDreamColors.Accent,
+                        checked = uiState.quietHoursEnabled,
+                        onCheckedChange = { viewModel.toggleQuietHours() }
+                    )
+                }
+            }
 
-            // ── System Section (iOS parity) ──────────────
-            SectionHeader("System")
-            ModernToggleRow(
-                title = "System notifications",
-                description = "Updates about maintenance and system changes",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                iconColor = Color(0xFF9E9E9E),
-                checked = uiState.systemNotifications,
-                onCheckedChange = { viewModel.toggleSystemNotifications() }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // ── Marketing Section ────────────────────────
-            SectionHeader("Marketing")
-            ModernToggleRow(
-                title = "Marketing & promotions",
-                description = "Receive promotional offers and updates",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                iconColor = Color(0xFFE91E63),
-                checked = uiState.marketingPromotions,
-                onCheckedChange = { viewModel.toggleMarketingPromotions() }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // ── Quiet Hours (iOS parity) ─────────────────
-            SectionHeader("Quiet Hours")
-            ModernToggleRow(
-                title = "Quiet hours",
-                description = if (uiState.quietHoursEnabled)
-                    "${uiState.quietHoursStart} - ${uiState.quietHoursEnd}"
-                else
-                    "Mute notifications during set hours",
-                icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                iconColor = Color(0xFF673AB7),
-                checked = uiState.quietHoursEnabled,
-                onCheckedChange = { viewModel.toggleQuietHours() }
-            )
-
-            // ── Save Button ──────────────────────────────
+            // Save Button
             Button(
                 onClick = { viewModel.save() },
                 enabled = !uiState.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .padding(vertical = PaceDreamSpacing.SM),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Primary
+                ),
+                contentPadding = PaddingValues(vertical = 14.dp)
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -250,29 +308,27 @@ fun SettingsNotificationsScreen(
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .size(18.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = PaceDreamColors.OnPrimary
                     )
                 }
                 Text(
-                    "Save",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp
+                    "Save Changes",
+                    style = PaceDreamTypography.Button
                 )
             }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         }
     }
 }
 
-/**
- * Section header matching iOS Form section headers.
- */
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionLabel(title: String) {
     Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+        text = title.uppercase(),
+        style = PaceDreamTypography.Caption,
+        color = PaceDreamColors.TextTertiary,
+        modifier = Modifier.padding(start = PaceDreamSpacing.XS)
     )
 }
 
@@ -294,16 +350,15 @@ private fun ModernToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
     ) {
-        // iOS parity: icon in rounded colored background
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconColor.copy(alpha = 0.15f)),
+                .size(40.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(iconColor.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -314,30 +369,27 @@ private fun ModernToggleRow(
             )
         }
 
-        // Text content
         Column(
             modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary
             )
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 2.dp)
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
             )
         }
 
-        // Toggle
         Switch(
             checked = checked,
             onCheckedChange = { onCheckedChange() },
             colors = SwitchDefaults.colors(
-                checkedTrackColor = MaterialTheme.colorScheme.primary
+                checkedTrackColor = PaceDreamColors.Primary,
+                checkedThumbColor = PaceDreamColors.OnPrimary
             )
         )
     }
