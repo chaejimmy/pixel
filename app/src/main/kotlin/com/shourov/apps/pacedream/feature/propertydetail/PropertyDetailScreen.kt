@@ -57,6 +57,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
@@ -738,7 +740,11 @@ private fun HeroGallery(
                     }
                 } else {
                     AsyncImage(
-                        model = url,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url)
+                            .crossfade(200)
+                            .size(coil.size.Size(800, 600))
+                            .build(),
                         contentDescription = title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -838,7 +844,11 @@ private fun HostCard(
             val name = hostName?.takeIf { it.isNotBlank() } ?: "Host"
             if (!hostAvatarUrl.isNullOrBlank()) {
                 AsyncImage(
-                    model = hostAvatarUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(hostAvatarUrl)
+                        .crossfade(200)
+                        .size(coil.size.Size(96, 96))
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

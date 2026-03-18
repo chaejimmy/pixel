@@ -3,11 +3,13 @@ package com.pacedream.app.feature.home
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography as DSTypo
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -25,11 +28,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,13 +69,15 @@ fun HomeScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            // ── Header: Greeting + Search ──
+            // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
-                HeaderSection(
+                HeroHeaderSection(
+                    heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
-                    onFilterClick = { /* TODO: Open filters */ }
+                    onFilterClick = { /* TODO: Open filters */ },
+                    onNotificationClick = {}
                 )
             }
 
@@ -86,22 +93,22 @@ fun HomeScreen(
                 )
             }
 
-            // ── Quick Categories ──
-            item {
-                QuickCategoriesRow(
-                    onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(top = 20.dp)
-                )
-            }
-
             // ── Warning banner ──
             if (uiState.hasErrors) {
                 item {
                     WarningBanner(
                         message = "Some content couldn't load. Pull to refresh.",
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
                     )
                 }
+            }
+
+            // ── Explore Categories (Quick chips) ──
+            item {
+                QuickCategoriesRow(
+                    onCategoryClick = onCategoryClick,
+                    modifier = Modifier.padding(top = 32.dp)
+                )
             }
 
             // ── Hourly Spaces ──
@@ -114,7 +121,7 @@ fun HomeScreen(
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick,
-                        modifier = Modifier.padding(top = 28.dp)
+                        modifier = Modifier.padding(top = 32.dp)
                     )
                 }
             }
@@ -129,7 +136,7 @@ fun HomeScreen(
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick,
-                        modifier = Modifier.padding(top = 28.dp)
+                        modifier = Modifier.padding(top = 32.dp)
                     )
                 }
             }
@@ -144,15 +151,24 @@ fun HomeScreen(
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },
                         onItemClick = onListingClick,
-                        modifier = Modifier.padding(top = 28.dp)
+                        modifier = Modifier.padding(top = 32.dp)
                     )
                 }
+            }
+
+            // ── Find by Type Section (iOS parity) ──
+            item {
+                ExploreByTypeRow(
+                    onTypeTap = { type -> onCategoryClick(type) },
+                    modifier = Modifier.padding(top = 32.dp)
+                )
             }
 
             // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
                 item {
                     EmptyState(
+                        onRetry = { viewModel.refresh() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(48.dp)
@@ -164,70 +180,120 @@ fun HomeScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Header: Greeting + Search Bar
+// Hero Header Section (iOS parity: gradient hero with overlapping search bar)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HeaderSection(
+private fun HeroHeaderSection(
+    heroImageUrl: String?,
     onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit
+    onFilterClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
-            .statusBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp)
+            .height(320.dp)
     ) {
-        // Greeting row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Discover",
-                    style = DSTypo.LargeTitle.copy(
-                        fontFamily = paceDreamDisplayFontFamily,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = Color(0xFF1A1A1A)
+        // Gradient background (matches iOS HeroHeader purple gradient)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF6B5CE7), // Brand purple top
+                            Color(0xFF4A3ABA), // Brand purple mid
+                            Color(0xFF3D2D9C)  // Brand purple bottom
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                    )
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 20.dp)
+            ) {
+                // Top row: greeting + notification bell
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Welcome back",
+                            style = DSTypo.Footnote.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Discover",
+                            style = DSTypo.Title1.copy(
+                                fontFamily = paceDreamDisplayFontFamily,
+                                letterSpacing = (-0.5).sp
+                            ),
+                            color = Color.White
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clickable(onClick = onNotificationClick),
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.18f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Main headline
+                Text(
+                    text = "Find your perfect stay!",
+                    style = DSTypo.Title1.copy(
+                        fontFamily = paceDreamDisplayFontFamily,
+                        fontSize = 28.sp,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Book, share, or split anything.",
                     style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500
+                    color = Color.White.copy(alpha = 0.8f)
                 )
-            }
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = PaceDreamColors.Gray50
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color(0xFF1A1A1A),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Search bar
+        // Overlapping Search Bar (matches iOS BlurredSearchBar)
         Surface(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 6.dp,
+                    elevation = 8.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    ambientColor = Color.Black.copy(alpha = 0.06f),
-                    spotColor = Color.Black.copy(alpha = 0.08f)
+                    ambientColor = Color.Black.copy(alpha = 0.08f),
+                    spotColor = Color.Black.copy(alpha = 0.12f)
                 )
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -299,7 +365,7 @@ private fun HeaderSection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Category Filter Tabs
+// Category Filter Tabs (iOS parity: horizontal scroll with underline indicator)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -394,7 +460,7 @@ private fun CategoryTab(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Categories Row
+// Quick Categories Row (iOS parity: horizontal chip row with gradient icons)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -427,10 +493,27 @@ private fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "chipScale"
+    )
+
     Surface(
         modifier = Modifier
             .height(48.dp)
-            .clickable(onClick = onClick),
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            },
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         color = category.bgColor.copy(alpha = 0.06f)
     ) {
@@ -489,7 +572,7 @@ private fun getCategoryCards(): List<CategoryCardData> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Warning Banner
+// Warning Banner (iOS parity: orange 12% background, rounded, icon + text)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -500,12 +583,12 @@ private fun WarningBanner(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
-        color = PaceDreamColors.Warning.copy(alpha = 0.08f)
+        color = PaceDreamColors.Warning.copy(alpha = 0.12f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -517,7 +600,10 @@ private fun WarningBanner(
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = message,
-                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                style = DSTypo.Subheadline.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
                 color = Color(0xFF78350F)
             )
         }
@@ -525,7 +611,7 @@ private fun WarningBanner(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section Header
+// Section Header (iOS parity: title2 + subtitle + "View All" button)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -550,10 +636,10 @@ private fun SectionHeader(
                 color = Color(0xFF1A1A1A)
             )
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = subtitle,
-                    style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                    style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
                     color = PaceDreamColors.Gray500
                 )
             }
@@ -561,19 +647,12 @@ private fun SectionHeader(
         if (onViewAllClick != null) {
             TextButton(onClick = onViewAllClick) {
                 Text(
-                    text = "See all",
-                    style = DSTypo.Footnote.copy(
+                    text = "View All",
+                    style = DSTypo.Subheadline.copy(
                         fontFamily = paceDreamFontFamily,
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = PaceDreamColors.Primary
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Icon(
-                    imageVector = PaceDreamIcons.ChevronRight,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(16.dp)
+                    color = PaceDreamColors.Secondary
                 )
             }
         }
@@ -581,7 +660,7 @@ private fun SectionHeader(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Listing Section
+// Listing Section (iOS parity: section header + horizontal card scroll)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -607,14 +686,14 @@ private fun ListingSection(
         if (isLoading) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(4) { ShimmerCard() }
             }
         } else {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(items) { item ->
                     ListingCard(
@@ -628,7 +707,8 @@ private fun ListingSection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Listing Card
+// Listing Card (iOS parity: 16dp corner radius, shadow, press animation,
+// favorite button, rating badge)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -636,169 +716,369 @@ private fun ListingCard(
     item: HomeListingItem,
     onClick: () -> Unit
 ) {
-    Column(
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "cardScale"
+    )
+
+    Surface(
         modifier = Modifier
             .width(260.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .scale(scale)
+            .shadow(
+                elevation = if (isPressed) 12.dp else 8.dp,
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                ambientColor = Color.Black.copy(alpha = 0.10f),
+                spotColor = Color.Black.copy(alpha = if (isPressed) 0.15f else 0.10f)
             )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            },
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(190.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.LG))
-        ) {
-            AsyncImage(
-                model = item.imageUrl,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Bottom scrim
+        Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.25f)
-                            )
+                    .height(180.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.LG,
+                            topEnd = PaceDreamRadius.LG
                         )
                     )
-            )
-
-            // Type badge
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(10.dp),
-                shape = RoundedCornerShape(PaceDreamRadius.XS),
-                color = Color.White
             ) {
-                Text(
-                    text = when (item.type) {
-                        "time-based" -> "Hourly"
-                        "gear" -> "Gear"
-                        "split-stay" -> "Split"
-                        else -> item.type.replaceFirstChar { it.uppercase() }
-                    },
-                    style = DSTypo.Caption2.copy(
-                        fontFamily = paceDreamFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = PaceDreamColors.Primary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
-            }
 
-            // Heart
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp)
-                    .size(32.dp),
-                shape = CircleShape,
-                color = Color.White.copy(alpha = 0.85f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = PaceDreamIcons.FavoriteBorderOutlined,
-                        contentDescription = "Favorite",
-                        tint = Color(0xFF1A1A1A),
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+                // Bottom scrim
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.30f)
+                                )
+                            )
+                        )
+                )
 
-            // Rating
-            item.rating?.let { rating ->
+                // Type badge
                 Surface(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
+                        .align(Alignment.TopStart)
                         .padding(10.dp),
                     shape = RoundedCornerShape(PaceDreamRadius.XS),
                     color = Color.White
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Text(
+                        text = when (item.type) {
+                            "time-based" -> "Hourly"
+                            "gear" -> "Gear"
+                            "split-stay" -> "Split"
+                            else -> item.type.replaceFirstChar { it.uppercase() }
+                        },
+                        style = DSTypo.Caption2.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                // Heart (iOS parity: dark overlay circle)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .size(34.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.35f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = PaceDreamIcons.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFBBF24),
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "%.1f".format(rating),
-                            style = DSTypo.Caption2.copy(
-                                fontFamily = paceDreamFontFamily,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color(0xFF1A1A1A)
+                            imageVector = PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = "Add to favorites",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
+
+                // Rating badge (bottom-right)
+                item.rating?.let { rating ->
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.XS),
+                        color = Color.White
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFBE0B),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "%.1f".format(rating),
+                                style = DSTypo.Caption2.copy(
+                                    fontFamily = paceDreamFontFamily,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color(0xFF1A1A1A)
+                            )
+                        }
+                    }
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Text(
-            text = item.title,
-            style = DSTypo.Headline.copy(
-                fontFamily = paceDreamFontFamily,
-                fontSize = 15.sp
-            ),
-            color = Color(0xFF1A1A1A),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        item.location?.let { location ->
-            Spacer(modifier = Modifier.height(3.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = PaceDreamIcons.LocationOn,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Gray400,
-                    modifier = Modifier.size(14.dp)
+            // Content below image (inside card surface)
+            Column(
+                modifier = Modifier.padding(
+                    start = 14.dp,
+                    end = 14.dp,
+                    top = 12.dp,
+                    bottom = 14.dp
                 )
-                Spacer(modifier = Modifier.width(3.dp))
+            ) {
                 Text(
-                    text = location,
-                    style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500,
-                    maxLines = 1,
+                    text = item.title,
+                    style = DSTypo.Callout.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color(0xFF1A1A1A),
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-        }
 
-        item.price?.let { price ->
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = price,
-                style = DSTypo.Headline.copy(
-                    fontFamily = paceDreamFontFamily,
-                    fontSize = 15.sp,
-                    color = PaceDreamColors.Primary
-                )
-            )
+                item.location?.let { location ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Gray400,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = location,
+                            style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                            color = PaceDreamColors.Gray500,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                item.price?.let { price ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = price,
+                            style = DSTypo.Headline.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PaceDreamColors.Primary
+                            )
+                        )
+                        item.rating?.let { rating ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFBE0B),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "%.1f".format(rating),
+                                    style = DSTypo.Footnote.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = Color(0xFF1A1A1A)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shimmer Loading Card
+// Explore by Type (iOS parity: horizontal row of gradient icon cards)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class ExploreTypeData(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val gradientColors: List<Color>
+)
+
+private fun getExploreTypes(): List<ExploreTypeData> = listOf(
+    ExploreTypeData(
+        "Romantic", "Cozy getaways", PaceDreamIcons.Favorite,
+        listOf(Color(0xFFFF6B6B), Color(0xFFEE5A24))
+    ),
+    ExploreTypeData(
+        "Adventure", "Thrilling stays", PaceDreamIcons.DirectionsBike,
+        listOf(Color(0xFF4ECDC4), Color(0xFF2ECC71))
+    ),
+    ExploreTypeData(
+        "Nature", "Peaceful retreats", PaceDreamIcons.Yard,
+        listOf(Color(0xFF45B649), Color(0xFF2E8B57))
+    ),
+    ExploreTypeData(
+        "Urban", "City living", PaceDreamIcons.Apartment,
+        listOf(Color(0xFF667EEA), Color(0xFF764BA2))
+    ),
+    ExploreTypeData(
+        "Solo", "Me time", PaceDreamIcons.Person,
+        listOf(Color(0xFFF093FB), Color(0xFFF5576C))
+    )
+)
+
+@Composable
+private fun ExploreByTypeRow(
+    onTypeTap: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = "Find by Type",
+            subtitle = "Discover stays that match your vibe",
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            items(getExploreTypes()) { type ->
+                ExploreTypeCard(
+                    type = type,
+                    onClick = { onTypeTap(type.title) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExploreTypeCard(
+    type: ExploreTypeData,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "typeScale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(110.dp)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
+    ) {
+        // Gradient icon container (72dp matching iOS)
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    ambientColor = type.gradientColors.first().copy(alpha = 0.30f),
+                    spotColor = type.gradientColors.first().copy(alpha = 0.30f)
+                )
+                .background(
+                    Brush.linearGradient(
+                        colors = type.gradientColors,
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                    ),
+                    RoundedCornerShape(PaceDreamRadius.LG)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = type.title,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = type.title,
+            style = DSTypo.Footnote.copy(
+                fontFamily = paceDreamFontFamily,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = Color(0xFF1A1A1A),
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+        Text(
+            text = type.subtitle,
+            style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.Gray500,
+            textAlign = TextAlign.Center,
+            maxLines = 2
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shimmer Loading Card (iOS parity: skeleton with shimmer animation)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -824,54 +1104,82 @@ private fun ShimmerCard() {
         end = Offset(shimmerX.value + 300f, 0f)
     )
 
-    Column(modifier = Modifier.width(260.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(190.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.LG))
-                .background(shimmerBrush)
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .height(14.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(shimmerBrush)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .height(12.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(shimmerBrush)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .height(14.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(shimmerBrush)
-        )
+    Surface(
+        modifier = Modifier.width(260.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White,
+        shadowElevation = 2.dp
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.LG,
+                            topEnd = PaceDreamRadius.LG
+                        )
+                    )
+                    .background(shimmerBrush)
+            )
+            Column(modifier = Modifier.padding(14.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmerBrush)
+                    )
+                }
+            }
+        }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Empty State
+// Empty State (iOS parity: icon + title + subtitle + retry button)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
+private fun EmptyState(
+    onRetry: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(80.dp)
                 .background(
                     PaceDreamColors.Primary.copy(alpha = 0.08f),
                     CircleShape
@@ -882,14 +1190,15 @@ private fun EmptyState(modifier: Modifier = Modifier) {
                 imageVector = PaceDreamIcons.Search,
                 contentDescription = null,
                 tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(36.dp)
             )
         }
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "No listings available",
-            style = DSTypo.Title2.copy(
+            text = "Nothing to show right now",
+            style = DSTypo.Title3.copy(
                 fontFamily = paceDreamDisplayFontFamily,
+                fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.2).sp
             ),
             color = Color(0xFF1A1A1A),
@@ -902,6 +1211,24 @@ private fun EmptyState(modifier: Modifier = Modifier) {
             color = PaceDreamColors.Gray500,
             textAlign = TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PaceDreamColors.Primary
+            ),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = "Retry",
+                style = DSTypo.Headline.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontSize = 15.sp
+                ),
+                color = Color.White
+            )
+        }
     }
 }
 

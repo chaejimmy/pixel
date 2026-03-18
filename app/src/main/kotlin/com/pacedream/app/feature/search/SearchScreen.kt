@@ -1,7 +1,18 @@
 package com.pacedream.app.feature.search
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -25,30 +37,39 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.pacedream.common.icon.PaceDreamIcons
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -56,6 +77,8 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,30 +93,53 @@ fun SearchScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
-        // Search header
+        // ── Search header (iOS parity: title + search bar + tab picker) ──
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(PaceDreamColors.Background)
                 .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD)
         ) {
-            Text(
-                "Explore",
-                style = PaceDreamTypography.Title1,
-                fontWeight = FontWeight.Bold,
-                color = PaceDreamColors.TextPrimary
-            )
+            // Title row with close button (matches iOS header)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Explore",
+                        style = PaceDreamTypography.Title1.copy(
+                            fontFamily = paceDreamDisplayFontFamily,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = PaceDreamColors.TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Share \u00B7 Borrow \u00B7 Split",
+                        style = PaceDreamTypography.Footnote.copy(
+                            fontFamily = paceDreamFontFamily
+                        ),
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-            // Modern search bar with filled background
+            // Search bar (iOS parity: filled background, rounded, leading icon)
             TextField(
                 value = uiState.query,
                 onValueChange = { viewModel.onQueryChanged(it) },
                 placeholder = {
                     Text(
                         "Search spaces, gear, stays...",
-                        style = PaceDreamTypography.Callout,
+                        style = PaceDreamTypography.Callout.copy(
+                            fontFamily = paceDreamFontFamily
+                        ),
                         color = PaceDreamColors.TextTertiary
                     )
                 },
@@ -130,12 +176,14 @@ fun SearchScreen(
                     focusedTextColor = PaceDreamColors.TextPrimary,
                     unfocusedTextColor = PaceDreamColors.TextPrimary
                 ),
-                textStyle = PaceDreamTypography.Callout
+                textStyle = PaceDreamTypography.Callout.copy(
+                    fontFamily = paceDreamFontFamily
+                )
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-            // Segmented tab control
+            // Segmented tab control (iOS parity: capsule shape, icon + text, animated)
             val tabs = SearchTab.entries
             Surface(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -155,21 +203,23 @@ fun SearchScreen(
                                 .clip(RoundedCornerShape(PaceDreamRadius.SM))
                                 .clickable { viewModel.onTabChanged(tab) },
                             shape = RoundedCornerShape(PaceDreamRadius.SM),
-                            color = if (isSelected) PaceDreamColors.Card else Color.Transparent,
+                            color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
                             shadowElevation = if (isSelected) 1.dp else 0.dp
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.padding(
                                     horizontal = PaceDreamSpacing.MD,
-                                    vertical = PaceDreamSpacing.SM
+                                    vertical = 10.dp
                                 )
                             ) {
                                 Text(
                                     tab.label,
-                                    style = PaceDreamTypography.Subheadline,
-                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
+                                    style = PaceDreamTypography.Footnote.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                    ),
+                                    color = if (isSelected) Color.White else PaceDreamColors.TextSecondary
                                 )
                             }
                         }
@@ -178,13 +228,21 @@ fun SearchScreen(
             }
         }
 
-        // Category filter chips - modern pill style
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = PaceDreamColors.Gray100
+        )
+
+        // ── Category filter chips (iOS parity: pill style, toggle selection) ──
         val categories = listOf(
             "Studio", "Meeting Room", "Podcast Studio", "Photo Studio",
             "Music Studio", "Event Space", "Camera", "Lighting", "Audio"
         )
         LazyRow(
-            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            contentPadding = PaddingValues(
+                horizontal = PaceDreamSpacing.MD,
+                vertical = PaceDreamSpacing.SM
+            ),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(categories) { category ->
@@ -198,8 +256,10 @@ fun SearchScreen(
                     label = {
                         Text(
                             category,
-                            style = PaceDreamTypography.Caption,
-                            fontWeight = if (uiState.selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
+                            style = PaceDreamTypography.Caption.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = if (uiState.selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
+                            )
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
@@ -214,123 +274,33 @@ fun SearchScreen(
             }
         }
 
-        // Content area
+        // ── Content area (iOS parity: shimmer loading, proper error/empty states) ──
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = PaceDreamColors.Primary,
-                        strokeWidth = 2.dp
-                    )
-                }
+                // Shimmer grid loading (iOS parity: skeleton cards)
+                SearchShimmerGrid()
             }
 
             uiState.errorMessage != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(PaceDreamSpacing.XL),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            PaceDreamIcons.ErrorOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = PaceDreamColors.TextTertiary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        Text(
-                            "Something went wrong",
-                            style = PaceDreamTypography.Headline,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PaceDreamColors.TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        Text(
-                            uiState.errorMessage ?: "",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                    }
-                }
+                // Error state (iOS parity: icon + title + message + retry)
+                SearchErrorState(
+                    message = uiState.errorMessage ?: "",
+                    onRetry = { viewModel.search() }
+                )
             }
 
             uiState.results.isEmpty() && uiState.query.isNotBlank() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(PaceDreamSpacing.XL),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            PaceDreamIcons.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = PaceDreamColors.TextTertiary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        Text(
-                            "No results found",
-                            style = PaceDreamTypography.Headline,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PaceDreamColors.TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        Text(
-                            "Try a different search term or category",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                    }
-                }
+                // No results state (iOS parity: magnifyingglass + title + subtitle)
+                SearchNoResultsState(query = uiState.query)
             }
 
             uiState.results.isEmpty() -> {
-                // Empty state with suggestions
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(PaceDreamSpacing.XL),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(
-                            shape = CircleShape,
-                            color = PaceDreamColors.Surface,
-                            modifier = Modifier.size(80.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(
-                                    PaceDreamIcons.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(36.dp),
-                                    tint = PaceDreamColors.TextTertiary
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                        Text(
-                            "Search for spaces, gear, and more",
-                            style = PaceDreamTypography.Headline,
-                            color = PaceDreamColors.TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        Text(
-                            "Find studios, equipment, and shared stays",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                    }
-                }
+                // Empty initial state (iOS parity: large icon surface + title + hint)
+                SearchEmptyState()
             }
 
             else -> {
-                // Results grid
+                // Results grid (iOS parity: 2-column with proper card styling)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(
@@ -339,8 +309,8 @@ fun SearchScreen(
                         top = PaceDreamSpacing.SM,
                         bottom = PaceDreamSpacing.XL
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(uiState.results) { item ->
@@ -355,18 +325,44 @@ fun SearchScreen(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Search Result Card (iOS parity: proper card surface, shadow, badge, spacing)
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 private fun SearchResultCard(
     item: SearchResultItem,
     onClick: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "searchCardScale"
+    )
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
+            .scale(scale)
+            .shadow(
+                elevation = if (isPressed) 8.dp else 4.dp,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = 0.06f)
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            },
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = PaceDreamColors.Card,
-        shadowElevation = 0.dp,
         tonalElevation = 0.dp
     ) {
         Column {
@@ -375,7 +371,12 @@ private fun SearchResultCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.MD,
+                            topEnd = PaceDreamRadius.MD
+                        )
+                    )
             ) {
                 if (!item.imageUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -392,7 +393,7 @@ private fun SearchResultCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            PaceDreamIcons.Search,
+                            PaceDreamIcons.Image,
                             contentDescription = null,
                             tint = PaceDreamColors.TextTertiary,
                             modifier = Modifier.size(24.dp)
@@ -404,16 +405,19 @@ private fun SearchResultCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(40.dp)
+                        .height(48.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.25f))
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.30f)
+                                )
                             )
                         )
                 )
 
-                // Type badge - glass style
+                // Type badge (iOS parity: ultraThinMaterial capsule)
                 Surface(
                     shape = RoundedCornerShape(PaceDreamRadius.XS),
                     color = Color.Black.copy(alpha = 0.45f),
@@ -428,40 +432,95 @@ private fun SearchResultCard(
                             "split-stay" -> "Stay"
                             else -> item.type
                         },
-                        style = PaceDreamTypography.Caption2,
+                        style = PaceDreamTypography.Caption2.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.Medium
+                        ),
                         color = Color.White,
-                        fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(
                             horizontal = PaceDreamSpacing.SM,
                             vertical = PaceDreamSpacing.XS
                         )
                     )
                 }
+
+                // Rating badge (iOS parity: top-left capsule with star)
+                item.rating?.let { rating ->
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.XS),
+                        color = Color.Black.copy(alpha = 0.45f),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(PaceDreamSpacing.SM)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = PaceDreamSpacing.SM,
+                                vertical = PaceDreamSpacing.XS
+                            ),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFBE0B),
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = String.format("%.1f", rating),
+                                style = PaceDreamTypography.Caption2.copy(
+                                    fontFamily = paceDreamFontFamily,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
 
-            // Info section
-            Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
+            // Info section (iOS parity: proper spacing, font sizes)
+            Column(
+                modifier = Modifier.padding(
+                    horizontal = 10.dp,
+                    vertical = 10.dp
+                )
+            ) {
                 Text(
                     text = item.title,
-                    style = PaceDreamTypography.Subheadline,
-                    fontWeight = FontWeight.SemiBold,
+                    style = PaceDreamTypography.Subheadline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
                     color = PaceDreamColors.TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
                 item.location?.let { loc ->
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
-                    Text(
-                        text = loc,
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = loc,
+                            style = PaceDreamTypography.Caption.copy(
+                                fontFamily = paceDreamFontFamily
+                            ),
+                            color = PaceDreamColors.TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -471,31 +530,279 @@ private fun SearchResultCard(
                     item.price?.let { price ->
                         Text(
                             text = price,
-                            style = PaceDreamTypography.Subheadline,
-                            fontWeight = FontWeight.Bold,
+                            style = PaceDreamTypography.Subheadline.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Bold
+                            ),
                             color = PaceDreamColors.Primary
                         )
                     }
+                }
+            }
+        }
+    }
+}
 
-                    item.rating?.let { rating ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                PaceDreamIcons.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFCC00),
-                                modifier = Modifier.size(14.dp)
+// ─────────────────────────────────────────────────────────────────────────────
+// Shimmer Grid for search loading (iOS parity: skeleton cards in grid)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SearchShimmerGrid() {
+    val transition = rememberInfiniteTransition(label = "searchShimmer")
+    val shimmerX = transition.animateFloat(
+        initialValue = -300f,
+        targetValue = 900f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerX"
+    )
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFF0F0F0),
+            Color(0xFFE0E0E0),
+            Color(0xFFF0F0F0)
+        ),
+        start = Offset(shimmerX.value, 0f),
+        end = Offset(shimmerX.value + 300f, 0f)
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(
+            horizontal = PaceDreamSpacing.MD,
+            vertical = PaceDreamSpacing.SM
+        ),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(6) {
+            Surface(
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                color = Color.White,
+                shadowElevation = 1.dp
+            ) {
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = PaceDreamRadius.MD,
+                                    topEnd = PaceDreamRadius.MD
+                                )
                             )
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
-                            Text(
-                                text = String.format("%.1f", rating),
-                                style = PaceDreamTypography.Caption,
-                                fontWeight = FontWeight.Medium,
-                                color = PaceDreamColors.TextPrimary
-                            )
-                        }
+                            .background(shimmerBrush)
+                    )
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.4f)
+                                .height(12.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(shimmerBrush)
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error State (iOS parity: icon + title + message + retry button)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SearchErrorState(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaceDreamSpacing.Page),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(
+                        PaceDreamColors.Error.copy(alpha = 0.08f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    PaceDreamIcons.ErrorOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = PaceDreamColors.Error
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Text(
+                "Something went wrong",
+                style = PaceDreamTypography.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = PaceDreamColors.TextPrimary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                message,
+                style = PaceDreamTypography.Subheadline.copy(
+                    fontFamily = paceDreamFontFamily
+                ),
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            Button(
+                onClick = onRetry,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Primary
+                ),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    "Retry",
+                    style = PaceDreamTypography.Headline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontSize = 15.sp
+                    ),
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// No Results State (iOS parity: magnifyingglass + title + adjust hint)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SearchNoResultsState(query: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaceDreamSpacing.Page),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(
+                        PaceDreamColors.Surface,
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    PaceDreamIcons.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = PaceDreamColors.TextTertiary
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Text(
+                "No results found",
+                style = PaceDreamTypography.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = PaceDreamColors.TextPrimary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                "Try adjusting your search or filters",
+                style = PaceDreamTypography.Subheadline.copy(
+                    fontFamily = paceDreamFontFamily
+                ),
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty State (iOS parity: large icon surface + title + subtitle)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SearchEmptyState() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(PaceDreamSpacing.Page),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(
+                shape = CircleShape,
+                color = PaceDreamColors.Surface,
+                modifier = Modifier.size(80.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        PaceDreamIcons.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = PaceDreamColors.TextTertiary
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Text(
+                "Search for spaces, gear, and more",
+                style = PaceDreamTypography.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = PaceDreamColors.TextPrimary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                "Find studios, equipment, and shared stays",
+                style = PaceDreamTypography.Subheadline.copy(
+                    fontFamily = paceDreamFontFamily
+                ),
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
