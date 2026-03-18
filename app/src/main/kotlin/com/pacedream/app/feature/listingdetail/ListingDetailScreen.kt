@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
@@ -195,7 +196,7 @@ fun ListingDetailScreen(
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
                             )
                         }
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                     }
 
                     item {
@@ -204,7 +205,7 @@ fun ListingDetailScreen(
                             onContact = onContactHost,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = PaceDreamSpacing.MD)
                         )
                     }
 
@@ -218,7 +219,7 @@ fun ListingDetailScreen(
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
                         SectionAmenities(
@@ -232,7 +233,7 @@ fun ListingDetailScreen(
 
                     // House Rules Section
                     if (listing != null && (listing.houseRules.isNotEmpty() || listing.checkInTime != null || listing.checkOutTime != null)) {
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                         item {
                             SectionHouseRules(
                                 houseRules = listing.houseRules,
@@ -247,7 +248,7 @@ fun ListingDetailScreen(
 
                     // Safety Features Section
                     if (listing != null && listing.safetyFeatures.isNotEmpty()) {
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                         item {
                             SectionSafetyFeatures(
                                 features = listing.safetyFeatures,
@@ -258,7 +259,7 @@ fun ListingDetailScreen(
                         }
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
                         SectionReviews(
@@ -275,7 +276,7 @@ fun ListingDetailScreen(
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     // Cancellation Policy Section (Web parity)
                     item {
@@ -287,7 +288,7 @@ fun ListingDetailScreen(
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     // Pricing Breakdown Section (Web parity: cleaning fee, weekly discount)
                     item {
@@ -299,7 +300,7 @@ fun ListingDetailScreen(
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
                         SectionLocation(
@@ -314,7 +315,7 @@ fun ListingDetailScreen(
                     }
 
                     // Report Listing (iOS/Web parity)
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                     item {
                         SectionReportListing(
                             onReportClick = { showReportSheet = true },
@@ -547,7 +548,7 @@ private fun ReserveSheet(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = PaceDreamSpacing.MD)
     ) {
         // Duration selection chips
         Text("Duration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -2041,7 +2042,7 @@ private fun ListingDetailSkeleton(modifier: Modifier = Modifier) {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Spacer(modifier = Modifier.height(18.dp))
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
             SkeletonLine(widthFraction = 0.75f, height = 28.dp)
             Spacer(modifier = Modifier.height(12.dp))
             SkeletonLine(widthFraction = 0.55f, height = 18.dp)
@@ -2532,7 +2533,7 @@ private fun ReportListingSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = PaceDreamSpacing.MD)
                 .padding(bottom = 32.dp)
         ) {
             Text(

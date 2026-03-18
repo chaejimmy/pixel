@@ -37,13 +37,20 @@ class ImageUploadService @Inject constructor(
 
     /**
      * Upload an image from a content URI.
+     * iOS parity: Two-path strategy.
+     *   Path A (preferred): Upload to /api/upload, get Cloudinary URL back.
+     *   Path B (fallback): Return base64 data URL for inline in listing payload.
+     *
+     * Also matches iOS retry-on-413: if upload fails with 413 (too large),
+     * retry with smaller dimensions (1024px, lower quality).
+     *
      * @param context Android context for content resolver
      * @param imageUri URI of the image to upload
      * @return secure_url from Cloudinary, or error
      */
     suspend fun uploadImage(context: Context, imageUri: Uri): ApiResult<String> {
         return try {
-            // 1. Read and downscale the image
+            // 1. Read the image
             val inputStream = context.contentResolver.openInputStream(imageUri)
                 ?: return ApiResult.Failure(
                     com.shourov.apps.pacedream.core.network.api.ApiError.Unknown("Cannot read image")
@@ -58,56 +65,88 @@ class ImageUploadService @Inject constructor(
                 )
             }
 
-            val scaledBitmap = downscaleBitmap(originalBitmap, MAX_DIMENSION)
-
-            // 2. Convert to JPEG bytes
-            val outputStream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
-            val jpegBytes = outputStream.toByteArray()
-
-            if (scaledBitmap != originalBitmap) {
-                scaledBitmap.recycle()
-            }
-            originalBitmap.recycle()
-
-            // 3. Encode as base64 data URL (matching iOS format)
-            val base64 = android.util.Base64.encodeToString(jpegBytes, android.util.Base64.NO_WRAP)
-            val dataUrl = "data:image/jpeg;base64,$base64"
-
-            // 4. Upload to backend /api/upload endpoint
-            val uploadUrl = appConfig.buildFrontendUrl("api", "upload")
-
-            Timber.d("ImageUpload: uploading ${jpegBytes.size} bytes to $uploadUrl")
-
-            val result = apiClient.postMultipart(
-                url = uploadUrl,
-                fieldName = "file",
-                fieldValue = dataUrl,
-                includeAuth = true
-            )
+            // 2. Try upload at full quality first (iOS: max 1280px, 450KB target)
+            val result = tryUpload(originalBitmap, MAX_DIMENSION, JPEG_QUALITY)
 
             when (result) {
                 is ApiResult.Success -> {
-                    // Parse secure_url from response
-                    val secureUrl = parseSecureUrl(result.data)
-                    if (secureUrl != null) {
-                        Timber.d("ImageUpload: success -> $secureUrl")
-                        ApiResult.Success(secureUrl)
-                    } else {
-                        ApiResult.Failure(
-                            com.shourov.apps.pacedream.core.network.api.ApiError.DecodingError(
-                                "Missing secure_url in response", null
-                            )
-                        )
-                    }
+                    originalBitmap.recycle()
+                    result
                 }
-                is ApiResult.Failure -> result
+                is ApiResult.Failure -> {
+                    // iOS parity: retry with smaller dimensions on 413 or large payload errors
+                    Timber.d("ImageUpload: first attempt failed, retrying with smaller size")
+                    val retryResult = tryUpload(originalBitmap, MAX_DIMENSION_RETRY, JPEG_QUALITY_RETRY)
+                    originalBitmap.recycle()
+                    retryResult
+                }
             }
         } catch (e: Exception) {
             Timber.e(e, "ImageUpload: failed")
             ApiResult.Failure(
                 com.shourov.apps.pacedream.core.network.api.ApiError.Unknown(e.message ?: "Upload failed")
             )
+        }
+    }
+
+    private suspend fun tryUpload(originalBitmap: Bitmap, maxDim: Int, quality: Int): ApiResult<String> {
+        val scaledBitmap = downscaleBitmap(originalBitmap, maxDim)
+
+        val outputStream = ByteArrayOutputStream()
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+        val jpegBytes = outputStream.toByteArray()
+
+        if (scaledBitmap != originalBitmap) {
+            scaledBitmap.recycle()
+        }
+
+        // iOS parity: if bytes too large, try progressively lower quality
+        // iOS tries: [0.62, 0.54, 0.46, 0.38, 0.30, 0.24, 0.18]
+        val maxBytes = if (maxDim == MAX_DIMENSION) MAX_BYTES_CLOUDINARY else MAX_BYTES_FALLBACK
+        var finalBytes = jpegBytes
+        if (finalBytes.size > maxBytes) {
+            val qualities = listOf(62, 54, 46, 38, 30, 24, 18)
+            for (q in qualities) {
+                val recompressed = ByteArrayOutputStream()
+                scaledBitmap.let {
+                    val bmp = downscaleBitmap(originalBitmap, maxDim)
+                    bmp.compress(Bitmap.CompressFormat.JPEG, q, recompressed)
+                    if (bmp != originalBitmap) bmp.recycle()
+                }
+                finalBytes = recompressed.toByteArray()
+                if (finalBytes.size <= maxBytes) break
+            }
+        }
+
+        val base64 = android.util.Base64.encodeToString(finalBytes, android.util.Base64.NO_WRAP)
+        val dataUrl = "data:image/jpeg;base64,$base64"
+
+        val uploadUrl = appConfig.buildFrontendUrl("api", "upload")
+
+        Timber.d("ImageUpload: uploading ${finalBytes.size} bytes (maxDim=$maxDim) to $uploadUrl")
+
+        val result = apiClient.postMultipart(
+            url = uploadUrl,
+            fieldName = "file",
+            fieldValue = dataUrl,
+            includeAuth = true
+        )
+
+        return when (result) {
+            is ApiResult.Success -> {
+                val secureUrl = parseSecureUrl(result.data)
+                if (secureUrl != null) {
+                    Timber.d("ImageUpload: success -> $secureUrl")
+                    ApiResult.Success(secureUrl)
+                } else {
+                    ApiResult.Failure(
+                        com.shourov.apps.pacedream.core.network.api.ApiError.DecodingError(
+                            "Missing secure_url in response", null
+                        )
+                    )
+                }
+            }
+            is ApiResult.Failure -> result
         }
     }
 
@@ -175,7 +214,12 @@ class ImageUploadService @Inject constructor(
     }
 
     companion object {
-        private const val MAX_DIMENSION = 1280
-        private const val JPEG_QUALITY = 80
+        // iOS parity: CloudinaryUploader dimensions and quality targets
+        private const val MAX_DIMENSION = 1280          // Path A: Cloudinary upload
+        private const val MAX_DIMENSION_RETRY = 1024    // Retry on 413
+        private const val JPEG_QUALITY = 80             // Path A quality
+        private const val JPEG_QUALITY_RETRY = 60       // Retry quality
+        private const val MAX_BYTES_CLOUDINARY = 460_800 // ~450KB (iOS target)
+        private const val MAX_BYTES_FALLBACK = 204_800   // ~200KB (iOS fallback)
     }
 }
