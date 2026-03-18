@@ -77,9 +77,9 @@ class AppConfig @Inject constructor() {
         private const val DEFAULT_BACKEND_URL = "https://pacedream-backend.onrender.com"
         private const val DEFAULT_FRONTEND_URL = "https://www.pacedream.com"
         
-        // Auth0 defaults (must match iOS Auth0.plist tenant)
-        private const val DEFAULT_AUTH0_DOMAIN = "dev-ygmeh25wmmszid8u.us.auth0.com"
-        private const val DEFAULT_AUTH0_CLIENT_ID = "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"
+        // Auth0 defaults - set actual values via local.properties or CI environment
+        private const val DEFAULT_AUTH0_DOMAIN = ""
+        private const val DEFAULT_AUTH0_CLIENT_ID = ""
         private const val DEFAULT_AUTH0_SCOPES = "openid profile email offline_access"
     }
     

@@ -24,12 +24,12 @@ android {
         }
         
         // Auth0 manifest placeholders
-        manifestPlaceholders["auth0Domain"] = "dev-ygmeh25wmmszid8u.us.auth0.com"
+        manifestPlaceholders["auth0Domain"] = "" // Set via local.properties or CI
         manifestPlaceholders["auth0Scheme"] = "pacedream"
         // Stripe publishable key (set in local.properties or CI as stripePublishableKey)
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${(project.findProperty("stripePublishableKey") as? String) ?: ""}\"")
         // Auth0 client ID
-        buildConfigField("String", "AUTH0_CLIENT_ID", "\"${(project.findProperty("auth0ClientId") as? String) ?: "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"}\"")
+        buildConfigField("String", "AUTH0_CLIENT_ID", "\"${(project.findProperty("auth0ClientId") as? String) ?: ""}\"")
     }
 
     buildTypes {

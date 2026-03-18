@@ -215,10 +215,9 @@ class AppConfig @Inject constructor() {
         private const val DEFAULT_BACKEND_URL = "https://pacedream-backend.onrender.com"
         private const val DEFAULT_FRONTEND_URL = "https://www.pacedream.com"
         
-        // Auth0 defaults - configure in secrets.defaults.properties or BuildConfig
-        // The actual client ID must be set in secrets.defaults.properties as AUTH0_CLIENT_ID
-        private const val DEFAULT_AUTH0_DOMAIN = "dev-ygmeh25wmmszid8u.us.auth0.com"
-        private const val DEFAULT_AUTH0_CLIENT_ID = "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"
+        // Auth0 defaults - set actual values via secrets.defaults.properties or local.properties
+        private const val DEFAULT_AUTH0_DOMAIN = ""
+        private const val DEFAULT_AUTH0_CLIENT_ID = ""
         
         // Timeout configurations (matching iOS)
         const val REQUEST_TIMEOUT_SECONDS = 30L
