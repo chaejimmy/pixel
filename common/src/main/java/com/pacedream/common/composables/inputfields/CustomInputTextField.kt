@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.stronglyDeemphasizedAlpha
 
 @Composable
@@ -110,7 +111,7 @@ fun CustomInputTextField(
                     Icon(
                         imageVector = PaceDreamIcons.Cancel,
                         contentDescription = "clear text",
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(PaceDreamIconSize.MD),
                         tint = color
                     )
                 }

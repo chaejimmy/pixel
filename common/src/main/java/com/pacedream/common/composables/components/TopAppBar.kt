@@ -71,7 +71,7 @@ fun PaceDreamTopAppBar(
             }
         },
         colors = colors,
-        modifier = modifier.testTag("niaTopAppBar"),
+        modifier = modifier.testTag("paceDreamTopAppBar"),
     )
 }
 

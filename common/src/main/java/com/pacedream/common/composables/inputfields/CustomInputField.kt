@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.R
 import com.pacedream.common.composables.texts.TextFieldError
 
@@ -134,7 +135,7 @@ fun CustomInputField(
                         Icon(
                             imageVector = PaceDreamIcons.Clear,
                             contentDescription = "clear text",
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(PaceDreamIconSize.MD),
                         )
                     }
                 }
