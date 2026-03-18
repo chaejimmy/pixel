@@ -32,10 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pacedream.common.composables.tabs.GeneralTab
-import com.pacedream.common.composables.theme.LargePadding
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.SmallText
-import com.pacedream.common.composables.theme.SubHeadingColor
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.Consts
 import com.pacedream.common.util.Consts.FASHION_TYPE
 import com.pacedream.common.util.Consts.MUSIC_GEAR_TYPE
@@ -68,7 +67,7 @@ fun DashboardContent(
     }
 
 
-    Column(modifier = Modifier.padding(LargePadding)) {
+    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
         val categories = mutableListOf(
             CategoryModel(
                 stringResource(R.string.feature_home_rest_room),
@@ -133,8 +132,8 @@ fun DashboardContent(
         TitleViewAll(stringResource(R.string.browse_by_destination), true)
         Text(
             stringResource(R.string.feature_home_explore_perfect_places_by_destination),
-            fontSize = SmallText,
-            color = SubHeadingColor,
+            style = PaceDreamTypography.Caption2,
+            color = PaceDreamColors.TextSecondary,
         )
         LazyRow {
             items(destinations) {
@@ -220,8 +219,8 @@ fun DashboardContent(
 fun HelpYouFindText() {
     Text(
         stringResource(R.string.help_you_what_needed),
-        fontSize = SmallText,
-        color = SubHeadingColor,
+        style = PaceDreamTypography.Caption2,
+        color = PaceDreamColors.TextSecondary,
     )
 }
 

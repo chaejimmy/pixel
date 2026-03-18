@@ -103,7 +103,7 @@ fun ChatScreen(
                         color = MaterialTheme.colorScheme.errorContainer
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamDesignSystem.PaceDreamSpacing.MD, vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -112,11 +112,11 @@ fun ChatScreen(
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(onClick = viewModel::clearError, modifier = Modifier.size(24.dp)) {
+                            IconButton(onClick = viewModel::clearError, modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD)) {
                                 Icon(
                                     imageVector = PaceDreamIcons.Close,
                                     contentDescription = "Dismiss",
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.SM),
                                     tint = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             }
@@ -173,7 +173,7 @@ private fun ChatHeader(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = PaceDreamDesignSystem.PaceDreamColors.Surface,
-        shadowElevation = 4.dp
+        shadowElevation = PaceDreamDesignSystem.PaceDreamElevation.LG
     ) {
         Row(
             modifier = Modifier
@@ -194,7 +194,7 @@ private fun ChatHeader(
             PaceDreamUserAvatar(
                 imageUrl = otherUserAvatar,
                 contentDescription = "Avatar of $otherUserName",
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.XL)
             )
 
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.MD))
@@ -558,7 +558,7 @@ private fun MessageInput(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = PaceDreamDesignSystem.PaceDreamColors.Surface,
-        shadowElevation = 4.dp
+        shadowElevation = PaceDreamDesignSystem.PaceDreamElevation.LG
     ) {
         Row(
             modifier = Modifier

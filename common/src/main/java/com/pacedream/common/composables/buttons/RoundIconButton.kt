@@ -17,9 +17,8 @@
 package com.pacedream.common.composables.buttons
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,29 +26,30 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-
+import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 
 @Composable
 fun RoundIconButton(
-    icon : ImageVector,
-    onclick : () -> Unit = {}
+    icon: ImageVector,
+    contentDescription: String = "Back",
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onclick: () -> Unit = {}
 ) {
-
     IconButton(
-        onClick = { onclick()},
+        onClick = onclick,
     ) {
         Icon(
             modifier = Modifier
-                // .background(Color.Transparent)
-                .padding(2.dp)
-                .height(35.dp)
-                .width(35.dp)
+                .padding(PaceDreamSpacing.XXS)
+                .size(PaceDreamIconSize.XL)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceContainer)//Color(0xFFF2F2F7))
-            ,
-            imageVector = icon, contentDescription = "back"
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint
         )
     }
 }

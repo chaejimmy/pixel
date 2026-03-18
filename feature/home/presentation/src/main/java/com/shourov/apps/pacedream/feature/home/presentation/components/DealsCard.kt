@@ -43,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
@@ -51,13 +50,11 @@ import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.texts.MediumTitleText
 import com.pacedream.common.composables.texts.SmallTitleText
-import com.pacedream.common.composables.theme.HeadlineColor
-import com.pacedream.common.composables.theme.LargePadding
-import com.pacedream.common.composables.theme.MediumPadding
-import com.pacedream.common.composables.theme.NormalPadding
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.PaceDreamRadius
-import com.pacedream.common.composables.theme.ViewAllColor
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.toCurrencySymbol
 import com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel
 import com.shourov.apps.pacedream.feature.home.domain.models.rooms.RoomModel
@@ -72,9 +69,9 @@ fun DealsCard(
         Column(
             modifier = Modifier
                 .width(280.dp)
-                .padding(NormalPadding)
-                .background(Color.White, RoundedCornerShape(LargePadding))
-                .clip(RoundedCornerShape(LargePadding))
+                .padding(PaceDreamSpacing.SM)
+                .background(PaceDreamColors.Card, RoundedCornerShape(PaceDreamRadius.LG))
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .clickable { onClick() },
         ) {
             Box {
@@ -88,7 +85,7 @@ fun DealsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .clip(RoundedCornerShape(LargePadding)),
+                        .clip(RoundedCornerShape(PaceDreamRadius.LG)),
                 )
                 // Discount badge (for last-minute deals)
                 val priceList = roomModel.price
@@ -97,35 +94,35 @@ fun DealsCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(8.dp)
+                            .padding(PaceDreamSpacing.SM)
                             .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.LocalFireDepartment,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
                             )
                             Text(
                                 text = firstPrice.discounts?.firstOrNull() ?: "DEAL",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                style = PaceDreamTypography.Caption2,
                             )
                         }
                     }
                 }
             }
-            Column(modifier = Modifier.padding(MediumPadding)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 VerticalSpacer(6)
                 Text(
                     roomModel.title,
-                    color = HeadlineColor,
+                    color = PaceDreamColors.TextPrimary,
                     maxLines = 1,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -133,7 +130,7 @@ fun DealsCard(
                 VerticalSpacer(2)
                 Text(
                     roomModel.summary,
-                    color = ViewAllColor,
+                    color = PaceDreamColors.TextTertiary,
                     maxLines = 2,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -145,11 +142,11 @@ fun DealsCard(
                         text = "${
                             price?.currency?.ifBlank { "USD" }?.toCurrencySymbol()
                         }${price?.amount}",
-                        color = HeadlineColor,
+                        color = PaceDreamColors.TextPrimary,
                     )
                     SmallTitleText(
                         text = "/ ${price?.frequency}",
-                        color = HeadlineColor,
+                        color = PaceDreamColors.TextPrimary,
                     )
                 }
                 VerticalSpacer(12)
@@ -176,9 +173,9 @@ fun LastMinuteDealCard(
         Column(
             modifier = Modifier
                 .width(280.dp)
-                .padding(NormalPadding)
-                .background(Color.White, RoundedCornerShape(LargePadding))
-                .clip(RoundedCornerShape(LargePadding))
+                .padding(PaceDreamSpacing.SM)
+                .background(PaceDreamColors.Card, RoundedCornerShape(PaceDreamRadius.LG))
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .clickable { onClick() },
         ) {
             Box {
@@ -192,31 +189,31 @@ fun LastMinuteDealCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp)
-                        .clip(RoundedCornerShape(LargePadding)),
+                        .clip(RoundedCornerShape(PaceDreamRadius.LG)),
                 )
                 // Discount badge
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(8.dp)
+                        .padding(PaceDreamSpacing.SM)
                         .background(PaceDreamColors.Error, RoundedCornerShape(PaceDreamRadius.XS))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.LocalFireDepartment,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
                         Text(
                             text = stringResource(R.string.feature_home_off, discountPercent),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            style = PaceDreamTypography.Caption2,
                         )
                     }
                 }
@@ -225,24 +222,24 @@ fun LastMinuteDealCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(8.dp)
+                            .padding(PaceDreamSpacing.SM)
                             .background(PaceDreamColors.Warning, RoundedCornerShape(PaceDreamRadius.XS))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     ) {
                         Text(
                             text = stringResource(R.string.feature_home_spots_left, spotsLeft),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            style = PaceDreamTypography.Caption2,
                         )
                     }
                 }
             }
-            Column(modifier = Modifier.padding(MediumPadding)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 VerticalSpacer(6)
                 Text(
                     roomModel.title,
-                    color = HeadlineColor,
+                    color = PaceDreamColors.TextPrimary,
                     maxLines = 1,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -250,7 +247,7 @@ fun LastMinuteDealCard(
                 VerticalSpacer(2)
                 Text(
                     roomModel.summary,
-                    color = ViewAllColor,
+                    color = PaceDreamColors.TextTertiary,
                     maxLines = 2,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -262,19 +259,19 @@ fun LastMinuteDealCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "${price?.currency?.ifBlank { "USD" }?.toCurrencySymbol()}$originalAmount",
-                        color = ViewAllColor,
+                        color = PaceDreamColors.TextTertiary,
                         fontWeight = FontWeight.Normal,
-                        fontSize = 12.sp,
+                        style = PaceDreamTypography.Caption,
                         textDecoration = TextDecoration.LineThrough,
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                     MediumTitleText(
                         text = "${price?.currency?.ifBlank { "USD" }?.toCurrencySymbol()}$discountedAmount",
                         color = PaceDreamColors.Error,
                     )
                     SmallTitleText(
                         text = "/ ${price?.frequency}",
-                        color = HeadlineColor,
+                        color = PaceDreamColors.TextPrimary,
                     )
                 }
                 VerticalSpacer(12)
@@ -297,9 +294,9 @@ fun RentedGearDealsCard(
         Column(
             modifier = Modifier
                 .width(280.dp)
-                .padding(NormalPadding)
-                .background(Color.White, RoundedCornerShape(LargePadding))
-                .clip(RoundedCornerShape(LargePadding))
+                .padding(PaceDreamSpacing.SM)
+                .background(PaceDreamColors.Card, RoundedCornerShape(PaceDreamRadius.LG))
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .clickable { onClick() },
         ) {
             AsyncImage(
@@ -313,13 +310,13 @@ fun RentedGearDealsCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .clip(RoundedCornerShape(LargePadding)),
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG)),
             )
-            Column(modifier = Modifier.padding(MediumPadding)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 VerticalSpacer(6)
                 Text(
                     name,
-                    color = HeadlineColor,
+                    color = PaceDreamColors.TextPrimary,
                     maxLines = 1,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -327,7 +324,7 @@ fun RentedGearDealsCard(
                 VerticalSpacer(2)
                 Text(
                     description,
-                    color = ViewAllColor,
+                    color = PaceDreamColors.TextTertiary,
                     maxLines = 2,
                     fontWeight = FontWeight.Bold,
                     overflow = TextOverflow.Ellipsis,
@@ -338,11 +335,11 @@ fun RentedGearDealsCard(
                         text = "${
                             "USD".toCurrencySymbol()
                         }${hourlyRate}",
-                        color = HeadlineColor,
+                        color = PaceDreamColors.TextPrimary,
                     )
                     SmallTitleText(
                         text = "/hour",
-                        color = HeadlineColor,
+                        color = PaceDreamColors.TextPrimary,
                     )
                 }
                 VerticalSpacer(12)
@@ -351,9 +348,7 @@ fun RentedGearDealsCard(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {},
                 )
-
             }
-
         }
     }
 }

@@ -40,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
@@ -126,7 +128,7 @@ fun BookingDetailScreen(
                                 imageVector = statusIcon,
                                 contentDescription = null,
                                 tint = statusColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(PaceDreamIconSize.MD)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
@@ -143,7 +145,7 @@ fun BookingDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.LG),
                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
                     ) {
                         Column(modifier = Modifier.padding(PaceDreamSpacing.LG)) {
                             Text(
@@ -166,7 +168,7 @@ fun BookingDetailScreen(
                                         imageVector = PaceDreamIcons.Person,
                                         contentDescription = null,
                                         tint = PaceDreamColors.TextSecondary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(PaceDreamIconSize.SM)
                                     )
                                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                                     Text(
@@ -184,7 +186,7 @@ fun BookingDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.LG),
                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
                     ) {
                         Column(modifier = Modifier.padding(PaceDreamSpacing.LG)) {
                             Text(
@@ -255,7 +257,7 @@ fun BookingDetailScreen(
                                         imageVector = PaceDreamIcons.Person,
                                         contentDescription = null,
                                         tint = PaceDreamColors.TextSecondary,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(PaceDreamIconSize.SM)
                                     )
                                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                                     Text(
@@ -274,7 +276,7 @@ fun BookingDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(PaceDreamRadius.LG),
                             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
                         ) {
                             Column(
                                 modifier = Modifier.padding(PaceDreamSpacing.LG),
@@ -318,7 +320,7 @@ fun BookingDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.LG),
                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.MD)
                     ) {
                         Column(modifier = Modifier.padding(PaceDreamSpacing.LG)) {
                             Text(
@@ -412,11 +414,11 @@ private fun resolveStatusLabel(status: BookingStatus, endDate: String): String {
 
 private fun statusColor(label: String): Color {
     return when (label.lowercase()) {
-        "upcoming", "confirmed" -> Color(0xFF34C759)  // iOS green
-        "completed" -> Color(0xFF007AFF)               // iOS blue
-        "pending" -> Color(0xFFFF9500)                  // iOS orange
-        "cancelled", "rejected" -> Color(0xFFFF3B30)   // iOS red
-        else -> Color(0xFF8E8E93)                       // iOS gray
+        "upcoming", "confirmed" -> PaceDreamColors.Success
+        "completed" -> PaceDreamColors.Info
+        "pending" -> PaceDreamColors.Warning
+        "cancelled", "rejected" -> PaceDreamColors.Error
+        else -> PaceDreamColors.TextSecondary
     }
 }
 
