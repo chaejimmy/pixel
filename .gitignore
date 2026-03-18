@@ -29,3 +29,12 @@ captures/
 *.keystore
 *.jks
 **/google-services.json
+
+# Secrets properties (actual values — use local.properties or CI)
+secrets.properties
+secrets.local.properties
+
+# Environment files
+.env
+.env.*
+!.env.example
