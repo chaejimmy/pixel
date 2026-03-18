@@ -1,6 +1,5 @@
 package com.shourov.apps.pacedream.ui
 
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +95,6 @@ fun PaceDreamApp(
             },
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) { padding ->
             PaceDreamNavHost(
                 appState = appState,

@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -139,24 +138,24 @@ fun NavGraphBuilder.DashboardNavigation(
                 )
                     }
 
-                    val backStackState = navController.currentBackStackEntryAsState().value
-                    var selectedItem by rememberSaveable {
-                        mutableIntStateOf(0)
+                    val backStackState by navController.currentBackStackEntryAsState()
+                    val mainTabRoutes = remember {
+                        setOf(
+                            DashboardDestination.HOME.name,
+                            DashboardDestination.FAVORITES.name,
+                            DashboardDestination.BOOKINGS.name,
+                            DashboardDestination.INBOX.name,
+                            DashboardDestination.PROFILE.name
+                        )
                     }
 
                     // Bottom bar visibility - always show for main tabs
-                    val isBottomBarShow = remember(key1 = backStackState) {
+                    val isBottomBarShow = remember(backStackState) {
                         val destination = backStackState?.destination ?: return@remember false
-                        destination.hierarchy.any { d ->
-                            d.route == DashboardDestination.HOME.name ||
-                                d.route == DashboardDestination.FAVORITES.name ||
-                                d.route == DashboardDestination.BOOKINGS.name ||
-                                d.route == DashboardDestination.INBOX.name ||
-                                d.route == DashboardDestination.PROFILE.name
-                        }
+                        destination.hierarchy.any { it.route in mainTabRoutes }
                     }
 
-                    selectedItem = remember(backStackState) {
+                    val selectedItem = remember(backStackState) {
                         val destination = backStackState?.destination
                         when {
                             destination?.hierarchy?.any { it.route == DashboardDestination.HOME.name } == true -> 0
@@ -228,7 +227,7 @@ fun NavGraphBuilder.DashboardNavigation(
                     ) {
                         val bottomPadding = it.calculateBottomPadding()
 
-                        // iOS 26 parity: 200ms easeInOut for all transitions
+                        // iOS parity: fast crossfade for tab switches, slide for push/pop
                         val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
 
                         NavHost(
@@ -236,36 +235,26 @@ fun NavGraphBuilder.DashboardNavigation(
                             startDestination = DashboardDestination.HOME.name,
                             modifier = Modifier.padding(bottom = bottomPadding),
                             enterTransition = {
-                                fadeIn(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideIntoContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                )
+                                fadeIn(animationSpec = tween(200, easing = iOSEaseInOut)) +
+                                    slideIntoContainer(
+                                        animationSpec = tween(200, easing = iOSEaseInOut),
+                                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                        initialOffset = { it / 4 }
+                                    )
                             },
                             exitTransition = {
-                                fadeOut(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                )
+                                fadeOut(animationSpec = tween(150, easing = iOSEaseInOut))
                             },
                             popEnterTransition = {
-                                fadeIn(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideIntoContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                )
+                                fadeIn(animationSpec = tween(200, easing = iOSEaseInOut)) +
+                                    slideIntoContainer(
+                                        animationSpec = tween(200, easing = iOSEaseInOut),
+                                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                        initialOffset = { it / 4 }
+                                    )
                             },
                             popExitTransition = {
-                                fadeOut(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                )
+                                fadeOut(animationSpec = tween(150, easing = iOSEaseInOut))
                             },
                         ) {
                             navigation(

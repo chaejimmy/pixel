@@ -11,10 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
@@ -62,6 +59,11 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
+        // Keep splash screen visible until the first composable frame is drawn.
+        // This prevents a white flash between splash dismissal and first render.
+        var isReady = false
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
         // Turn off the decor fitting system windows, which allows us to handle insets,
         // including IME animations, and go edge-to-edge
         // This also sets up the initial system bar style based on the platform theme
@@ -71,17 +73,18 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
+            // Signal splash screen to dismiss once Compose begins rendering
+            isReady = true
+
             val appState = rememberPaceDreamAppState(
                 windowSizeClass = calculateWindowSizeClass(this),
                 hostModeManager = hostModeManager
             )
-            
-            CompositionLocalProvider {
-                PaceDreamTheme {
-                    // iOS parity: keep the main app visible even when logged out.
-                    // Protected actions should present the AuthFlowSheet modally.
-                    PaceDreamApp(appState)
-                }
+
+            PaceDreamTheme {
+                // iOS parity: keep the main app visible even when logged out.
+                // Protected actions should present the AuthFlowSheet modally.
+                PaceDreamApp(appState)
             }
         }
     }

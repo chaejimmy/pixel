@@ -7,8 +7,7 @@ import com.shourov.apps.pacedream.navigation.InboxDestination
 import com.shourov.apps.pacedream.navigation.NavigationRouter
 import com.shourov.apps.pacedream.navigation.PropertyDestination
 import com.shourov.apps.pacedream.navigation.TabRouter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -37,6 +36,8 @@ import timber.log.Timber
  */
 object NotificationRouter {
 
+    private val scope = MainScope()
+
     /**
      * Route a push notification payload to the correct screen.
      *
@@ -61,7 +62,7 @@ object NotificationRouter {
             ?: data["chat_id"]
 
         if (!threadId.isNullOrBlank()) {
-            CoroutineScope(Dispatchers.Main).launch {
+            scope.launch {
                 TabRouter.switchTo(DashboardDestination.INBOX)
                 NavigationRouter.navigateTo("${InboxDestination.THREAD.name}/$threadId")
             }
@@ -114,7 +115,7 @@ object NotificationRouter {
             ?: data["conversationId"] ?: data["conversation_id"]
             ?: data["chat_id"]
 
-        CoroutineScope(Dispatchers.Main).launch {
+        scope.launch {
             when (screen.lowercase()) {
                 // ── Chat / Messages (iOS parity) ──────────────
                 "chat", "messages", "message", "new_message" -> {
@@ -210,7 +211,7 @@ object NotificationRouter {
         val threadId = data["threadId"] ?: data["thread_id"]
             ?: data["chat_id"]
 
-        CoroutineScope(Dispatchers.Main).launch {
+        scope.launch {
             when (type.lowercase()) {
                 "message", "message_received" -> {
                     TabRouter.switchTo(DashboardDestination.INBOX)

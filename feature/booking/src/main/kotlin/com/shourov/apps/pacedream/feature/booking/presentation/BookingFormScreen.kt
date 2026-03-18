@@ -95,6 +95,7 @@ private fun BookingFormContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.MD)
     ) {
