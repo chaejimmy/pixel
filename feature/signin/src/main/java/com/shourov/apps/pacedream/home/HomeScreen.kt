@@ -61,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.graphics.SolidColor
+import com.pacedream.common.composables.theme.PaceDreamColors
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -528,7 +529,7 @@ fun ShowEachCard(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = if (status == "Completed") Color(0xFF15813C) else Color(0xFFFF4A4A),
+                    color = if (status == "Completed") PaceDreamColors.BookingConfirmed else PaceDreamColors.BookingCancelled,
                 )
             }
         }
