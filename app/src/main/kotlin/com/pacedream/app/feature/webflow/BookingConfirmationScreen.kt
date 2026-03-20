@@ -1,5 +1,6 @@
 package com.pacedream.app.feature.webflow
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
@@ -29,7 +30,10 @@ fun BookingConfirmationScreen(
     onHomeClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
+    // Prevent system back from returning to Stripe/checkout
+    BackHandler { onHomeClick() }
+
     LaunchedEffect(bookingType) {
         viewModel.confirmBooking(bookingType)
     }

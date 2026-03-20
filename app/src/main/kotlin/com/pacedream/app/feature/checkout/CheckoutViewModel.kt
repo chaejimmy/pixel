@@ -26,7 +26,8 @@ import javax.inject.Inject
 data class CheckoutUiState(
     val draft: BookingDraft? = null,
     val isSubmitting: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val paymentCompleted: Boolean = false
 )
 
 @HiltViewModel
@@ -53,6 +54,8 @@ class CheckoutViewModel @Inject constructor(
 
     fun submitBooking() {
         val draft = _uiState.value.draft ?: return
+        // Guard: prevent duplicate submissions
+        if (_uiState.value.isSubmitting || _uiState.value.paymentCompleted) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
 
@@ -82,12 +85,12 @@ class CheckoutViewModel @Inject constructor(
                     when {
                         !checkoutUrl.isNullOrBlank() -> {
                             // Stripe checkout flow (matches iOS WebFlow)
-                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null) }
+                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null, paymentCompleted = true) }
                             _effects.send(Effect.LaunchStripeCheckout(checkoutUrl))
                         }
                         !bookingId.isNullOrBlank() -> {
                             // Direct booking created
-                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null) }
+                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null, paymentCompleted = true) }
                             _effects.send(Effect.NavigateToConfirmation(bookingId))
                         }
                         else -> {

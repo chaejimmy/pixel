@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -50,6 +53,9 @@ fun ConfirmationScreen(
     onViewBooking: () -> Unit,
     onDone: () -> Unit
 ) {
+    // Prevent system back from navigating to checkout
+    androidx.activity.compose.BackHandler { onDone() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,10 +76,12 @@ fun ConfirmationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = PaceDreamSpacing.LG),
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
             // Success icon
             Box(
                 modifier = Modifier
@@ -93,7 +101,7 @@ fun ConfirmationScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             Text(
-                "Booking confirmed!",
+                "Booking Confirmed!",
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 textAlign = TextAlign.Center,
@@ -103,7 +111,7 @@ fun ConfirmationScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
             Text(
-                "Your reservation has been successfully created.",
+                "Your reservation has been successfully created. The host has been notified.",
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
                 textAlign = TextAlign.Center
@@ -139,7 +147,7 @@ fun ConfirmationScreen(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-            // Info card
+            // What's next info card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -148,22 +156,59 @@ fun ConfirmationScreen(
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier.padding(PaceDreamSpacing.MD),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
-                    Icon(
-                        PaceDreamIcons.Info,
-                        contentDescription = null,
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
-                        "You can view and manage your booking from the Bookings tab.",
+                        "What's next",
                         style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextSecondary
+                        fontWeight = FontWeight.SemiBold,
+                        color = PaceDreamColors.TextPrimary
                     )
+                    HorizontalDivider(color = PaceDreamColors.Border.copy(alpha = 0.3f), thickness = 0.5.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            PaceDreamIcons.Info,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            "The host will review your request",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            PaceDreamIcons.Info,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            "You'll receive check-in details before your booking",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            PaceDreamIcons.Info,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            "View and manage your booking from the Bookings tab",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
                 }
             }
 
@@ -178,7 +223,7 @@ fun ConfirmationScreen(
                 contentPadding = PaddingValues(vertical = 14.dp),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
-                Text("View booking", style = PaceDreamTypography.Button)
+                Text("View Booking", style = PaceDreamTypography.Button)
             }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -189,8 +234,10 @@ fun ConfirmationScreen(
                 shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
                 contentPadding = PaddingValues(vertical = 14.dp)
             ) {
-                Text("Done", style = PaceDreamTypography.Button, color = PaceDreamColors.Primary)
+                Text("Back to Home", style = PaceDreamTypography.Button, color = PaceDreamColors.Primary)
             }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
     }
 }

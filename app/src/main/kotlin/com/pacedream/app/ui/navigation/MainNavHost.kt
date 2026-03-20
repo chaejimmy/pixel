@@ -520,7 +520,11 @@ fun MainNavHost(
                             draft = draft,
                             onBackClick = { navController.popBackStack() },
                             onConfirmSuccess = { bookingId ->
-                                navController.navigate(NavRoutes.confirmation(bookingId))
+                                // Pop checkout off back stack so back button
+                                // doesn't return to an actionable pay screen
+                                navController.navigate(NavRoutes.confirmation(bookingId)) {
+                                    popUpTo(NavRoutes.checkout(listingId)) { inclusive = true }
+                                }
                             }
                         )
                     }
@@ -534,7 +538,17 @@ fun MainNavHost(
                     val bookingId = entry.arguments?.getString("bookingId") ?: ""
                     ConfirmationScreen(
                         bookingId = bookingId,
-                        onBackClick = { navController.popBackStack() },
+                        onBackClick = {
+                            // After payment success, back should go Home,
+                            // not return to checkout
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         onViewBooking = {
                             navController.navigate(NavRoutes.BOOKINGS) {
                                 popUpTo(navController.graph.findStartDestination().id) {

@@ -81,6 +81,31 @@ fun CheckoutScreen(
         }
     }
 
+    // If payment already completed (e.g., user returned from Stripe), show a minimal
+    // holding state instead of the checkout form to prevent accidental re-payment.
+    if (uiState.paymentCompleted) {
+        Scaffold(
+            containerColor = PaceDreamColors.Background
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(color = PaceDreamColors.Primary)
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                Text(
+                    "Completing your booking…",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+        }
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
