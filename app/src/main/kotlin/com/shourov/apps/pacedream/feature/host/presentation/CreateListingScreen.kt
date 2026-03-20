@@ -107,7 +107,7 @@ import java.util.TimeZone
  */
 enum class ListingMode(val displayName: String, val backendValue: String) {
     SHARE("Share", "share"),
-    BORROW("Borrow", "borrow"),
+    BORROW("Book", "borrow"),
     SPLIT("Split", "split"),
 }
 
@@ -333,7 +333,7 @@ private fun CreateListingEntryScreen(
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                text = "Choose how you want to list: Share, Borrow, or Split.",
+                text = "Choose how you want to list: Share, Book, or Split.",
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
             )
@@ -341,15 +341,15 @@ private fun CreateListingEntryScreen(
 
             ModeCard(
                 title = "Share",
-                subtitle = "Rent your space by the hour or day.",
+                subtitle = "List your space, item, or service for others to book.",
                 icon = PaceDreamIcons.Home,
                 tint = PaceDreamColors.Primary,
                 onClick = { onModeSelected(ListingMode.SHARE) },
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             ModeCard(
-                title = "Borrow",
-                subtitle = "Lend out gear, tools, games & more.",
+                title = "Book",
+                subtitle = "Find and book items, gear, and equipment near you.",
                 icon = PaceDreamIcons.Schedule,
                 tint = Color(0xFF2196F3),
                 onClick = { onModeSelected(ListingMode.BORROW) },
@@ -357,7 +357,7 @@ private fun CreateListingEntryScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             ModeCard(
                 title = "Split",
-                subtitle = "Invite others to share a cost.",
+                subtitle = "Invite others to join and share the cost.",
                 icon = PaceDreamIcons.AttachMoney,
                 tint = Color(0xFF4CAF50),
                 onClick = { onModeSelected(ListingMode.SPLIT) },

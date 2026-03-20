@@ -96,13 +96,13 @@ class WishlistModelTest {
     @Test
     fun `HOURLY_GEAR has correct apiValue and displayName`() {
         assertEquals("hourly-gear", WishlistItemType.HOURLY_GEAR.apiValue)
-        assertEquals("Rent Gear", WishlistItemType.HOURLY_GEAR.displayName)
+        assertEquals("Rental Items", WishlistItemType.HOURLY_GEAR.displayName)
     }
 
     @Test
     fun `SPLIT_STAY has correct apiValue and displayName`() {
         assertEquals("room-stay", WishlistItemType.SPLIT_STAY.apiValue)
-        assertEquals("Split Stays", WishlistItemType.SPLIT_STAY.displayName)
+        assertEquals("Split", WishlistItemType.SPLIT_STAY.displayName)
     }
 
     // ── WishlistItem ────────────────────────────────────────────────

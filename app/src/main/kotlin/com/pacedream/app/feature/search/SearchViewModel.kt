@@ -318,7 +318,7 @@ class SearchViewModel @Inject constructor(
 
 enum class SearchTab(val label: String) {
     SHARE("Share"),
-    BORROW("Borrow"),
+    BORROW("Book"),
     SPLIT("Split")
 }
 

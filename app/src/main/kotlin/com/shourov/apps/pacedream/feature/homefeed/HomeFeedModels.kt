@@ -11,8 +11,8 @@ data class HomeCard(
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
     HOURLY("Hourly spaces", "SHARE"),
-    GEAR("Rent gear", "BORROW"),
-    SPLIT("Split stays", "SPLIT")
+    GEAR("Rental Items", "BORROW"),
+    SPLIT("Split", "SPLIT")
 }
 
 data class HomeSection(
