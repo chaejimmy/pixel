@@ -137,13 +137,13 @@ fun EnhancedDashboardContent(
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Rent Gear",
+                    title = "Rental Items",
                     value = if (gearsState.loading) "—" else gearCount.toString(),
                     icon = PaceDreamIcons.ShoppingBag,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Split Stays",
+                    title = "Split",
                     value = if (splitStaysState.loading) "—" else splitCount.toString(),
                     icon = PaceDreamIcons.People,
                     modifier = Modifier.weight(1f)
@@ -513,11 +513,11 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Rent Gear Section (Hourly Rented Gear)
+        // Rental Items Section (Hourly Rented Gear)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Rent Gear",
+                title = "Rental Items",
                 onViewAllClick = { onViewAllClick("gear") }
             )
             
@@ -619,11 +619,11 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Split Stays Section (NEW - matches iOS)
+        // Split Section (NEW - matches iOS)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Split Stays",
+                title = "Split",
                 onViewAllClick = { onViewAllClick("split-stays") }
             )
             

@@ -126,12 +126,12 @@ fun HomeScreen(
                 }
             }
 
-            // ── Rent Gear ──
+            // ── Rental Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
                 item {
                     ListingSection(
-                        title = "Rent Gear",
-                        subtitle = "Equipment and tools for every need",
+                        title = "Rental Items",
+                        subtitle = "Items and equipment for every need",
                         items = uiState.filteredRentGear,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
@@ -141,12 +141,12 @@ fun HomeScreen(
                 }
             }
 
-            // ── Split Stays ──
+            // ── Split ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
                     ListingSection(
-                        title = "Split Stays",
-                        subtitle = "Flexible long-term rentals",
+                        title = "Split",
+                        subtitle = "Join others and share the cost",
                         items = uiState.filteredSplitStays,
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },

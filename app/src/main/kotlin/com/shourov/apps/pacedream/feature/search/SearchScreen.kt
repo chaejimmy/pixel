@@ -668,7 +668,7 @@ private fun EmptyState(shareType: String = "") {
     ) {
         val (title, description) = when (shareType) {
             "SHARE" -> "No space listings available yet" to "Be the first to create a space listing!"
-            "BORROW" -> "No borrow listings available yet" to "Be the first to create a borrow listing!"
+            "BORROW" -> "No items available yet" to "Be the first to list an item!"
             "SPLIT" -> "No split listings available yet" to "Be the first to create a split listing!"
             else -> "No results" to "Try a different search or pull to refresh."
         }
@@ -846,8 +846,8 @@ private fun ResultsList(
 private fun ModeBanner(shareType: String) {
     val (title, description) = when (shareType) {
         "SHARE" -> "Share - Space Rentals" to "Discover restrooms, nap pods, meeting rooms, study spaces, parking, and more available by the hour"
-        "BORROW" -> "Borrow - Gear & Items" to "Borrow sports gear, cameras, e-bikes, scooters, musical instruments, and more"
-        "SPLIT" -> "Split - Share Costs" to "Split stays, find travel roommates, share rides, and split memberships"
+        "BORROW" -> "Book - Items & Equipment" to "Book sports gear, cameras, e-bikes, scooters, instruments, and more"
+        "SPLIT" -> "Split - Share the Cost" to "Join others and split the cost of stays, rides, memberships, and more"
         else -> return
     }
 

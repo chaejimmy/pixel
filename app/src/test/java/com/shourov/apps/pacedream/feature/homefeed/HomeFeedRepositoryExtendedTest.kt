@@ -322,10 +322,10 @@ class HomeFeedRepositoryExtendedTest {
         assertEquals("Hourly spaces", HomeSectionKey.HOURLY.displayTitle)
         assertEquals("SHARE", HomeSectionKey.HOURLY.shareType)
 
-        assertEquals("Rent gear", HomeSectionKey.GEAR.displayTitle)
+        assertEquals("Rental Items", HomeSectionKey.GEAR.displayTitle)
         assertEquals("BORROW", HomeSectionKey.GEAR.shareType)
 
-        assertEquals("Split stays", HomeSectionKey.SPLIT.displayTitle)
+        assertEquals("Split", HomeSectionKey.SPLIT.displayTitle)
         assertEquals("SPLIT", HomeSectionKey.SPLIT.shareType)
     }
 

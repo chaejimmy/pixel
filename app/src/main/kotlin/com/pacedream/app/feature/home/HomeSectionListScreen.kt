@@ -71,8 +71,8 @@ fun HomeSectionListScreen(
     val title = remember(sectionType) {
         when (sectionType) {
             "hourly-spaces" -> "Hourly Spaces"
-            "rent-gear" -> "Rent Gear"
-            "split-stays" -> "Split Stays"
+            "rent-gear" -> "Rental Items"
+            "split-stays" -> "Split"
             else -> "Listings"
         }
     }

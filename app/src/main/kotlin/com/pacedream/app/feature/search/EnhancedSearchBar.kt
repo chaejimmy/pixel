@@ -197,7 +197,7 @@ private fun SegmentedTabRow(
                 )
                 val tabText = when (tab) {
                     SearchTab.SHARE -> "Share"
-                    SearchTab.BORROW -> "Borrow"
+                    SearchTab.BORROW -> "Book"
                     SearchTab.SPLIT -> "Split"
                 }
 

@@ -119,7 +119,7 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "Share \u00B7 Borrow \u00B7 Split",
+                        "Share \u00B7 Book \u00B7 Split",
                         style = PaceDreamTypography.Footnote.copy(
                             fontFamily = paceDreamFontFamily
                         ),
