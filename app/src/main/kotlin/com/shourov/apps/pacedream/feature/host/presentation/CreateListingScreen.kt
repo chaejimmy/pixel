@@ -592,6 +592,16 @@ private fun CreateListingWizardScreen(
     var endTime by remember { mutableStateOf("17:00") }
     var timezone by remember { mutableStateOf(TimeZone.getDefault().id) }
 
+    // Daily-mode fields
+    var minStay by remember { mutableIntStateOf(1) }
+    var maxStay by remember { mutableIntStateOf(7) }
+    var checkinTime by remember { mutableStateOf("15:00") }
+    var checkoutTime by remember { mutableStateOf("11:00") }
+
+    // Monthly-mode fields
+    var minMonths by remember { mutableIntStateOf(1) }
+    var availableFrom by remember { mutableStateOf("") }
+
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isPublishing by remember { mutableStateOf(false) }
     var isUploadingOverlay by remember { mutableStateOf(false) }
@@ -629,8 +639,20 @@ private fun CreateListingWizardScreen(
             }
             2 -> {
                 if (hasSchedule) {
-                    if (selectedDurations.isEmpty()) return "Select at least 1 duration."
-                    if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                    when (selectedPricingUnit) {
+                        PricingUnit.HOUR -> {
+                            if (selectedDurations.isEmpty()) return "Select at least 1 duration."
+                            if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                        }
+                        PricingUnit.DAY, PricingUnit.WEEK -> {
+                            if (minStay < 1) return "Minimum stay must be at least 1 day."
+                            if (maxStay < minStay) return "Maximum stay must be at least the minimum stay."
+                            if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                        }
+                        PricingUnit.MONTH -> {
+                            if (minMonths < 1) return "Minimum months must be at least 1."
+                        }
+                    }
                 }
                 null
             }
@@ -856,11 +878,18 @@ private fun CreateListingWizardScreen(
                         onPricingUnitChange = { selectedPricingUnit = it },
                     )
                     step == 2 && hasSchedule -> ScheduleAvailabilityStep(
+                        pricingUnit = selectedPricingUnit,
                         selectedDurations = selectedDurations,
                         selectedDays = selectedDays,
                         startTime = startTime,
                         endTime = endTime,
                         timezone = timezone,
+                        minStay = minStay,
+                        maxStay = maxStay,
+                        checkinTime = checkinTime,
+                        checkoutTime = checkoutTime,
+                        minMonths = minMonths,
+                        availableFrom = availableFrom,
                         onToggleDuration = { min ->
                             if (selectedDurations.contains(min)) selectedDurations.remove(min)
                             else { selectedDurations.add(min); selectedDurations.sort() }
@@ -872,6 +901,12 @@ private fun CreateListingWizardScreen(
                         onStartTimeChange = { startTime = it },
                         onEndTimeChange = { endTime = it },
                         onTimezoneChange = { timezone = it },
+                        onMinStayChange = { minStay = it; if (maxStay < it) maxStay = it },
+                        onMaxStayChange = { maxStay = it },
+                        onCheckinTimeChange = { checkinTime = it },
+                        onCheckoutTimeChange = { checkoutTime = it },
+                        onMinMonthsChange = { minMonths = it },
+                        onAvailableFromChange = { availableFrom = it },
                     )
                     else -> ReviewPublishStep(
                         listingMode = listingMode,
@@ -890,6 +925,12 @@ private fun CreateListingWizardScreen(
                         startTime = startTime,
                         endTime = endTime,
                         timezone = timezone,
+                        minStay = minStay,
+                        maxStay = maxStay,
+                        checkinTime = checkinTime,
+                        checkoutTime = checkoutTime,
+                        minMonths = minMonths,
+                        availableFrom = availableFrom,
                         selectedImageUris = selectedImageUris,
                         amenities = amenities,
                     )
@@ -1252,21 +1293,40 @@ private fun PhotosLocationPricingStep(
     }
 }
 
-// ── Step: Schedule & Availability (iOS: ListingScheduleAvailabilityStepView) ──
+// ── Step: Schedule & Availability (mode-aware, iOS parity) ──
+
+private val HOURLY_DURATION_OPTIONS = listOf(
+    15 to "15 min", 30 to "30 min", 60 to "1 hr", 120 to "2 hrs",
+    180 to "3 hrs", 240 to "4 hrs", 360 to "6 hrs", 480 to "8 hrs",
+    720 to "12 hrs", 1440 to "24 hrs"
+)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ScheduleAvailabilityStep(
+    pricingUnit: PricingUnit,
     selectedDurations: List<Int>,
     selectedDays: List<Int>,
     startTime: String,
     endTime: String,
     timezone: String,
+    minStay: Int,
+    maxStay: Int,
+    checkinTime: String,
+    checkoutTime: String,
+    minMonths: Int,
+    availableFrom: String,
     onToggleDuration: (Int) -> Unit,
     onToggleDay: (Int) -> Unit,
     onStartTimeChange: (String) -> Unit,
     onEndTimeChange: (String) -> Unit,
     onTimezoneChange: (String) -> Unit,
+    onMinStayChange: (Int) -> Unit,
+    onMaxStayChange: (Int) -> Unit,
+    onCheckinTimeChange: (String) -> Unit,
+    onCheckoutTimeChange: (String) -> Unit,
+    onMinMonthsChange: (Int) -> Unit,
+    onAvailableFromChange: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -1274,111 +1334,303 @@ private fun ScheduleAvailabilityStep(
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
     ) {
-        Text(
-            text = "Durations",
-            style = PaceDreamTypography.Headline,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        FlowRow(
+        // Mode indicator
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                .background(PaceDreamColors.Primary.copy(alpha = 0.08f))
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            DURATION_OPTIONS_MINUTES.forEach { min ->
-                val isSelected = selectedDurations.contains(min)
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onToggleDuration(min) },
-                    label = { Text("$min min", style = PaceDreamTypography.Callout) },
-                    leadingIcon = if (isSelected) {
-                        { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                    } else null,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaceDreamColors.Primary,
-                        selectedLabelColor = Color.White,
-                        selectedLeadingIconColor = Color.White,
-                        containerColor = PaceDreamColors.Card,
-                        labelColor = PaceDreamColors.TextPrimary,
-                    ),
-                    shape = RoundedCornerShape(PaceDreamRadius.Round),
-                    border = FilterChipDefaults.filterChipBorder(
-                        borderColor = PaceDreamColors.Border,
-                        selectedBorderColor = PaceDreamColors.Primary,
-                        enabled = true,
+            Icon(
+                PaceDreamIcons.Schedule,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = "Pricing mode: ${pricingUnit.displayLabel}",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── HOURLY MODE ──
+        if (pricingUnit == PricingUnit.HOUR) {
+            Text(
+                text = "Available Durations",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = "Guests can book any of the selected durations.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                HOURLY_DURATION_OPTIONS.forEach { (min, label) ->
+                    val isSelected = selectedDurations.contains(min)
+                    FilterChip(
                         selected = isSelected,
+                        onClick = { onToggleDuration(min) },
+                        label = { Text(label, style = PaceDreamTypography.Callout) },
+                        leadingIcon = if (isSelected) {
+                            { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                        } else null,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PaceDreamColors.Primary,
+                            selectedLabelColor = Color.White,
+                            selectedLeadingIconColor = Color.White,
+                            containerColor = PaceDreamColors.Card,
+                            labelColor = PaceDreamColors.TextPrimary,
+                        ),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = PaceDreamColors.Border,
+                            selectedBorderColor = PaceDreamColors.Primary,
+                            enabled = true,
+                            selected = isSelected,
+                        ),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            Text(
+                text = "Operating Hours",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                OutlinedTextField(
+                    value = startTime,
+                    onValueChange = onStartTimeChange,
+                    label = { Text("Start Time", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                OutlinedTextField(
+                    value = endTime,
+                    onValueChange = onEndTimeChange,
+                    label = { Text("End Time", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        // ── DAILY MODE ──
+        if (pricingUnit == PricingUnit.DAY || pricingUnit == PricingUnit.WEEK) {
+            Text(
+                text = "Stay Duration",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                OutlinedTextField(
+                    value = minStay.toString(),
+                    onValueChange = { raw ->
+                        val v = raw.filter { it.isDigit() }.toIntOrNull() ?: 1
+                        onMinStayChange(maxOf(1, v))
+                    },
+                    label = { Text("Min Stay (days)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                OutlinedTextField(
+                    value = maxStay.toString(),
+                    onValueChange = { raw ->
+                        val v = raw.filter { it.isDigit() }.toIntOrNull() ?: minStay
+                        onMaxStayChange(maxOf(minStay, v))
+                    },
+                    label = { Text("Max Stay (days)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+            }
 
-        Text(
-            text = "Available days",
-            style = PaceDreamTypography.Headline,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-            DAY_LABELS.forEach { (label, value) ->
-                val isOn = selectedDays.contains(value)
-                Box(
-                    modifier = Modifier
-                        .size(width = 44.dp, height = 34.dp)
-                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                        .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Primary.copy(alpha = 0.06f))
-                        .clickable { onToggleDay(value) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = label,
-                        style = PaceDreamTypography.Caption,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isOn) Color.White else PaceDreamColors.TextPrimary,
-                    )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            Text(
+                text = "Check-in & Check-out",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                OutlinedTextField(
+                    value = checkinTime,
+                    onValueChange = onCheckinTimeChange,
+                    label = { Text("Check-in Time", style = PaceDreamTypography.Callout) },
+                    placeholder = { Text("15:00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                OutlinedTextField(
+                    value = checkoutTime,
+                    onValueChange = onCheckoutTimeChange,
+                    label = { Text("Check-out Time", style = PaceDreamTypography.Callout) },
+                    placeholder = { Text("11:00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = "Guests must check out by the check-out time.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+
+        // ── MONTHLY MODE ──
+        if (pricingUnit == PricingUnit.MONTH) {
+            Text(
+                text = "Lease Terms",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            OutlinedTextField(
+                value = minMonths.toString(),
+                onValueChange = { raw ->
+                    val v = raw.filter { it.isDigit() }.toIntOrNull() ?: 1
+                    onMinMonthsChange(maxOf(1, v))
+                },
+                label = { Text("Minimum Months", style = PaceDreamTypography.Callout) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = "The shortest lease term you will accept.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            Text(
+                text = "Available From",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            OutlinedTextField(
+                value = availableFrom,
+                onValueChange = onAvailableFromChange,
+                label = { Text("Earliest move-in date", style = PaceDreamTypography.Callout) },
+                placeholder = { Text("YYYY-MM-DD", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = "The earliest date a tenant can move in.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+
+        // Available Days (hourly & daily)
+        if (pricingUnit == PricingUnit.HOUR || pricingUnit == PricingUnit.DAY || pricingUnit == PricingUnit.WEEK) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            Text(
+                text = "Available Days",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+                DAY_LABELS.forEach { (label, value) ->
+                    val isOn = selectedDays.contains(value)
+                    Box(
+                        modifier = Modifier
+                            .size(width = 44.dp, height = 34.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                            .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Primary.copy(alpha = 0.06f))
+                            .clickable { onToggleDay(value) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = label,
+                            style = PaceDreamTypography.Caption,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOn) Color.White else PaceDreamColors.TextPrimary,
+                        )
+                    }
                 }
             }
         }
 
+        // Timezone (all modes)
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-        Text(
-            text = "Time window",
-            style = PaceDreamTypography.Headline,
-            color = PaceDreamColors.TextPrimary,
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-        ) {
-            OutlinedTextField(
-                value = startTime,
-                onValueChange = onStartTimeChange,
-                label = { Text("Start", style = PaceDreamTypography.Callout) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
-                    unfocusedBorderColor = PaceDreamColors.Border,
-                ),
-            )
-            OutlinedTextField(
-                value = endTime,
-                onValueChange = onEndTimeChange,
-                label = { Text("End", style = PaceDreamTypography.Callout) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
-                    unfocusedBorderColor = PaceDreamColors.Border,
-                ),
-            )
-        }
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
         OutlinedTextField(
             value = timezone,
@@ -1415,6 +1667,12 @@ private fun ReviewPublishStep(
     startTime: String,
     endTime: String,
     timezone: String,
+    minStay: Int = 1,
+    maxStay: Int = 7,
+    checkinTime: String = "15:00",
+    checkoutTime: String = "11:00",
+    minMonths: Int = 1,
+    availableFrom: String = "",
     selectedImageUris: List<Uri> = emptyList(),
     amenities: List<String> = emptyList(),
 ) {
@@ -1552,10 +1810,28 @@ private fun ReviewPublishStep(
             SummaryRow("Amenities", amenities.joinToString(", "))
         }
         if (hasSchedule) {
-            SummaryRow("Durations", selectedDurations.joinToString(", ") { "$it min" }.ifBlank { "\u2014" })
             val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-            SummaryRow("Days", selectedDays.sorted().joinToString(", ") { dayNames.getOrElse(it) { "$it" } }.ifBlank { "\u2014" })
-            SummaryRow("Time window", "$startTime\u2013$endTime")
+            when (selectedPricingUnit) {
+                PricingUnit.HOUR -> {
+                    SummaryRow("Durations", selectedDurations.joinToString(", ") {
+                        HOURLY_DURATION_OPTIONS.firstOrNull { (v, _) -> v == it }?.second ?: "$it min"
+                    }.ifBlank { "\u2014" })
+                    SummaryRow("Days", selectedDays.sorted().joinToString(", ") { dayNames.getOrElse(it) { "$it" } }.ifBlank { "\u2014" })
+                    SummaryRow("Hours", "$startTime\u2013$endTime")
+                }
+                PricingUnit.DAY, PricingUnit.WEEK -> {
+                    SummaryRow("Stay", "$minStay\u2013$maxStay days")
+                    SummaryRow("Check-in", checkinTime)
+                    SummaryRow("Check-out", checkoutTime)
+                    SummaryRow("Days", selectedDays.sorted().joinToString(", ") { dayNames.getOrElse(it) { "$it" } }.ifBlank { "\u2014" })
+                }
+                PricingUnit.MONTH -> {
+                    SummaryRow("Min. months", "$minMonths")
+                    if (availableFrom.isNotBlank()) {
+                        SummaryRow("Available", availableFrom)
+                    }
+                }
+            }
             SummaryRow("Timezone", timezone)
         }
     }
