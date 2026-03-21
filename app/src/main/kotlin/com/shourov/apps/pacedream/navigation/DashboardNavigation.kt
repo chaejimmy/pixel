@@ -293,7 +293,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ) { backStackEntry ->
                                     val raw = backStackEntry.arguments?.getString("sectionKey")
                                     val section = runCatching { HomeSectionKey.valueOf(raw ?: "") }
-                                        .getOrDefault(HomeSectionKey.HOURLY)
+                                        .getOrDefault(HomeSectionKey.SPACES)
                                     HomeSectionListScreen(
                                         section = section,
                                         onBack = { navController.popBackStack() },

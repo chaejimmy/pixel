@@ -10,9 +10,9 @@ data class HomeCard(
 )
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
-    HOURLY("Hourly spaces", "SHARE"),
-    GEAR("Rental Items", "BORROW"),
-    SPLIT("Split", "SPLIT")
+    SPACES("Spaces", "SHARE"),
+    ITEMS("Items", "BORROW"),
+    SERVICES("Services", "SHARE"),
 }
 
 data class HomeSection(
@@ -24,12 +24,12 @@ data class HomeSection(
 
 data class HomeFeedState(
     val isRefreshing: Boolean = false,
-    val headerTitle: String = "One place to share it all",
-    val headerSubtitle: String = "Book, share, or split stays, time, and spaces—on one platform.",
+    val headerTitle: String = "Discover",
+    val headerSubtitle: String = "Find spaces, items, and services — only for the time you need.",
     val sections: List<HomeSection> = listOf(
-        HomeSection(HomeSectionKey.HOURLY, emptyList(), isLoading = true),
-        HomeSection(HomeSectionKey.GEAR, emptyList(), isLoading = true),
-        HomeSection(HomeSectionKey.SPLIT, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.SPACES, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.ITEMS, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.SERVICES, emptyList(), isLoading = true),
     ),
     val globalErrorMessage: String? = null
 )
