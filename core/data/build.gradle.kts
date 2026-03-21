@@ -5,6 +5,7 @@ plugins {
     id("kotlinx-serialization")
 }
 
+
 android {
     namespace = "com.shourov.apps.pacedream.core.data"
     buildFeatures {
@@ -25,6 +26,7 @@ dependencies {
     api(projects.core.network)
     implementation(libs.gson.convert)
     implementation(libs.retrofit.gson)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(projects.core.analytics)
     implementation(libs.play.services.auth.api.phone)
