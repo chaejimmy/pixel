@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -156,10 +157,11 @@ fun HomeScreen(
                 }
             }
 
-            // ── Find by Type Section (iOS parity) ──
+            // ── Browse by Type Section (Marketplace taxonomy) ──
             item {
-                ExploreByTypeRow(
+                BrowseByTypeSection(
                     onTypeTap = { type -> onCategoryClick(type) },
+                    onSubcategoryTap = { _, subcategory -> onCategoryClick(subcategory) },
                     modifier = Modifier.padding(top = 32.dp)
                 )
             }
@@ -940,59 +942,115 @@ private fun ListingCard(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Explore by Type (iOS parity: horizontal row of gradient icon cards)
+// Browse by Type (Marketplace taxonomy: Spaces, Items, Services)
 // ─────────────────────────────────────────────────────────────────────────────
 
-private data class ExploreTypeData(
-    val title: String,
+private enum class HomeBrowseType(
+    val displayTitle: String,
     val subtitle: String,
     val icon: ImageVector,
     val gradientColors: List<Color>
-)
+) {
+    SPACES("Spaces", "Book flexible places nearby", PaceDreamIcons.Apartment, listOf(Color(0xFF5527D7), Color(0xFF7C5CE7))),
+    ITEMS("Items", "Borrow useful things on demand", PaceDreamIcons.Category, listOf(Color(0xFF3B82F6), Color(0xFF60A5FA))),
+    SERVICES("Services", "Find help for everyday needs", PaceDreamIcons.Build, listOf(Color(0xFF10B981), Color(0xFF34D399)));
 
-private fun getExploreTypes(): List<ExploreTypeData> = listOf(
-    ExploreTypeData(
-        "Romantic", "Cozy getaways", PaceDreamIcons.Favorite,
-        listOf(Color(0xFFFF6B6B), Color(0xFFEE5A24))
-    ),
-    ExploreTypeData(
-        "Adventure", "Thrilling stays", PaceDreamIcons.DirectionsBike,
-        listOf(Color(0xFF4ECDC4), Color(0xFF2ECC71))
-    ),
-    ExploreTypeData(
-        "Nature", "Peaceful retreats", PaceDreamIcons.Yard,
-        listOf(Color(0xFF45B649), Color(0xFF2E8B57))
-    ),
-    ExploreTypeData(
-        "Urban", "City living", PaceDreamIcons.Apartment,
-        listOf(Color(0xFF667EEA), Color(0xFF764BA2))
-    ),
-    ExploreTypeData(
-        "Solo", "Me time", PaceDreamIcons.Person,
-        listOf(Color(0xFFF093FB), Color(0xFFF5576C))
-    )
-)
+    data class Subcategory(val id: String, val title: String, val icon: ImageVector)
+
+    val subcategories: List<Subcategory>
+        get() = when (this) {
+            SPACES -> listOf(
+                Subcategory("parking", "Parking", PaceDreamIcons.LocalParking),
+                Subcategory("restroom", "Restroom", PaceDreamIcons.Wc),
+                Subcategory("nap_pod", "Nap Pod", PaceDreamIcons.Bed),
+                Subcategory("meeting_room", "Meeting Room", PaceDreamIcons.MeetingRoom),
+                Subcategory("storage_space", "Storage", PaceDreamIcons.Storage),
+                Subcategory("gym", "Gym", PaceDreamIcons.FitnessCenter),
+            )
+            ITEMS -> listOf(
+                Subcategory("camera", "Camera", PaceDreamIcons.CameraAlt),
+                Subcategory("sports_gear", "Sports Gear", PaceDreamIcons.SportsEsports),
+                Subcategory("tools", "Tools", PaceDreamIcons.Build),
+                Subcategory("tech", "Tech", PaceDreamIcons.Laptop),
+                Subcategory("micromobility", "Bike", PaceDreamIcons.DirectionsBike),
+                Subcategory("instrument", "Instrument", PaceDreamIcons.SmartToy),
+            )
+            SERVICES -> listOf(
+                Subcategory("cleaning_organizing", "Cleaning", PaceDreamIcons.LocalLaundryService),
+                Subcategory("moving_help", "Moving Help", PaceDreamIcons.LocalOffer),
+                Subcategory("home_help", "Home Help", PaceDreamIcons.Home),
+                Subcategory("everyday_help", "Errands", PaceDreamIcons.ShoppingBag),
+                Subcategory("fitness", "Fitness", PaceDreamIcons.FitnessCenter),
+                Subcategory("learning", "Learning", PaceDreamIcons.School),
+            )
+        }
+}
 
 @Composable
-private fun ExploreByTypeRow(
+private fun BrowseByTypeSection(
     onTypeTap: (String) -> Unit,
+    onSubcategoryTap: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedType by remember { mutableStateOf(HomeBrowseType.SPACES) }
+
     Column(modifier = modifier.fillMaxWidth()) {
-        SectionHeader(
-            title = "Find by Type",
-            subtitle = "Discover stays that match your vibe",
-            modifier = Modifier.padding(horizontal = 20.dp)
-        )
+        // Section header
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                text = "Browse by Type",
+                style = DSTypo.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFF1A1A1A)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Explore spaces, items, and services near you",
+                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Gray500
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Segmented pill selector
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth()
+                .background(
+                    PaceDreamColors.Gray100,
+                    RoundedCornerShape(PaceDreamRadius.XL)
+                )
+                .padding(4.dp)
+        ) {
+            HomeBrowseType.entries.forEach { type ->
+                BrowseTypePill(
+                    type = type,
+                    isSelected = selectedType == type,
+                    onClick = {
+                        selectedType = type
+                        onTypeTap(type.displayTitle)
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Subcategory chips
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(getExploreTypes()) { type ->
-                ExploreTypeCard(
-                    type = type,
-                    onClick = { onTypeTap(type.title) }
+            items(selectedType.subcategories) { sub ->
+                SubcategoryChip(
+                    subcategory = sub,
+                    accentColor = selectedType.gradientColors.first(),
+                    onClick = { onSubcategoryTap(selectedType.displayTitle, sub.title) }
                 )
             }
         }
@@ -1000,22 +1058,90 @@ private fun ExploreByTypeRow(
 }
 
 @Composable
-private fun ExploreTypeCard(
-    type: ExploreTypeData,
+private fun BrowseTypePill(
+    type: HomeBrowseType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bgAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = tween(200),
+        label = "pillBg"
+    )
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .then(
+                if (bgAlpha > 0f) {
+                    Modifier.background(
+                        Brush.linearGradient(
+                            colors = type.gradientColors,
+                            start = Offset.Zero,
+                            end = Offset(Float.POSITIVE_INFINITY, 0f)
+                        ),
+                        RoundedCornerShape(PaceDreamRadius.LG)
+                    )
+                } else Modifier
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else PaceDreamColors.Gray500,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = type.displayTitle,
+                style = DSTypo.Footnote.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = if (isSelected) Color.White else PaceDreamColors.Gray500
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubcategoryChip(
+    subcategory: HomeBrowseType.Subcategory,
+    accentColor: Color,
     onClick: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = tween(durationMillis = 100),
-        label = "typeScale"
+        label = "chipScale"
     )
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .width(110.dp)
             .scale(scale)
+            .background(
+                MaterialTheme.colorScheme.surface,
+                RoundedCornerShape(PaceDreamRadius.XL)
+            )
+            .border(
+                width = 1.dp,
+                color = PaceDreamColors.Gray200,
+                shape = RoundedCornerShape(PaceDreamRadius.XL)
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -1026,53 +1152,23 @@ private fun ExploreTypeCard(
                     }
                 )
             }
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
-        // Gradient icon container (72dp matching iOS)
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    ambientColor = type.gradientColors.first().copy(alpha = 0.30f),
-                    spotColor = type.gradientColors.first().copy(alpha = 0.30f)
-                )
-                .background(
-                    Brush.linearGradient(
-                        colors = type.gradientColors,
-                        start = Offset(0f, 0f),
-                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                    ),
-                    RoundedCornerShape(PaceDreamRadius.LG)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = type.icon,
-                contentDescription = type.title,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
+        Icon(
+            imageVector = subcategory.icon,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = type.title,
-            style = DSTypo.Footnote.copy(
+            text = subcategory.title,
+            style = DSTypo.Caption1.copy(
                 fontFamily = paceDreamFontFamily,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Medium
             ),
             color = Color(0xFF1A1A1A),
-            textAlign = TextAlign.Center,
             maxLines = 1
-        )
-        Text(
-            text = type.subtitle,
-            style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.Gray500,
-            textAlign = TextAlign.Center,
-            maxLines = 2
         )
     }
 }
