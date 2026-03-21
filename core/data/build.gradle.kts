@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.gson.convert)
     implementation(libs.retrofit.gson)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.timber)
 
     implementation(projects.core.analytics)
     implementation(libs.play.services.auth.api.phone)
