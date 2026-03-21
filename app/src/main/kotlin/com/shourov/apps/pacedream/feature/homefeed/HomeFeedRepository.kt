@@ -132,13 +132,20 @@ class HomeFeedRepository @Inject constructor(
             ?: obj["price"]?.jsonObject?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
             ?: obj["pricing"]?.jsonObject?.get("price")?.stringOrNull()?.let { normalizePriceText(it) }
 
+        // Extract subcategory from multiple possible fields for resource type filtering.
+        val subCategory = obj["subCategory"].stringOrNull()
+            ?: obj["item_type"].stringOrNull()
+            ?: obj["details"]?.jsonObject?.get("room_type").stringOrNull()
+            ?: obj["roomType"].stringOrNull()
+
         return HomeCard(
             id = id,
             title = title,
             location = location,
             imageUrl = imageUrl,
             priceText = priceText,
-            rating = rating
+            rating = rating,
+            subCategory = subCategory,
         )
     }
 

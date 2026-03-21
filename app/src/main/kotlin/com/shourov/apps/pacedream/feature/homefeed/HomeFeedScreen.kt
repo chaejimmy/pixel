@@ -195,7 +195,10 @@ fun HomeFeedScreen(
                             when {
                                 contentState.isLoading -> SkeletonRow()
                                 contentState.isEmpty -> EmptyInline(
-                                    message = "Nothing here yet. Pull to refresh to try again.",
+                                    message = if (section.key == HomeSectionKey.SERVICES)
+                                        "No services available yet. Be the first to offer a service."
+                                    else
+                                        "Nothing here yet. Pull to refresh to try again.",
                                     onRefresh = { viewModel.refresh() }
                                 )
                                 else -> CardsRow(
