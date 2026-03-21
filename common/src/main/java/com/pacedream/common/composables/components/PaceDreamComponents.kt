@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pacedream.common.composables.shimmerEffect
@@ -447,6 +448,31 @@ fun PaceDreamPropertyCard(
 }
 
 // ============================================================================
+// ============================================================================
+// City Fallback Images - Maps city names to relevant Unsplash images
+// ============================================================================
+private fun destinationFallbackImage(name: String): String = when (name.lowercase().trim()) {
+    "new york", "manhattan", "brooklyn" -> "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80"
+    "los angeles" -> "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&q=80"
+    "san francisco" -> "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&q=80"
+    "chicago" -> "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=400&q=80"
+    "miami" -> "https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&q=80"
+    "seattle" -> "https://images.unsplash.com/photo-1502175353174-a7a70e73b4c3?w=400&q=80"
+    "austin" -> "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=400&q=80"
+    "denver" -> "https://images.unsplash.com/photo-1619856699906-09e1f4ef478b?w=400&q=80"
+    "boston" -> "https://images.unsplash.com/photo-1501979376754-1d3b25f22a4e?w=400&q=80"
+    "honolulu" -> "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=400&q=80"
+    "maui" -> "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=400&q=80"
+    "grand canyon" -> "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=400&q=80"
+    "nashville" -> "https://images.unsplash.com/photo-1545419913-775e2e168cd0?w=400&q=80"
+    "portland" -> "https://images.unsplash.com/photo-1507245338956-79a3a4b41583?w=400&q=80"
+    "san diego" -> "https://images.unsplash.com/photo-1538097304804-2a1b932466a9?w=400&q=80"
+    "atlanta" -> "https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?w=400&q=80"
+    "washington", "washington dc" -> "https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=400&q=80"
+    else -> "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80"
+}
+
+// ============================================================================
 // Destination Card - Compact glass card
 // ============================================================================
 @Composable
@@ -476,17 +502,14 @@ fun PaceDreamDestinationCard(
                     .height(PaceDreamDestinationCard.ImageHeight)
                     .background(PaceDreamGray100)
             ) {
-                Box(
+                val resolvedUrl = imageUrl?.takeIf { it.isNotBlank() }
+                    ?: destinationFallbackImage(name)
+                AsyncImage(
+                    model = resolvedUrl,
+                    contentDescription = name,
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (imageUrl != null) PaceDreamIcons.Image else PaceDreamIcons.LocationOn,
-                        contentDescription = null,
-                        tint = PaceDreamTextTertiary,
-                        modifier = Modifier.size(PaceDreamIconSize.LG)
-                    )
-                }
+                    contentScale = ContentScale.Crop
+                )
             }
 
             // Destination Name

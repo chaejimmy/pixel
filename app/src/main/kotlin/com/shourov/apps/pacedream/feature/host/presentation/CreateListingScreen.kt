@@ -158,6 +158,7 @@ private val SPACE_SUBCATEGORIES = listOf(
     SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
     SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
     SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = false),
 )
 
 private val ITEM_SUBCATEGORIES = listOf(
@@ -169,7 +170,7 @@ private val ITEM_SUBCATEGORIES = listOf(
     SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
     SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
     SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike, needsSchedule = true),
-    SubcategoryItem("other", "other", "Other", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
 )
 
 private val SERVICE_SUBCATEGORIES = listOf(
@@ -180,6 +181,7 @@ private val SERVICE_SUBCATEGORIES = listOf(
     SubcategoryItem("fitness", "fitness", "Fitness", "Training sessions", PaceDreamIcons.FitnessCenter, needsSchedule = false),
     SubcategoryItem("learning", "learning", "Learning", "Lessons and tutoring", PaceDreamIcons.School, needsSchedule = false),
     SubcategoryItem("creative", "creative", "Creative", "Art, music, design", PaceDreamIcons.Category, needsSchedule = false),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = false),
 )
 
 private val SERVICE_IDS = SERVICE_SUBCATEGORIES.map { it.value }.toSet()
@@ -220,7 +222,7 @@ private fun getAllowedPricingUnits(
         ListingMode.BORROW -> when {
             sc in SERVICE_IDS -> listOf(PricingUnit.HOUR)
             sc in listOf("sports_gear", "camera", "vehicle", "tech", "instrument",
-                "tools", "games", "toys", "micromobility", "other") ->
+                "tools", "games", "toys", "micromobility", "others") ->
                 listOf(PricingUnit.DAY, PricingUnit.WEEK)
             else -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
         }
@@ -242,7 +244,7 @@ private fun needsSchedule(listingMode: ListingMode, subCategory: String): Boolea
     if (sc in SERVICE_IDS) return false
     return when (listingMode) {
         ListingMode.SHARE -> sc in listOf("restroom", "nap_pod", "meeting_room", "gym")
-        ListingMode.BORROW -> sc in listOf("camera", "sports_gear", "tech", "instrument", "tools", "games", "toys", "micromobility", "other")
+        ListingMode.BORROW -> sc in listOf("camera", "sports_gear", "tech", "instrument", "tools", "games", "toys", "micromobility", "others")
         ListingMode.SPLIT -> false
     }
 }

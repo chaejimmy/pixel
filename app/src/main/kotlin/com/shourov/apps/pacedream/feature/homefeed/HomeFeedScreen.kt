@@ -201,12 +201,21 @@ fun HomeFeedScreen(
                                         "Nothing here yet. Pull to refresh to try again.",
                                     onRefresh = { viewModel.refresh() }
                                 )
-                                else -> CardsRow(
-                                    section.items,
-                                    onListingClick,
-                                    favoriteIds = favoriteIds,
-                                    onFavorite = { onFavorite(it.id) }
-                                )
+                                else -> if (section.key == HomeSectionKey.SERVICES) {
+                                    ServicesGrid(
+                                        section.items,
+                                        onListingClick,
+                                        favoriteIds = favoriteIds,
+                                        onFavorite = { onFavorite(it.id) }
+                                    )
+                                } else {
+                                    CardsRow(
+                                        section.items,
+                                        onListingClick,
+                                        favoriteIds = favoriteIds,
+                                        onFavorite = { onFavorite(it.id) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -463,6 +472,43 @@ private fun CategoryTab(
 }
 
 @Composable
+private fun ServicesGrid(
+    items: List<HomeCard>,
+    onClick: (String) -> Unit,
+    favoriteIds: Set<String>,
+    onFavorite: (HomeCard) -> Unit
+) {
+    val chunkedItems = items.chunked(2)
+    Column(
+        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+    ) {
+        chunkedItems.forEach { rowItems ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                rowItems.forEach { item ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        ListingCard(
+                            item = item,
+                            onClick = { onClick(item.id) },
+                            isFavorited = favoriteIds.contains(item.id),
+                            onFavorite = { onFavorite(item) },
+                            modifier = Modifier.fillMaxWidth().height(280.dp)
+                        )
+                    }
+                }
+                // Fill empty space if odd number
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun CardsRow(
     items: List<HomeCard>,
     onClick: (String) -> Unit,
@@ -489,7 +535,8 @@ private fun ListingCard(
     item: HomeCard,
     isFavorited: Boolean,
     onClick: () -> Unit,
-    onFavorite: () -> Unit
+    onFavorite: () -> Unit,
+    modifier: Modifier = Modifier.width(280.dp).height(320.dp)
 ) {
     Card(
         onClick = {
@@ -505,9 +552,7 @@ private fun ListingCard(
             )
             onClick()
         },
-        modifier = Modifier
-            .width(280.dp)
-            .height(320.dp),
+        modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
