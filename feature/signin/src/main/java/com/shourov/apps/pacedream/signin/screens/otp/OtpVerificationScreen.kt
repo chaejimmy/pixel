@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -31,9 +29,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +41,7 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.core.ui.otp.OtpInputField
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -60,6 +60,8 @@ fun OtpVerificationScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var resendCountdown by remember { mutableStateOf(60) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     
     // Countdown timer
     LaunchedEffect(resendCountdown) {
@@ -109,21 +111,31 @@ fun OtpVerificationScreen(
                 modifier = Modifier.padding(bottom = PaceDreamSpacing.MD)
             )
 
-            // OTP Input (single field with formatting)
-            OutlinedTextField(
-                value = uiState.otpCode,
-                onValueChange = { viewModel.updateOtpCode(it) },
-                label = { Text("Code") },
-                placeholder = { Text("123456") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                isError = uiState.otpError != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                textStyle = PaceDreamTypography.Title2.copy(
-                    textAlign = TextAlign.Center
-                )
+            // OTP Input (6 individual digit boxes with auto-advance)
+            OtpInputField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                otpText = uiState.otpCode,
+                shouldShowCursor = true,
+                shouldCursorBlink = true,
+                onOtpModified = { text, isComplete ->
+                    viewModel.updateOtpCode(text)
+                    if (isComplete) {
+                        viewModel.verifyAndLogin(
+                            phoneNumber = phoneNumber,
+                            onSuccess = { userData -> onLoginSuccess(userData) },
+                            onError = { /* shown via snackbar */ }
+                        )
+                    }
+                },
             )
+
+            // Auto-focus the OTP input
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
