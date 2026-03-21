@@ -129,7 +129,13 @@ class HomeFeedViewModel @Inject constructor(
                 sections = s.sections.map { section ->
                     if (section.key != HomeSectionKey.SPACES) section
                     else when (res) {
-                        is ApiResult.Success -> section.copy(items = res.data, isLoading = false, errorMessage = null)
+                        is ApiResult.Success -> {
+                            // Exclude service listings from Spaces section
+                            val spacesOnly = res.data.filter {
+                                it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                            }
+                            section.copy(items = spacesOnly, isLoading = false, errorMessage = null)
+                        }
                         is ApiResult.Failure -> {
                             // Keep last good state if present
                             val keep = section.items.isNotEmpty()
@@ -144,6 +150,14 @@ class HomeFeedViewModel @Inject constructor(
         }
     }
 
+    companion object {
+        /** Subcategory IDs that identify service listings. */
+        private val SERVICE_SUBCATEGORY_IDS = setOf(
+            "home_help", "moving_help", "cleaning_organizing", "everyday_help",
+            "fitness", "learning", "creative",
+        )
+    }
+
     private suspend fun loadSection(key: HomeSectionKey) {
         val shareType = key.shareType ?: return
         val res = repo.getListingsShareTypePage(shareType = shareType, page1 = 1, limit = 24)
@@ -152,7 +166,20 @@ class HomeFeedViewModel @Inject constructor(
                 sections = s.sections.map { section ->
                     if (section.key != key) section
                     else when (res) {
-                        is ApiResult.Success -> section.copy(items = res.data, isLoading = false, errorMessage = null)
+                        is ApiResult.Success -> {
+                            // Client-side resource type filtering: services and spaces both
+                            // use shareType=SHARE, so we separate them by subcategory.
+                            val filtered = when (key) {
+                                HomeSectionKey.SERVICES -> res.data.filter {
+                                    it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                                }
+                                HomeSectionKey.SPACES -> res.data.filter {
+                                    it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                }
+                                else -> res.data
+                            }
+                            section.copy(items = filtered, isLoading = false, errorMessage = null)
+                        }
                         is ApiResult.Failure -> section.copy(
                             isLoading = false,
                             errorMessage = res.error.message ?: "Failed to load ${key.displayTitle.lowercase()}"

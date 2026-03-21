@@ -6,7 +6,9 @@ data class HomeCard(
     val location: String?,
     val imageUrl: String?,
     val priceText: String?,
-    val rating: Double?
+    val rating: Double?,
+    /** Subcategory / room_type / item_type — used for client-side resource type filtering. */
+    val subCategory: String? = null,
 )
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
