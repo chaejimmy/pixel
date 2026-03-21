@@ -158,10 +158,22 @@ fun HomeScreen(
             }
 
             // ── Browse by Type Section (Marketplace taxonomy) ──
+            // No navigation on pill tap — in-place state switching only
             item {
                 BrowseByTypeSection(
-                    onTypeTap = { type -> onCategoryClick(type) },
+                    isLoading = uiState.isLoadingHourlySpaces || uiState.isLoadingRentGear || uiState.isLoadingSplitStays,
+                    spacesListings = uiState.filteredHourlySpaces.take(6),
+                    itemsListings = uiState.filteredRentGear.take(6),
+                    servicesListings = uiState.filteredSplitStays.take(6),
                     onSubcategoryTap = { _, subcategory -> onCategoryClick(subcategory) },
+                    onListingClick = onListingClick,
+                    onViewAllClick = { type ->
+                        when (type) {
+                            HomeBrowseType.SPACES -> onSectionViewAll("hourly-spaces")
+                            HomeBrowseType.ITEMS -> onSectionViewAll("rent-gear")
+                            HomeBrowseType.SERVICES -> onSectionViewAll("split-stays")
+                        }
+                    },
                     modifier = Modifier.padding(top = 32.dp)
                 )
             }
@@ -988,11 +1000,22 @@ private enum class HomeBrowseType(
 
 @Composable
 private fun BrowseByTypeSection(
-    onTypeTap: (String) -> Unit,
+    isLoading: Boolean,
+    spacesListings: List<HomeListingItem>,
+    itemsListings: List<HomeListingItem>,
+    servicesListings: List<HomeListingItem>,
     onSubcategoryTap: (String, String) -> Unit,
+    onListingClick: (HomeListingItem) -> Unit,
+    onViewAllClick: (HomeBrowseType) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedType by remember { mutableStateOf(HomeBrowseType.SPACES) }
+
+    val activeListings = when (selectedType) {
+        HomeBrowseType.SPACES -> spacesListings
+        HomeBrowseType.ITEMS -> itemsListings
+        HomeBrowseType.SERVICES -> servicesListings
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Section header
@@ -1015,7 +1038,7 @@ private fun BrowseByTypeSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Segmented pill selector
+        // Segmented pill selector — no navigation, local state only
         Row(
             modifier = Modifier
                 .padding(horizontal = 20.dp)
@@ -1030,14 +1053,20 @@ private fun BrowseByTypeSection(
                 BrowseTypePill(
                     type = type,
                     isSelected = selectedType == type,
-                    onClick = {
-                        selectedType = type
-                        onTypeTap(type.displayTitle)
-                    },
+                    onClick = { selectedType = type },
                     modifier = Modifier.weight(1f)
                 )
             }
         }
+
+        // Type description
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = selectedType.subtitle,
+            style = DSTypo.Caption1.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.Gray500,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -1052,6 +1081,75 @@ private fun BrowseByTypeSection(
                     accentColor = selectedType.gradientColors.first(),
                     onClick = { onSubcategoryTap(selectedType.displayTitle, sub.title) }
                 )
+            }
+        }
+
+        // Inline listings preview
+        if (isLoading || activeListings.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // "View All" header
+            if (activeListings.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = selectedType.displayTitle,
+                        style = DSTypo.Footnote.copy(
+                            fontFamily = paceDreamDisplayFontFamily,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color(0xFF1A1A1A)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onViewAllClick(selectedType) }
+                        )
+                    ) {
+                        Text(
+                            text = "View All",
+                            style = DSTypo.Caption1.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = selectedType.gradientColors.first()
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = PaceDreamIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = selectedType.gradientColors.first(),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Listing cards row
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                if (isLoading) {
+                    items(3) { ShimmerCard() }
+                } else {
+                    items(activeListings) { listing ->
+                        BrowseInlineListingCard(
+                            item = listing,
+                            accentColor = selectedType.gradientColors.first(),
+                            onClick = { onListingClick(listing) }
+                        )
+                    }
+                }
             }
         }
     }
@@ -1170,6 +1268,116 @@ private fun SubcategoryChip(
             color = Color(0xFF1A1A1A),
             maxLines = 1
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inline Listing Card (compact card for Browse by Type preview)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrowseInlineListingCard(
+    item: HomeListingItem,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "inlineCardScale"
+    )
+
+    Column(
+        modifier = Modifier
+            .width(180.dp)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
+    ) {
+        // Image
+        AsyncImage(
+            model = item.imageUrl,
+            contentDescription = item.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                .background(PaceDreamColors.Gray100, RoundedCornerShape(PaceDreamRadius.MD))
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Title
+        Text(
+            text = item.title,
+            style = DSTypo.Caption1.copy(
+                fontFamily = paceDreamFontFamily,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = Color(0xFF1A1A1A),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        // Location
+        item.location?.let { loc ->
+            if (loc.isNotBlank()) {
+                Text(
+                    text = loc,
+                    style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.Gray500,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Price + Rating
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = item.price ?: "",
+                style = DSTypo.Caption1.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = accentColor
+            )
+
+            item.rating?.let { rating ->
+                if (rating > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFBE0B),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = String.format("%.1f", rating),
+                            style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
+                            color = PaceDreamColors.Gray500
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
