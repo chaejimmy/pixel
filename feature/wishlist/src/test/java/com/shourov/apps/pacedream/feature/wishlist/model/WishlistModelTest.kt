@@ -90,19 +90,19 @@ class WishlistModelTest {
     @Test
     fun `TIME_BASED has correct apiValue and displayName`() {
         assertEquals("time-based", WishlistItemType.TIME_BASED.apiValue)
-        assertEquals("Hourly Spaces", WishlistItemType.TIME_BASED.displayName)
+        assertEquals("Spaces", WishlistItemType.TIME_BASED.displayName)
     }
 
     @Test
     fun `HOURLY_GEAR has correct apiValue and displayName`() {
         assertEquals("hourly-gear", WishlistItemType.HOURLY_GEAR.apiValue)
-        assertEquals("Rental Items", WishlistItemType.HOURLY_GEAR.displayName)
+        assertEquals("Items", WishlistItemType.HOURLY_GEAR.displayName)
     }
 
     @Test
     fun `SPLIT_STAY has correct apiValue and displayName`() {
         assertEquals("room-stay", WishlistItemType.SPLIT_STAY.apiValue)
-        assertEquals("Split", WishlistItemType.SPLIT_STAY.displayName)
+        assertEquals("Services", WishlistItemType.SPLIT_STAY.displayName)
     }
 
     // ── WishlistItem ────────────────────────────────────────────────

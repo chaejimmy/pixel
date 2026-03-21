@@ -148,17 +148,6 @@ private fun getSubcategoriesByResourceKind(resourceKind: ResourceKind): List<Sub
     ResourceKind.SERVICES -> SERVICE_SUBCATEGORIES
 }
 
-/** Legacy: subcategories by listing mode (kept for back-compat with wizard internals). */
-private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = when (listingMode) {
-    ListingMode.SHARE -> SPACE_SUBCATEGORIES + SERVICE_SUBCATEGORIES
-    ListingMode.BORROW -> ITEM_SUBCATEGORIES + SERVICE_SUBCATEGORIES
-    ListingMode.SPLIT -> listOf(
-        SubcategoryItem("subscription", "subscription", "Subscription", "Share the cost", PaceDreamIcons.CreditCard, needsSchedule = false),
-        SubcategoryItem("sports", "sports", "Sports", "Split memberships", PaceDreamIcons.FitnessCenter, needsSchedule = false),
-        SubcategoryItem("wifi", "wifi", "WIFI", "Split internet cost", PaceDreamIcons.Wifi, needsSchedule = false),
-        SubcategoryItem("events", "events", "Events", "Share event costs", PaceDreamIcons.CalendarToday, needsSchedule = false),
-    )
-}
 
 private val SPACE_SUBCATEGORIES = listOf(
     SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
@@ -267,7 +256,7 @@ private val DAY_LABELS = listOf(
 
 /**
  * iOS-parity Create Listing screen.
- * Flow: Entry (Share/Borrow/Split) → Subcategory picker → Wizard → Success
+ * Flow: Entry (Spaces/Items/Services) → Subcategory picker → Wizard → Success
  *
  * iOS flow:
  *   CreateListingEntryView → ListingSubcategoryPickerView → CreateListingWizardView

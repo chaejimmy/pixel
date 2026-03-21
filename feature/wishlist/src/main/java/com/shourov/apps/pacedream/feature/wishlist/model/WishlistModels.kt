@@ -25,9 +25,9 @@ data class WishlistItem(
  * Wishlist item types matching iOS routing behavior
  */
 enum class WishlistItemType(val apiValue: String, val displayName: String) {
-    TIME_BASED("time-based", "Hourly Spaces"),
-    HOURLY_GEAR("hourly-gear", "Rental Items"),
-    SPLIT_STAY("room-stay", "Split"),
+    TIME_BASED("time-based", "Spaces"),
+    HOURLY_GEAR("hourly-gear", "Items"),
+    SPLIT_STAY("room-stay", "Services"),
     OTHER("other", "Other");
     
     companion object {
