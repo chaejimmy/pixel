@@ -69,13 +69,49 @@ fun ProfileScreen(
                         style = PaceDreamTypography.Title2
                     )
                 },
+                actions = {
+                    // Settings gear button (iOS parity)
+                    if (uiState.isLoggedIn) {
+                        IconButton(onClick = onSettingsClick) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(
+                                        PaceDreamColors.Card.copy(alpha = 0.9f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Settings,
+                                    contentDescription = "Settings",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = PaceDreamColors.TextPrimary
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PaceDreamColors.Background
+                    containerColor = Color.Transparent
                 )
             )
         },
-        containerColor = PaceDreamColors.Background
+        containerColor = Color.Transparent
     ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            PaceDreamColors.Primary.copy(alpha = 0.06f),
+                            PaceDreamColors.Primary.copy(alpha = 0.03f),
+                            PaceDreamColors.Background
+                        )
+                    )
+                )
+        ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,6 +182,7 @@ fun ProfileScreen(
                 }
             }
         }
+        } // Box (gradient background)
     }
 
     // Logout confirmation dialog
@@ -331,11 +368,18 @@ private fun UserProfileHeader(
                                 .clip(CircleShape)
                         )
                     } else {
-                        Icon(
-                            imageVector = PaceDreamIcons.Person,
-                            contentDescription = userName,
-                            modifier = Modifier.size(36.dp),
-                            tint = PaceDreamColors.TextSecondary
+                        // Initials fallback (iOS parity)
+                        val initials = userName.split(" ")
+                            .take(2)
+                            .mapNotNull { it.firstOrNull()?.uppercase() }
+                            .joinToString("")
+                        Text(
+                            text = initials.ifEmpty { "?" },
+                            style = PaceDreamTypography.Title3.copy(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = PaceDreamColors.TextSecondary
                         )
                     }
                 }
@@ -397,21 +441,24 @@ private fun UserProfileHeader(
 private fun StatPill(value: String, label: String) {
     Surface(
         shape = RoundedCornerShape(PaceDreamRadius.Round),
-        color = PaceDreamColors.Primary.copy(alpha = 0.08f)
+        color = Color.Black.copy(alpha = 0.04f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = value,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-                color = PaceDreamColors.Primary
+                style = PaceDreamTypography.Subheadline.copy(
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = PaceDreamColors.TextPrimary
             )
             Text(
                 text = label,
-                style = PaceDreamTypography.Caption,
+                style = PaceDreamTypography.Caption.copy(fontSize = 13.sp),
                 color = PaceDreamColors.TextSecondary
             )
         }
