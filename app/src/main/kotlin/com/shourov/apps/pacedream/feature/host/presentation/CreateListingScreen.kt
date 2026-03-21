@@ -128,33 +128,62 @@ private data class SubcategoryItem(
  * iOS: ListingSubcategoryPickerView.subcategories
  */
 private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = when (listingMode) {
-    ListingMode.SHARE -> listOf(
-        SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
-        SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home, needsSchedule = true),
-        SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group, needsSchedule = true),
-        SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
-        SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
-        SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
-        SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
-        SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
-    )
-    ListingMode.BORROW -> listOf(
-        SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike, needsSchedule = true),
-        SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt, needsSchedule = true),
-        SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop, needsSchedule = true),
-        SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.Category, needsSchedule = true),
-        SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build, needsSchedule = true),
-        SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
-        SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
-        SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike, needsSchedule = true),
-        SubcategoryItem("other", "other", "Other", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
-    )
+    ListingMode.SHARE -> SPACE_SUBCATEGORIES + SERVICE_SUBCATEGORIES
+    ListingMode.BORROW -> ITEM_SUBCATEGORIES + SERVICE_SUBCATEGORIES
     ListingMode.SPLIT -> listOf(
         SubcategoryItem("subscription", "subscription", "Subscription", "Share the cost", PaceDreamIcons.CreditCard, needsSchedule = false),
         SubcategoryItem("sports", "sports", "Sports", "Split memberships", PaceDreamIcons.FitnessCenter, needsSchedule = false),
         SubcategoryItem("wifi", "wifi", "WIFI", "Split internet cost", PaceDreamIcons.Wifi, needsSchedule = false),
         SubcategoryItem("events", "events", "Events", "Share event costs", PaceDreamIcons.CalendarToday, needsSchedule = false),
     )
+}
+
+private val SPACE_SUBCATEGORIES = listOf(
+    SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
+    SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home, needsSchedule = true),
+    SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group, needsSchedule = true),
+    SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
+    SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
+    SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
+    SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
+    SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
+)
+
+private val ITEM_SUBCATEGORIES = listOf(
+    SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike, needsSchedule = true),
+    SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt, needsSchedule = true),
+    SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop, needsSchedule = true),
+    SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.Category, needsSchedule = true),
+    SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build, needsSchedule = true),
+    SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
+    SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
+    SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike, needsSchedule = true),
+    SubcategoryItem("other", "other", "Other", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
+)
+
+private val SERVICE_SUBCATEGORIES = listOf(
+    SubcategoryItem("home_help", "home_help", "Home Help", "Handy help at home", PaceDreamIcons.Home, needsSchedule = false),
+    SubcategoryItem("moving_help", "moving_help", "Moving Help", "Get help moving", PaceDreamIcons.Storage, needsSchedule = false),
+    SubcategoryItem("cleaning_organizing", "cleaning_organizing", "Cleaning & Organizing", "Tidy up your space", PaceDreamIcons.LocalLaundryService, needsSchedule = false),
+    SubcategoryItem("everyday_help", "everyday_help", "Everyday Help", "Errands and tasks", PaceDreamIcons.FavoriteBorder, needsSchedule = false),
+    SubcategoryItem("fitness", "fitness", "Fitness", "Training sessions", PaceDreamIcons.FitnessCenter, needsSchedule = false),
+    SubcategoryItem("learning", "learning", "Learning", "Lessons and tutoring", PaceDreamIcons.School, needsSchedule = false),
+    SubcategoryItem("creative", "creative", "Creative", "Art, music, design", PaceDreamIcons.Category, needsSchedule = false),
+)
+
+private val SERVICE_IDS = SERVICE_SUBCATEGORIES.map { it.value }.toSet()
+private val SPACE_IDS = SPACE_SUBCATEGORIES.map { it.value }.toSet()
+private val ITEM_IDS = ITEM_SUBCATEGORIES.map { it.value }.toSet()
+
+/** Human-readable resource type label for preview/review. */
+private fun resolveResourceTypeLabel(subCategory: String): String {
+    val sc = subCategory.lowercase()
+    return when {
+        sc in SERVICE_IDS -> "Service"
+        sc in SPACE_IDS -> "Space"
+        sc in ITEM_IDS -> "Item"
+        else -> "\u2014"
+    }
 }
 
 /**
@@ -167,18 +196,20 @@ private fun getAllowedPricingUnits(
 ): List<PricingUnit> {
     val sc = subCategory.lowercase()
     return when (listingMode) {
-        ListingMode.SHARE -> when (sc) {
-            "restroom", "nap_pod" -> listOf(PricingUnit.HOUR)
-            "meeting_room", "gym", "parking" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            "short_stay", "luxury_room" -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
-            "apartment" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
-            "storage_space" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
-            "wifi" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+        ListingMode.SHARE -> when {
+            sc in SERVICE_IDS -> listOf(PricingUnit.HOUR)
+            sc in listOf("restroom", "nap_pod") -> listOf(PricingUnit.HOUR)
+            sc in listOf("meeting_room", "gym", "parking") -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
+            sc in listOf("short_stay", "luxury_room") -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
+            sc == "apartment" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+            sc == "storage_space" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
+            sc == "wifi" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
             else -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
         }
-        ListingMode.BORROW -> when (sc) {
-            "sports_gear", "camera", "vehicle", "tech", "instrument",
-            "tools", "games", "toys", "micromobility", "other" ->
+        ListingMode.BORROW -> when {
+            sc in SERVICE_IDS -> listOf(PricingUnit.HOUR)
+            sc in listOf("sports_gear", "camera", "vehicle", "tech", "instrument",
+                "tools", "games", "toys", "micromobility", "other") ->
                 listOf(PricingUnit.DAY, PricingUnit.WEEK)
             else -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
         }
@@ -196,6 +227,8 @@ private fun getAllowedPricingUnits(
  */
 private fun needsSchedule(listingMode: ListingMode, subCategory: String): Boolean {
     val sc = subCategory.lowercase()
+    // Services never need the schedule step
+    if (sc in SERVICE_IDS) return false
     return when (listingMode) {
         ListingMode.SHARE -> sc in listOf("restroom", "nap_pod", "meeting_room", "gym")
         ListingMode.BORROW -> sc in listOf("camera", "sports_gear", "tech", "instrument", "tools", "games", "toys", "micromobility", "other")
@@ -1793,6 +1826,7 @@ private fun ReviewPublishStep(
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         SummaryRow("Type", listingMode.displayName)
+        SummaryRow("Resource", resolveResourceTypeLabel(subCategory))
         SummaryRow("Subcategory", subCategory)
         SummaryRow("Pricing", selectedPricingUnit.displayLabel)
         SummaryRow("Price", priceDisplay)
@@ -2212,6 +2246,14 @@ private fun getAmenities(subCategory: String): List<String> {
         "games" -> listOf("All Pieces Included", "Instructions", "Extra Controllers", "Carrying Case", "Batteries")
         "toys" -> listOf("Batteries Included", "All Parts Included", "Carrying Case", "Safety Certified", "Instructions")
         "micromobility" -> listOf("Helmet Included", "Lock Included", "Charger", "Lights", "Bell", "Basket")
+        // Services
+        "home_help" -> listOf("Materials Included", "Indoor", "Outdoor", "Beginner Friendly", "Equipment Provided", "Flexible Schedule")
+        "moving_help" -> listOf("Materials Included", "Equipment Provided", "Flexible Schedule", "Indoor", "Outdoor")
+        "cleaning_organizing" -> listOf("Materials Included", "Equipment Provided", "Indoor", "Flexible Schedule")
+        "everyday_help" -> listOf("Materials Included", "Flexible Schedule", "Indoor", "Outdoor", "Beginner Friendly")
+        "fitness" -> listOf("Equipment Provided", "Indoor", "Outdoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
+        "learning" -> listOf("Materials Included", "Indoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
+        "creative" -> listOf("Materials Included", "Equipment Provided", "Indoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
         // Split
         "membership" -> listOf("24/7 Access", "Guest Pass", "Parking", "Locker", "Towel Service", "Sauna", "Classes")
         else -> listOf("WiFi", "AC", "Parking", "Clean", "Accessible")
