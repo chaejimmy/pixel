@@ -260,21 +260,30 @@ private fun HeroHeaderSection(
                             color = Color.White
                         )
                     }
-                    Surface(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clickable(onClick = onNotificationClick),
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.18f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
+                    Box {
+                        Surface(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clickable(onClick = onNotificationClick),
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.20f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
+                        // Unread badge (iOS parity: small blue dot indicator)
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(PaceDreamColors.Primary, CircleShape)
+                                .align(Alignment.TopEnd)
+                        )
                     }
                 }
 
@@ -349,7 +358,7 @@ private fun HeroHeaderSection(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Where to?",
+                        text = "Search anywhere",
                         style = DSTypo.Headline.copy(
                             fontFamily = paceDreamFontFamily,
                             fontSize = 15.sp
@@ -357,7 +366,7 @@ private fun HeroHeaderSection(
                         color = Color(0xFF1A1A1A)
                     )
                     Text(
-                        text = "Anywhere \u00B7 Any time \u00B7 Any type",
+                        text = "Spaces \u00B7 Items \u00B7 Services",
                         style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
                         color = PaceDreamColors.Gray400
                     )

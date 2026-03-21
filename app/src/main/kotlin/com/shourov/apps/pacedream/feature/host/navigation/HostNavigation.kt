@@ -4,8 +4,8 @@ import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class HostScreen(
-    val route: String, 
-    val title: String, 
+    val route: String,
+    val title: String,
     val icon: ImageVector
 ) {
     object Dashboard : HostScreen("host_dashboard", "Dashboard", PaceDreamIcons.Dashboard)
@@ -15,6 +15,10 @@ sealed class HostScreen(
     object Analytics : HostScreen("host_analytics", "Analytics", PaceDreamIcons.Analytics)
     object Settings : HostScreen("host_settings", "Settings", PaceDreamIcons.Settings)
     object PaymentSetup : HostScreen("host_payment_setup", "Payment Setup", PaceDreamIcons.CreditCard)
+    // iOS parity tabs
+    object Post : HostScreen("host_post", "Post", PaceDreamIcons.AddCircle)
+    object Inbox : HostScreen("host_inbox", "Inbox", PaceDreamIcons.Mail)
+    object Profile : HostScreen("host_profile", "Profile", PaceDreamIcons.Person)
 }
 
 object HostNavigationDestinations {

@@ -14,7 +14,10 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenW
 import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
+import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
+import com.pacedream.app.feature.inbox.InboxScreen
+import com.pacedream.app.feature.profile.ProfileScreen
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -68,7 +71,36 @@ fun NavGraphBuilder.HostNavigationGraph(
             onBackClick = { navController.popBackStack() }
         )
     }
-    
+
+    // iOS parity: Post tab (routes to create listing flow)
+    composable(HostScreen.Post.route) {
+        PostTabScreen(
+            onPropertyClick = onNavigateToProperty,
+            onAddPropertyClick = onNavigateToAddListing,
+            onAnalyticsClick = onNavigateToAnalytics,
+            onEarningsClick = onNavigateToWithdraw
+        )
+    }
+
+    // iOS parity: Inbox tab (reuses existing messaging screen)
+    composable(HostScreen.Inbox.route) {
+        InboxScreen(
+            onThreadClick = { threadId -> }
+        )
+    }
+
+    // iOS parity: Profile tab (reuses existing profile screen)
+    composable(HostScreen.Profile.route) {
+        ProfileScreen(
+            onLoginClick = {},
+            onHostModeClick = { navController.navigate(HostScreen.Dashboard.route) },
+            onEditProfileClick = {},
+            onSettingsClick = { navController.navigate(HostScreen.Settings.route) },
+            onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
+            onFavoritesClick = {}
+        )
+    }
+
     composable(HostScreen.Settings.route) {
         HostSettingsScreen(
             onBackClick = { navController.popBackStack() },
