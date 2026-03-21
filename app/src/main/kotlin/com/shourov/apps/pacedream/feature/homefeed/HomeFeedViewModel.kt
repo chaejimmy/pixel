@@ -111,12 +111,12 @@ class HomeFeedViewModel @Inject constructor(
             }
 
             val hourlyDeferred = async { loadHourly() }
-            val gearDeferred = async { loadSection(HomeSectionKey.GEAR) }
-            val splitDeferred = async { loadSection(HomeSectionKey.SPLIT) }
+            val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
+            val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
 
             hourlyDeferred.await()
             gearDeferred.await()
-            splitDeferred.await()
+            servicesDeferred.await()
 
             _state.update { it.copy(isRefreshing = false) }
         }
@@ -127,7 +127,7 @@ class HomeFeedViewModel @Inject constructor(
         _state.update { s ->
             s.copy(
                 sections = s.sections.map { section ->
-                    if (section.key != HomeSectionKey.HOURLY) section
+                    if (section.key != HomeSectionKey.SPACES) section
                     else when (res) {
                         is ApiResult.Success -> section.copy(items = res.data, isLoading = false, errorMessage = null)
                         is ApiResult.Failure -> {

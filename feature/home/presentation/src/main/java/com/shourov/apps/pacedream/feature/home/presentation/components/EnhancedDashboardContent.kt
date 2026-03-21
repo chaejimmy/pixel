@@ -137,13 +137,13 @@ fun EnhancedDashboardContent(
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Rental Items",
+                    title = "Items",
                     value = if (gearsState.loading) "—" else gearCount.toString(),
                     icon = PaceDreamIcons.ShoppingBag,
                     modifier = Modifier.weight(1f)
                 )
                 PaceDreamMetricCard(
-                    title = "Split",
+                    title = "Services",
                     value = if (splitStaysState.loading) "—" else splitCount.toString(),
                     icon = PaceDreamIcons.People,
                     modifier = Modifier.weight(1f)
@@ -407,11 +407,11 @@ fun EnhancedDashboardContent(
             }
         }
 
-        // Hourly Spaces Section (Time-based Properties)
+        // Spaces Section (Time-based Properties)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Hourly Spaces",
+                title = "Spaces",
                 onViewAllClick = { onViewAllClick("time-based") }
             )
             
@@ -513,11 +513,11 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Rental Items Section (Hourly Rented Gear)
+        // Items Section (Rented Gear)
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Rental Items",
+                title = "Items",
                 onViewAllClick = { onViewAllClick("gear") }
             )
             
@@ -619,18 +619,18 @@ fun EnhancedDashboardContent(
             }
         }
         
-        // Split Section (NEW - matches iOS)
+        // Services Section
         item {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             PaceDreamSectionHeader(
-                title = "Split",
-                onViewAllClick = { onViewAllClick("split-stays") }
+                title = "Services",
+                onViewAllClick = { onViewAllClick("services") }
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
             Text(
-                text = "Find roommates and share costs",
+                text = "Book help when you need it",
                 style = PaceDreamTypography.Callout,
                 color = PaceDreamTextSecondary
             )
@@ -656,8 +656,8 @@ fun EnhancedDashboardContent(
                 }
             } else if (splitStaysState.error.isNullOrEmpty() && splitStaysState.splitStays.isEmpty()) {
                 PaceDreamEmptyState(
-                    title = "No Split Stays Available",
-                    description = "Check back later for shared accommodation options.",
+                    title = "No Services Available",
+                    description = "Check back later for services near you.",
                     icon = PaceDreamIcons.People
                 )
             } else if (splitStaysState.splitStays.isNotEmpty()) {
@@ -666,7 +666,7 @@ fun EnhancedDashboardContent(
                 ) {
                     items(splitStaysState.splitStays, key = { it._id ?: it.hashCode() }) { stay ->
                         PaceDreamPropertyCard(
-                            title = stay.name ?: "Split Stay",
+                            title = stay.name ?: "Service",
                             location = stay.location ?: stay.city ?: "Location",
                             price = "$${stay.price ?: "0"}/${stay.priceUnit ?: "night"}",
                             rating = stay.rating?.toDouble() ?: 0.0,

@@ -259,7 +259,7 @@ private fun DiscoverHeader(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Book, share, or split anything.",
+                    text = "Find spaces, items, and services — only for the time you need.",
                     style = PaceDreamTypography.Subheadline.copy(fontFamily = paceDreamFontFamily),
                     color = PaceDreamColors.Gray500
                 )
