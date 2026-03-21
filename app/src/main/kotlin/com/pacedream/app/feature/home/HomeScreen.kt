@@ -115,8 +115,8 @@ fun HomeScreen(
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
                     ListingSection(
-                        title = "Hourly Spaces",
-                        subtitle = "Flexible spaces for short stays",
+                        title = "Spaces",
+                        subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
                         items = uiState.filteredHourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
@@ -126,12 +126,12 @@ fun HomeScreen(
                 }
             }
 
-            // ── Rental Items ──
+            // ── Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
                 item {
                     ListingSection(
-                        title = "Rental Items",
-                        subtitle = "Items and equipment for every need",
+                        title = "Items",
+                        subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
                         items = uiState.filteredRentGear,
                         isLoading = uiState.isLoadingRentGear,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
@@ -141,12 +141,12 @@ fun HomeScreen(
                 }
             }
 
-            // ── Split ──
+            // ── Services ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
                     ListingSection(
-                        title = "Split",
-                        subtitle = "Join others and share the cost",
+                        title = "Services",
+                        subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
                         items = uiState.filteredSplitStays,
                         isLoading = uiState.isLoadingSplitStays,
                         onViewAllClick = { onSectionViewAll("split-stays") },
@@ -791,9 +791,9 @@ private fun ListingCard(
                 ) {
                     Text(
                         text = when (item.type) {
-                            "time-based" -> "Hourly"
-                            "gear" -> "Gear"
-                            "split-stay" -> "Split"
+                            "time-based" -> "Space"
+                            "gear" -> "Item"
+                            "split-stay" -> "Service"
                             else -> item.type.replaceFirstChar { it.uppercase() }
                         },
                         style = DSTypo.Caption2.copy(
