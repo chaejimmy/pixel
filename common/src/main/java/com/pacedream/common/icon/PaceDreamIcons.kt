@@ -164,6 +164,15 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Wc
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.Yard
+import androidx.compose.material.icons.rounded.Article
+import androidx.compose.material.icons.rounded.Gavel
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.FlightTakeoff
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**

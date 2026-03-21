@@ -20,6 +20,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,9 +96,8 @@ fun ProcessButton(
         colors = colors,
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { source ->
-            val pressed = androidx.compose.foundation.interaction.collectIsPressedAsState(source)
-            isPressed = pressed.value
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { interactionSource ->
+            isPressed = interactionSource.collectIsPressedAsState().value
         },
     ) {
         Row(
@@ -229,9 +229,3 @@ fun OutlineProcessButton(
     )
 }
 
-@Composable
-private fun androidx.compose.foundation.interaction.collectIsPressedAsState(
-    source: androidx.compose.foundation.interaction.MutableInteractionSource
-): androidx.compose.runtime.State<Boolean> {
-    return source.collectIsPressedAsState()
-}
