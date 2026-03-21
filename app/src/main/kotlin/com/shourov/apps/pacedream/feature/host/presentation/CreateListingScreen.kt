@@ -112,6 +112,21 @@ enum class ListingMode(val displayName: String, val backendValue: String) {
 }
 
 /**
+ * Resource kind — the top-level selector in Create Listing.
+ * Users choose what kind of thing they're listing (supply side),
+ * not a consumer action like Share/Book/Split.
+ */
+enum class ResourceKind(
+    val label: String,
+    val subtitle: String,
+    val listingMode: ListingMode,
+) {
+    SPACES("Spaces", "List a space people can book by time or stay", ListingMode.SHARE),
+    ITEMS("Items", "List an item people can rent or reserve", ListingMode.BORROW),
+    SERVICES("Services", "List a service people can book", ListingMode.SHARE),
+}
+
+/**
  * Subcategory item matching iOS ListingSubcategoryPickerView.SubcategoryItem.
  */
 private data class SubcategoryItem(
@@ -124,9 +139,16 @@ private data class SubcategoryItem(
 )
 
 /**
- * Subcategories per listing type – iOS parity.
- * iOS: ListingSubcategoryPickerView.subcategories
+ * Subcategories per resource kind.
+ * Each resource kind shows only its own categories.
  */
+private fun getSubcategoriesByResourceKind(resourceKind: ResourceKind): List<SubcategoryItem> = when (resourceKind) {
+    ResourceKind.SPACES -> SPACE_SUBCATEGORIES
+    ResourceKind.ITEMS -> ITEM_SUBCATEGORIES
+    ResourceKind.SERVICES -> SERVICE_SUBCATEGORIES
+}
+
+/** Legacy: subcategories by listing mode (kept for back-compat with wizard internals). */
 private fun getSubcategories(listingMode: ListingMode): List<SubcategoryItem> = when (listingMode) {
     ListingMode.SHARE -> SPACE_SUBCATEGORIES + SERVICE_SUBCATEGORIES
     ListingMode.BORROW -> ITEM_SUBCATEGORIES + SERVICE_SUBCATEGORIES
@@ -269,6 +291,7 @@ fun CreateListingScreen(
     // Phase: entry → subcategory → wizard → success
     var phase by remember { mutableStateOf("entry") }
     var selectedMode by remember { mutableStateOf(listingMode) }
+    var selectedResourceKind by remember { mutableStateOf(ResourceKind.SPACES) }
     var selectedSubCategory by remember { mutableStateOf("") }
     var publishedTitle by remember { mutableStateOf("") }
     var publishError by remember { mutableStateOf<String?>(null) }
@@ -291,13 +314,15 @@ fun CreateListingScreen(
 
     when (phase) {
         "entry" -> CreateListingEntryScreen(
-            onModeSelected = { mode ->
-                selectedMode = mode
+            onResourceKindSelected = { kind ->
+                selectedResourceKind = kind
+                selectedMode = kind.listingMode
                 phase = "subcategory"
             },
             onBackClick = onBackClick,
         )
         "subcategory" -> SubcategoryPickerScreen(
+            resourceKind = selectedResourceKind,
             listingMode = selectedMode,
             onSubcategorySelected = { sub ->
                 selectedSubCategory = sub
@@ -328,12 +353,12 @@ fun CreateListingScreen(
     }
 }
 
-// ── Phase 1: Entry (Share / Borrow / Split) – iOS: CreateListingEntryView ──
+// ── Phase 1: Entry (Spaces / Items / Services) ──
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateListingEntryScreen(
-    onModeSelected: (ListingMode) -> Unit,
+    onResourceKindSelected: (ResourceKind) -> Unit,
     onBackClick: () -> Unit,
 ) {
     Scaffold(
@@ -366,34 +391,34 @@ private fun CreateListingEntryScreen(
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                text = "Choose how you want to list: Share, Book, or Split.",
+                text = "What are you listing?",
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
             ModeCard(
-                title = "Share",
-                subtitle = "List your space, item, or service for others to book.",
+                title = "Spaces",
+                subtitle = "List a space people can book by time or stay",
                 icon = PaceDreamIcons.Home,
                 tint = PaceDreamColors.Primary,
-                onClick = { onModeSelected(ListingMode.SHARE) },
+                onClick = { onResourceKindSelected(ResourceKind.SPACES) },
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             ModeCard(
-                title = "Book",
-                subtitle = "Find and book items, gear, and equipment near you.",
-                icon = PaceDreamIcons.Schedule,
+                title = "Items",
+                subtitle = "List an item people can rent or reserve",
+                icon = PaceDreamIcons.DirectionsBike,
                 tint = Color(0xFF2196F3),
-                onClick = { onModeSelected(ListingMode.BORROW) },
+                onClick = { onResourceKindSelected(ResourceKind.ITEMS) },
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             ModeCard(
-                title = "Split",
-                subtitle = "Invite others to join and share the cost.",
-                icon = PaceDreamIcons.AttachMoney,
+                title = "Services",
+                subtitle = "List a service people can book",
+                icon = PaceDreamIcons.Build,
                 tint = Color(0xFF4CAF50),
-                onClick = { onModeSelected(ListingMode.SPLIT) },
+                onClick = { onResourceKindSelected(ResourceKind.SERVICES) },
             )
         }
     }
@@ -462,16 +487,17 @@ private fun ModeCard(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SubcategoryPickerScreen(
+    resourceKind: ResourceKind,
     listingMode: ListingMode,
     onSubcategorySelected: (String) -> Unit,
     onBackClick: () -> Unit,
 ) {
-    val subcategories = getSubcategories(listingMode)
+    val subcategories = getSubcategoriesByResourceKind(resourceKind)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(listingMode.displayName, style = PaceDreamTypography.Headline) },
+                title = { Text(resourceKind.label, style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
@@ -1825,8 +1851,7 @@ private fun ReviewPublishStep(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-        SummaryRow("Type", listingMode.displayName)
-        SummaryRow("Resource", resolveResourceTypeLabel(subCategory))
+        SummaryRow("Listing Type", resolveResourceTypeLabel(subCategory))
         SummaryRow("Subcategory", subCategory)
         SummaryRow("Pricing", selectedPricingUnit.displayLabel)
         SummaryRow("Price", priceDisplay)
