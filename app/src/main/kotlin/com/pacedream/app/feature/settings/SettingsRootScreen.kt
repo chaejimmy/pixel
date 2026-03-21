@@ -55,7 +55,8 @@ fun SettingsRootScreen(
     onNotificationsClick: () -> Unit,
     onPreferencesClick: () -> Unit,
     onPaymentMethodsClick: () -> Unit,
-    onHelpSupportClick: () -> Unit
+    onHelpSupportClick: () -> Unit,
+    onIdentityVerificationClick: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -117,6 +118,20 @@ fun SettingsRootScreen(
                         onClick = onLoginSecurityClick
                     )
                 }
+            }
+
+            // Identity Verification (iOS parity)
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                SettingsRow(
+                    icon = PaceDreamIcons.VerifiedUser,
+                    title = "Identity Verification",
+                    subtitle = "Verify your identity for a trusted experience",
+                    onClick = onIdentityVerificationClick
+                )
             }
 
             // Notifications section

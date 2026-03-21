@@ -166,6 +166,23 @@ fun HomeScreen(
                 )
             }
 
+            // ── Trending Destinations (iOS parity) ──
+            item {
+                TrendingDestinationsSection(
+                    onDestinationTap = { destination -> onCategoryClick(destination) },
+                    onViewAllTap = { onSectionViewAll("destinations") },
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+            }
+
+            // ── 3 Steps CTA (iOS parity) ──
+            item {
+                ThreeStepsCTASection(
+                    onGetStarted = { onCategoryClick("create-listing") },
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+            }
+
             // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
                 item {
@@ -205,9 +222,9 @@ private fun HeroHeaderSection(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF6B5CE7), // Brand purple top
-                            Color(0xFF4A3ABA), // Brand purple mid
-                            Color(0xFF3D2D9C)  // Brand purple bottom
+                            Color(0xFF4F46E5), // Indigo top (iOS parity)
+                            Color(0xFF6B5CE7), // Purple mid (iOS parity)
+                            Color(0xFF7B4DFF)  // Purple bottom (iOS parity)
                         ),
                         start = Offset(0f, 0f),
                         end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
@@ -265,9 +282,9 @@ private fun HeroHeaderSection(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Main headline
+                // Main headline (iOS parity)
                 Text(
-                    text = "Find your perfect stay!",
+                    text = "Find spaces, items, and services — only for the time you need.",
                     style = DSTypo.Title1.copy(
                         fontFamily = paceDreamDisplayFontFamily,
                         fontSize = 28.sp,
@@ -277,9 +294,12 @@ private fun HeroHeaderSection(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Book, share, or split anything.",
-                    style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-                    color = Color.White.copy(alpha = 0.8f)
+                    text = "Spaces \u00B7 Items \u00B7 Services",
+                    style = DSTypo.Subheadline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color.White.copy(alpha = 0.9f)
                 )
                 Spacer(modifier = Modifier.height(20.dp))
             }
@@ -1170,6 +1190,326 @@ private fun SubcategoryChip(
             color = Color(0xFF1A1A1A),
             maxLines = 1
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trending Destinations (iOS parity: 2-column grid with gradient overlays)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class DestinationData(
+    val title: String,
+    val propertyCount: Int,
+    val imageUrl: String
+)
+
+private fun getTrendingDestinations(): List<DestinationData> = listOf(
+    DestinationData("Grand Canyon", 42, "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=600"),
+    DestinationData("Utah", 38, "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"),
+    DestinationData("Maui", 55, "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=600"),
+    DestinationData("Glacier", 29, "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600"),
+    DestinationData("Honolulu", 67, "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=600"),
+    DestinationData("Sedona", 31, "https://images.unsplash.com/photo-1500534314263-e9e68e3c0849?w=600")
+)
+
+@Composable
+private fun TrendingDestinationsSection(
+    onDestinationTap: (String) -> Unit,
+    onViewAllTap: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = "Trending Destinations",
+            subtitle = "Popular places our community loves",
+            onViewAllClick = onViewAllTap,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val destinations = getTrendingDestinations()
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            for (rowIndex in 0 until (destinations.size + 1) / 2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    for (colIndex in 0..1) {
+                        val index = rowIndex * 2 + colIndex
+                        if (index < destinations.size) {
+                            val destination = destinations[index]
+                            val isLarge = index < 2
+                            TrendingDestinationCard(
+                                destination = destination,
+                                isLarge = isLarge,
+                                onClick = { onDestinationTap(destination.title) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendingDestinationCard(
+    destination: DestinationData,
+    isLarge: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "destScale"
+    )
+
+    Box(
+        modifier = modifier
+            .height(if (isLarge) 200.dp else 150.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
+    ) {
+        AsyncImage(
+            model = destination.imageUrl,
+            contentDescription = destination.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Gradient overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.55f)
+                        ),
+                        startY = Float.POSITIVE_INFINITY * 0.4f,
+                        endY = Float.POSITIVE_INFINITY
+                    )
+                )
+        )
+
+        // Label
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp)
+        ) {
+            Text(
+                text = destination.title,
+                style = DSTypo.Headline.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontSize = if (isLarge) 18.sp else 15.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color.White,
+                maxLines = 1
+            )
+            Text(
+                text = "${destination.propertyCount} properties",
+                style = DSTypo.Caption2.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Color.White.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3 Steps CTA (iOS parity: card with numbered steps + Get Started button)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class StepData(
+    val icon: ImageVector,
+    val title: String,
+    val description: String
+)
+
+@Composable
+private fun ThreeStepsCTASection(
+    onGetStarted: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val steps = listOf(
+        StepData(
+            PaceDreamIcons.Add,
+            "Create a Listing",
+            "Share your space, item, or parking spot with others."
+        ),
+        StepData(
+            PaceDreamIcons.DateRange,
+            "Receive a Booking",
+            "Connect with people looking for flexible rentals nearby."
+        ),
+        StepData(
+            PaceDreamIcons.AttachMoney,
+            "Earn Extra Income",
+            "Turn unused space or items into earnings."
+        )
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = PaceDreamColors.Card,
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Header
+            Text(
+                text = "3 Steps Away",
+                style = DSTypo.Title2.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFF1A1A1A),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "From your next affordable rental",
+                style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Gray500,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Steps
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                steps.forEachIndexed { index, step ->
+                    StepCard(
+                        stepNumber = index + 1,
+                        step = step
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // CTA Button
+            Button(
+                onClick = onGetStarted,
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Primary
+                ),
+                contentPadding = PaddingValues(vertical = 14.dp)
+            ) {
+                Text(
+                    text = "Get Started",
+                    style = DSTypo.Headline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepCard(
+    stepNumber: Int,
+    step: StepData
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = PaceDreamColors.Background
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            // Step number badge
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(PaceDreamColors.Primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "$stepNumber",
+                    style = DSTypo.Headline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Color.White
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = step.icon,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = step.title,
+                        style = DSTypo.Callout.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Color(0xFF1A1A1A)
+                    )
+                }
+                Text(
+                    text = step.description,
+                    style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.Gray500
+                )
+            }
+        }
     }
 }
 

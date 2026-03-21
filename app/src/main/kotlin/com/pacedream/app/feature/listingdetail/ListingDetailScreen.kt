@@ -502,7 +502,7 @@ private fun ReserveSheet(
     onClose: () -> Unit,
     onConfirm: (BookingDraft) -> Unit
 ) {
-    val durationOptions = listOf(30, 60, 120)
+    val durationOptions = listOf(30, 60, 90, 120) // iOS parity: 4 duration options
     var selectedDuration by remember { mutableStateOf(60) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
     var selectedSlotStart by remember { mutableStateOf<LocalTime?>(null) }
@@ -662,8 +662,8 @@ private fun ReserveSheet(
                 )
             }
         } else {
-            // 3-column grid of time slot buttons
-            val rows = timeSlots.chunked(3)
+            // 2-column grid of time slot buttons (iOS parity)
+            val rows = timeSlots.chunked(2)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 rows.forEach { rowSlots ->
                     Row(
@@ -694,7 +694,7 @@ private fun ReserveSheet(
                             }
                         }
                         // Fill remaining columns if row is incomplete
-                        repeat(3 - rowSlots.size) {
+                        repeat(2 - rowSlots.size) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
