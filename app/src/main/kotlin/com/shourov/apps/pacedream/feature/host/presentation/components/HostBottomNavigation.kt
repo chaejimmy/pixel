@@ -17,12 +17,13 @@ fun HostBottomNavigation(
     currentRoute: String,
     onNavigate: (String) -> Unit
 ) {
+    // iOS parity: Dashboard, Earnings, Post, Inbox, Profile tabs
     val hostScreens = listOf(
         HostScreenItem("host_dashboard", "Dashboard", PaceDreamIcons.Dashboard),
-        HostScreenItem("host_listings", "Listings", PaceDreamIcons.Home),
-        HostScreenItem("host_bookings", "Bookings", PaceDreamIcons.CalendarToday),
         HostScreenItem("host_earnings", "Earnings", PaceDreamIcons.AttachMoney),
-        HostScreenItem("host_analytics", "Analytics", PaceDreamIcons.Analytics)
+        HostScreenItem("host_post", "Post", PaceDreamIcons.AddCircle),
+        HostScreenItem("host_inbox", "Inbox", PaceDreamIcons.Mail),
+        HostScreenItem("host_profile", "Profile", PaceDreamIcons.Person)
     )
 
     Surface(
