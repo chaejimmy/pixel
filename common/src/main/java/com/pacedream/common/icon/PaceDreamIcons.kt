@@ -86,6 +86,7 @@ import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.Edit
@@ -224,6 +225,7 @@ object PaceDreamIcons {
     val Add: ImageVector = Icons.Rounded.Add
     val AddCircle: ImageVector = Icons.Filled.AddCircle
     val Edit: ImageVector = Icons.Rounded.Edit
+    val Remove: ImageVector = Icons.Rounded.Remove
     val Delete: ImageVector = Icons.Rounded.Delete
     val Share: ImageVector = Icons.Rounded.Share
     val Send: ImageVector = Rounded.Send
