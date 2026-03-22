@@ -524,6 +524,12 @@ class AuthSession @Inject constructor(
     }
     
     /**
+     * Convenience accessor for the current user's ID.
+     */
+    val currentUserId: String?
+        get() = _currentUser.value?.id
+
+    /**
      * Check if user is currently authenticated
      */
     val isAuthenticated: Boolean

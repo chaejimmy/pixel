@@ -9,6 +9,9 @@ android {
 
 dependencies {
     implementation(libs.accompanist.permissions)
+    implementation(libs.timber)
+    implementation(libs.retrofit.core)
+    implementation(projects.common)
     implementation(projects.core.data)
     implementation(projects.core.network)
     implementation(projects.core.common)

@@ -259,7 +259,7 @@ private fun MessageBubble(
     val maxWidth = (configuration.screenWidthDp * 0.75).dp
 
     // When messages are consecutive from the same sender, tighten the bubble corners
-    // so the conversation reads as grouped “blocks”.
+    // so the conversation reads as grouped "blocks".
     val topStart = if (isCurrentUser) {
         PaceDreamRadius.MD
     } else {
@@ -340,7 +340,7 @@ private fun MessageBubble(
                 }
             }
 
-            // Message status indicator - matches iOS “Sending…” / “Failed • Tap to retry”
+            // Message status indicator - matches iOS "Sending…" / "Failed • Tap to retry"
             if (message.isTemp) {
                 Spacer(modifier = Modifier.height(2.dp))
                 when (message.status) {
@@ -356,7 +356,7 @@ private fun MessageBubble(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = “Sending\u2026”,
+                                text = "Sending\u2026",
                                 style = PaceDreamTypography.Caption,
                                 color = PaceDreamColors.TextSecondary
                             )
@@ -364,7 +364,7 @@ private fun MessageBubble(
                     }
                     MessageStatus.FAILED -> {
                         Text(
-                            text = “Failed \u2022 Tap to retry”,
+                            text = "Failed \u2022 Tap to retry",
                             style = PaceDreamTypography.Caption,
                             color = Color(0xFFE53935),
                             modifier = Modifier
@@ -422,7 +422,7 @@ private fun SendErrorBanner(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = “Dismiss”,
+                    contentDescription = "Dismiss",
                     modifier = Modifier.size(14.dp),
                     tint = Color(0xFFE65100)
                 )
