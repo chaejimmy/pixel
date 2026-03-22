@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Apartment
@@ -221,7 +222,7 @@ object PaceDreamIcons {
     val Check: ImageVector = Icons.Rounded.Check
     val CheckCircle: ImageVector = Icons.Rounded.CheckCircle
     val Add: ImageVector = Icons.Rounded.Add
-    val AddCircle: ImageVector = Icons.Rounded.AddCircle
+    val AddCircle: ImageVector = Icons.Filled.AddCircle
     val Edit: ImageVector = Icons.Rounded.Edit
     val Delete: ImageVector = Icons.Rounded.Delete
     val Share: ImageVector = Icons.Rounded.Share
@@ -244,7 +245,7 @@ object PaceDreamIcons {
     val People: ImageVector = Icons.Rounded.People
     val Group: ImageVector = Icons.Rounded.Group
     val Lock: ImageVector = Icons.Rounded.Lock
-    val Shield: ImageVector = Icons.Rounded.Shield
+    val Shield: ImageVector = Icons.Rounded.Security
     val VerifiedUser: ImageVector = Icons.Rounded.VerifiedUser
     val Verified: ImageVector = Icons.Rounded.Verified
 
