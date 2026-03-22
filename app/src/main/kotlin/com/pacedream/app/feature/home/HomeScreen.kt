@@ -1,5 +1,6 @@
 package com.pacedream.app.feature.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -7,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -179,6 +181,14 @@ fun HomeScreen(
             item {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+            }
+
+            // ── FAQ & Community (Website parity) ──
+            item {
+                FaqAndCommunitySection(
+                    onContactSupport = { /* TODO: open support */ },
                     modifier = Modifier.padding(top = 32.dp)
                 )
             }
@@ -1518,6 +1528,233 @@ private fun StepCard(
                     color = PaceDreamColors.Gray500
                 )
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAQ & Community Section (Website parity: expandable FAQ + support card)
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class FaqItem(val question: String, val answer: String)
+
+private fun getFaqItems(): List<FaqItem> = listOf(
+    FaqItem(
+        "What is PaceDream?",
+        "PaceDream is a marketplace where you can rent spaces, borrow items, and book services — only for the time you need them."
+    ),
+    FaqItem(
+        "How do I book a space or item?",
+        "Browse listings on our platform, select what you need, choose your dates and times, and complete the booking. It's that simple!"
+    ),
+    FaqItem(
+        "How does pricing work?",
+        "Pricing varies by listing and is set by the host. You'll see the hourly, daily, or per-use rate on each listing page before you book."
+    ),
+    FaqItem(
+        "Is my payment secure?",
+        "Yes! We use Stripe for all transactions, ensuring your payment information is always encrypted and secure."
+    ),
+    FaqItem(
+        "How do I become a host?",
+        "Switch to Host mode from your profile, then create a listing by adding photos, setting your price, and describing what you're offering."
+    ),
+    FaqItem(
+        "What if I need to cancel?",
+        "You can cancel your booking from the Bookings tab. Cancellation policies vary by listing — check the listing details for specifics."
+    )
+)
+
+@Composable
+private fun FaqAndCommunitySection(
+    onContactSupport: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Section header
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                text = "Frequently Asked Questions",
+                style = DSTypo.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = Color(0xFF1A1A1A)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Everything you need to know about PaceDream",
+                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Gray500
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // FAQ accordion
+        val faqItems = getFaqItems()
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            faqItems.forEachIndexed { index, faq ->
+                FaqAccordionItem(faq = faq)
+                if (index < faqItems.size - 1) {
+                    HorizontalDivider(
+                        thickness = 0.5.dp,
+                        color = PaceDreamColors.Gray100
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Get in Touch card (Website parity: purple gradient card with support buttons)
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            color = Color.Transparent
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF5527D7),
+                                Color(0xFF4F46E5)
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                        ),
+                        RoundedCornerShape(PaceDreamRadius.LG)
+                    )
+                    .padding(24.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Get in Touch",
+                        style = DSTypo.Title3.copy(
+                            fontFamily = paceDreamDisplayFontFamily,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Have questions or need help? Our support team is here for you.",
+                        style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Message Support button
+                    Button(
+                        onClick = onContactSupport,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(vertical = 14.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Chat,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Message Support",
+                            style = DSTypo.Callout.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = PaceDreamColors.Primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Send Email button
+                    OutlinedButton(
+                        onClick = { /* TODO: open email */ },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                        contentPadding = PaddingValues(vertical = 14.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Email,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Send us an Email",
+                            style = DSTypo.Callout.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FaqAccordionItem(faq: FaqItem) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { isExpanded = !isExpanded }
+            )
+            .padding(vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = faq.question,
+                style = DSTypo.Callout.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = Color(0xFF1A1A1A),
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (isExpanded) PaceDreamIcons.ExpandLess else PaceDreamIcons.ExpandMore,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = PaceDreamColors.Gray400,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        AnimatedVisibility(visible = isExpanded) {
+            Text(
+                text = faq.answer,
+                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Gray500,
+                modifier = Modifier.padding(top = 8.dp, end = 28.dp)
+            )
         }
     }
 }
