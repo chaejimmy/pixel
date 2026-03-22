@@ -109,6 +109,7 @@ object ApiEndPoints {
 
     // ── Host Payouts (Stripe Connect - iOS parity) ──────
     const val HOST_PAYOUT_STATUS = "host/payouts/status"
+    const val HOST_PAYOUT_SETUP_ELIGIBILITY = "hosts/payouts/setup-eligibility"
     const val HOST_PAYOUT_ONBOARDING_LINK = "host/payouts/create-onboarding-link"
     const val HOST_PAYOUT_LOGIN_LINK = "host/payouts/create-login-link"
     const val HOST_PAYOUT_METHODS = "host/payouts/methods"

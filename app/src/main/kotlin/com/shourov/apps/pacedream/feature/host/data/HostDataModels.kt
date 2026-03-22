@@ -26,6 +26,9 @@ data class HostDashboardData(
     // Payout status (iOS: PayoutsService.PayoutStatus)
     val payoutState: PayoutConnectionState = PayoutConnectionState.NOT_CONNECTED,
     val payoutDetails: String? = null,
+    // Server-driven payout setup prompt eligibility
+    val shouldShowPayoutSetupPrompt: Boolean = false,
+    val payoutPromptReason: String? = null,
     // UI state
     val isLoading: Boolean = false,
     val error: String? = null

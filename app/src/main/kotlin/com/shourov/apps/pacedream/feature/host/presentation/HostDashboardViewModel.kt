@@ -48,6 +48,8 @@ class HostDashboardViewModel @Inject constructor(
                 responseRate = result.overview?.responseRate ?: 0.0,
                 pendingBookings = result.overview?.pendingBookings ?: 0,
                 payoutState = result.payoutState,
+                shouldShowPayoutSetupPrompt = result.payoutEligibility?.shouldShowPayoutSetupPrompt ?: false,
+                payoutPromptReason = result.payoutEligibility?.payoutPromptReason,
                 isLoading = false,
                 error = result.errorMessage
             )

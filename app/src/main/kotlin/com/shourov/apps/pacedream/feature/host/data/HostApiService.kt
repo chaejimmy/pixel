@@ -72,6 +72,9 @@ interface HostApiService {
     @GET(ApiEndPoints.HOST_PAYOUT_STATUS)
     suspend fun getPayoutStatus(): Response<PayoutStatusResponse>
 
+    @GET(ApiEndPoints.HOST_PAYOUT_SETUP_ELIGIBILITY)
+    suspend fun getPayoutSetupEligibility(): Response<PayoutSetupEligibilityResponse>
+
     @POST(ApiEndPoints.HOST_PAYOUT_ONBOARDING_LINK)
     suspend fun createOnboardingLink(
         @Query("platform") platform: String = "android"
@@ -409,6 +412,20 @@ data class PayoutMethodResponse(
     }
     val resolvedIsPrimary: Boolean get() = isPrimary || primary
 }
+
+// ── Payout Setup Eligibility (server-driven prompt) ─────────────
+
+/**
+ * Server-driven payout setup eligibility response.
+ * All clients (iOS, Android, web) use this to decide whether
+ * to show payout setup prompts.
+ */
+data class PayoutSetupEligibilityResponse(
+    val shouldShowPayoutSetupPrompt: Boolean = false,
+    val payoutPromptReason: String? = null,
+    val payoutOnboardingComplete: Boolean = false,
+    val payoutStatus: String = "UNSET"
+)
 
 // ── Reviews (matches iOS HostReviewsSummary) ────────────────────
 
