@@ -408,18 +408,39 @@ fun MainNavHost(
                     )
                 }
 
-                // Host Home (placeholder)
+                // Host Home
                 composable(NavRoutes.HOST_HOME) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text("Host Home", modifier = Modifier.padding(16.dp))
-                    }
+                    com.pacedream.app.feature.host.HostHomeScreen(
+                        onSwitchToGuestMode = {
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        },
+                        onBookingClick = { bookingId ->
+                            navController.navigate(NavRoutes.bookingDetail(bookingId))
+                        },
+                        onSignOut = {
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                            }
+                        }
+                    )
                 }
 
-                // Edit Profile (placeholder)
+                // Edit Profile
                 composable(NavRoutes.EDIT_PROFILE) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text("Edit Profile", modifier = Modifier.padding(16.dp))
-                    }
+                    com.pacedream.app.feature.profile.EditProfileScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
 
                 // Collection Detail
@@ -649,15 +670,18 @@ fun MainNavHost(
                     )
                 }
                 
-                // Booking Detail (stub)
+                // Booking Detail
                 composable(
                     route = NavRoutes.BOOKING_DETAIL,
                     arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                    BookingDetailPlaceholder(
-                        bookingId = bookingId,
-                        onBackClick = { navController.popBackStack() }
+                    com.pacedream.app.feature.bookings.BookingDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onContactHost = { hostId ->
+                            // Navigate to inbox/thread with host
+                            navController.navigate(NavRoutes.threadDetail(hostId))
+                        }
                     )
                 }
             }
