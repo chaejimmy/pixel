@@ -28,6 +28,7 @@ class HostRepository @Inject constructor(
         val listings: List<Property>,
         val overview: HostDashboardOverviewResponse?,
         val payoutState: PayoutConnectionState,
+        val payoutEligibility: PayoutSetupEligibilityResponse?,
         val hadPartialFailure: Boolean,
         val errorMessage: String?
     )
@@ -87,10 +88,20 @@ class HostRepository @Inject constructor(
             }
         }
 
+        val eligibilityDeferred = async {
+            try {
+                getPayoutSetupEligibility()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load payout eligibility")
+                null
+            }
+        }
+
         val bookings = bookingsDeferred.await()
         val listings = listingsDeferred.await()
         val overview = overviewDeferred.await()
         val payoutState = payoutDeferred.await()
+        val payoutEligibility = eligibilityDeferred.await()
 
         val errorMessage = when {
             hadFailure && bookings.isEmpty() && listings.isEmpty() ->
@@ -105,6 +116,7 @@ class HostRepository @Inject constructor(
             listings = listings,
             overview = overview,
             payoutState = payoutState,
+            payoutEligibility = payoutEligibility,
             hadPartialFailure = hadFailure,
             errorMessage = errorMessage
         )
@@ -272,6 +284,26 @@ class HostRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Check payout setup eligibility from the backend (server-driven).
+     * Returns whether the current authenticated user should see payout setup prompts.
+     * If the request fails (e.g. not authenticated), defaults to NOT showing the prompt.
+     */
+    suspend fun getPayoutSetupEligibility(): PayoutSetupEligibilityResponse {
+        return try {
+            val response = hostApiService.getPayoutSetupEligibility()
+            if (response.isSuccessful) {
+                response.body() ?: PayoutSetupEligibilityResponse()
+            } else {
+                Timber.d("Payout eligibility check failed: ${response.code()}")
+                PayoutSetupEligibilityResponse()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to check payout setup eligibility")
+            PayoutSetupEligibilityResponse()
         }
     }
 

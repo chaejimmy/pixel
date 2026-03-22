@@ -88,6 +88,14 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
                 notificationData
             }
 
+            // Auth guard: suppress payout/payment setup notifications for logged-out users.
+            // This prevents the bug where unauthenticated users receive "Set up payments"
+            // or payout-related notifications.
+            if (mergedData.isPayoutRelated && !tokenStorage.hasTokens()) {
+                Timber.d("Suppressing payout notification for unauthenticated user: type=%s", mergedData.type)
+                return
+            }
+
             // Display the notification
             notificationService.showNotification(mergedData)
         } else if (hasNotificationPayload) {

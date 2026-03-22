@@ -118,6 +118,26 @@ data class NotificationData(
     val metadata: Map<String, String>? = null // iOS parity
 ) {
     /**
+     * Whether this notification is payout/payment-setup related.
+     * Used to suppress these notifications for unauthenticated users.
+     */
+    val isPayoutRelated: Boolean
+        get() = type in setOf(
+            NotificationType.PAYOUT_INITIATED,
+            NotificationType.PAYOUT_FAILED,
+            NotificationType.PAYMENT_RECEIVED,
+            NotificationType.PAYMENT_FAILED,
+            NotificationType.CHARGEBACK_CREATED,
+            NotificationType.CHARGEBACK_RESOLVED,
+        ) || screen in setOf(
+            "host_onboarding",
+            "payout_settings",
+            "payout_history",
+            "payment_methods",
+            "payment_history",
+        )
+
+    /**
      * Determine the notification channel based on the notification type.
      */
     val channelId: String
