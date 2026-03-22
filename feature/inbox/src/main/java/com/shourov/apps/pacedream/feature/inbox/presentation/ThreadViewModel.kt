@@ -165,13 +165,22 @@ class ThreadViewModel @Inject constructor(
     /**
      * Send message with optimistic insert and proper failure tracking.
      * Matches iOS behavior: temp message shown immediately, marked failed on error,
-     * user can retry.
+     * user can retry. Pre-checks content moderation locally before sending.
      */
     private fun sendMessage(text: String) {
         if (text.isBlank()) return
 
         val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
         val trimmedText = text.trim()
+
+        // Local moderation pre-check (word-boundary matching, aligned with backend)
+        val moderationResult = com.shourov.apps.pacedream.feature.inbox.data.ContentModerationCheck.check(trimmedText)
+        if (moderationResult.status != com.shourov.apps.pacedream.feature.inbox.data.ContentModerationCheck.Status.ALLOW) {
+            _uiState.value = currentState.copy(
+                sendError = moderationResult.message
+            )
+            return
+        }
 
         // Create optimistic temp message (iOS uses "temp-" prefix)
         val tempId = "temp-${UUID.randomUUID()}"
