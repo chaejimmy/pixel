@@ -435,7 +435,7 @@ private fun CategoryFilterTabs(
     Column(modifier = modifier) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             items(categories) { (name, outlinedIcon, filledIcon) ->
                 val isSelected = selectedCategory == name
@@ -449,7 +449,7 @@ private fun CategoryFilterTabs(
         }
         HorizontalDivider(
             thickness = 0.5.dp,
-            color = PaceDreamColors.Gray100
+            color = PaceDreamColors.Gray200
         )
     }
 }
@@ -469,32 +469,32 @@ private fun CategoryTab(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 10.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = name,
-            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray400,
-            modifier = Modifier.size(24.dp)
+            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray500,
+            modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = name,
-            style = DSTypo.Caption2.copy(
+            style = DSTypo.Caption.copy(
                 fontFamily = paceDreamFontFamily,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
             ),
-            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray500,
+            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray600,
             maxLines = 1
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
-                .width(32.dp)
-                .height(2.5.dp)
+                .width(28.dp)
+                .height(2.dp)
                 .background(
                     color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                    shape = RoundedCornerShape(2.dp)
+                    shape = RoundedCornerShape(1.dp)
                 )
         )
     }
@@ -556,7 +556,8 @@ private fun QuickCategoryChip(
                 )
             },
         shape = RoundedCornerShape(PaceDreamRadius.Round),
-        color = category.bgColor.copy(alpha = 0.06f)
+        color = category.bgColor.copy(alpha = 0.08f),
+        border = BorderStroke(0.5.dp, category.bgColor.copy(alpha = 0.12f))
     ) {
         Row(
             modifier = Modifier.padding(start = 6.dp, end = 16.dp),
@@ -565,7 +566,7 @@ private fun QuickCategoryChip(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(category.bgColor.copy(alpha = 0.10f), CircleShape),
+                    .background(category.bgColor.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -578,7 +579,7 @@ private fun QuickCategoryChip(
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = category.name,
-                style = DSTypo.Footnote.copy(
+                style = DSTypo.Subheadline.copy(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.Medium
                 ),
@@ -865,33 +866,46 @@ private fun ListingCard(
                     }
                 }
 
-                // Rating badge (bottom-right)
-                item.rating?.let { rating ->
+                // Rating badge (bottom-right) — show "New" for 0.0 ratings
+                val rating = item.rating
+                if (rating != null) {
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(10.dp),
-                        shape = RoundedCornerShape(PaceDreamRadius.XS),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
                         color = Color.White
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFBE0B),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
+                        if (rating > 0.0) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFBE0B),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "%.1f".format(rating),
+                                    style = DSTypo.Caption2.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color(0xFF1A1A1A)
+                                )
+                            }
+                        } else {
                             Text(
-                                text = "%.1f".format(rating),
+                                text = "New",
                                 style = DSTypo.Caption2.copy(
                                     fontFamily = paceDreamFontFamily,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.SemiBold
                                 ),
-                                color = Color(0xFF1A1A1A)
+                                color = PaceDreamColors.Primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
@@ -954,22 +968,33 @@ private fun ListingCard(
                                 color = PaceDreamColors.Primary
                             )
                         )
-                        item.rating?.let { rating ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Star,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFBE0B),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
+                        item.rating?.let { ratingVal ->
+                            if (ratingVal > 0.0) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = PaceDreamIcons.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFBE0B),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "%.1f".format(ratingVal),
+                                        style = DSTypo.Footnote.copy(
+                                            fontFamily = paceDreamFontFamily,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = Color(0xFF1A1A1A)
+                                    )
+                                }
+                            } else {
                                 Text(
-                                    text = "%.1f".format(rating),
+                                    text = "New",
                                     style = DSTypo.Footnote.copy(
                                         fontFamily = paceDreamFontFamily,
                                         fontWeight = FontWeight.Medium
                                     ),
-                                    color = Color(0xFF1A1A1A)
+                                    color = PaceDreamColors.Primary
                                 )
                             }
                         }
