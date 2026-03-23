@@ -98,9 +98,9 @@ class AuthSessionParsingTest {
     // ── Request models ──────────────────────────────────────────────
 
     @Test
-    fun `RefreshTokenRequest holds refresh_token`() {
+    fun `RefreshTokenRequest holds refreshToken`() {
         val req = RefreshTokenRequest("rt_abc123")
-        assertEquals("rt_abc123", req.refresh_token)
+        assertEquals("rt_abc123", req.refreshToken)
     }
 
     @Test

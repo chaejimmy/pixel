@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -478,8 +479,13 @@ class AuthSession @Inject constructor(
             val jsonObject = jsonElement.jsonObject
 
             // Try to find user data in common locations
-            val userData = jsonObject["data"]?.jsonObject
+            // /account/me returns { data: { profile: { firstName, ... } } }
+            // /auth/login returns { data: { user: { id, email, ... } } }
+            val dataObject = jsonObject["data"]?.jsonObject
+            val userData = dataObject?.get("profile")?.jsonObject
+                ?: dataObject?.get("user")?.jsonObject
                 ?: jsonObject["user"]?.jsonObject
+                ?: dataObject
                 ?: jsonObject
 
             val user = User(
@@ -493,8 +499,10 @@ class AuthSession @Inject constructor(
                     ?: userData["last_name"]?.jsonPrimitive?.content,
                 profileImage = userData["profileImage"]?.jsonPrimitive?.content
                     ?: userData["profile_image"]?.jsonPrimitive?.content
+                    ?: userData["avatarUrl"]?.jsonPrimitive?.content
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
+                    ?: userData["phoneNumber"]?.jsonPrimitive?.content
             )
 
             _currentUser.value = user
@@ -571,7 +579,7 @@ data class User(
  */
 @Serializable
 data class RefreshTokenRequest(
-    val refresh_token: String
+    val refreshToken: String
 )
 
 @Serializable
@@ -590,8 +598,8 @@ data class EmailLoginRequest(
 data class EmailRegisterRequest(
     val email: String,
     val password: String,
-    val firstName: String,
-    val lastName: String
+    @SerialName("first_name") val firstName: String,
+    @SerialName("last_name") val lastName: String
 )
 
 @Serializable
