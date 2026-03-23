@@ -102,7 +102,7 @@ class BiddingRepository @Inject constructor(
         catch (e: Exception) { Timber.e(e, "Parse error"); ApiResult.Failure(ApiError.DecodingError()) }
 
     suspend fun getBids(page: Int = 1, limit: Int = 20): ApiResult<BidsEnvelope> {
-        val url = appConfig.buildApiUrl("bids") + "?page=$page&limit=$limit"
+        val url = appConfig.buildApiUrl("bids", queryParams = mapOf("page" to page.toString(), "limit" to limit.toString()))
         return when (val r = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> decode(r.data, BidsEnvelope.serializer())
             is ApiResult.Failure -> r
@@ -128,7 +128,7 @@ class BiddingRepository @Inject constructor(
     }
 
     suspend fun getListingBids(listingId: String): ApiResult<BidsEnvelope> {
-        val url = appConfig.buildApiUrl("bids") + "?listingId=$listingId"
+        val url = appConfig.buildApiUrl("bids", queryParams = mapOf("listingId" to listingId))
         return when (val r = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> decode(r.data, BidsEnvelope.serializer())
             is ApiResult.Failure -> r

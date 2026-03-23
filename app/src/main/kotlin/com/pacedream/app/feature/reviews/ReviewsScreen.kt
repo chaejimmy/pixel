@@ -142,7 +142,7 @@ class ReviewsRepository @Inject constructor(
     private val json: Json
 ) {
     suspend fun getUserReviews(page: Int = 1, limit: Int = 20): ApiResult<ReviewsEnvelope> {
-        val url = appConfig.buildApiUrl("reviews") + "?page=$page&limit=$limit"
+        val url = appConfig.buildApiUrl("reviews", queryParams = mapOf("page" to page.toString(), "limit" to limit.toString()))
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
@@ -157,7 +157,7 @@ class ReviewsRepository @Inject constructor(
     }
 
     suspend fun getPropertyReviews(propertyId: String, page: Int = 1): ApiResult<ReviewsEnvelope> {
-        val url = appConfig.buildApiUrl("reviews", "property", propertyId) + "?page=$page&limit=20"
+        val url = appConfig.buildApiUrl("reviews", "property", propertyId, queryParams = mapOf("page" to page.toString(), "limit" to "20"))
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 try {

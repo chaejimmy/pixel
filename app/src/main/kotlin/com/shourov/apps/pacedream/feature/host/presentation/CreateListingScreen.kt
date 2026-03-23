@@ -1022,6 +1022,7 @@ private fun CreateListingWizardScreen(
             }
         }
     }
+  }
 }
 
 // ── Step: Basics (iOS: ListingBasicsStepView) ──

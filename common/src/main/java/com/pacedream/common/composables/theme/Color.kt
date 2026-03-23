@@ -222,6 +222,10 @@ object PaceDreamColors {
     val GradientStart = Color(0xFF3B82F6) // iOS gradientStart
     val GradientEnd = Color(0xFF5527D7) // iOS gradientEnd
 
+    // Card & divider aliases (used by feature screens)
+    val CardBackground = Card
+    val Divider = Border
+
     // Liquid Glass specific colors
     val GlassSurface = Color(0xFFFFFFFF).copy(alpha = 0.72f) // translucent white
     val GlassSurfaceDark = Color(0xFF1C1C1E).copy(alpha = 0.72f) // translucent dark

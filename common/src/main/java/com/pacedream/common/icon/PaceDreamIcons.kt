@@ -175,6 +175,8 @@ import androidx.compose.material.icons.rounded.FlightTakeoff
 import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -384,4 +386,7 @@ object PaceDreamIcons {
     val Explore: ImageVector = Icons.Rounded.Explore
     val TravelExplore: ImageVector = Icons.Rounded.TravelExplore
     val Sort: ImageVector = Icons.Rounded.Sort
+    val SwapVert: ImageVector = Icons.Rounded.SwapVert
+    val ArrowDropDown: ImageVector = Icons.Filled.ArrowDropDown
+    val Clock: ImageVector = Icons.Rounded.Schedule
 }

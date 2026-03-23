@@ -84,7 +84,7 @@ class BookingTabRepository @Inject constructor(
         )
 
         var bestResult: BookingsResult? = null
-        var lastError: ApiResult.Failure<BookingsResult>? = null
+        var lastError: ApiResult.Failure? = null
 
         for ((index, route) in routes.withIndex()) {
             val url = appConfig.buildApiUrlWithQuery(

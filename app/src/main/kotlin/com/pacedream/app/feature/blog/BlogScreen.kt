@@ -87,7 +87,7 @@ class BlogRepository @Inject constructor(
     private val json: Json
 ) {
     suspend fun getPosts(page: Int = 1, limit: Int = 20): ApiResult<BlogsEnvelope> {
-        val url = appConfig.buildApiUrl("blog", "posts") + "?page=$page&limit=$limit"
+        val url = appConfig.buildApiUrl("blog", "posts", queryParams = mapOf("page" to page.toString(), "limit" to limit.toString()))
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 try {

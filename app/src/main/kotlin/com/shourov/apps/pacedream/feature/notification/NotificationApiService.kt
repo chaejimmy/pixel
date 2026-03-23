@@ -54,7 +54,7 @@ class NotificationApiService @Inject constructor(
     suspend fun getNotifications(page: Int = 1, limit: Int = 20): List<AppNotification> {
         _isLoading.value = true
         try {
-            val url = appConfig.buildApiUrl("notifications") + "?page=$page&limit=$limit"
+            val url = appConfig.buildApiUrlWithQuery("notifications", queryParams = mapOf("page" to page.toString(), "limit" to limit.toString()))
             when (val result = apiClient.get(url, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val response = json.decodeFromString(

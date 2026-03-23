@@ -271,7 +271,9 @@ fun BookingDetailScreen(
                     }
 
                     // iOS PR #202 parity: Verification PIN Card
-                    if (!booking.verificationPin.isNullOrBlank()) {
+                    val verificationPin = booking.verificationPin
+                    val pinStatus = booking.pinStatus
+                    if (!verificationPin.isNullOrBlank()) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -290,17 +292,17 @@ fun BookingDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                                 Text(
-                                    text = booking.verificationPin,
+                                    text = verificationPin,
                                     style = PaceDreamTypography.Title2.copy(
                                         letterSpacing = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)
                                     ),
                                     fontWeight = FontWeight.Bold,
                                     color = PaceDreamColors.Primary
                                 )
-                                if (!booking.pinStatus.isNullOrBlank()) {
+                                if (!pinStatus.isNullOrBlank()) {
                                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                                     Text(
-                                        text = booking.pinStatus.replaceFirstChar { it.uppercase() },
+                                        text = pinStatus.replaceFirstChar { it.uppercase() },
                                         style = PaceDreamTypography.Caption,
                                         color = PaceDreamColors.TextSecondary
                                     )

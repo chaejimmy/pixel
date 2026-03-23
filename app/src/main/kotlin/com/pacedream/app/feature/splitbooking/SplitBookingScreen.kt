@@ -137,10 +137,10 @@ class SplitBookingRepository @Inject constructor(
         parseOne(apiClient.post(appConfig.buildApiUrl("split-bookings", splitId, "pay"), "{}", includeAuth = true))
 
     suspend fun getActiveSplits(): ApiResult<List<SplitBookingData>> =
-        parseList(apiClient.get(appConfig.buildApiUrl("split-bookings") + "?status=active", includeAuth = true))
+        parseList(apiClient.get(appConfig.buildApiUrl("split-bookings", queryParams = mapOf("status" to "active")), includeAuth = true))
 
     suspend fun getSplitHistory(): ApiResult<List<SplitBookingData>> =
-        parseList(apiClient.get(appConfig.buildApiUrl("split-bookings") + "?status=history", includeAuth = true))
+        parseList(apiClient.get(appConfig.buildApiUrl("split-bookings", queryParams = mapOf("status" to "history")), includeAuth = true))
 
     private fun parseOne(result: ApiResult<String>): ApiResult<SplitBookingData> = when (result) {
         is ApiResult.Success -> try {
