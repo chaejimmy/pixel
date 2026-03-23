@@ -136,6 +136,9 @@ class ListingDetailRepository @Inject constructor(
 
             val amenities = parseAmenities(listing)
 
+            // Website parity: nested details object used for amenities, property info, review count
+            val detailsObj = listing["details"]?.asObjectOrNull()
+
             // Rating: check top-level, then nested ratings/review_summary objects (iOS parity)
             val ratingsObj = listing["ratings"]?.asObjectOrNull()
                 ?: listing["review_summary"]?.asObjectOrNull()
@@ -150,7 +153,6 @@ class ListingDetailRepository @Inject constructor(
             val isFavorite = listing.boolean("liked", "isLiked", "isFavorited", "is_wishlisted")
 
             // Property details - also check nested details object (website parity)
-            val detailsObj = listing["details"]?.asObjectOrNull()
             val propertyType = listing.string("propertyType", "property_type", "type", "spaceType", "space_type", "item_type", "listing_type")
             val maxGuests = listing.int("maxGuests", "max_guests", "guests", "capacity")
                 ?: detailsObj?.int("seats", "capacity", "maxGuests")
