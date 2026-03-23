@@ -170,19 +170,7 @@ class AppConfig @Inject constructor() {
     
     /**
      * Build API URL using HttpUrl.Builder (NO string concatenation)
-     */
-    fun buildApiUrl(vararg pathSegments: String): HttpUrl {
-        val builder = apiBaseUrl.newBuilder()
-        pathSegments.forEach { segment ->
-            segment.split("/").filter { it.isNotBlank() }.forEach { part ->
-                builder.addPathSegment(part)
-            }
-        }
-        return builder.build()
-    }
-    
-    /**
-     * Build API URL with query parameters
+     * Optionally includes query parameters.
      */
     fun buildApiUrl(
         vararg pathSegments: String,
