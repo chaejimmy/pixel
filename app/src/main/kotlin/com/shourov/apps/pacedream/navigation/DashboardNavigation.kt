@@ -919,7 +919,8 @@ fun NavGraphBuilder.DashboardNavigation(
                             // Login & Security Screen
                             composable("settings_login_security") {
                                 com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen(
-                                    onBackClick = { navController.popBackStack() }
+                                    onBackClick = { navController.popBackStack() },
+                                    onAccountDeactivated = { navController.popBackStack() }
                                 )
                             }
 
