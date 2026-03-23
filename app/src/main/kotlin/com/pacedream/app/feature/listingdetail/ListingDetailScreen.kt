@@ -306,6 +306,23 @@ fun ListingDetailScreen(
                         )
                     }
 
+                    // Split Listing Info (website parity: shows cost splitting, slots, deadline)
+                    if (listing?.shareType?.uppercase() == "SPLIT" && listing.totalCost != null) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
+                        item {
+                            SectionSplitInfo(
+                                totalCost = listing.totalCost,
+                                slotsTotal = listing.slotsTotal,
+                                slotsFilled = listing.slotsFilled,
+                                splitStatus = listing.splitStatus,
+                                deadlineAt = listing.deadlineAt,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
                     item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
@@ -2166,6 +2183,110 @@ private fun formatReviewDate(dateString: String): String {
             localDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
         } catch (_: Exception) {
             dateString.take(10)
+        }
+    }
+}
+
+@Composable
+private fun SectionSplitInfo(
+    totalCost: Double?,
+    slotsTotal: Int?,
+    slotsFilled: Int?,
+    splitStatus: String?,
+    deadlineAt: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            "Split Details",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                if (totalCost != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Cost", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("$${String.format("%,.0f", totalCost)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (slotsTotal != null && slotsTotal > 0) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Per Person", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${String.format("%,.0f", totalCost / slotsTotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                if (slotsTotal != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Slots", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${slotsFilled ?: 0} / $slotsTotal filled", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+                if (splitStatus != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = when (splitStatus.uppercase()) {
+                                "OPEN" -> Color(0xFF10B981).copy(alpha = 0.1f)
+                                "MATCHED" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                "CLOSED" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ) {
+                            Text(
+                                splitStatus.replaceFirstChar { it.uppercase() },
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = when (splitStatus.uppercase()) {
+                                    "OPEN" -> Color(0xFF10B981)
+                                    "MATCHED" -> MaterialTheme.colorScheme.primary
+                                    "CLOSED" -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
+                    }
+                }
+                if (deadlineAt != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Deadline", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(deadlineAt.take(10), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
     }
 }
