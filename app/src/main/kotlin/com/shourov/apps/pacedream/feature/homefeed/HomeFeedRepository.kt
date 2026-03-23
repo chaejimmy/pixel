@@ -65,23 +65,30 @@ class HomeFeedRepository @Inject constructor(
     }
 
     /**
-     * Curated hourly payload: /v1/properties/filter-rentable-items-by-group/time_based?item_type=room
-     * Fallback: /v1/rooms/search if time_based is empty.
+     * Curated hourly payload: /v1/poc/listings?shareType=USE&status=published&limit=24&skip_pagination=true
+     * Matches website endpoint for spaces data.
+     * Fallback: standard /v1/listings?shareType=USE if poc endpoint is empty.
      */
     suspend fun getCuratedHourly(limit: Int = 24): ApiResult<List<HomeCard>> {
         val curatedUrl = appConfig.buildApiUrlWithQuery(
-            "properties", "filter-rentable-items-by-group", "time_based",
-            queryParams = mapOf("item_type" to "room")
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "USE",
+                "status" to "published",
+                "limit" to limit.toString(),
+                "skip_pagination" to "true"
+            )
         )
+        Timber.d("HomeFeed spaces: $curatedUrl")
         val curated = apiClient.get(curatedUrl, includeAuth = false)
         if (curated is ApiResult.Success) {
             val cards = parseListingsToCards(curated.data)
             if (cards.isNotEmpty()) return ApiResult.Success(cards)
         }
 
-        // Backend mismatch safety: if time_based isn't supported, fall back to standard listings for USE.
+        // Fallback: standard listings endpoint with shareType=USE
         return getListingsShareTypePage(
-            shareType = "SHARE",
+            shareType = "USE",
             page1 = 1,
             limit = limit
         )
