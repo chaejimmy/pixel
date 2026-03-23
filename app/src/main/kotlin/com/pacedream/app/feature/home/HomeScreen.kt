@@ -324,17 +324,17 @@ private fun HeroHeaderSection(
             }
         }
 
-        // Overlapping Search Bar (matches iOS BlurredSearchBar)
+        // Overlapping Search Bar
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .shadow(
-                    elevation = 8.dp,
+                    elevation = 10.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    ambientColor = Color.Black.copy(alpha = 0.08f),
-                    spotColor = Color.Black.copy(alpha = 0.12f)
+                    ambientColor = Color.Black.copy(alpha = 0.06f),
+                    spotColor = Color.Black.copy(alpha = 0.10f)
                 )
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -348,12 +348,12 @@ private fun HeroHeaderSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .background(
                             PaceDreamColors.Primary.copy(alpha = 0.08f),
                             CircleShape
@@ -367,36 +367,39 @@ private fun HeroHeaderSection(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Search anywhere",
-                        style = DSTypo.Headline.copy(
+                        style = DSTypo.Callout.copy(
                             fontFamily = paceDreamFontFamily,
-                            fontSize = 15.sp
+                            fontWeight = FontWeight.SemiBold
                         ),
                         color = Color(0xFF1A1A1A)
                     )
+                    Spacer(modifier = Modifier.height(1.dp))
                     Text(
                         text = "Spaces \u00B7 Items \u00B7 Services",
                         style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                        color = PaceDreamColors.Gray400
+                        color = PaceDreamColors.Gray500
                     )
                 }
+                Spacer(modifier = Modifier.width(10.dp))
                 Surface(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .clip(CircleShape)
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
-                    color = PaceDreamColors.Gray50
+                    color = PaceDreamColors.Gray100,
+                    border = BorderStroke(0.5.dp, PaceDreamColors.Gray200)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = PaceDreamIcons.Tune,
                             contentDescription = "Filters",
-                            tint = Color(0xFF1A1A1A),
-                            modifier = Modifier.size(18.dp)
+                            tint = Color(0xFF374151),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -434,8 +437,8 @@ private fun CategoryFilterTabs(
 
     Column(modifier = modifier) {
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(categories) { (name, outlinedIcon, filledIcon) ->
                 val isSelected = selectedCategory == name
@@ -461,6 +464,12 @@ private fun CategoryTab(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0.55f,
+        animationSpec = tween(durationMillis = 150),
+        label = "tabAlpha"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -469,32 +478,36 @@ private fun CategoryTab(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .padding(horizontal = 14.dp)
+            .padding(top = 12.dp, bottom = 0.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = name,
-            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray500,
-            modifier = Modifier.size(22.dp)
+            tint = if (isSelected) PaceDreamColors.Primary
+                   else Color(0xFF6B7280), // Gray-500 for better contrast
+            modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = name,
             style = DSTypo.Caption.copy(
                 fontFamily = paceDreamFontFamily,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                letterSpacing = if (isSelected) 0.sp else 0.1.sp
             ),
-            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray600,
+            color = if (isSelected) PaceDreamColors.Primary
+                    else Color(0xFF6B7280),
             maxLines = 1
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Box(
             modifier = Modifier
-                .width(28.dp)
-                .height(2.dp)
+                .fillMaxWidth()
+                .height(2.5.dp)
                 .background(
                     color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                    shape = RoundedCornerShape(1.dp)
+                    shape = RoundedCornerShape(2.dp)
                 )
         )
     }
@@ -514,7 +527,7 @@ private fun QuickCategoriesRow(
             title = "Explore Categories",
             modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -663,40 +676,55 @@ private fun SectionHeader(
     onViewAllClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = title,
                 style = DSTypo.Title2.copy(
                     fontFamily = paceDreamDisplayFontFamily,
                     letterSpacing = (-0.3).sp
                 ),
-                color = Color(0xFF1A1A1A)
+                color = Color(0xFF1A1A1A),
+                modifier = Modifier.weight(1f, fill = false)
             )
-            if (subtitle != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500
-                )
+            if (onViewAllClick != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                TextButton(
+                    onClick = onViewAllClick,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "View All",
+                        style = DSTypo.Subheadline.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = PaceDreamColors.Primary
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = PaceDreamIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
-        if (onViewAllClick != null) {
-            TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "View All",
-                    style = DSTypo.Subheadline.copy(
-                        fontFamily = paceDreamFontFamily,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = PaceDreamColors.Secondary
-                )
-            }
+        if (subtitle != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = DSTypo.Footnote.copy(
+                    fontFamily = paceDreamFontFamily,
+                    lineHeight = 18.sp
+                ),
+                color = PaceDreamColors.Gray500
+            )
         }
     }
 }
@@ -723,19 +751,19 @@ private fun ListingSection(
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         if (isLoading) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(4) { ShimmerCard() }
             }
         } else {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(items) { item ->
                     ListingCard(
@@ -760,20 +788,20 @@ private fun ListingCard(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 120),
         label = "cardScale"
     )
 
     Surface(
         modifier = Modifier
-            .width(260.dp)
+            .width(270.dp)
             .scale(scale)
             .shadow(
-                elevation = if (isPressed) 12.dp else 8.dp,
+                elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                ambientColor = Color.Black.copy(alpha = 0.10f),
-                spotColor = Color.Black.copy(alpha = if (isPressed) 0.15f else 0.10f)
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
             )
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -789,10 +817,11 @@ private fun ListingCard(
         color = Color.White
     ) {
         Column {
+            // Image area — 4:3 aspect ratio (270 × 202)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(202.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
@@ -807,29 +836,29 @@ private fun ListingCard(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // Bottom scrim
+                // Subtle bottom scrim for legibility
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
+                        .height(48.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.30f)
+                                    Color.Black.copy(alpha = 0.20f)
                                 )
                             )
                         )
                 )
 
-                // Type badge
+                // Type badge (top-left)
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(10.dp),
-                    shape = RoundedCornerShape(PaceDreamRadius.XS),
-                    color = Color.White
+                        .padding(12.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
+                    color = Color.White.copy(alpha = 0.95f)
                 ) {
                     Text(
                         text = when (item.type) {
@@ -840,100 +869,59 @@ private fun ListingCard(
                         },
                         style = DSTypo.Caption2.copy(
                             fontFamily = paceDreamFontFamily,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
                         ),
                         color = PaceDreamColors.Primary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
 
-                // Heart (iOS parity: dark overlay circle)
+                // Heart button (top-right)
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp)
+                        .padding(12.dp)
                         .size(34.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.35f)
+                    color = Color.Black.copy(alpha = 0.30f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = PaceDreamIcons.FavoriteBorderOutlined,
                             contentDescription = "Add to favorites",
                             tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                    }
-                }
-
-                // Rating badge (bottom-right) — show "New" for 0.0 ratings
-                val rating = item.rating
-                if (rating != null) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(10.dp),
-                        shape = RoundedCornerShape(PaceDreamRadius.SM),
-                        color = Color.White
-                    ) {
-                        if (rating > 0.0) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Star,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFBE0B),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "%.1f".format(rating),
-                                    style = DSTypo.Caption2.copy(
-                                        fontFamily = paceDreamFontFamily,
-                                        fontWeight = FontWeight.Bold
-                                    ),
-                                    color = Color(0xFF1A1A1A)
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "New",
-                                style = DSTypo.Caption2.copy(
-                                    fontFamily = paceDreamFontFamily,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = PaceDreamColors.Primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
                     }
                 }
             }
 
-            // Content below image (inside card surface)
+            // Content area below image
             Column(
                 modifier = Modifier.padding(
                     start = 14.dp,
                     end = 14.dp,
-                    top = 12.dp,
+                    top = 14.dp,
                     bottom = 14.dp
                 )
             ) {
+                // Title — primary emphasis
                 Text(
                     text = item.title,
                     style = DSTypo.Callout.copy(
                         fontFamily = paceDreamFontFamily,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 20.sp
                     ),
-                    color = Color(0xFF1A1A1A),
+                    color = Color(0xFF111827),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
+                // Location — secondary
                 item.location?.let { location ->
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(5.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
@@ -943,58 +931,66 @@ private fun ListingCard(
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            text = location,
-                            style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
-                            color = PaceDreamColors.Gray500,
+                            text = location.replace(Regex(",(?!\\s)"), ", "),
+                            style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                            color = Color(0xFF6B7280),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                item.price?.let { price ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                // Price + Rating row — bottom emphasis
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item.price?.let { price ->
                         Text(
                             text = price,
-                            style = DSTypo.Headline.copy(
+                            style = DSTypo.Callout.copy(
                                 fontFamily = paceDreamFontFamily,
-                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PaceDreamColors.Primary
                             )
                         )
-                        item.rating?.let { ratingVal ->
-                            if (ratingVal > 0.0) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = PaceDreamIcons.Star,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFBE0B),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = "%.1f".format(ratingVal),
-                                        style = DSTypo.Footnote.copy(
-                                            fontFamily = paceDreamFontFamily,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = Color(0xFF1A1A1A)
-                                    )
-                                }
-                            } else {
+                    }
+                    item.rating?.let { ratingVal ->
+                        if (ratingVal > 0.0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "%.1f".format(ratingVal),
+                                    style = DSTypo.Caption.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = Color(0xFF374151)
+                                )
+                            }
+                        } else {
+                            Surface(
+                                shape = RoundedCornerShape(PaceDreamRadius.XS),
+                                color = PaceDreamColors.Primary.copy(alpha = 0.08f)
+                            ) {
                                 Text(
                                     text = "New",
-                                    style = DSTypo.Footnote.copy(
+                                    style = DSTypo.Caption2.copy(
                                         fontFamily = paceDreamFontFamily,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = PaceDreamColors.Primary
+                                    color = PaceDreamColors.Primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
                         }
@@ -1812,7 +1808,7 @@ private fun ShimmerCard() {
     )
 
     Surface(
-        modifier = Modifier.width(260.dp),
+        modifier = Modifier.width(270.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = Color.White,
         shadowElevation = 2.dp
@@ -1821,7 +1817,7 @@ private fun ShimmerCard() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(202.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
@@ -1834,8 +1830,8 @@ private fun ShimmerCard() {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .background(shimmerBrush)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1843,26 +1839,26 @@ private fun ShimmerCard() {
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
                         .height(12.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(60.dp)
+                            .width(64.dp)
                             .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(6.dp))
                             .background(shimmerBrush)
                     )
                     Box(
                         modifier = Modifier
-                            .width(40.dp)
+                            .width(36.dp)
                             .height(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(6.dp))
                             .background(shimmerBrush)
                     )
                 }
