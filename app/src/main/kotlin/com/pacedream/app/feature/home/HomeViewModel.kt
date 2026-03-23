@@ -93,17 +93,22 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Fetch hourly spaces (time-based listings)
-     * GET /v1/properties/filter-rentable-items-by-group/time_based?item_type=room
+     * Fetch hourly spaces (USE share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=USE&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchHourlySpaces(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingHourlySpaces = true) }
-        
+
         val url = appConfig.buildApiUrl(
-            "properties", "filter-rentable-items-by-group", "time_based",
-            queryParams = mapOf("item_type" to "room")
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "USE",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
         )
-        
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "time-based")
@@ -115,16 +120,24 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
-     * Fetch rent gear
-     * GET /v1/gear-rentals/get/hourly-rental-gear/tech_gear
+     * Fetch rent gear (BORROW share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=BORROW&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchRentGear(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingRentGear = true) }
-        
-        val url = appConfig.buildApiUrl("gear-rentals", "get", "hourly-rental-gear", "tech_gear")
-        
+
+        val url = appConfig.buildApiUrl(
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "BORROW",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
+        )
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "gear")
@@ -136,16 +149,22 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
-     * Fetch split stays (iOS parity: GET /v1/listings?shareType=SPLIT)
+     * Fetch split stays (SPLIT share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=SPLIT&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchSplitStays(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingSplitStays = true) }
 
         val url = appConfig.buildApiUrl(
-            "listings",
-            queryParams = mapOf("shareType" to "SPLIT", "page" to "1", "limit" to "24")
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "SPLIT",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
         )
 
         return when (val result = apiClient.get(url, includeAuth = false)) {
