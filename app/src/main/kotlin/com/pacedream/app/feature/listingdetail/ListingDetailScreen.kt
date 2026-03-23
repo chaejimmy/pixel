@@ -213,28 +213,33 @@ fun ListingDetailScreen(
                         )
                     }
 
-                    item {
-                        SectionAbout(
-                            description = listing?.description,
-                            category = listing?.category,
-                            onReadMore = { showAboutSheet = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
-                        )
+                    // About section — only show when description is available
+                    if (!listing?.description.isNullOrBlank()) {
+                        item {
+                            SectionAbout(
+                                description = listing?.description,
+                                category = listing?.category,
+                                onReadMore = { showAboutSheet = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
-
-                    item {
-                        SectionAmenities(
-                            amenities = listing?.amenities.orEmpty(),
-                            onSeeAll = { showAmenitiesSheet = true },
-                            category = listing?.category,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
-                        )
+                    // Amenities section — only show when amenities exist
+                    if (listing?.amenities.orEmpty().isNotEmpty()) {
+                        item {
+                            SectionAmenities(
+                                amenities = listing?.amenities.orEmpty(),
+                                onSeeAll = { showAmenitiesSheet = true },
+                                category = listing?.category,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
                     }
 
                     // House Rules Section
@@ -374,7 +379,7 @@ fun ListingDetailScreen(
             ) {
                 BottomSheetHeader(title = aboutTitle, onClose = { showAboutSheet = false })
                 Text(
-                    text = listing?.description?.trim().orEmpty().ifBlank { "The host hasn't added a description yet." },
+                    text = listing?.description?.trim().orEmpty(),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(20.dp)
@@ -397,48 +402,19 @@ fun ListingDetailScreen(
                 }
                 BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
                 Column(modifier = Modifier.padding(20.dp)) {
-                    val all = listing?.amenities.orEmpty()
-                    if (all.isEmpty()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                    listing?.amenities.orEmpty().forEach { amenity ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 PaceDreamIcons.CheckCircle,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(28.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "No highlights added yet",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "The host hasn't listed specific features. Reach out to learn more.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    } else {
-                        all.forEach { amenity ->
-                            Row(
-                                modifier = Modifier.padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    PaceDreamIcons.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(text = amenity, style = MaterialTheme.typography.bodyLarge)
-                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(text = amenity, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -1521,32 +1497,7 @@ private fun SectionAbout(
     Column(modifier = modifier) {
         Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
-        if (description.isNullOrBlank()) {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        PaceDreamIcons.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "No description added yet. Contact the host for more details.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
+        if (!description.isNullOrBlank()) {
             Text(
                 text = description.trim(),
                 maxLines = 5,
@@ -1592,32 +1543,7 @@ private fun SectionAmenities(
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (amenities.isEmpty()) {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        PaceDreamIcons.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        "Details coming soon — check back or ask the host.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
+        if (amenities.isNotEmpty()) {
             val shown = amenities.take(8)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
