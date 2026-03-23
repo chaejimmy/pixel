@@ -40,14 +40,14 @@ class BookingFormViewModel @Inject constructor(
     private val propertyRepository: PropertyRepository,
     private val authSession: AuthSession
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(BookingFormUiState())
     val uiState: StateFlow<BookingFormUiState> = _uiState.asStateFlow()
-    
+
     fun loadProperty(propertyId: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, propertyId = propertyId)
-            
+
             propertyRepository.getPropertyById(propertyId).collect { result ->
                 when (result) {
                     is Result.Success -> {
@@ -58,8 +58,9 @@ class BookingFormViewModel @Inject constructor(
                                 propertyName = property.name ?: "Property",
                                 propertyImage = property.images?.firstOrNull(),
                                 basePrice = (property.dynamic_price?.firstOrNull()?.price ?: 0).toDouble(),
-                                currency = "USD" // Default currency
+                                currency = "USD"
                             )
+                            calculateTotalPrice()
                         } else {
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
@@ -80,25 +81,31 @@ class BookingFormViewModel @Inject constructor(
             }
         }
     }
-    
-    fun onStartDateChange(date: String) {
-        _uiState.value = _uiState.value.copy(startDate = date)
+
+    fun onDurationChange(durationMinutes: Int) {
+        _uiState.value = _uiState.value.copy(selectedDuration = durationMinutes)
         calculateTotalPrice()
     }
-    
+
+    fun onStartDateChange(date: String) {
+        _uiState.value = _uiState.value.copy(startDate = date, endDate = date)
+        calculateTotalPrice()
+    }
+
     fun onEndDateChange(date: String) {
         _uiState.value = _uiState.value.copy(endDate = date)
         calculateTotalPrice()
     }
-    
+
     fun onStartTimeChange(time: String) {
         _uiState.value = _uiState.value.copy(startTime = time)
+        calculateEndTime()
     }
-    
+
     fun onEndTimeChange(time: String) {
         _uiState.value = _uiState.value.copy(endTime = time)
     }
-    
+
     fun onSpecialRequestsChange(requests: String) {
         _uiState.value = _uiState.value.copy(specialRequests = requests)
     }
@@ -106,50 +113,47 @@ class BookingFormViewModel @Inject constructor(
     fun onGuestCountChange(count: Int) {
         _uiState.value = _uiState.value.copy(guestCount = count.coerceIn(1, 20))
     }
-    
+
+    private fun calculateEndTime() {
+        val currentState = _uiState.value
+        if (currentState.startTime.isNotEmpty() && currentState.selectedDuration > 0) {
+            try {
+                val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+                val startCal = Calendar.getInstance()
+                startCal.time = fmt.parse(currentState.startTime)!!
+                startCal.add(Calendar.MINUTE, currentState.selectedDuration)
+                val endTime = fmt.format(startCal.time)
+                _uiState.value = currentState.copy(endTime = endTime)
+            } catch (_: Exception) { }
+        }
+    }
+
     private fun calculateTotalPrice() {
         val currentState = _uiState.value
-        if (currentState.startDate.isNotEmpty() && currentState.endDate.isNotEmpty()) {
-            val hours = calculateHours(currentState.startDate, currentState.endDate)
-            val totalPrice = currentState.basePrice * hours
-            _uiState.value = currentState.copy(totalPrice = totalPrice)
-        }
+        val durationHours = currentState.selectedDuration / 60.0
+        val totalPrice = currentState.basePrice * durationHours
+        _uiState.value = _uiState.value.copy(totalPrice = totalPrice)
     }
-    
-    private fun calculateHours(startDate: String, endDate: String): Double {
-        return try {
-            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            format.timeZone = TimeZone.getTimeZone("UTC")
-            val start = format.parse(startDate)
-            val end = format.parse(endDate)
 
-            if (start != null && end != null) {
-                val diffInMillis = end.time - start.time
-                if (diffInMillis < 0) return 1.0
-                val diffInHours = diffInMillis / (1000 * 60 * 60)
-                maxOf(1.0, diffInHours.toDouble())
-            } else {
-                1.0
-            }
-        } catch (e: Exception) {
-            1.0
-        }
-    }
-    
     private var isSubmitting = false
 
     fun createBooking(onSuccess: (String) -> Unit) {
-        if (isSubmitting) return // Prevent duplicate submissions
+        if (isSubmitting) return
         viewModelScope.launch {
             val currentState = _uiState.value
 
-            if (currentState.startDate.isEmpty() || currentState.endDate.isEmpty()) {
-                _uiState.value = currentState.copy(error = "Please select start and end dates")
+            if (currentState.startDate.isEmpty()) {
+                _uiState.value = currentState.copy(error = "Please select a date")
                 return@launch
             }
 
-            if (currentState.endDate < currentState.startDate) {
-                _uiState.value = currentState.copy(error = "End date must be on or after start date")
+            if (currentState.startTime.isEmpty()) {
+                _uiState.value = currentState.copy(error = "Please select a start time")
+                return@launch
+            }
+
+            if (currentState.selectedDuration <= 0) {
+                _uiState.value = currentState.copy(error = "Please select a duration")
                 return@launch
             }
 
@@ -161,7 +165,7 @@ class BookingFormViewModel @Inject constructor(
             isSubmitting = true
             val user = authSession.currentUser.value
             val userId = user?.id.orEmpty()
-            
+
             val booking = BookingModel(
                 id = UUID.randomUUID().toString(),
                 userName = userId.ifBlank { user?.displayName },
@@ -170,15 +174,15 @@ class BookingFormViewModel @Inject constructor(
                 propertyName = currentState.propertyName,
                 propertyImage = currentState.propertyImage,
                 startDate = currentState.startDate,
-                endDate = currentState.endDate,
+                endDate = currentState.endDate.ifEmpty { currentState.startDate },
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = BookingStatus.PENDING,
-                hostName = "", // Resolved server-side; property list API only provides host_id
+                hostName = "",
                 checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
                 checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
             )
-            
+
             when (val result = bookingRepository.createBooking(booking)) {
                 is Result.Success -> {
                     isSubmitting = false
@@ -192,7 +196,7 @@ class BookingFormViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
