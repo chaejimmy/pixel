@@ -103,50 +103,61 @@ class HomeFeedRepository @Inject constructor(
     }
 
     private fun parseCard(el: JsonElement): HomeCard? {
-        val obj = el as? JsonObject ?: return null
-        val id = obj["_id"].stringOrNull()
-            ?: obj["id"].stringOrNull()
-            ?: return null
+        return try {
+            val obj = el as? JsonObject ?: return null
+            val id = obj["_id"].stringOrNull()
+                ?: obj["id"].stringOrNull()
+                ?: return null
 
-        val title = obj["title"].stringOrNull()
-            ?: obj["name"].stringOrNull()
-            ?: "Listing"
+            val title = obj["title"].stringOrNull()
+                ?: obj["name"].stringOrNull()
+                ?: "Listing"
 
-        val location = obj["city"].stringOrNull()
-            ?: obj["location"]?.jsonObject?.get("city").stringOrNull()
-            ?: obj["location"].stringOrNull()
-            ?: obj["address"]?.jsonObject?.get("city").stringOrNull()
+            val location = obj["city"].stringOrNull()
+                ?: (obj["location"] as? JsonObject)?.get("city").stringOrNull()
+                ?: obj["location"].stringOrNull()
+                ?: (obj["address"] as? JsonObject)?.get("city").stringOrNull()
 
-        val imageUrl = obj["image"].stringOrNull()
-            ?: obj["imageUrl"].stringOrNull()
-            ?: obj["thumbnail"].stringOrNull()
-            ?: obj["images"]?.jsonArray?.firstOrNull().stringOrNull()
-            ?: obj["gallery"]?.jsonObject?.get("images")?.jsonArray?.firstOrNull().stringOrNull()
-            ?: obj["galleryImages"]?.jsonArray?.firstOrNull().stringOrNull()
+            val imageUrl = obj["image"].stringOrNull()
+                ?: obj["imageUrl"].stringOrNull()
+                ?: obj["thumbnail"].stringOrNull()
+                ?: (obj["images"] as? JsonArray)?.firstOrNull().stringOrNull()
+                ?: (obj["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull().stringOrNull()
+                ?: (obj["gallery"] as? JsonObject)?.get("thumbnail").stringOrNull()
+                ?: (obj["galleryImages"] as? JsonArray)?.firstOrNull().stringOrNull()
 
-        val rating = obj["rating"]?.jsonPrimitive?.doubleOrNull
-            ?: obj["avgRating"]?.jsonPrimitive?.doubleOrNull
+            val rating = (obj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
+                ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
-        val priceText = obj["priceText"].stringOrNull()
-            ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
-            ?: obj["price"]?.jsonObject?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
-            ?: obj["pricing"]?.jsonObject?.get("price")?.stringOrNull()?.let { normalizePriceText(it) }
+            val priceText = obj["priceText"].stringOrNull()
+                ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
+                ?: (obj["price"] as? JsonObject)?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
+                ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
+                    p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                }
+                ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
+                    (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
+                }
 
-        // Extract subcategory from multiple possible fields for resource type filtering.
-        val subCategory = obj["subCategory"].stringOrNull()
-            ?: obj["item_type"].stringOrNull()
-            ?: obj["details"]?.jsonObject?.get("room_type").stringOrNull()
-            ?: obj["roomType"].stringOrNull()
+            // Extract subcategory from multiple possible fields for resource type filtering.
+            val subCategory = obj["subCategory"].stringOrNull()
+                ?: obj["item_type"].stringOrNull()
+                ?: (obj["details"] as? JsonObject)?.get("room_type").stringOrNull()
+                ?: obj["roomType"].stringOrNull()
 
-        return HomeCard(
-            id = id,
-            title = title,
-            location = location,
-            imageUrl = imageUrl,
-            priceText = priceText,
-            rating = rating,
-            subCategory = subCategory,
-        )
+            HomeCard(
+                id = id,
+                title = title,
+                location = location,
+                imageUrl = imageUrl,
+                priceText = priceText,
+                rating = rating,
+                subCategory = subCategory,
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse single card")
+            null
+        }
     }
 
     private fun normalizePriceText(raw: String): String {
@@ -158,7 +169,8 @@ class HomeFeedRepository @Inject constructor(
     }
 
     private fun JsonElement?.stringOrNull(): String? {
-        val s = this?.jsonPrimitive?.contentOrNull?.trim()
+        if (this == null || this !is kotlinx.serialization.json.JsonPrimitive) return null
+        val s = this.contentOrNull?.trim()
         return s?.takeIf { it.isNotBlank() }
     }
 
