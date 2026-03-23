@@ -168,41 +168,44 @@ class HomeViewModel @Inject constructor(
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
+
             // Find data array in common locations (tolerate multiple response shapes)
-            val dataArray = obj["data"]?.jsonArray
-                ?: obj["results"]?.jsonArray
-                ?: obj["items"]?.jsonArray
+            val dataArray = (obj["data"] as? JsonArray)
+                ?: (obj["results"] as? JsonArray)
+                ?: (obj["items"] as? JsonArray)
                 ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("results")?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("listings")?.jsonArray
                 ?: return emptyList()
-            
+
             dataArray.mapNotNull { item ->
                 try {
                     val itemObj = item.jsonObject
                     HomeListingItem(
-                        id = itemObj["_id"]?.jsonPrimitive?.content
-                            ?: itemObj["id"]?.jsonPrimitive?.content
+                        id = (itemObj["_id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: return@mapNotNull null,
-                        title = itemObj["name"]?.jsonPrimitive?.content
-                            ?: itemObj["title"]?.jsonPrimitive?.content
+                        title = (itemObj["name"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["title"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: "Listing",
-                        imageUrl = itemObj["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
-                            ?: itemObj["primaryImage"]?.jsonPrimitive?.content
-                            ?: itemObj["image"]?.jsonPrimitive?.content,
+                        imageUrl = (itemObj["images"] as? JsonArray)?.firstOrNull()?.jsonPrimitive?.content
+                            ?: (itemObj["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                            ?: (itemObj["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
+                            ?: (itemObj["primaryImage"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["image"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
                         location = itemObj["location"]?.let { loc ->
                             when (loc) {
                                 is JsonObject -> {
-                                    val city = loc["city"]?.jsonPrimitive?.content
-                                    val state = loc["state"]?.jsonPrimitive?.content
+                                    val city = (loc["city"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                                    val state = (loc["state"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                                     listOfNotNull(city, state).joinToString(", ").ifBlank { null }
                                 }
-                                else -> loc.jsonPrimitive.content
+                                is kotlinx.serialization.json.JsonPrimitive -> loc.content
+                                else -> null
                             }
                         },
                         price = parsePrice(itemObj),
-                        rating = itemObj["rating"]?.jsonPrimitive?.doubleOrNull,
+                        rating = (itemObj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull,
                         type = type
                     )
                 } catch (e: Exception) {
@@ -215,17 +218,17 @@ class HomeViewModel @Inject constructor(
             emptyList()
         }
     }
-    
+
     private fun parsePrice(obj: JsonObject): String? {
         return try {
             // Try dynamic_price first (for hourly spaces)
-            obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
+            (obj["dynamic_price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { price ->
                 val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
                     ?: price["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
                 priceValue?.let { formatPrice(it, "hr") }
             }
             // Try pricing object
-            ?: obj["pricing"]?.jsonObject?.let { pricing ->
+            ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
                 val hourlyFrom = pricing["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
                     ?: pricing["hourly_from"]?.jsonPrimitive?.doubleOrNull
                 val basePrice = pricing["basePrice"]?.jsonPrimitive?.doubleOrNull
@@ -233,26 +236,29 @@ class HomeViewModel @Inject constructor(
                 val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content
                     ?: pricing["frequency"]?.jsonPrimitive?.content
                     ?: pricing["unit"]?.jsonPrimitive?.content
-                
+
                 val amount = hourlyFrom ?: basePrice
                 val unit = frequency?.lowercase()?.takeIf { it.isNotBlank() } ?: "hr"
                 amount?.let { formatPrice(it, unit) }
             }
-            // Try price object
-            ?: obj["price"]?.let { price ->
-                when (price) {
-                    is JsonObject -> {
-                        val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
-                            ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                        val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
-                        amount?.let { formatPrice(it, unit) }
-                    }
-                    else -> {
-                        val priceValue = price.jsonPrimitive.doubleOrNull
-                            ?: price.jsonPrimitive.content.toDoubleOrNull()
-                        priceValue?.let { formatPrice(it, "hr") }
-                    }
-                }
+            // Try price as array of pricing objects (RentableItem format)
+            ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { price ->
+                val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
+                val frequency = price["frequency"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
+                amount?.let { formatPrice(it, frequency) }
+            }
+            // Try price as object
+            ?: (obj["price"] as? JsonObject)?.let { price ->
+                val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
+                    ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
+                amount?.let { formatPrice(it, unit) }
+            }
+            // Try price as primitive value
+            ?: (obj["price"] as? kotlinx.serialization.json.JsonPrimitive)?.let { price ->
+                val priceValue = price.doubleOrNull
+                    ?: price.content.toDoubleOrNull()
+                priceValue?.let { formatPrice(it, "hr") }
             }
         } catch (e: Exception) {
             null

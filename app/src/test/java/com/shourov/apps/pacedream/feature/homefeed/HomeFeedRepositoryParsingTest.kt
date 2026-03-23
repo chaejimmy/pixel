@@ -5,6 +5,7 @@ import com.shourov.apps.pacedream.core.network.api.TokenProvider
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -79,6 +80,83 @@ class HomeFeedRepositoryParsingTest {
         assertEquals("https://img/loft.webp", cards.first().imageUrl)
         assertEquals("$120", cards.first().priceText)
         assertTrue(cards.first().rating != null)
+    }
+
+    @Test
+    fun `parseListingsToCards handles RentableItem format with gallery and price array`() {
+        val body = """
+            {
+              "action": "/v1/properties/filter-rentable-items-by-group/time_based?item_type=room",
+              "code": 200,
+              "status": true,
+              "data": [
+                {
+                  "_id": "rent1",
+                  "title": "Cozy Meeting Room",
+                  "item_type": "room",
+                  "location": { "city": "Austin", "state": "TX", "country": "US" },
+                  "gallery": {
+                    "thumbnail": "https://img/thumb.webp",
+                    "images": ["https://img/room1.webp", "https://img/room2.webp"]
+                  },
+                  "price": [
+                    {
+                      "pricing_type": "hourly",
+                      "amount": 25,
+                      "currency": "USD",
+                      "frequency": "HOUR"
+                    }
+                  ],
+                  "rating": 4.5,
+                  "category": "time_based"
+                }
+              ],
+              "message": "Rentable items filtered by group retrieved successfully"
+            }
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals(1, cards.size)
+        val card = cards.first()
+        assertEquals("rent1", card.id)
+        assertEquals("Cozy Meeting Room", card.title)
+        assertEquals("Austin", card.location)
+        assertEquals("https://img/room1.webp", card.imageUrl)
+        assertNotNull(card.priceText)
+        assertEquals("$25", card.priceText)
+        assertEquals(4.5, card.rating)
+        assertEquals("room", card.subCategory)
+    }
+
+    @Test
+    fun `parseListingsToCards does not crash on mixed field types`() {
+        val body = """
+            {
+              "data": [
+                {
+                  "_id": "a1",
+                  "title": "Space A",
+                  "price": [{"amount": 10}],
+                  "location": {"city": "Denver"},
+                  "gallery": {"images": ["https://img/a.webp"]}
+                },
+                {
+                  "_id": "a2",
+                  "title": "Space B",
+                  "price": "15",
+                  "location": "Seattle",
+                  "images": ["https://img/b.webp"]
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals(2, cards.size)
+        assertEquals("Space A", cards[0].title)
+        assertEquals("$10", cards[0].priceText)
+        assertEquals("Space B", cards[1].title)
+        assertEquals("$15", cards[1].priceText)
     }
 }
 
