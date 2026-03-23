@@ -61,7 +61,7 @@ data class ListingLocation(
     val neighborhood: String? = null
 ) {
     val cityState: String?
-        get() = listOfNotNull(city?.takeIf { it.isNotBlank() }, state?.takeIf { it.isNotBlank() })
+        get() = listOfNotNull(city?.trim()?.takeIf { it.isNotBlank() }, state?.trim()?.takeIf { it.isNotBlank() })
             .joinToString(", ")
             .takeIf { it.isNotBlank() }
 

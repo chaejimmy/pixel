@@ -165,7 +165,7 @@ fun ListingDetailScreen(
                                 onRetry = onRetry,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .padding(horizontal = 20.dp, vertical = 12.dp)
                             )
                         }
                     }
@@ -182,7 +182,7 @@ fun ListingDetailScreen(
                             available = listing?.available,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 16.dp)
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
                         )
                     }
 
@@ -197,7 +197,7 @@ fun ListingDetailScreen(
                                 bathrooms = listing.bathrooms,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .padding(horizontal = 20.dp, vertical = 4.dp)
                             )
                         }
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
@@ -216,11 +216,12 @@ fun ListingDetailScreen(
                     item {
                         SectionAbout(
                             description = listing?.description,
+                            category = listing?.category,
                             onReadMore = { showAboutSheet = true },
                             category = listing?.category,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -233,7 +234,7 @@ fun ListingDetailScreen(
                             category = listing?.category,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -247,7 +248,7 @@ fun ListingDetailScreen(
                                 checkOutTime = listing.checkOutTime,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
                             )
                         }
                     }
@@ -260,7 +261,7 @@ fun ListingDetailScreen(
                                 features = listing.safetyFeatures,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
                             )
                         }
                     }
@@ -278,7 +279,7 @@ fun ListingDetailScreen(
                             onWriteReview = { showWriteReviewSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -290,7 +291,7 @@ fun ListingDetailScreen(
                             cancellationPolicy = listing?.cancellationPolicy,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -302,7 +303,7 @@ fun ListingDetailScreen(
                             pricing = listing?.pricing,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -316,7 +317,7 @@ fun ListingDetailScreen(
                             onOpenInMaps = onOpenInMaps,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
@@ -327,7 +328,7 @@ fun ListingDetailScreen(
                             onReportClick = { showReportSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
                 }
@@ -345,16 +346,22 @@ fun ListingDetailScreen(
         }
 
         if (showAboutSheet) {
+            val aboutTitle = when (listing?.category?.lowercase()) {
+                "gear", "item", "items" -> "About this item"
+                "service", "services", "split-stay" -> "About this service"
+                else -> "About this space"
+            }
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showAboutSheet = false },
                 sheetState = sheetState
             ) {
-                BottomSheetHeader(title = "About", onClose = { showAboutSheet = false })
+                BottomSheetHeader(title = aboutTitle, onClose = { showAboutSheet = false })
                 Text(
-                    text = listing?.description?.trim().orEmpty().ifBlank { "No description available." },
+                    text = listing?.description?.trim().orEmpty().ifBlank { "The host hasn't added a description yet." },
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -373,7 +380,7 @@ fun ListingDetailScreen(
                     else -> "Highlights"
                 }
                 BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     val all = listing?.amenities.orEmpty()
                     if (all.isEmpty()) {
                         Column(
@@ -616,12 +623,12 @@ private fun ReserveSheet(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(horizontal = 20.dp)
     ) {
         // Duration selection chips
-        Text("Duration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             items(durationOptions) { duration ->
                 val isSelected = duration == selectedDuration
                 val label = when {
@@ -634,26 +641,26 @@ private fun ReserveSheet(
                         selectedDuration = duration
                         selectedSlotStart = null // reset slot on duration change
                     },
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Text(
                         text = label,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // 7-day date strip
-        Text("Date", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(next7Days) { date ->
                 val isSelected = date == selectedDate
@@ -695,11 +702,11 @@ private fun ReserveSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Time slots grid
-        Text("Available times", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (selectedDate == null) {
             Text(
@@ -739,19 +746,19 @@ private fun ReserveSheet(
                             val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
                             Surface(
                                 onClick = { selectedSlotStart = slot },
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Box(
                                     contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 10.dp)
+                                    modifier = Modifier.padding(vertical = 12.dp)
                                 ) {
                                     Text(
                                         text = label,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Medium,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -808,15 +815,86 @@ private fun ReserveSheet(
         }
 
         // Guests
-        Spacer(modifier = Modifier.height(18.dp))
-        Text("Guests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Guests", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = { guests = (guests - 1).coerceAtLeast(1) }) { Text("−") }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("$guests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.width(12.dp))
-            OutlinedButton(onClick = { guests = (guests + 1).coerceAtMost(20) }) { Text("+") }
+            Surface(
+                onClick = { guests = (guests - 1).coerceAtLeast(1) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                }
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            Text(
+                "$guests",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            Surface(
+                onClick = { guests = (guests + 1).coerceAtMost(20) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        // Booking summary card
+        if (canConfirm && selectedSlotStart != null && selectedEnd != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Booking summary",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val dayLabel = selectedDate?.dayOfWeek?.name?.lowercase()
+                        ?.replaceFirstChar { it.uppercase() } ?: ""
+                    val monthDay = selectedDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: ""
+                    val timeRange = "${selectedSlotStart!!.format(DateTimeFormatter.ofPattern("h:mm a"))} – ${selectedEnd!!.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$dayLabel, $monthDay", style = MaterialTheme.typography.bodyMedium)
+                        Text(timeRange, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$guests guest${if (guests != 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val durationLabel = when {
+                            selectedDuration < 60 -> "$selectedDuration min"
+                            selectedDuration % 60 == 0 -> "${selectedDuration / 60} hr"
+                            else -> "${selectedDuration / 60}h ${selectedDuration % 60}m"
+                        }
+                        Text(durationLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (total != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -842,14 +920,26 @@ private fun ReserveSheet(
                 )
             },
             enabled = canConfirm,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             Text(
                 text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
-                       else "Select a time slot"
+                       else "Select a time slot",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "You won't be charged yet",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -866,32 +956,49 @@ private fun BookingBar(
     onReserveClick: () -> Unit
 ) {
     val isAvailable = available != false
-    Surface(shadowElevation = 8.dp) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .padding(WindowInsets.navigationBars.asPaddingValues()),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pricingLabel ?: "Select time",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "You won't be charged yet",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Button(
-                onClick = onReserveClick,
-                enabled = isAvailable
+    Surface(
+        shadowElevation = 12.dp,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column {
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                    .padding(WindowInsets.navigationBars.asPaddingValues()),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Reserve")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = pricingLabel ?: "Select time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "You won't be charged yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Button(
+                    onClick = onReserveClick,
+                    enabled = isAvailable,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                ) {
+                    Text(
+                        "Reserve",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
@@ -1018,9 +1125,8 @@ private fun TitleMetaBlock(
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val hasReviews = (reviewCount ?: 0) > 0 && (rating ?: 0.0) > 0.0
-
-            if (hasReviews) {
+            val hasRealRating = rating != null && rating > 0.0 && reviewCount != null && reviewCount > 0
+            if (hasRealRating) {
                 Icon(
                     imageVector = PaceDreamIcons.Star,
                     contentDescription = null,
@@ -1031,11 +1137,11 @@ private fun TitleMetaBlock(
                 Text(
                     text = String.format("%.1f", rating),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "(${reviewCount} ${if (reviewCount == 1) "review" else "reviews"})",
+                    text = "($reviewCount ${if (reviewCount == 1) "review" else "reviews"})",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1054,10 +1160,12 @@ private fun TitleMetaBlock(
                     )
                 }
             }
-            cityState?.let {
+            // Format cityState properly — ensure space after comma
+            cityState?.let { raw ->
+                val formatted = raw.replace(Regex(",(?!\\s)"), ", ")
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "· $it",
+                    text = "· $formatted",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1388,8 +1496,9 @@ private fun SectionAbout(
 ) {
     val sectionTitle = when (category?.lowercase()) {
         "car", "vehicle" -> "About this vehicle"
-        "gear", "equipment" -> "About this gear"
+        "gear", "equipment", "item", "items" -> "About this item"
         "studio", "office" -> "About this workspace"
+        "service", "services", "split-stay" -> "About this service"
         else -> "About this space"
     }
 
@@ -1399,24 +1508,35 @@ private fun SectionAbout(
         if (description.isNullOrBlank()) {
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                ),
-                modifier = Modifier.fillMaxWidth()
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
-                Text(
-                    "No description added yet. Contact the host for more details.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        PaceDreamIcons.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "No description added yet. Contact the host for more details.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else {
             Text(
                 text = description.trim(),
                 maxLines = 5,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onReadMore) {
@@ -1459,13 +1579,12 @@ private fun SectionAmenities(
         if (amenities.isEmpty()) {
             Card(
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                ),
-                modifier = Modifier.fillMaxWidth()
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -1532,12 +1651,10 @@ private fun SectionReviews(
         val displayRating = rating ?: reviewSummary?.averageRating
         val displayCount = reviewCount ?: reviewSummary?.totalCount
 
-        if (displayRating == null || displayCount == null || displayCount == 0) {
+        if (displayRating == null || displayCount == null || displayCount == 0 || displayRating == 0.0) {
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -2143,7 +2260,10 @@ private fun MapPreviewCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(16.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -2659,7 +2779,7 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
