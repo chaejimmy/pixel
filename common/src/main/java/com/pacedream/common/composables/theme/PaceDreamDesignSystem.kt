@@ -197,13 +197,13 @@ object PaceDreamRecentSearchItem {
 }
 
 object PaceDreamEmptyState {
-    val Padding = PaceDreamSpacing.Page
-    val IconSize = PaceDreamIconSize.XXXL
+    val Padding = PaceDreamSpacing.XL
+    val IconSize = PaceDreamIconSize.XXL
 }
 
 object PaceDreamErrorState {
-    val Padding = PaceDreamSpacing.Page
-    val IconSize = PaceDreamIconSize.XXXL
+    val Padding = PaceDreamSpacing.XL
+    val IconSize = PaceDreamIconSize.XXL
 }
 
 object PaceDreamLoadingState {

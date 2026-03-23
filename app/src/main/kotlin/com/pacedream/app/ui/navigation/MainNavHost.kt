@@ -3,12 +3,16 @@ package com.pacedream.app.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.icon.PaceDreamIcons
@@ -766,20 +770,101 @@ fun LockedScreen(
     message: String,
     onSignInClick: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.pacedream.common.composables.theme.PaceDreamColors.Background),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Compact gradient header matching BookingsScreen
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            com.pacedream.common.composables.theme.PaceDreamColors.Primary,
+                            com.pacedream.common.composables.theme.PaceDreamColors.Primary.copy(alpha = 0.88f)
+                        )
+                    ),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                        bottomStart = com.pacedream.common.composables.theme.PaceDreamRadius.LG,
+                        bottomEnd = com.pacedream.common.composables.theme.PaceDreamRadius.LG
+                    )
+                )
+                .padding(
+                    start = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    end = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    top = com.pacedream.common.composables.theme.PaceDreamSpacing.LG,
+                    bottom = com.pacedream.common.composables.theme.PaceDreamSpacing.MD
+                )
         ) {
-            Icon(PaceDreamIcons.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onSignInClick) {
-                Text("Sign In")
+            Column {
+                Text(
+                    text = title,
+                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Title2,
+                    color = androidx.compose.ui.graphics.Color.White
+                )
+                Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XS))
+                Text(
+                    text = message,
+                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Subheadline,
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.80f)
+                )
             }
+        }
+
+        // Centered locked state — upper-center, not dead-center
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XXXL))
+
+        Icon(
+            PaceDreamIcons.Lock,
+            contentDescription = null,
+            tint = com.pacedream.common.composables.theme.PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamIconSize.XXL)
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+
+        Text(
+            text = "Sign in to continue",
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.SM))
+
+        Text(
+            text = message,
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Body,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL)
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.LG))
+
+        Button(
+            onClick = onSignInClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                com.pacedream.common.composables.theme.PaceDreamRadius.MD
+            ),
+            modifier = Modifier
+                .height(com.pacedream.common.composables.theme.PaceDreamButtonHeight.LG)
+                .padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL),
+            contentPadding = PaddingValues(
+                horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL,
+                vertical = com.pacedream.common.composables.theme.PaceDreamSpacing.SM2
+            )
+        ) {
+            Text(
+                "Sign In",
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Button,
+                color = androidx.compose.ui.graphics.Color.White
+            )
         }
     }
 }

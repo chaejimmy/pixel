@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
@@ -84,56 +85,56 @@ fun PaceDreamHeroHeader(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamPrimary,
-                        PaceDreamPrimary.copy(alpha = 0.85f)
+                        PaceDreamPrimary.copy(alpha = 0.88f)
                     )
                 ),
                 shape = RoundedCornerShape(
-                    bottomStart = PaceDreamRadius.XL,
-                    bottomEnd = PaceDreamRadius.XL
+                    bottomStart = PaceDreamRadius.LG,
+                    bottomEnd = PaceDreamRadius.LG
                 )
             )
             .padding(
-                horizontal = PaceDreamSpacing.MD,
-                vertical = PaceDreamSpacing.XL
+                start = PaceDreamSpacing.MD,
+                end = PaceDreamSpacing.MD,
+                top = PaceDreamSpacing.LG,
+                bottom = PaceDreamSpacing.MD
             )
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Title2,
+                    color = Color.White
+                )
+                subtitle?.let {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
-                        text = title,
-                        style = PaceDreamTypography.Title1,
-                        color = Color.White
+                        text = it,
+                        style = PaceDreamTypography.Subheadline,
+                        color = Color.White.copy(alpha = 0.80f)
                     )
-                    subtitle?.let {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                        Text(
-                            text = it,
-                            style = PaceDreamTypography.Body,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
                 }
+            }
 
-                // Floating glass notification button
-                IconButton(
-                    onClick = onNotificationClick,
-                    modifier = Modifier
-                        .size(PaceDreamButtonHeight.MD)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.20f))
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White,
-                        modifier = Modifier.size(PaceDreamIconSize.MD)
-                    )
-                }
+            // Floating glass notification button
+            IconButton(
+                onClick = onNotificationClick,
+                modifier = Modifier
+                    .size(PaceDreamButtonHeight.SM)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f))
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Notifications,
+                    contentDescription = "Notifications",
+                    tint = Color.White,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
             }
         }
     }
@@ -668,22 +669,23 @@ fun PaceDreamEmptyState(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(PaceDreamEmptyState.Padding),
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.XL),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = PaceDreamTextTertiary,
-                modifier = Modifier.size(PaceDreamEmptyState.IconSize)
+                modifier = Modifier.size(PaceDreamIconSize.XXL)
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             Text(
                 text = title,
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamTextPrimary
+                color = PaceDreamTextPrimary,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -692,23 +694,28 @@ fun PaceDreamEmptyState(
                 text = description,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamTextSecondary,
-                lineHeight = PaceDreamTypography.Body.lineHeight
+                textAlign = TextAlign.Center
             )
 
             actionText?.let { text ->
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
                 Button(
                     onClick = { onActionClick?.invoke() },
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
                     modifier = Modifier.height(PaceDreamButtonHeight.MD),
                     shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = PaceDreamSpacing.LG,
+                        vertical = PaceDreamSpacing.SM2
+                    )
                 ) {
                     Text(
                         text = text,
                         style = PaceDreamTypography.Button,
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1
                     )
                 }
             }

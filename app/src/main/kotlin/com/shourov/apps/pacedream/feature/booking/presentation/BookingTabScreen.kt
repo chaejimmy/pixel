@@ -66,17 +66,18 @@ fun BookingTabScreen(
             .background(PaceDreamColors.Background)
             .statusBarsPadding()
     ) {
-        // Header
+        // Header — compact, no extra outer padding
         PaceDreamHeroHeader(
             title = "My Bookings",
-            subtitle = "Manage your reservations",
-            modifier = Modifier.padding(PaceDreamSpacing.LG)
+            subtitle = "Manage your reservations"
         )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         // Role Tab Row: Trips | Hosting (matches web's Trips / Hosting tabs)
         TabRow(
             selectedTabIndex = selectedRoleIndex,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
             containerColor = PaceDreamColors.Card,
             contentColor = PaceDreamColors.Primary,
             indicator = { tabPositions ->
@@ -127,39 +128,49 @@ fun BookingTabScreen(
             }
 
             is BookingTabUiState.RequiresAuth -> {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(PaceDreamSpacing.XL),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = PaceDreamSpacing.LG),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Lock,
-                            contentDescription = null,
-                            tint = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.size(64.dp)
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
+
+                    Icon(
+                        imageVector = PaceDreamIcons.Lock,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextTertiary,
+                        modifier = Modifier.size(PaceDreamIconSize.XXL)
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    Text(
+                        text = "Sign in to view bookings",
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Your trips and hosting bookings will appear here",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                    Button(
+                        onClick = onShowAuthSheet,
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        modifier = Modifier.height(PaceDreamButtonHeight.LG),
+                        contentPadding = PaddingValues(
+                            horizontal = PaceDreamSpacing.XL,
+                            vertical = PaceDreamSpacing.SM2
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    ) {
                         Text(
-                            text = "Sign in to view bookings",
-                            style = PaceDreamTypography.Title3,
-                            color = PaceDreamColors.TextPrimary
+                            "Sign In",
+                            style = PaceDreamTypography.Button,
+                            maxLines = 1
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        Text(
-                            text = "Your trips and hosting bookings will appear here",
-                            style = PaceDreamTypography.Body,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                        Button(
-                            onClick = onShowAuthSheet,
-                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                            modifier = Modifier.fillMaxWidth(0.6f)
-                        ) {
-                            Text("Sign in / Create account", style = PaceDreamTypography.Headline)
-                        }
                     }
                 }
             }
