@@ -218,7 +218,6 @@ fun ListingDetailScreen(
                             description = listing?.description,
                             category = listing?.category,
                             onReadMore = { showAboutSheet = true },
-                            category = listing?.category,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 20.dp)
