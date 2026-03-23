@@ -99,26 +99,17 @@ fun AuthFlowSheet(
                 .padding(bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header row: title/subtitle + Done
+            // Compact header — title only (subtitle repeats background content)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Start
-                    )
-                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
                 TextButton(
                     onClick = {
                         viewModel.onNotNow()
@@ -129,7 +120,7 @@ fun AuthFlowSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             AnimatedContent(
                 targetState = uiState.mode,
@@ -195,24 +186,35 @@ private fun ChooserContent(
     onNotNow: () -> Unit
 ) {
 
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Button(
             onClick = onSignIn,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Sign in") }
-
-        Spacer(modifier = Modifier.height(12.dp))
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Sign in", fontWeight = FontWeight.SemiBold)
+        }
 
         Button(
             onClick = onSignUp,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
                 contentColor = MaterialTheme.colorScheme.primary
             )
-        ) { Text("Create account") }
+        ) {
+            Text("Create account", fontWeight = FontWeight.SemiBold)
+        }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -227,24 +229,25 @@ private fun ChooserContent(
             HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         OutlinedButton(
             onClick = onGoogle,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
             enabled = !isGoogleLoading
         ) {
             if (isGoogleLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue with Google")
+            Text("Continue with Google", fontWeight = FontWeight.Medium)
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
-
         TextButton(onClick = onNotNow, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Not now")
+            Text("Not now", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -260,17 +263,19 @@ private fun SignInContent(
     onContinue: () -> Unit,
     onSwitchToSignUp: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = password,
@@ -279,19 +284,20 @@ private fun SignInContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
             visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         if (!error.isNullOrBlank()) {
             AuthInlineErrorBanner(message = error, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Button(
             onClick = onContinue,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
             enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
         ) {
             if (isLoading) {
@@ -302,10 +308,8 @@ private fun SignInContent(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue")
+            Text("Continue", fontWeight = FontWeight.SemiBold)
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -333,7 +337,10 @@ private fun SignUpContent(
     onContinue: () -> Unit,
     onSwitchToSignIn: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = firstName,
@@ -341,7 +348,8 @@ private fun SignUpContent(
                 label = { Text("First name") },
                 modifier = Modifier.weight(1f),
                 enabled = !isLoading,
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
             OutlinedTextField(
                 value = lastName,
@@ -349,11 +357,10 @@ private fun SignUpContent(
                 label = { Text("Last name") },
                 modifier = Modifier.weight(1f),
                 enabled = !isLoading,
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = email,
@@ -361,10 +368,9 @@ private fun SignUpContent(
             label = { Text("Email") },
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = password,
@@ -373,19 +379,20 @@ private fun SignUpContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
             visualTransformation = PasswordVisualTransformation(),
-            singleLine = true
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp)
         )
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         if (!error.isNullOrBlank()) {
             AuthInlineErrorBanner(message = error, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Button(
             onClick = onContinue,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
             enabled = !isLoading &&
                 firstName.isNotBlank() &&
                 lastName.isNotBlank() &&
@@ -400,10 +407,8 @@ private fun SignUpContent(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue")
+            Text("Continue", fontWeight = FontWeight.SemiBold)
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),

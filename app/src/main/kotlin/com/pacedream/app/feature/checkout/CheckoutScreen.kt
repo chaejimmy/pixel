@@ -202,19 +202,17 @@ fun CheckoutScreen(
             }
 
             // Sticky bottom bar with pay button
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = PaceDreamColors.Border
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(PaceDreamColors.Card)
-                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD)
+                    .padding(horizontal = 20.dp, vertical = PaceDreamSpacing.MD)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "You won't be charged yet",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Button(
                         onClick = { viewModel.submitBooking() },
                         enabled = !uiState.isSubmitting,
@@ -239,6 +237,12 @@ fun CheckoutScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        "You won't be charged yet",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
                 }
             }
         }
@@ -261,7 +265,7 @@ private fun ListingInfoCard(draft: BookingDraft) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(52.dp)
                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
                     .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
                 contentAlignment = Alignment.Center
@@ -274,31 +278,52 @@ private fun ListingInfoCard(draft: BookingDraft) {
                     },
                     contentDescription = null,
                     tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = when (draft.listingType) {
-                        "gear" -> "Gear Rental"
-                        "split-stay" -> "Split Stay"
-                        else -> "Hourly Space"
+                        "gear" -> "Item Rental"
+                        "split-stay" -> "Service Booking"
+                        else -> "Space Booking"
                     },
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Headline,
                     fontWeight = FontWeight.SemiBold,
                     color = PaceDreamColors.TextPrimary
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Booking for ${draft.date}",
-                    style = PaceDreamTypography.Caption,
+                    text = formatDateDisplay(draft.date),
+                    style = PaceDreamTypography.Subheadline,
                     color = PaceDreamColors.TextSecondary
+                )
+                Text(
+                    text = "${formatTimeDisplay(draft.startTimeISO)} – ${formatTimeDisplay(draft.endTimeISO)}",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextTertiary
                 )
             }
         }
     }
+}
+
+private fun formatDateDisplay(dateStr: String): String {
+    return try {
+        val parts = dateStr.split("-")
+        if (parts.size == 3) {
+            val month = when (parts[1].toInt()) {
+                1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"
+                5 -> "May"; 6 -> "Jun"; 7 -> "Jul"; 8 -> "Aug"
+                9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
+                else -> parts[1]
+            }
+            "$month ${parts[2].toInt()}, ${parts[0]}"
+        } else dateStr
+    } catch (_: Exception) { dateStr }
 }
 
 /** Price breakdown with subtotal, service fee, total */
