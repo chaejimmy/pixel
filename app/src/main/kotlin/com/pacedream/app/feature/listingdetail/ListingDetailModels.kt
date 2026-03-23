@@ -44,10 +44,20 @@ data class ListingDetailModel(
     val safetyFeatures: List<String> = emptyList(),
     // Web parity: status
     val available: Boolean? = null,
-    val instantBook: Boolean? = null
+    val instantBook: Boolean? = null,
+    // Web parity: split listing fields
+    val shareType: String? = null,
+    val totalCost: Double? = null,
+    val slotsTotal: Int? = null,
+    val slotsFilled: Int? = null,
+    val splitStatus: String? = null,
+    val deadlineAt: String? = null
 ) {
     val hasPropertyDetails: Boolean
         get() = propertyType != null || maxGuests != null || bedrooms != null || beds != null || bathrooms != null
+
+    val isSplitListing: Boolean
+        get() = shareType?.uppercase() == "SPLIT"
 }
 
 data class ListingLocation(

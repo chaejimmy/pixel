@@ -55,10 +55,23 @@ class ListingDetailRepository @Inject constructor(
         return ApiResult.Failure(lastError)
     }
 
+    /**
+     * Build detail URLs in priority order matching the website:
+     * 1. /v1/poc/listings/{id} (primary for MongoDB ObjectIds, matches website)
+     * 2. /v1/listings/{id} (unified endpoint)
+     * 3. Type-specific endpoints as fallback
+     */
     private fun buildDetailUrls(
         listingId: String,
         listingType: String
     ): List<okhttp3.HttpUrl> {
+        // Primary: unified endpoints (matching website priority)
+        val unified = listOf(
+            appConfig.buildApiUrl("poc", "listings", listingId),
+            appConfig.buildApiUrl("listings", listingId)
+        )
+
+        // Fallback: type-specific endpoints
         val typeSpecific = when (listingType) {
             "time-based" -> listOf(
                 appConfig.buildApiUrl("properties", listingId),
@@ -66,22 +79,17 @@ class ListingDetailRepository @Inject constructor(
             )
             "gear" -> listOf(
                 appConfig.buildApiUrl("gear-rentals", "hourly-rental-gear", listingId),
-                appConfig.buildApiUrl("gear-rentals", listingId),
-                appConfig.buildApiUrl("gear-rentals", "get", listingId)
+                appConfig.buildApiUrl("gear-rentals", listingId)
             )
             "split-stay" -> listOf(
                 appConfig.buildApiUrl("roommate", listingId),
                 appConfig.buildApiUrl("roommate", "get", listingId)
             )
             else -> listOf(
-                appConfig.buildApiUrl("properties", listingId),
                 appConfig.buildApiUrl("properties", "get-rentable-item", listingId)
             )
         }
-        return typeSpecific + listOf(
-            appConfig.buildApiUrl("listings", listingId),
-            appConfig.buildApiUrl("poc", "listings", listingId)
-        )
+        return unified + typeSpecific
     }
 
     /**
@@ -137,15 +145,21 @@ class ListingDetailRepository @Inject constructor(
             val reviewCount = listing.int("reviewCount", "reviews_count", "reviewsCount", "total_reviews", "totalReviews")
                 ?: listing["reviews"]?.asArrayOrNull()?.size
                 ?: ratingsObj?.int("count", "totalReviews")
+                ?: detailsObj?.int("reviewCount", "reviews_count")
 
             val isFavorite = listing.boolean("liked", "isLiked", "isFavorited", "is_wishlisted")
 
-            // Property details
-            val propertyType = listing.string("propertyType", "property_type", "type", "spaceType", "space_type")
+            // Property details - also check nested details object (website parity)
+            val detailsObj = listing["details"]?.asObjectOrNull()
+            val propertyType = listing.string("propertyType", "property_type", "type", "spaceType", "space_type", "item_type", "listing_type")
             val maxGuests = listing.int("maxGuests", "max_guests", "guests", "capacity")
+                ?: detailsObj?.int("seats", "capacity", "maxGuests")
             val bedrooms = listing.int("bedrooms", "bedroom_count")
+                ?: detailsObj?.int("bedrooms", "bedroom_count")
             val beds = listing.int("beds", "bed_count")
+                ?: detailsObj?.int("beds", "bed_count")
             val bathrooms = listing.int("bathrooms", "bathroom_count")
+                ?: detailsObj?.int("bathrooms", "bathroom_count")
 
             // House rules
             val houseRules = parseStringList(listing, "houseRules", "house_rules", "rules")
@@ -155,9 +169,18 @@ class ListingDetailRepository @Inject constructor(
             // Safety features
             val safetyFeatures = parseStringList(listing, "safetyFeatures", "safety_features", "safety")
 
-            // Status
+            // Status - also check if status field equals "published" or "active" (website parity)
             val available = listing.boolean("available", "is_available", "isAvailable")
+                ?: listing.string("status")?.let { it == "published" || it == "active" }
             val instantBook = listing.boolean("instantBook", "instant_book", "instantBooking")
+
+            // Split listing fields (website parity)
+            val shareType = listing.string("shareType", "share_type")
+            val totalCost = listing.double("totalCost", "total_cost")
+            val slotsTotal = listing.int("slotsTotal", "slots_total")
+            val slotsFilled = listing.int("slotsFilled", "slots_filled")
+            val splitStatus = listing.string("splitStatus", "split_status")
+            val deadlineAt = listing.string("deadlineAt", "deadline_at")
 
             // Cancellation policy
             val cancellationObj = listing["cancellationPolicy"]?.asObjectOrNull()
@@ -194,7 +217,13 @@ class ListingDetailRepository @Inject constructor(
                 checkOutTime = checkOutTime,
                 safetyFeatures = safetyFeatures,
                 available = available,
-                instantBook = instantBook
+                instantBook = instantBook,
+                shareType = shareType,
+                totalCost = totalCost,
+                slotsTotal = slotsTotal,
+                slotsFilled = slotsFilled,
+                splitStatus = splitStatus,
+                deadlineAt = deadlineAt
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse listing detail")
@@ -323,19 +352,36 @@ class ListingDetailRepository @Inject constructor(
     private fun parsePricing(listing: JsonObject): ListingPricing? {
         return try {
             val pricingObj = listing["pricing"]?.asObjectOrNull() ?: listing["price"]?.asObjectOrNull()
-            val currency = pricingObj?.string("currency") ?: listing.string("currency")
+
+            // Website parity: handle price as array of pricing objects
+            // e.g. price: [{ pricing_type: "hourly", amount: 25, currency: "USD", frequency: "HOUR" }]
+            val priceArray = listing["price"]?.asArrayOrNull()
+            val firstPrice = priceArray?.firstOrNull()?.asObjectOrNull()
+
+            val currency = pricingObj?.string("currency")
+                ?: firstPrice?.string("currency")
+                ?: listing.string("currency")
 
             val hourlyFrom =
                 pricingObj?.double("hourlyFrom", "hourly_from")
                     ?: listing.double("hourlyFrom", "hourly_from")
                     ?: listing["dynamic_price"]?.asArrayOrNull()?.firstOrNull()?.asObjectOrNull()?.double("price")
+                    // Website: price array with pricing_type "hourly" or frequency "HOUR"
+                    ?: priceArray?.mapNotNull { it.asObjectOrNull() }
+                        ?.firstOrNull { el ->
+                            el.string("pricing_type")?.lowercase() in listOf("hourly", "hour")
+                                    || el.string("frequency")?.uppercase() == "HOUR"
+                        }?.double("amount")
 
             val basePrice =
                 pricingObj?.double("base_price", "basePrice", "amount")
-                    ?: listing.double("base_price", "basePrice", "amount")
+                    ?: listing.double("base_price", "basePrice")
+                    // Website: first price entry amount as base price
+                    ?: firstPrice?.double("amount")
 
             val frequency =
-                pricingObj?.string("frequency", "unit", "frequencyLabel")
+                pricingObj?.string("frequency", "unit", "frequencyLabel", "pricing_type")
+                    ?: firstPrice?.string("frequency", "pricing_type")
                     ?: listing.string("frequency", "unit", "frequencyLabel")
 
             val cleaningFee = pricingObj?.double("cleaningFee", "cleaning_fee")
@@ -363,7 +409,13 @@ class ListingDetailRepository @Inject constructor(
     }
 
     private fun parseAmenities(listing: JsonObject): List<String> {
-        val raw = listing["amenities"] ?: listing["highlights"] ?: return emptyList()
+        // Website parity: amenities can be at top-level, or under details.features / details.amenities
+        val detailsObj = listing["details"]?.asObjectOrNull()
+        val raw = listing["amenities"]
+            ?: listing["highlights"]
+            ?: detailsObj?.get("features")
+            ?: detailsObj?.get("amenities")
+            ?: return emptyList()
         val array = raw.asArrayOrNull() ?: return emptyList()
         return array.mapNotNull { el ->
             el.asStringOrNull()
