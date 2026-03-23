@@ -83,8 +83,7 @@ fun MainNavHost(
     
     // Auth modal state
     var showAuthSheet by remember { mutableStateOf(false) }
-    var authSheetTitle by remember { mutableStateOf("Sign in") }
-    var authSheetSubtitle by remember { mutableStateOf("Sign in to continue.") }
+    var authSheetSubtitle by remember { mutableStateOf("") }
     
     // Determine if bottom bar should be shown (always for main tabs)
     val showBottomBar = remember(currentRoute) {
@@ -196,8 +195,7 @@ fun MainNavHost(
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         },
                         onShowAuthSheet = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to save favorites."
+                            authSheetSubtitle = "Save your favorites and book spaces."
                             showAuthSheet = true
                         }
                     )
@@ -213,8 +211,7 @@ fun MainNavHost(
                             navController.navigate(NavRoutes.listingDetail(itemId))
                         },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to access your favorites."
+                            authSheetSubtitle = "Save your favorites and book spaces."
                             showAuthSheet = true
                         }
                     )
@@ -227,8 +224,7 @@ fun MainNavHost(
                             title = "Bookings",
                             message = "Sign in to view your bookings",
                             onSignInClick = {
-                                authSheetTitle = "Sign in"
-                                authSheetSubtitle = "Sign in to view your bookings."
+                                authSheetSubtitle = "Manage your upcoming bookings."
                                 showAuthSheet = true
                             }
                         )
@@ -249,8 +245,7 @@ fun MainNavHost(
                             title = "Inbox",
                             message = "Sign in to view your messages",
                             onSignInClick = {
-                                authSheetTitle = "Sign in"
-                                authSheetSubtitle = "Sign in to view your messages."
+                                authSheetSubtitle = "Connect with hosts and guests."
                                 showAuthSheet = true
                             }
                         )
@@ -279,8 +274,7 @@ fun MainNavHost(
                 composable(NavRoutes.PROFILE) {
                     ProfileScreen(
                         onLoginClick = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to manage your profile."
+                            authSheetSubtitle = "Access your profile and settings."
                             showAuthSheet = true
                         },
                         onHostModeClick = {
@@ -465,8 +459,7 @@ fun MainNavHost(
                             navController.navigate(NavRoutes.collectionDetail(collectionId))
                         },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to create and manage your lists."
+                            authSheetSubtitle = "Create and manage your lists."
                             showAuthSheet = true
                         }
                     )
@@ -503,8 +496,7 @@ fun MainNavHost(
                         initialListing = initialListing,
                         onBackClick = { navController.popBackStack() },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to continue."
+                            authSheetSubtitle = ""
                             showAuthSheet = true
                         },
                         onNavigateToInbox = {
@@ -695,7 +687,6 @@ fun MainNavHost(
 
     if (showAuthSheet) {
         AuthFlowSheet(
-            title = authSheetTitle,
             subtitle = authSheetSubtitle,
             onDismiss = { showAuthSheet = false },
             onSuccess = { showAuthSheet = false }

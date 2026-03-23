@@ -60,7 +60,6 @@ import com.pacedream.app.core.auth.Auth0Connection
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthFlowSheet(
-    title: String,
     subtitle: String,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit,
@@ -96,32 +95,9 @@ fun AuthFlowSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Compact header — title only (subtitle repeats background content)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                TextButton(
-                    onClick = {
-                        viewModel.onNotNow()
-                        onDismiss()
-                    }
-                ) {
-                    Text("Done")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             AnimatedContent(
                 targetState = uiState.mode,
                 transitionSpec = {
@@ -132,6 +108,7 @@ fun AuthFlowSheet(
             ) { mode ->
                 when (mode) {
                     AuthFlowMode.Chooser -> ChooserContent(
+                        subtitle = subtitle,
                         isGoogleLoading = uiState.isGoogleLoading,
                         onSignIn = viewModel::goToSignIn,
                         onSignUp = viewModel::goToSignUp,
@@ -179,17 +156,37 @@ fun AuthFlowSheet(
 
 @Composable
 private fun ChooserContent(
+    subtitle: String,
     isGoogleLoading: Boolean,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onGoogle: () -> Unit,
     onNotNow: () -> Unit
 ) {
-
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Compact heading - avoids repeating what the background already says
+        Text(
+            text = "Log in or sign up",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        if (subtitle.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Primary CTA
         Button(
             onClick = onSignIn,
             modifier = Modifier
@@ -200,22 +197,22 @@ private fun ChooserContent(
             Text("Sign in", fontWeight = FontWeight.SemiBold)
         }
 
-        Button(
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Secondary CTA
+        OutlinedButton(
             onClick = onSignUp,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                contentColor = MaterialTheme.colorScheme.primary
-            )
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text("Create account", fontWeight = FontWeight.SemiBold)
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
+        // Divider
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -223,14 +220,15 @@ private fun ChooserContent(
             HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
             Text(
                 text = "  or  ",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
+        // Google sign-in
         OutlinedButton(
             onClick = onGoogle,
             modifier = Modifier
@@ -246,8 +244,16 @@ private fun ChooserContent(
             Text("Continue with Google", fontWeight = FontWeight.Medium)
         }
 
-        TextButton(onClick = onNotNow, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Not now", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Quiet dismiss
+        TextButton(
+            onClick = onNotNow,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Not now", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -267,6 +273,12 @@ private fun SignInContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text(
+            text = "Sign in",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
@@ -341,6 +353,12 @@ private fun SignUpContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text(
+            text = "Create account",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = firstName,
@@ -448,6 +466,7 @@ private fun PreviewAuthChooserContent() {
     MaterialTheme {
         Column(modifier = Modifier.padding(16.dp)) {
             ChooserContent(
+                subtitle = "Save your favorites and book spaces.",
                 isGoogleLoading = false,
                 onSignIn = {},
                 onSignUp = {},
@@ -499,4 +518,3 @@ private fun PreviewAuthSignUpContent() {
         }
     }
 }
-
