@@ -250,16 +250,25 @@ fun PropertyDetailScreen(
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(PaceDreamIcons.Star, contentDescription = null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                            Text(
-                                text = rating?.let { String.format("%.1f", it) } ?: "—",
-                                style = PaceDreamTypography.Callout,
-                                fontWeight = FontWeight.Medium
+                            val hasRating = rating != null && rating > 0.0
+                            Icon(
+                                PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = if (hasRating) PaceDreamColors.StarRating else PaceDreamColors.Gray300,
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                             Text(
-                                text = detail?.reviewCount?.let { "($it)" } ?: "(No reviews yet)",
+                                text = if (hasRating) String.format("%.1f", rating) else "New",
+                                style = PaceDreamTypography.Callout,
+                                fontWeight = FontWeight.Medium,
+                                color = if (hasRating) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                            val reviewCount = detail?.reviewCount ?: 0
+                            Text(
+                                text = if (reviewCount > 0) "($reviewCount review${if (reviewCount != 1) "s" else ""})"
+                                else if (!hasRating) "" else "(No reviews yet)",
                                 style = PaceDreamTypography.Callout,
                                 color = PaceDreamColors.TextSecondary
                             )
