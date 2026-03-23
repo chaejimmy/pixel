@@ -161,7 +161,7 @@ fun ReportBlockSheet(
                         val reason = selectedReason ?: return@Button
                         isSubmitting = true
                         errorMessage = null
-                        kotlinx.coroutines.MainScope().launch {
+                        scope.launch {
                             when (repository.reportContent(
                                 reportedUserId = reportedUserId,
                                 reason = reason.label,
@@ -238,7 +238,7 @@ fun ReportBlockSheet(
                     onClick = {
                         showBlockConfirm = false
                         isBlocking = true
-                        kotlinx.coroutines.MainScope().launch {
+                        scope.launch {
                             when (repository.blockUser(reportedUserId)) {
                                 is ApiResult.Success -> {
                                     isBlocking = false

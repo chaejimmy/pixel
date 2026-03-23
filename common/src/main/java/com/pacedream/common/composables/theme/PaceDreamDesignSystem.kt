@@ -304,6 +304,9 @@ object PaceDreamTypography {
         letterSpacing = 0.sp
     )
 
+    // Caption 1 alias (same as Caption)
+    val Caption1 = Caption
+
     // Caption 2: 11sp Regular
     val Caption2 = TextStyle(
         fontSize = 11.sp,

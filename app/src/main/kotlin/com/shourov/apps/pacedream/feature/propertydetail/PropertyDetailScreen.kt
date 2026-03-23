@@ -893,7 +893,7 @@ private fun InlineError(message: String, onRetry: () -> Unit, modifier: Modifier
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun SectionChips(title: String, items: List<String>, modifier: Modifier = Modifier) {
     var showAllSheet by remember { mutableStateOf(false) }

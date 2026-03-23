@@ -113,7 +113,7 @@ class TripPlannerRepository @Inject constructor(
         apiClient.delete(appConfig.buildApiUrl("trips", tripId), includeAuth = true)
 
     suspend fun getTours(city: String): ApiResult<ToursEnvelope> {
-        val url = appConfig.buildApiUrl("tours") + "?city=$city"
+        val url = appConfig.buildApiUrl("tours", queryParams = mapOf("city" to city))
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> try {
                 ApiResult.Success(json.decodeFromString(ToursEnvelope.serializer(), result.data))

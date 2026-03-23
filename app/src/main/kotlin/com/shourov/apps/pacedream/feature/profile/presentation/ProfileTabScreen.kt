@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.profile.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -503,9 +504,7 @@ private fun QuickActionChips(
                     labelColor = PaceDreamColors.TextPrimary,
                     leadingIconContentColor = PaceDreamColors.Primary
                 ),
-                border = AssistChipDefaults.assistChipBorder(
-                    borderColor = PaceDreamColors.Border
-                )
+                border = BorderStroke(1.dp, PaceDreamColors.Border)
             )
         }
     }

@@ -809,10 +809,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                 arguments = listOf(navArgument("postId") { type = NavType.StringType })
                             ) { backStackEntry ->
                                 val postId = backStackEntry.arguments?.getString("postId") ?: ""
-                                com.pacedream.app.feature.blog.BlogDetailScreen(
-                                    postId = postId,
-                                    onBackClick = { navController.popBackStack() }
-                                )
+                                // Load blog post by ID then show detail
+                                val viewModel: com.pacedream.app.feature.blog.BlogViewModel = hiltViewModel()
+                                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                                LaunchedEffect(postId) { viewModel.loadPostDetail(postId) }
+                                uiState.selectedPost?.let { post ->
+                                    com.pacedream.app.feature.blog.BlogDetailScreen(
+                                        post = post,
+                                        onBackClick = { navController.popBackStack() }
+                                    )
+                                }
                             }
 
                             // Trip Planner Screen
@@ -851,11 +857,9 @@ fun NavGraphBuilder.DashboardNavigation(
 
                             // Destination Screens
                             composable("destinations") {
-                                com.pacedream.app.feature.destination.DestinationLandingScreen(
+                                com.pacedream.app.feature.destination.DestinationListingsScreen(
+                                    destinationId = "",
                                     onBackClick = { navController.popBackStack() },
-                                    onDestinationClick = { destId ->
-                                        navController.navigate("destination_listings/$destId")
-                                    },
                                     onListingClick = { listingId ->
                                         selectedListingId = listingId
                                     }
@@ -881,8 +885,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                 arguments = listOf(navArgument("listingId") { type = NavType.StringType })
                             ) { backStackEntry ->
                                 val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
+                                val editListingViewModel: com.shourov.apps.pacedream.feature.host.presentation.EditListingViewModel = hiltViewModel()
                                 com.shourov.apps.pacedream.feature.host.presentation.EditListingScreen(
                                     listingId = listingId,
+                                    viewModel = editListingViewModel,
                                     onBackClick = { navController.popBackStack() },
                                     onSaveSuccess = { navController.popBackStack() }
                                 )

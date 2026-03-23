@@ -112,11 +112,11 @@ class DestinationRepository @Inject constructor(
     suspend fun getDestinationListings(
         id: String, sort: SortOption = SortOption.RECOMMENDED, query: String = "", page: Int = 1
     ): ApiResult<ListingsEnvelope> {
-        val url = appConfig.buildApiUrl("destinations", id, "listings") + "?sort=${sort.param}&q=$query&page=$page&limit=20"
+        val url = appConfig.buildApiUrl("destinations", id, "listings", queryParams = mapOf("sort" to sort.param, "q" to query, "page" to page.toString(), "limit" to "20"))
         return fetch(url, ListingsEnvelope.serializer())
     }
 
-    private suspend fun <T> fetch(url: String, serializer: kotlinx.serialization.KSerializer<T>): ApiResult<T> =
+    private suspend fun <T> fetch(url: okhttp3.HttpUrl, serializer: kotlinx.serialization.KSerializer<T>): ApiResult<T> =
         when (val r = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> try { ApiResult.Success(json.decodeFromString(serializer, r.data)) }
             catch (e: Exception) { Timber.e(e, "Parse error"); ApiResult.Failure(ApiError.DecodingError()) }
