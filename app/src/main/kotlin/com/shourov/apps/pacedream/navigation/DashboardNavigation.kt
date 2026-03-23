@@ -277,8 +277,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to save favorites.",
+                                            subtitle = "Save your favorites and book spaces.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -321,8 +320,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to save favorites.",
+                                            subtitle = "Save your favorites and book spaces.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -347,8 +345,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to view your bookings.",
+                                        subtitle = "Manage your upcoming bookings.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -379,8 +376,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 // Auth Modal - shows over tabs (tabs remain visible)
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to access your favorites.",
+                                        subtitle = "Save your favorites and book spaces.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -408,8 +404,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 // Auth Modal
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to view your messages.",
+                                        subtitle = "Connect with hosts and guests.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -505,8 +500,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to view your profile.",
+                                            subtitle = "Access your profile and settings.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -568,8 +562,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to book and save favorites.",
+                                        subtitle = "Book spaces and save your favorites.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -637,8 +630,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to complete your booking.",
+                                        subtitle = "Complete your booking.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -677,8 +669,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to save favorites.",
+                                        subtitle = "Save your favorites and book spaces.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -992,8 +983,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                         if (showAuthSheetForDetail) {
                             com.pacedream.app.ui.components.AuthFlowSheet(
-                                title = "Sign in",
-                                subtitle = "Sign in to book and save favorites.",
+                                subtitle = "Book spaces and save your favorites.",
                                 onDismiss = { showAuthSheetForDetail = false },
                                 onSuccess = { showAuthSheetForDetail = false }
                             )
@@ -1028,8 +1018,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                         if (showAuthSheetForSearch) {
                             com.pacedream.app.ui.components.AuthFlowSheet(
-                                title = "Sign in",
-                                subtitle = "Sign in to save favorites.",
+                                subtitle = "Save your favorites and book spaces.",
                                 onDismiss = { showAuthSheetForSearch = false },
                                 onSuccess = { showAuthSheetForSearch = false }
                             )
