@@ -217,6 +217,7 @@ fun ListingDetailScreen(
                         SectionAbout(
                             description = listing?.description,
                             onReadMore = { showAboutSheet = true },
+                            category = listing?.category,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
@@ -229,6 +230,7 @@ fun ListingDetailScreen(
                         SectionAmenities(
                             amenities = listing?.amenities.orEmpty(),
                             onSeeAll = { showAmenitiesSheet = true },
+                            category = listing?.category,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 20.dp)
@@ -364,15 +366,56 @@ fun ListingDetailScreen(
                 onDismissRequest = { showAmenitiesSheet = false },
                 sheetState = sheetState
             ) {
-                BottomSheetHeader(title = "Highlights", onClose = { showAmenitiesSheet = false })
+                val highlightsTitle = when (listing?.category?.lowercase()) {
+                    "car", "vehicle" -> "Vehicle Features"
+                    "gear", "equipment" -> "Included Items"
+                    "studio", "office" -> "Workspace Features"
+                    else -> "Highlights"
+                }
+                BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
                 Column(modifier = Modifier.padding(16.dp)) {
                     val all = listing?.amenities.orEmpty()
                     if (all.isEmpty()) {
-                        Text("No highlights listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                PaceDreamIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "No highlights added yet",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "The host hasn't listed specific features. Reach out to learn more.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     } else {
                         all.forEach { amenity ->
-                            Text(text = "• $amenity", style = MaterialTheme.typography.bodyLarge)
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    PaceDreamIcons.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(text = amenity, style = MaterialTheme.typography.bodyLarge)
+                            }
                         }
                     }
                 }
@@ -420,10 +463,31 @@ fun ListingDetailScreen(
 
                     if (reviews.isEmpty() && !uiState.isLoadingReviews) {
                         item {
-                            Text(
-                                "No reviews yet. Be the first to share your experience!",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB400),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "No reviews yet",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Be the first to share your experience!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
@@ -954,27 +1018,42 @@ private fun TitleMetaBlock(
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = PaceDreamIcons.Star,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = rating?.let { String.format("%.1f", it) } ?: "—",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = when {
-                    reviewCount != null -> "(${reviewCount})"
-                    else -> "(No reviews yet)"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            val hasReviews = (reviewCount ?: 0) > 0 && (rating ?: 0.0) > 0.0
+
+            if (hasReviews) {
+                Icon(
+                    imageVector = PaceDreamIcons.Star,
+                    contentDescription = null,
+                    tint = Color(0xFFFFB400),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = String.format("%.1f", rating),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "(${reviewCount} ${if (reviewCount == 1) "review" else "reviews"})",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                // "New" badge instead of awkward "0.0 (0)" or empty star
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "New",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
             cityState?.let {
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
@@ -1304,13 +1383,34 @@ private fun HostCard(
 private fun SectionAbout(
     description: String?,
     onReadMore: () -> Unit,
+    category: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val sectionTitle = when (category?.lowercase()) {
+        "car", "vehicle" -> "About this vehicle"
+        "gear", "equipment" -> "About this gear"
+        "studio", "office" -> "About this workspace"
+        else -> "About this space"
+    }
+
     Column(modifier = modifier) {
-        Text("About this space", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
         if (description.isNullOrBlank()) {
-            Text("No description available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "No description added yet. Contact the host for more details.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         } else {
             Text(
                 text = description.trim(),
@@ -1331,23 +1431,57 @@ private fun SectionAbout(
 private fun SectionAmenities(
     amenities: List<String>,
     onSeeAll: () -> Unit,
+    category: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val sectionTitle = when (category?.lowercase()) {
+        "car", "vehicle" -> "What this vehicle offers"
+        "gear", "equipment" -> "What's included"
+        "studio", "office" -> "Workspace features"
+        else -> "What this place offers"
+    }
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("What this place offers", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onSeeAll, enabled = amenities.isNotEmpty()) {
-                Text("See all")
+            if (amenities.isNotEmpty()) {
+                TextButton(onClick = onSeeAll) {
+                    Text("See all")
+                }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
 
         if (amenities.isEmpty()) {
-            Text("No highlights listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        PaceDreamIcons.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "Details coming soon — check back or ask the host.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         } else {
             val shown = amenities.take(8)
             FlowRow(
@@ -1399,12 +1533,44 @@ private fun SectionReviews(
         val displayCount = reviewCount ?: reviewSummary?.totalCount
 
         if (displayRating == null || displayCount == null || displayCount == 0) {
-            Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(onClick = onWriteReview) {
-                Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Write a Review")
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        PaceDreamIcons.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB400),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "No reviews yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Be the first to share your experience",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onWriteReview) {
+                        Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Write a Review")
+                    }
+                }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1977,20 +2143,42 @@ private fun MapPreviewCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(PaceDreamIcons.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                PaceDreamIcons.LocationOn,
+                                contentDescription = "Location",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = when {
-                            isGeocoding -> "Finding location…"
-                            else -> "Location not found"
-                        },
+                        text = if (isGeocoding) "Finding location…" else "Exact location shared after booking",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (!isGeocoding) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "General area shown on map",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
