@@ -406,31 +406,18 @@ fun MainNavHost(
                     )
                 }
 
-                // Host Home
+                // Host Home - uses real backend-driven dashboard
                 composable(NavRoutes.HOST_HOME) {
-                    com.pacedream.app.feature.host.HostHomeScreen(
-                        onSwitchToGuestMode = {
-                            navController.navigate(NavRoutes.HOME) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                    com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel(
+                        onAddListingClick = {},
                         onListingClick = { listingId ->
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         },
                         onBookingClick = { bookingId ->
                             navController.navigate(NavRoutes.bookingDetail(bookingId))
                         },
-                        onSignOut = {
-                            navController.navigate(NavRoutes.HOME) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    inclusive = true
-                                }
-                            }
-                        }
+                        onEarningsClick = {},
+                        onAnalyticsClick = {}
                     )
                 }
 

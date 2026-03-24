@@ -7,38 +7,52 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.*
+import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
 
+/**
+ * HostAnalyticsScreen - iOS parity.
+ *
+ * Matches iOS HostAnalyticsView: KPI overview (2x2 grid), listings breakdown,
+ * bookings breakdown, and earnings section. All data is backend-driven via
+ * HostDashboardViewModel (shared data source, same as iOS HostDataStore).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostAnalyticsScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: HostDashboardViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Analytics",
-                            style = PaceDreamTypography.Title1,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Track your performance",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary
+                    Text(
+                        text = "Analytics",
+                        style = PaceDreamTypography.Title1,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(
+                            imageVector = PaceDreamIcons.ArrowBack,
+                            contentDescription = "Back",
+                            tint = PaceDreamColors.TextPrimary
                         )
                     }
                 },
@@ -47,199 +61,128 @@ fun HostAnalyticsScreen(
         },
         containerColor = PaceDreamColors.Background
     ) { paddingValues ->
-        LazyColumn(
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.refreshData() },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
+                .padding(paddingValues)
         ) {
-            // Overview KPI cards
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+            if (uiState.isLoading && uiState.bookings.isEmpty() && uiState.listings.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    AnalyticsKpiCard(
-                        label = "Total Views",
-                        value = "--",
-                        icon = PaceDreamIcons.Visibility,
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    AnalyticsKpiCard(
-                        label = "Bookings",
-                        value = "--",
-                        icon = PaceDreamIcons.CalendarToday,
-                        tint = PaceDreamColors.Success,
-                        modifier = Modifier.weight(1f)
-                    )
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
                 }
-            }
-
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD)
-                        .padding(bottom = PaceDreamSpacing.SM),
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
                 ) {
-                    AnalyticsKpiCard(
-                        label = "Revenue",
-                        value = "--",
-                        icon = PaceDreamIcons.AttachMoney,
-                        tint = PaceDreamColors.Warning,
-                        modifier = Modifier.weight(1f)
-                    )
-                    AnalyticsKpiCard(
-                        label = "Rating",
-                        value = "--",
-                        icon = PaceDreamIcons.Star,
-                        tint = PaceDreamColors.Info,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            // Performance chart placeholder
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                ) {
-                    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                        Text(
-                            text = "Performance",
-                            style = PaceDreamTypography.Headline,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            PaceDreamColors.Primary.copy(alpha = 0.06f),
-                                            PaceDreamColors.Primary.copy(alpha = 0.02f)
-                                        )
+                    // Error banner
+                    uiState.error?.let { error ->
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(PaceDreamSpacing.MD),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = PaceDreamIcons.Warning,
+                                        contentDescription = null,
+                                        tint = PaceDreamColors.Error,
+                                        modifier = Modifier.size(PaceDreamIconSize.SM)
                                     )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Analytics,
-                                    contentDescription = null,
-                                    tint = PaceDreamColors.Primary.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(PaceDreamIconSize.XL)
-                                )
-                                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                                Text(
-                                    text = "Chart coming soon",
-                                    style = PaceDreamTypography.Caption,
-                                    color = PaceDreamColors.TextTertiary
-                                )
+                                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                                    Text(
+                                        text = error,
+                                        style = PaceDreamTypography.Caption,
+                                        color = PaceDreamColors.Error,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            }
 
-            // Insights section
-            item {
-                Column(
-                    modifier = Modifier.padding(
-                        horizontal = PaceDreamSpacing.MD,
-                        vertical = PaceDreamSpacing.SM
-                    )
-                ) {
-                    Text(
-                        text = "Insights",
-                        style = PaceDreamTypography.Headline,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-                    InsightRow(
-                        icon = PaceDreamIcons.TrendingUp,
-                        title = "Listing Performance",
-                        subtitle = "See how your listings compare",
-                        tint = PaceDreamColors.Success
-                    )
-                    InsightRow(
-                        icon = PaceDreamIcons.People,
-                        title = "Guest Demographics",
-                        subtitle = "Understand your audience",
-                        tint = PaceDreamColors.Info
-                    )
-                    InsightRow(
-                        icon = PaceDreamIcons.CalendarToday,
-                        title = "Booking Trends",
-                        subtitle = "Peak days and seasonal patterns",
-                        tint = PaceDreamColors.Warning
-                    )
-                }
-            }
-
-            // Coming soon banner
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    colors = CardDefaults.cardColors(
-                        containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(PaceDreamSpacing.XL),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
+                    // KPI Overview (2x2 grid) - matches iOS HostAnalyticsView
+                    item {
+                        Row(
                             modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                         ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Analytics,
-                                contentDescription = null,
-                                tint = PaceDreamColors.Primary,
-                                modifier = Modifier.size(PaceDreamIconSize.LG)
+                            AnalyticsKpiCard(
+                                label = "Active Listings",
+                                value = uiState.activeListingsCount.toString(),
+                                icon = PaceDreamIcons.CheckCircle,
+                                tint = PaceDreamColors.Success,
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsKpiCard(
+                                label = "Upcoming Bookings",
+                                value = uiState.upcomingBookingsCount.toString(),
+                                icon = PaceDreamIcons.CalendarToday,
+                                tint = PaceDreamColors.Info,
+                                modifier = Modifier.weight(1f)
                             )
                         }
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        Text(
-                            text = "Full Analytics Coming Soon",
-                            style = PaceDreamTypography.Headline,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.SemiBold
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = PaceDreamSpacing.MD)
+                                .padding(bottom = PaceDreamSpacing.SM),
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                        ) {
+                            AnalyticsKpiCard(
+                                label = "Pending Requests",
+                                value = uiState.pendingRequestsCount.toString(),
+                                icon = PaceDreamIcons.Schedule,
+                                tint = PaceDreamColors.Warning,
+                                modifier = Modifier.weight(1f)
+                            )
+                            AnalyticsKpiCard(
+                                label = "Booked This Month",
+                                value = formatCurrency(uiState.monthlyEarnings),
+                                icon = PaceDreamIcons.AttachMoney,
+                                tint = PaceDreamColors.Primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Listings Breakdown - matches iOS
+                    item {
+                        BreakdownCard(
+                            title = "Listings Breakdown",
+                            items = buildListingsBreakdown(uiState)
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                        Text(
-                            text = "We're building detailed analytics and insights to help you optimize your listings and maximize earnings.",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(0.85f)
+                    }
+
+                    // Bookings Breakdown - matches iOS
+                    item {
+                        BreakdownCard(
+                            title = "Bookings Breakdown",
+                            items = buildBookingsBreakdown(uiState)
                         )
+                    }
+
+                    // Earnings Section - matches iOS
+                    item {
+                        EarningsSummaryCard(uiState)
                     }
                 }
             }
@@ -293,58 +236,185 @@ private fun AnalyticsKpiCard(
 }
 
 @Composable
-private fun InsightRow(
-    icon: ImageVector,
+private fun BreakdownCard(
     title: String,
-    subtitle: String,
-    tint: Color
+    items: List<BreakdownItem>
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = PaceDreamSpacing.XS),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
-        Row(
-            modifier = Modifier.padding(PaceDreamSpacing.MD),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(tint.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    tint = tint,
-                    modifier = Modifier.size(PaceDreamIconSize.SM)
-                )
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            items.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = PaceDreamSpacing.XS),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = null,
+                            tint = item.tint,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            text = item.label,
+                            style = if (item.isBold) PaceDreamTypography.Body else PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = if (item.isBold) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    Text(
+                        text = item.value,
+                        style = if (item.isBold) PaceDreamTypography.Body else PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = if (item.isBold) FontWeight.Bold else FontWeight.SemiBold
+                    )
+                }
+
+                if (index < items.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = PaceDreamSpacing.XS),
+                        color = PaceDreamColors.Border
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-            Column(modifier = Modifier.weight(1f)) {
+        }
+    }
+}
+
+@Composable
+private fun EarningsSummaryCard(uiState: HostDashboardData) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text(
+                text = "Earnings",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Booked this month (prominent)
+            Text(
+                text = "Booked this month",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+            Text(
+                text = formatCurrency(uiState.monthlyEarnings),
+                style = PaceDreamTypography.LargeTitle,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            HorizontalDivider(color = PaceDreamColors.Border)
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Lifetime earnings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = title,
+                    text = "Lifetime Earnings",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary
+                )
+                Text(
+                    text = formatCurrency(uiState.totalRevenue),
                     style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            // Total bookings
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = subtitle,
-                    style = PaceDreamTypography.Caption,
+                    text = "Total Bookings",
+                    style = PaceDreamTypography.Callout,
                     color = PaceDreamColors.TextSecondary
                 )
+                Text(
+                    text = uiState.totalBookings.toString(),
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-            Icon(
-                imageVector = PaceDreamIcons.ChevronRight,
-                contentDescription = null,
-                tint = PaceDreamColors.TextTertiary,
-                modifier = Modifier.size(PaceDreamIconSize.XS)
-            )
         }
     }
+}
+
+// ── Data helpers ──────────────────────────────────────────────
+
+private data class BreakdownItem(
+    val label: String,
+    val value: String,
+    val icon: ImageVector,
+    val tint: Color,
+    val isBold: Boolean = false
+)
+
+private fun buildListingsBreakdown(uiState: HostDashboardData): List<BreakdownItem> {
+    val active = uiState.activeListingsCount
+    val inactive = uiState.listings.count { !it.isAvailable }
+    val total = uiState.listings.size
+
+    return listOf(
+        BreakdownItem("Active", active.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.Success),
+        BreakdownItem("Inactive", inactive.toString(), PaceDreamIcons.VisibilityOff, PaceDreamColors.TextSecondary),
+        BreakdownItem("Total", total.toString(), PaceDreamIcons.Home, PaceDreamColors.TextPrimary, isBold = true)
+    )
+}
+
+private fun buildBookingsBreakdown(uiState: HostDashboardData): List<BreakdownItem> {
+    val upcoming = uiState.upcomingBookingsCount
+    val pending = uiState.pendingRequestsCount
+    val completed = uiState.bookings.count { booking ->
+        val s = (booking.status ?: "").lowercase()
+        s.contains("complet") || s.contains("finish") || s.contains("past")
+    }
+    val total = uiState.bookings.size
+
+    return listOf(
+        BreakdownItem("Upcoming", upcoming.toString(), PaceDreamIcons.CalendarToday, PaceDreamColors.Info),
+        BreakdownItem("Pending Requests", pending.toString(), PaceDreamIcons.Schedule, PaceDreamColors.Warning),
+        BreakdownItem("Completed", completed.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.Success),
+        BreakdownItem("Total", total.toString(), PaceDreamIcons.CalendarToday, PaceDreamColors.TextPrimary, isBold = true)
+    )
+}
+
+private fun formatCurrency(amount: Double): String {
+    return if (amount == 0.0) "$0" else "$${String.format("%,.0f", amount)}"
 }
