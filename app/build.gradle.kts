@@ -120,6 +120,8 @@ dependencies {
 
     // Retrofit for HostModule
     implementation(libs.retrofit.core)
+    implementation(libs.gson.convert)
+    implementation(libs.retrofit.gson)
 
     // Auth0 SDK for authentication
     implementation(libs.auth0)
