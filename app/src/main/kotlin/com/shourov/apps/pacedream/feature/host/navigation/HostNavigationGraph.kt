@@ -29,6 +29,7 @@ interface ImageUploadEntryPoint {
 
 fun NavGraphBuilder.HostNavigationGraph(
     navController: NavController,
+    onSwitchToGuestMode: () -> Unit = {},
     onNavigateToProperty: (String) -> Unit = {},
     onNavigateToBooking: (String) -> Unit = {},
     onNavigateToAddListing: () -> Unit = {},
@@ -42,7 +43,8 @@ fun NavGraphBuilder.HostNavigationGraph(
             onListingClick = onNavigateToProperty,
             onBookingClick = onNavigateToBooking,
             onEarningsClick = onNavigateToWithdraw,
-            onAnalyticsClick = onNavigateToAnalytics
+            onAnalyticsClick = onNavigateToAnalytics,
+            onSwitchToGuestMode = onSwitchToGuestMode
         )
     }
     

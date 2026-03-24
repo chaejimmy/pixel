@@ -95,6 +95,41 @@ class AuthSessionParsingTest {
         assertEquals("+1234567890", user.phone)
     }
 
+    // ── Host status (iOS parity) ────────────────────────────────────
+
+    @Test
+    fun `User isHost false by default`() {
+        val user = User(id = "1")
+        assertFalse(user.isHost)
+        assertFalse(user.superHost)
+        assertEquals(0, user.propertiesCount)
+        assertFalse(user.isHostFlag)
+    }
+
+    @Test
+    fun `User isHost true when superHost`() {
+        val user = User(id = "1", superHost = true)
+        assertTrue(user.isHost)
+    }
+
+    @Test
+    fun `User isHost true when has properties`() {
+        val user = User(id = "1", propertiesCount = 3)
+        assertTrue(user.isHost)
+    }
+
+    @Test
+    fun `User isHost true when isHostFlag set`() {
+        val user = User(id = "1", isHostFlag = true)
+        assertTrue(user.isHost)
+    }
+
+    @Test
+    fun `User isHost false when propertiesCount is zero and no flags`() {
+        val user = User(id = "1", propertiesCount = 0, superHost = false, isHostFlag = false)
+        assertFalse(user.isHost)
+    }
+
     // ── Request models ──────────────────────────────────────────────
 
     @Test
