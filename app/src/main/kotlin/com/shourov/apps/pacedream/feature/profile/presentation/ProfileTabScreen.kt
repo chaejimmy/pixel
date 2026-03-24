@@ -14,11 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.theme.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -91,15 +91,13 @@ fun ProfileTabScreen(
                         .background(PaceDreamColors.Background),
                     contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
                 ) {
-                    // Profile Header with verification badges
+                    // Profile Header — iOS: HStack with avatar + name/email side-by-side
                     item {
                         ProfileHeader(
                             name = state.user.displayName,
                             email = state.user.email ?: "",
                             memberSince = memberSince,
                             onEditClick = onEditProfileClick,
-                            bookingsCount = bookingsCount,
-                            wishlistCount = wishlistCount,
                             verificationStatus = verificationStatus
                         )
                     }
@@ -116,7 +114,7 @@ fun ProfileTabScreen(
                         )
                     }
 
-                    // Host mode entry - single clear CTA instead of toggle + CTA
+                    // Host mode entry
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         HostModeEntry(
@@ -126,7 +124,7 @@ fun ProfileTabScreen(
                         )
                     }
 
-                    // Menu Sections - grouped with clear visual hierarchy
+                    // Menu Sections — iOS: grouped List rows with NavigationLinks
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                         ProfileMenuSection(
@@ -188,11 +186,11 @@ fun ProfileTabScreen(
                         )
                     }
 
-                    // Logout Button
+                    // Sign Out — iOS: plain destructive button in a section
                     item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-                        OutlinedButton(
+                        TextButton(
                             onClick = {
                                 viewModel.signOut()
                                 onLogoutClick()
@@ -200,25 +198,18 @@ fun ProfileTabScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = PaceDreamSpacing.MD),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = PaceDreamColors.Error
-                            ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
-                            ),
-                            shape = RoundedCornerShape(PaceDreamRadius.LG),
-                            contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
+                            contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.ExitToApp,
-                                contentDescription = "Logout",
+                                contentDescription = "Sign Out",
                                 tint = PaceDreamColors.Error,
                                 modifier = Modifier.size(PaceDreamIconSize.SM)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = "Sign Out",
-                                style = PaceDreamTypography.Callout,
+                                style = PaceDreamTypography.Subheadline,
                                 color = PaceDreamColors.Error,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -245,20 +236,12 @@ private fun RequiresAuthState(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(PaceDreamSpacing.XL)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Lock,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(PaceDreamIconSize.XL)
-                )
-            }
+            Icon(
+                imageVector = PaceDreamIcons.Lock,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary.copy(alpha = 0.5f),
+                modifier = Modifier.size(48.dp)
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
@@ -274,7 +257,7 @@ private fun RequiresAuthState(
 
             Text(
                 text = "Manage bookings, favorites, and account settings",
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(0.75f)
@@ -287,17 +270,21 @@ private fun RequiresAuthState(
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
                 modifier = Modifier.fillMaxWidth(0.7f),
-                contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
+                contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text(
                     "Sign in / Create account",
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Subheadline,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
     }
 }
+
+// ── Profile Header ────────────────────────────────────────────
+// iOS: HStack with 60pt avatar circle + VStack(name, email) side-by-side
+// No gradient banner, no overlapping layout. Clean horizontal row.
 
 @Composable
 fun ProfileHeader(
@@ -309,163 +296,112 @@ fun ProfileHeader(
     wishlistCount: Int = 0,
     verificationStatus: VerificationStatus = VerificationStatus()
 ) {
-    Card(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
-            .padding(top = PaceDreamSpacing.MD),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+            .padding(top = PaceDreamSpacing.MD)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(72.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            PaceDreamColors.Primary.copy(alpha = 0.10f),
-                            PaceDreamColors.Primary.copy(alpha = 0.02f)
-                        )
-                    )
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-36).dp)
-                .padding(horizontal = PaceDreamSpacing.MD),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            // Avatar — iOS: 60pt circle with initials
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(60.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.12f)),
+                    .background(PaceDreamColors.Gray100),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = name.firstOrNull()?.uppercase() ?: "?",
-                    style = PaceDreamTypography.Title1,
+                    style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
                     color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            Text(
-                text = name,
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-
-            if (email.isNotBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = email,
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
+                    text = name.ifBlank { "Guest" },
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-            }
-
-            if (memberSince.isNotBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = memberSince,
-                    style = PaceDreamTypography.Caption2,
-                    color = PaceDreamColors.TextTertiary
-                )
-            }
-
-            // Verification badges (website parity)
-            if (verificationStatus.hasAnyVerification) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (verificationStatus.identityVerified) {
-                        VerificationBadge(
-                            icon = PaceDreamIcons.VerifiedUser,
-                            label = "ID Verified",
-                            color = PaceDreamColors.Success
-                        )
-                    }
-                    if (verificationStatus.phoneVerified) {
-                        VerificationBadge(
-                            icon = PaceDreamIcons.Phone,
-                            label = "Phone Verified",
-                            color = PaceDreamColors.Info
-                        )
-                    }
+                if (email.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = email,
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                if (memberSince.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = memberSince,
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextTertiary
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            OutlinedButton(
-                onClick = onEditClick,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PaceDreamColors.Primary
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Primary)
-                ),
-                shape = RoundedCornerShape(PaceDreamRadius.Round),
-                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Edit,
-                    contentDescription = "Edit",
-                    modifier = Modifier.size(PaceDreamIconSize.XS)
-                )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+            // Edit button — iOS: "Edit" text button in toolbar
+            TextButton(onClick = onEditClick) {
                 Text(
-                    "Edit Profile",
-                    style = PaceDreamTypography.Caption,
+                    "Edit",
+                    style = PaceDreamTypography.Subheadline.copy(fontSize = 13.sp),
+                    color = PaceDreamColors.Primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
+        }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        // Verification badges — iOS: inline pills
+        if (verificationStatus.hasAnyVerification) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (verificationStatus.identityVerified) {
+                    VerificationBadge(
+                        icon = PaceDreamIcons.VerifiedUser,
+                        label = "ID Verified",
+                        color = PaceDreamColors.Success
+                    )
+                }
+                if (verificationStatus.phoneVerified) {
+                    VerificationBadge(
+                        icon = PaceDreamIcons.Phone,
+                        label = "Phone Verified",
+                        color = PaceDreamColors.Info
+                    )
+                }
+            }
         }
     }
 }
 
-/** Verification badge pill */
+/** Verification badge pill — iOS: StatusBadge capsule style */
 @Composable
 private fun VerificationBadge(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     color: Color
 ) {
-    Surface(
-        shape = RoundedCornerShape(PaceDreamRadius.Round),
-        color = color.copy(alpha = 0.10f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(12.dp)
-            )
-            Text(
-                text = label,
-                style = PaceDreamTypography.Caption2,
-                color = color,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
+    Text(
+        text = label,
+        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
+        color = color,
+        modifier = Modifier
+            .background(color.copy(alpha = 0.12f), shape = RoundedCornerShape(PaceDreamRadius.Round))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    )
 }
 
 /** Primary action cards - bookings, wishlist, bids with counts */
@@ -481,7 +417,7 @@ private fun PrimaryActionsRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD),
-        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         PrimaryActionCard(
             icon = PaceDreamIcons.CalendarToday,
@@ -525,7 +461,7 @@ private fun PrimaryActionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PaceDreamSpacing.MD),
+                .padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -545,15 +481,15 @@ private fun PrimaryActionCard(
             }
             Text(
                 text = label,
-                style = PaceDreamTypography.Caption2,
+                style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
 
-/** Unified host mode entry - replaces the old toggle + CTA combo */
+/** Unified host mode entry */
 @Composable
 private fun HostModeEntry(
     isHostMode: Boolean,
@@ -577,7 +513,7 @@ private fun HostModeEntry(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PaceDreamSpacing.MD),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -597,18 +533,18 @@ private fun HostModeEntry(
                     modifier = Modifier.size(PaceDreamIconSize.SM)
                 )
             }
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = if (isHostMode) "Switch to Guest Mode" else "Start Hosting",
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Subheadline,
                     color = if (isHostMode) PaceDreamColors.Primary else Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (isHostMode) "Browse and book spaces"
                     else "List your space and start earning",
-                    style = PaceDreamTypography.Caption2,
+                    style = PaceDreamTypography.Caption,
                     color = if (isHostMode) PaceDreamColors.TextSecondary
                     else Color.White.copy(alpha = 0.8f)
                 )
@@ -631,10 +567,9 @@ fun ProfileMenuSection(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = section.title,
-            style = PaceDreamTypography.Caption,
+            text = section.title.uppercase(),
+            style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp),
             color = PaceDreamColors.TextTertiary,
-            fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(
                 start = PaceDreamSpacing.XS,
                 bottom = PaceDreamSpacing.SM
@@ -668,25 +603,17 @@ fun ProfileMenuRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = item.onClick)
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(PaceDreamIconSize.XS)
-            )
-        }
+        Icon(
+            imageVector = item.icon,
+            contentDescription = item.title,
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier.size(PaceDreamIconSize.SM)
+        )
 
-        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+        Spacer(modifier = Modifier.width(14.dp))
 
         Text(
             text = item.title,
@@ -707,7 +634,7 @@ fun ProfileMenuRow(
         HorizontalDivider(
             color = PaceDreamColors.Border,
             thickness = 0.5.dp,
-            modifier = Modifier.padding(start = 56.dp)
+            modifier = Modifier.padding(start = 45.dp)
         )
     }
 }

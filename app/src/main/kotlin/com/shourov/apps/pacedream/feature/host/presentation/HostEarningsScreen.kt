@@ -46,7 +46,7 @@ fun HostEarningsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Earnings",
+                        text = "Earnings & Payments",
                         style = PaceDreamTypography.Title1,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.Bold
@@ -69,21 +69,21 @@ fun HostEarningsScreen(
                         enabled = availableBalance > 0,
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
-                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                         modifier = Modifier.height(PaceDreamButtonHeight.SM)
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.AttachMoney,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = "Payout",
-                            style = PaceDreamTypography.Caption,
+                            style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
                             color = Color.White,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 },
@@ -110,7 +110,7 @@ fun HostEarningsScreen(
                         text = {
                             Text(
                                 text = title,
-                                style = PaceDreamTypography.Callout,
+                                style = PaceDreamTypography.Subheadline,
                                 fontWeight = if (uiState.selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
                                 color = if (uiState.selectedTab == index) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
                             )
@@ -150,7 +150,7 @@ private fun BalanceTabContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         if (balance != null) {
             // Available Balance - hero card
@@ -165,20 +165,12 @@ private fun BalanceTabContent(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        PaceDreamColors.Primary.copy(alpha = 0.06f),
-                                        Color.Transparent
-                                    )
-                                )
-                            )
                             .padding(PaceDreamSpacing.LG),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Available Balance",
-                            style = PaceDreamTypography.Callout,
+                            style = PaceDreamTypography.Subheadline,
                             color = PaceDreamColors.TextSecondary
                         )
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -191,7 +183,7 @@ private fun BalanceTabContent(
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                         Text(
                             text = "Ready for payout",
-                            style = PaceDreamTypography.Caption,
+                            style = PaceDreamTypography.Footnote,
                             color = PaceDreamColors.TextTertiary
                         )
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -201,7 +193,7 @@ private fun BalanceTabContent(
                             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                             shape = RoundedCornerShape(PaceDreamRadius.Round),
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
+                            contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.AttachMoney,
@@ -212,7 +204,7 @@ private fun BalanceTabContent(
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                             Text(
                                 text = "Request Payout",
-                                style = PaceDreamTypography.Callout,
+                                style = PaceDreamTypography.Subheadline,
                                 color = Color.White,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -234,7 +226,7 @@ private fun BalanceTabContent(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(PaceDreamSpacing.MD),
+                                .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -251,17 +243,17 @@ private fun BalanceTabContent(
                                     modifier = Modifier.size(PaceDreamIconSize.SM)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Pending Balance",
-                                    style = PaceDreamTypography.Callout,
+                                    style = PaceDreamTypography.Subheadline,
                                     color = PaceDreamColors.TextPrimary,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     text = "Available in 2-7 business days",
-                                    style = PaceDreamTypography.Caption,
+                                    style = PaceDreamTypography.Footnote,
                                     color = PaceDreamColors.TextSecondary
                                 )
                             }
@@ -289,14 +281,14 @@ private fun BalanceTabContent(
                     elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 ) {
-                    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Text(
                             text = "Balance Breakdown",
-                            style = PaceDreamTypography.Headline,
+                            style = PaceDreamTypography.Headline.copy(fontSize = 17.sp),
                             color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        Spacer(modifier = Modifier.height(12.dp))
                         balance.available.forEach { amount ->
                             BalanceBreakdownRow(
                                 currency = amount.currency,
@@ -349,7 +341,7 @@ private fun BalanceBreakdownRow(
             )
             Text(
                 text = formatAmount(amount, currency),
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
@@ -358,7 +350,7 @@ private fun BalanceBreakdownRow(
             sourceTypes.forEach { (source, value) ->
                 Text(
                     text = "$source: $value",
-                    style = PaceDreamTypography.Caption2,
+                    style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextTertiary
                 )
             }
@@ -373,14 +365,14 @@ private fun TransfersTabContent(transfers: List<Transfer>) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (transfers.isEmpty()) {
             item {
                 EarningsEmptyState(
                     icon = PaceDreamIcons.Payment,
-                    title = "No Transfers Yet",
-                    subtitle = "Transfers from bookings will appear here"
+                    title = "No transfers yet",
+                    subtitle = "Transfers from bookings will appear here."
                 )
             }
         } else {
@@ -402,45 +394,46 @@ private fun TransferRow(transfer: Transfer) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PaceDreamSpacing.MD),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Payment,
                     contentDescription = null,
                     tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                    modifier = Modifier.size(14.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = transfer.description ?: "Transfer",
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = formatDate(transfer.createdAt),
                     style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
+                    color = PaceDreamColors.TextSecondary,
+                    fontWeight = FontWeight.Medium
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = formatAmount(transfer.amount, transfer.currency),
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary,
+                    style = PaceDreamTypography.Footnote,
+                    color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 StatusBadge(status = transfer.status)
             }
         }
@@ -457,14 +450,14 @@ private fun PayoutsTabContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (payouts.isEmpty()) {
             item {
                 EarningsEmptyState(
                     icon = PaceDreamIcons.AttachMoney,
-                    title = "No Payouts Yet",
-                    subtitle = "Your payout history will appear here"
+                    title = "No payouts yet",
+                    subtitle = "Your payout history will appear here."
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 Button(
@@ -472,11 +465,11 @@ private fun PayoutsTabContent(
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                     shape = RoundedCornerShape(PaceDreamRadius.Round),
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
+                    contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     Text(
                         text = "Request Payout",
-                        style = PaceDreamTypography.Callout,
+                        style = PaceDreamTypography.Subheadline,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -501,45 +494,46 @@ private fun PayoutRow(payout: Payout) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(PaceDreamSpacing.MD),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Success.copy(alpha = 0.1f)),
+                    .background(PaceDreamColors.Success.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.AttachMoney,
                     contentDescription = null,
                     tint = PaceDreamColors.Success,
-                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                    modifier = Modifier.size(14.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = payout.description ?: "Payout",
-                    style = PaceDreamTypography.Callout,
+                    style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
                     color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "Arrives: ${formatDate(payout.arrivalDate)}",
                     style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
+                    color = PaceDreamColors.TextSecondary,
+                    fontWeight = FontWeight.Medium
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = formatAmount(payout.amount, payout.currency),
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary,
+                    style = PaceDreamTypography.Footnote,
+                    color = PaceDreamColors.TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 StatusBadge(status = payout.status)
             }
         }
@@ -547,6 +541,7 @@ private fun PayoutRow(payout: Payout) {
 }
 
 // ── Status Badge ──────────────────────────────────────────────
+// iOS: 12pt bold, capsule, 10h/6v padding, semantic color bg at 14%
 
 @Composable
 private fun StatusBadge(status: String) {
@@ -559,15 +554,16 @@ private fun StatusBadge(status: String) {
 
     Text(
         text = status.replaceFirstChar { it.uppercase() },
-        style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.SemiBold),
+        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
         color = badgeColor,
         modifier = Modifier
-            .background(badgeColor.copy(alpha = 0.1f), RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+            .background(badgeColor.copy(alpha = 0.14f), RoundedCornerShape(PaceDreamRadius.Round))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     )
 }
 
 // ── Empty State ───────────────────────────────────────────────
+// iOS: Simple centered text, no large decorative icons.
 
 @Composable
 private fun EarningsEmptyState(
@@ -578,34 +574,26 @@ private fun EarningsEmptyState(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = PaceDreamSpacing.XXXL),
+            .padding(top = PaceDreamSpacing.XL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(PaceDreamIconSize.LG)
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = PaceDreamColors.TextSecondary.copy(alpha = 0.5f),
+            modifier = Modifier.size(32.dp)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = title,
-            style = PaceDreamTypography.Headline,
+            style = PaceDreamTypography.Headline.copy(fontSize = 17.sp),
             color = PaceDreamColors.TextPrimary,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = subtitle,
-            style = PaceDreamTypography.Callout,
+            style = PaceDreamTypography.Subheadline,
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center
         )
@@ -650,7 +638,7 @@ private fun PayoutRequestBottomSheet(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 text = "Available: $availableBalanceText",
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -661,7 +649,7 @@ private fun PayoutRequestBottomSheet(
             // Quick Amount Chips
             Text(
                 text = "Quick Amounts",
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
@@ -689,11 +677,11 @@ private fun PayoutRequestBottomSheet(
                                 ),
                                 shape = RoundedCornerShape(PaceDreamRadius.SM),
                                 modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
+                                contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
                                 Text(
                                     text = "$$quickAmount",
-                                    style = PaceDreamTypography.Callout,
+                                    style = PaceDreamTypography.Subheadline,
                                     color = if (isSelected) Color.White else PaceDreamColors.Primary,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -712,7 +700,7 @@ private fun PayoutRequestBottomSheet(
 
             Text(
                 text = "Custom Amount",
-                style = PaceDreamTypography.Callout,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
@@ -799,14 +787,14 @@ private fun SettlementStatusCard(balance: ConnectBalance) {
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
-        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Text(
                 text = "Payout Settlement Status",
-                style = PaceDreamTypography.Headline,
+                style = PaceDreamTypography.Headline.copy(fontSize = 17.sp),
                 color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Three columns: Available, Settling, Lifetime
             Row(
@@ -832,29 +820,27 @@ private fun SettlementStatusCard(balance: ConnectBalance) {
 
             // Settlement explanation
             if (settlingAmount > 0) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                Surface(
-                    shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = PaceDreamColors.Warning.copy(alpha = 0.08f),
-                    modifier = Modifier.fillMaxWidth()
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(PaceDreamSpacing.SM),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            PaceDreamIcons.Info,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Warning,
-                            modifier = Modifier.size(PaceDreamIconSize.SM)
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                        Text(
-                            text = "Stripe holds funds for 2-7 business days after a booking completes before they become available for payout. This is standard payment processing.",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                    }
+                    Icon(
+                        PaceDreamIcons.Info,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Warning,
+                        modifier = Modifier.size(PaceDreamIconSize.SM)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Stripe holds funds for 2-7 business days after a booking completes before they become available for payout. This is standard payment processing.",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary
+                    )
                 }
             }
         }
@@ -894,14 +880,14 @@ private fun PayoutTimelineCard() {
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
-        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Text(
                 text = "How Payouts Work",
-                style = PaceDreamTypography.Headline,
+                style = PaceDreamTypography.Headline.copy(fontSize = 17.sp),
                 color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(14.dp))
 
             val steps = listOf(
                 "Guest completes booking" to "Payment is captured by Stripe",
@@ -936,17 +922,17 @@ private fun PayoutTimelineCard() {
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = title,
-                            style = PaceDreamTypography.Callout,
+                            style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
                             color = PaceDreamColors.TextPrimary,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             text = description,
-                            style = PaceDreamTypography.Caption,
+                            style = PaceDreamTypography.Footnote,
                             color = PaceDreamColors.TextSecondary
                         )
                     }
