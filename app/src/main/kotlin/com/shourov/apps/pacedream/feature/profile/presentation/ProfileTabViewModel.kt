@@ -200,4 +200,3 @@ sealed class ProfileTabUiState {
         val refreshing: Boolean
     ) : ProfileTabUiState()
 }
-
