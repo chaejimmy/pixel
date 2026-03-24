@@ -297,7 +297,18 @@ fun MainNavHost(
                         },
                         onMyListsClick = {
                             navController.navigate(NavRoutes.COLLECTIONS)
-                        }
+                        },
+                        // iOS parity: "Create a listing" from profile.
+                        // If authenticated → switch to host mode (create listing).
+                        // If not authenticated → show auth sheet first, then route to host.
+                        onCreateListingClick = {
+                            if (authState == AuthState.Authenticated) {
+                                navController.navigate(NavRoutes.HOST_HOME)
+                            } else {
+                                authSheetSubtitle = "Sign in to create a listing."
+                                showAuthSheet = true
+                            }
+                        },
                     )
                 }
 

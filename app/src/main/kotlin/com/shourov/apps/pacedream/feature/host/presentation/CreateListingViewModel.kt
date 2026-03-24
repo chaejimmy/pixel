@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -19,7 +21,11 @@ class CreateListingViewModel @Inject constructor(
 ) : ViewModel() {
 
     sealed class Effect {
-        data class PublishSuccess(val listingId: String, val title: String) : Effect()
+        data class PublishSuccess(
+            val listingId: String,
+            val title: String,
+            val coverUrl: String? = null,
+        ) : Effect()
         data class PublishError(val message: String) : Effect()
     }
 
@@ -38,17 +44,44 @@ class CreateListingViewModel @Inject constructor(
                     _effects.send(
                         Effect.PublishSuccess(
                             listingId = property.id.ifEmpty { "created" },
-                            title = property.title.ifEmpty { request.title }
+                            title = property.title.ifEmpty { request.title },
+                            coverUrl = request.images?.firstOrNull(),
                         )
                     )
                 }
                 result.onFailure { error ->
-                    _effects.send(Effect.PublishError(error.message ?: "Failed to create listing"))
+                    _effects.send(Effect.PublishError(friendlyError(error)))
                 }
             } catch (e: Exception) {
-                _effects.send(Effect.PublishError(e.message ?: "Failed to create listing"))
+                _effects.send(Effect.PublishError(friendlyError(e)))
             } finally {
                 _isPublishing.value = false
+            }
+        }
+    }
+
+    /**
+     * iOS parity: map common errors to user-friendly messages
+     * (see CreateListingFlowCoordinator.friendlyPublishError).
+     */
+    companion object {
+        fun friendlyError(error: Throwable): String {
+            return when {
+                error is UnknownHostException ->
+                    "No internet connection. Please reconnect and try again."
+                error is SocketTimeoutException ->
+                    "Network timeout. Please try again."
+                error.message?.contains("401") == true ||
+                    error.message?.contains("Unauthorized", ignoreCase = true) == true ->
+                    "You\u2019re not signed in. Please sign in again and retry."
+                error.message?.contains("413") == true ||
+                    error.message?.contains("Request Entity Too Large", ignoreCase = true) == true ->
+                    "Your photos are too large to upload in one request. Remove a few photos or pick smaller ones, then try again."
+                error.message?.contains("5") == true &&
+                    error.message?.matches(Regex(".*\\b5\\d{2}\\b.*")) == true ->
+                    "Server error. Please try again."
+                else ->
+                    error.message ?: "Failed to create listing. Please try again."
             }
         }
     }
