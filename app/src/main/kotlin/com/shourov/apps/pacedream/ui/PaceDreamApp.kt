@@ -73,10 +73,15 @@ fun PaceDreamApp(
         )
     } else {
         // Show guest mode interface
+        // The Dashboard has its own inner Scaffold with a bottom bar that handles
+        // navigation bar insets. Set contentWindowInsets to zero here so the outer
+        // Scaffold does not double-count the bottom system bar insets, which would
+        // cause a visible gap below the bottom navigation bar.
         Scaffold(
             modifier = Modifier.semantics {
                 testTagsAsResourceId = true
             },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             topBar = {
                 if (showTopBar) {
                     PaceDreamTopAppBar(
