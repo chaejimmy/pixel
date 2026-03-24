@@ -112,7 +112,7 @@ fun HostDashboardScreen(
             item {
                 UpcomingBookingsSection(
                     bookings = uiState.topUpcomingBookings,
-                    isLoading = uiState.isLoading,
+                    isLoading = uiState.isLoading && !uiState.hasLoaded,
                     onBookingClick = onBookingClick,
                     onViewAllClick = onViewAllBookings
                 )
@@ -122,7 +122,7 @@ fun HostDashboardScreen(
             item {
                 YourListingsSection(
                     listings = uiState.topActiveListings,
-                    isLoading = uiState.isLoading,
+                    isLoading = uiState.isLoading && !uiState.hasLoaded,
                     onListingClick = onListingClick,
                     onViewAllClick = onViewAllListings
                 )
@@ -132,7 +132,7 @@ fun HostDashboardScreen(
             item {
                 HistorySection(
                     events = uiState.recentEvents,
-                    isLoading = uiState.isLoading
+                    isLoading = uiState.isLoading && !uiState.hasLoaded
                 )
             }
 

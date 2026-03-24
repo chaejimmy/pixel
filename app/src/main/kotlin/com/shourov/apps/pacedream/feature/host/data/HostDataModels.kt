@@ -31,6 +31,7 @@ data class HostDashboardData(
     val payoutPromptReason: String? = null,
     // UI state
     val isLoading: Boolean = false,
+    val hasLoaded: Boolean = false,
     val error: String? = null
 ) {
     // ── KPI computations (iOS parity: HostDataStore) ──────────
