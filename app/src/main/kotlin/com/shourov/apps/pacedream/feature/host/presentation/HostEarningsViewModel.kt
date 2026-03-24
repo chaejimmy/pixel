@@ -17,8 +17,8 @@ import javax.inject.Inject
 /**
  * Host Earnings ViewModel - iOS parity.
  *
- * Matches iOS HostEarningsView with Stripe Connect onboarding,
- * payout status, payout methods, and revenue data.
+ * Matches iOS HostEarningsView with Stripe Connect status,
+ * balance cards, recent payouts, and booking earnings.
  */
 @HiltViewModel
 class HostEarningsViewModel @Inject constructor(
@@ -30,7 +30,6 @@ class HostEarningsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HostEarningsData())
     val uiState: StateFlow<HostEarningsData> = _uiState.asStateFlow()
 
-    // New tabbed earnings state (matching iOS EarningsView)
     private val _earningsUiState = MutableStateFlow(HostEarningsUiState())
     val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
 
@@ -42,7 +41,6 @@ class HostEarningsViewModel @Inject constructor(
         viewModelScope.launch {
             _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
 
-            // Load balance, transfers, payouts concurrently (like iOS refreshData)
             val balanceDeferred = async { stripeConnectRepository.getBalance() }
             val transfersDeferred = async { stripeConnectRepository.getTransfers() }
             val payoutsDeferred = async { stripeConnectRepository.getPayouts() }
@@ -67,43 +65,9 @@ class HostEarningsViewModel @Inject constructor(
         }
     }
 
-    fun selectTab(index: Int) {
-        _earningsUiState.value = _earningsUiState.value.copy(selectedTab = index)
-    }
-
     fun refreshData() {
         _earningsUiState.value = _earningsUiState.value.copy(isRefreshing = true)
         loadAllData()
-    }
-
-    fun showPayoutSheet() {
-        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = true)
-    }
-
-    fun hidePayoutSheet() {
-        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
-    }
-
-    fun requestPayout(amount: Double) {
-        viewModelScope.launch {
-            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
-
-            val amountInCents = (amount * 100).toInt()
-            stripeConnectRepository.createPayout(amountInCents)
-                .onSuccess {
-                    _earningsUiState.value = _earningsUiState.value.copy(
-                        showPayoutSheet = false,
-                        payoutAmount = ""
-                    )
-                    refreshData()
-                }
-                .onFailure { exception ->
-                    _earningsUiState.value = _earningsUiState.value.copy(
-                        isLoading = false,
-                        errorMessage = exception.message ?: "Failed to request payout"
-                    )
-                }
-        }
     }
 
     fun clearError() {
@@ -112,11 +76,11 @@ class HostEarningsViewModel @Inject constructor(
 
     // Legacy methods for backward compatibility
     fun updateTimeRange(timeRange: String) {
-        // Time range filtering handled via refreshData
         refreshData()
     }
 
     fun withdrawEarnings(amount: Double) {
-        requestPayout(amount)
+        // Payout requests are handled via Stripe dashboard
+        refreshData()
     }
 }
