@@ -70,6 +70,7 @@ fun HostModeScreen(
         ) {
             HostNavigationGraph(
                 navController = navController,
+                onSwitchToGuestMode = onSwitchToGuestMode,
                 onNavigateToProperty = onNavigateToProperty,
                 onNavigateToBooking = onNavigateToBooking,
                 onNavigateToAddListing = onNavigateToAddListing,
