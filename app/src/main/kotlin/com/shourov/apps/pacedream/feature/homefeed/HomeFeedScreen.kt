@@ -650,27 +650,39 @@ private fun ListingCard(
             ) {
                 Text(
                     text = item.title.ifBlank { "Listing" },
-                    style = PaceDreamTypography.Title3,
+                    style = PaceDreamTypography.Headline,
                     color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 item.location?.takeIf { it.isNotBlank() }?.let {
                     Text(
                         text = it,
-                        style = PaceDreamTypography.Callout,
+                        style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                item.rating?.let { r ->
-                    Text(
-                        text = "★ ${String.format("%.1f", r)}",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextSecondary
-                    )
+                item.rating?.takeIf { it > 0.0 }?.let { r ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Star,
+                            contentDescription = null,
+                            tint = PaceDreamColors.StarRating,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = String.format("%.1f", r),
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }

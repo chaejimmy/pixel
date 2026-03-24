@@ -68,10 +68,24 @@ fun HostDashboardScreen(
                 )
             }
 
-            // Error banner
+            // Error banner with retry
             uiState.error?.let { error ->
                 item {
-                    InlineErrorBannerComposable(text = error)
+                    InlineErrorBannerWithRetry(
+                        text = error,
+                        onRetry = { viewModel.refreshData() }
+                    )
+                }
+            }
+
+            // Payout setup prompt (website parity: show when eligible)
+            if (uiState.shouldShowPayoutSetupPrompt &&
+                uiState.payoutState != PayoutConnectionState.CONNECTED) {
+                item {
+                    PayoutSetupPromptCard(
+                        reason = uiState.payoutPromptReason,
+                        onSetupClick = onEarningsClick
+                    )
                 }
             }
 
@@ -257,10 +271,10 @@ private fun DashboardHeaderSection(
     }
 }
 
-// ── Error Banner ──────────────────────────────────────────────
+// ── Error Banner with Retry ──────────────────────────────────
 
 @Composable
-private fun InlineErrorBannerComposable(text: String) {
+private fun InlineErrorBannerWithRetry(text: String, onRetry: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -284,7 +298,81 @@ private fun InlineErrorBannerComposable(text: String) {
                 text = text,
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.Error,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(
+                onClick = onRetry,
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM)
+            ) {
+                Text(
+                    text = "Retry",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.Error,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+// ── Payout Setup Prompt (website parity) ─────────────────────
+
+@Composable
+private fun PayoutSetupPromptCard(
+    reason: String?,
+    onSetupClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        onClick = onSetupClick,
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Warning.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Warning.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.CreditCard,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Warning,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
+            }
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Set up payouts",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = reason ?: "Connect your account to receive earnings from bookings.",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.Warning,
+                modifier = Modifier.size(PaceDreamIconSize.SM)
             )
         }
     }
