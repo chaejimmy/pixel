@@ -51,24 +51,23 @@ class NotificationApiService @Inject constructor(
     /**
      * Fetch notifications with pagination (iOS parity).
      */
-    suspend fun getNotifications(page: Int = 1, limit: Int = 20): List<AppNotification> {
+    suspend fun getNotifications(page: Int = 1, pageSize: Int = 20): List<AppNotification> {
         _isLoading.value = true
         try {
-            val url = appConfig.buildApiUrlWithQuery("notifications", queryParams = mapOf("page" to page.toString(), "limit" to limit.toString()))
+            val url = appConfig.buildApiUrlWithQuery("notifications", queryParams = mapOf("page" to page.toString(), "pageSize" to pageSize.toString()))
             when (val result = apiClient.get(url, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val response = json.decodeFromString(
                         NotificationApiResponse.serializer(),
                         result.data
                     )
-                    if (response.success) {
-                        val items = response.data?.data ?: emptyList()
+                    if (response.isSuccessful) {
+                        val items = response.data?.notifications ?: emptyList()
                         if (page == 1) {
                             _notifications.value = items
                         } else {
                             _notifications.value = _notifications.value + items
                         }
-                        response.unreadCount?.let { _unreadCount.value = it }
                         updateUnreadCount()
                         return items
                     }
@@ -193,36 +192,60 @@ class NotificationApiService @Inject constructor(
 /**
  * Notification item matching iOS AppNotification / UserNotification (iOS parity).
  *
- * Supports both camelCase and snake_case field names from the backend,
- * matching the tolerant decoding approach in iOS.
+ * Backend NotificationV2 model uses `body` (not `message`) and `readAt` (not `isRead`).
+ * Supports both field naming conventions for tolerance.
  */
 @Serializable
 data class AppNotification(
-    val id: String,
+    @SerialName("_id") val id: String = "",
     val title: String = "",
     val body: String? = null,
     val message: String? = null,
+    val event: String = "",
     val type: String = "",
+    @SerialName("readAt") val readAt: String? = null,
+    @SerialName("deepLink") val deepLink: String? = null,
+    val status: String = "",
     val data: Map<String, String>? = null,
-    @SerialName("isRead") val isRead: Boolean = false,
-    @SerialName("created_at") val createdAt: String = "",
-    @SerialName("updated_at") val updatedAt: String = ""
+    @SerialName("createdAt") val createdAt: String = "",
+    @SerialName("updatedAt") val updatedAt: String = ""
 ) {
     /** Resolved body text (API may send `body` or `message`) — iOS parity. */
     val displayBody: String get() = body ?: message ?: ""
+
+    /** Read state derived from readAt timestamp (matches backend NotificationV2 schema). */
+    val isRead: Boolean get() = readAt != null
+
+    /** Resolved type (backend uses `event` field, fall back to `type`). */
+    val resolvedType: String get() = event.ifEmpty { type }
+
+    fun copy(isRead: Boolean): AppNotification {
+        return copy(readAt = if (isRead) (readAt ?: "marked") else null)
+    }
 }
 
 @Serializable
 private data class NotificationApiResponse(
     val success: Boolean = false,
+    val status: Boolean = false,
     val message: String? = null,
-    val data: PaginatedData? = null,
-    @SerialName("unread_count") val unreadCount: Int? = null
+    val data: NotificationListPayload? = null
+) {
+    val isSuccessful: Boolean get() = success || status
+}
+
+@Serializable
+private data class NotificationListPayload(
+    val notifications: List<AppNotification> = emptyList(),
+    val pagination: PaginationInfo? = null
 )
 
 @Serializable
-private data class PaginatedData(
-    val data: List<AppNotification> = emptyList()
+private data class PaginationInfo(
+    val page: Int = 1,
+    val pageSize: Int = 20,
+    val total: Int = 0,
+    val totalPages: Int = 0
 )
 
 @Serializable

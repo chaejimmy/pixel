@@ -272,7 +272,7 @@ private fun NotificationItemRow(
         label = "notificationBg"
     )
 
-    val typeColor = getTypeColor(notification.type)
+    val typeColor = getTypeColor(notification.resolvedType)
 
     Row(
         modifier = Modifier

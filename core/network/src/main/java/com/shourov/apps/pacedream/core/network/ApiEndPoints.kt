@@ -62,10 +62,11 @@ object ApiEndPoints {
     const val MARK_MESSAGE_READ = "chats/{chatId}/messages/{messageId}/read"
 
     // ── Notifications ─────────────────────────────────────
-    const val GET_USER_NOTIFICATIONS = "notifications/user/{userId}"
+    const val GET_NOTIFICATIONS = "notifications"
+    const val GET_UNREAD_COUNT = "notifications/unread-count"
     const val MARK_NOTIFICATION_READ = "notifications/{notificationId}/read"
-    const val MARK_ALL_NOTIFICATIONS_READ = "notifications/user/{userId}/read-all"
-    const val REGISTER_PUSH_TOKEN = "notifications/register-device"
+    const val MARK_ALL_NOTIFICATIONS_READ = "notifications/mark-all"
+    const val REGISTER_PUSH_TOKEN = "notifications/push-token"
 
     // ── Payments ──────────────────────────────────────────
     const val CREATE_PAYMENT_INTENT = "payments/create-intent"
