@@ -277,6 +277,15 @@ data class HostBookingDTO(
     val createdAt: String? = null,
     val guest: GuestInfo? = null,
     val listing: ListingInfo? = null,
+    // iOS parity: payout status and host earnings fields
+    val payoutStatus: String? = null,
+    val payout_status: String? = null,
+    val hostEarnings: Double? = null,
+    val host_earnings: Double? = null,
+    val platformFee: Double? = null,
+    val platform_fee: Double? = null,
+    val cancellationReason: String? = null,
+    val cancellation_reason: String? = null,
     // iOS PR #202 parity: verification PIN for guest/host check-in
     val verificationPin: String? = null,
     val verification_pin: String? = null,
@@ -287,6 +296,22 @@ data class HostBookingDTO(
     val verificationStatus: String? = null,
     val verification_status: String? = null
 ) {
+    /** Resolved payout status (iOS parity: payoutStatus field) */
+    val resolvedPayoutStatus: String?
+        get() = payoutStatus ?: payout_status
+
+    /** Resolved host earnings - net amount after fees (iOS parity: hostEarnings field) */
+    val resolvedHostEarnings: Double?
+        get() = hostEarnings ?: host_earnings
+
+    /** Resolved platform fee */
+    val resolvedPlatformFee: Double?
+        get() = platformFee ?: platform_fee
+
+    /** Resolved cancellation reason */
+    val resolvedCancellationReason: String?
+        get() = cancellationReason ?: cancellation_reason
+
     /** Resolved verification PIN */
     val resolvedVerificationPin: String?
         get() = verificationPin ?: verification_pin ?: verificationCode ?: verification_code
