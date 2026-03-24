@@ -370,6 +370,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                     },
                                     onShowAuthSheet = {
                                         showAuthSheet = true
+                                    },
+                                    onExploreListings = {
+                                        // iOS parity: switch to Home tab (same as iOS "Explore listings" → PD_SwitchToHomeTab)
+                                        TabRouter.switchTo(DashboardDestination.HOME)
                                     }
                                 )
                                 

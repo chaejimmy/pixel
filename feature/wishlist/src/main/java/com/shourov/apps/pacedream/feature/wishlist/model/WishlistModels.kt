@@ -103,6 +103,7 @@ sealed class WishlistNavigation {
     data class ToTimeBasedDetail(val itemId: String) : WishlistNavigation()
     data class ToHourlyGearDetail(val gearId: String) : WishlistNavigation()
     object ShowAuthSheet : WishlistNavigation()
+    object ExploreListings : WishlistNavigation()
 }
 
 
