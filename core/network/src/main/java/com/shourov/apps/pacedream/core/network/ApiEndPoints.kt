@@ -106,6 +106,7 @@ object ApiEndPoints {
     const val HOST_ACCEPT_BOOKING = "bookings/host/{bookingId}/accept"
     const val HOST_DECLINE_BOOKING = "bookings/host/{bookingId}/decline"
     const val HOST_GET_EARNINGS = "host/earnings"
+    const val HOST_EARNINGS_DASHBOARD = "host/earnings/dashboard"
     const val HOST_GET_ANALYTICS = "host/analytics"
 
     // ── Host Payouts (Stripe Connect - iOS parity) ──────

@@ -92,8 +92,10 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.host.data.AvailabilityPayload
+import com.shourov.apps.pacedream.feature.host.data.CreateListingDraftStore
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.data.ListingDraftData
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
 import com.shourov.apps.pacedream.feature.host.data.PricingPayload
 import com.shourov.apps.pacedream.core.network.api.ApiResult
@@ -279,12 +281,18 @@ fun CreateListingScreen(
     onPublishListing: (CreateListingRequest) -> Unit = {},
     viewModel: CreateListingViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
+    // iOS parity: draft persistence
+    val context = LocalContext.current
+    val draftStore = remember { CreateListingDraftStore(context) }
+
     // Phase: entry → subcategory → wizard → success
     var phase by remember { mutableStateOf("entry") }
     var selectedMode by remember { mutableStateOf(listingMode) }
     var selectedResourceKind by remember { mutableStateOf(ResourceKind.SPACES) }
     var selectedSubCategory by remember { mutableStateOf("") }
     var publishedTitle by remember { mutableStateOf("") }
+    var publishedListingId by remember { mutableStateOf("") }
+    var publishedCoverUrl by remember { mutableStateOf<String?>(null) }
     var publishError by remember { mutableStateOf<String?>(null) }
 
     // Collect ViewModel effects for publish result
@@ -293,6 +301,9 @@ fun CreateListingScreen(
             when (effect) {
                 is CreateListingViewModel.Effect.PublishSuccess -> {
                     publishedTitle = effect.title
+                    publishedListingId = effect.listingId
+                    publishedCoverUrl = effect.coverUrl
+                    draftStore.clear() // iOS parity: clear draft on success
                     phase = "success"
                     onPublishSuccess(effect.listingId)
                 }
@@ -311,6 +322,14 @@ fun CreateListingScreen(
                 phase = "subcategory"
             },
             onBackClick = onBackClick,
+            draftStore = draftStore,
+            onResumeDraft = { draft ->
+                // Resume from saved draft: jump directly to wizard with saved state
+                selectedMode = ListingMode.entries.firstOrNull { it.backendValue == draft.listingMode } ?: ListingMode.SHARE
+                selectedResourceKind = ResourceKind.entries.firstOrNull { it.name.equals(draft.resourceKind, ignoreCase = true) } ?: ResourceKind.SPACES
+                selectedSubCategory = draft.subCategory
+                phase = if (draft.subCategory.isNotBlank()) "wizard" else "subcategory"
+            },
         )
         "subcategory" -> SubcategoryPickerScreen(
             resourceKind = selectedResourceKind,
@@ -325,21 +344,20 @@ fun CreateListingScreen(
             listingMode = selectedMode,
             subCategory = selectedSubCategory,
             imageUploadService = imageUploadService,
+            draftStore = draftStore,
             onBackClick = { phase = "subcategory" },
-            onPublishSuccess = { id, title ->
-                publishedTitle = title
-                phase = "success"
-                onPublishSuccess(id)
-            },
             onPublishListing = { request ->
                 publishError = null
                 viewModel.publishListing(request)
             },
         )
         "success" -> PublishSuccessScreen(
+            listingId = publishedListingId,
             title = publishedTitle,
+            coverUrl = publishedCoverUrl,
+            onViewListing = { /* TODO: navigate to listing detail */ },
+            onGoToMyListings = onBackClick,
             onBackToHome = onBackClick,
-            onClose = onBackClick,
         )
     }
 }
@@ -351,7 +369,17 @@ fun CreateListingScreen(
 private fun CreateListingEntryScreen(
     onResourceKindSelected: (ResourceKind) -> Unit,
     onBackClick: () -> Unit,
+    draftStore: CreateListingDraftStore? = null,
+    onResumeDraft: ((ListingDraftData) -> Unit)? = null,
 ) {
+    // iOS parity: load saved draft on appear and show resume banner
+    var savedDraft by remember { mutableStateOf<ListingDraftData?>(null) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        savedDraft = draftStore?.load()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -386,6 +414,17 @@ private fun CreateListingEntryScreen(
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
             )
+
+            // iOS parity: "Continue your draft" resume banner
+            savedDraft?.let { draft ->
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                DraftResumeBanner(
+                    draftTitle = draft.title.ifBlank { "Untitled listing" },
+                    onResume = { onResumeDraft?.invoke(draft) },
+                    onDiscard = { showDiscardConfirm = true },
+                )
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
             ModeCard(
@@ -411,6 +450,124 @@ private fun CreateListingEntryScreen(
                 tint = Color(0xFF4CAF50),
                 onClick = { onResourceKindSelected(ResourceKind.SERVICES) },
             )
+        }
+    }
+
+    // Discard draft confirmation dialog (iOS parity)
+    if (showDiscardConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("Discard Draft?") },
+            text = { Text("This draft will be permanently deleted. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    draftStore?.clear()
+                    savedDraft = null
+                    showDiscardConfirm = false
+                }) {
+                    Text("Discard", color = PaceDreamColors.Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text("Keep Draft")
+                }
+            },
+        )
+    }
+}
+
+/**
+ * iOS parity: orange "Continue your draft" banner with discard option.
+ */
+@Composable
+private fun DraftResumeBanner(
+    draftTitle: String,
+    onResume: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    Column {
+        // Resume row (orange background, top corners rounded)
+        Card(
+            onClick = onResume,
+            shape = RoundedCornerShape(
+                topStart = PaceDreamRadius.LG,
+                topEnd = PaceDreamRadius.LG,
+                bottomStart = 0.dp,
+                bottomEnd = 0.dp,
+            ),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA500)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    PaceDreamIcons.History,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Continue your draft",
+                        style = PaceDreamTypography.Callout,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                    )
+                    Text(
+                        draftTitle,
+                        style = PaceDreamTypography.Caption,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.9f),
+                        maxLines = 1,
+                    )
+                }
+                Icon(
+                    PaceDreamIcons.ChevronRight,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        // Discard row (red tint, bottom corners rounded)
+        Card(
+            onClick = onDiscard,
+            shape = RoundedCornerShape(
+                topStart = 0.dp,
+                topEnd = 0.dp,
+                bottomStart = PaceDreamRadius.LG,
+                bottomEnd = PaceDreamRadius.LG,
+            ),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    PaceDreamIcons.Delete,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Error,
+                    modifier = Modifier.size(13.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "Discard Draft",
+                    style = PaceDreamTypography.Caption,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PaceDreamColors.Error,
+                )
+            }
         }
     }
 }
@@ -597,8 +754,8 @@ private fun CreateListingWizardScreen(
     listingMode: ListingMode,
     subCategory: String,
     imageUploadService: ImageUploadService? = null,
+    draftStore: CreateListingDraftStore? = null,
     onBackClick: () -> Unit,
-    onPublishSuccess: (String, String) -> Unit,
     onPublishListing: (CreateListingRequest) -> Unit,
 ) {
     val hasSchedule = needsSchedule(listingMode, subCategory)
@@ -662,12 +819,12 @@ private fun CreateListingWizardScreen(
 
     val progress = (currentStep + 1).toFloat() / totalSteps
 
-    // iOS parity: validate each step including photo requirement and description
-    fun validate(): String? {
-        return when (currentStep) {
+    // iOS parity: validate each step.
+    // iOS does NOT enforce a description minimum length — only title is required for basics.
+    fun validateStep(step: Int): String? {
+        return when (step) {
             0 -> {
                 if (title.isBlank()) return "Title is required."
-                if (description.isNotBlank() && description.trim().length < 20) return "Description must be at least 20 characters."
                 null
             }
             1 -> {
@@ -708,6 +865,19 @@ private fun CreateListingWizardScreen(
             }
             else -> null
         }
+    }
+
+    // iOS parity: reviewPublish step re-validates ALL prior steps before allowing publish.
+    fun validate(): String? {
+        if (currentStep == totalSteps - 1) {
+            // Final step: cross-validate all previous steps
+            for (s in 0 until totalSteps - 1) {
+                val msg = validateStep(s)
+                if (msg != null) return msg
+            }
+            return null
+        }
+        return validateStep(currentStep)
     }
 
     Scaffold(
@@ -752,6 +922,23 @@ private fun CreateListingWizardScreen(
                         return@WizardBottomBar
                     }
                     if (currentStep < totalSteps - 1) {
+                        // iOS parity: auto-save draft when navigating between steps
+                        draftStore?.save(ListingDraftData(
+                            listingMode = listingMode.backendValue,
+                            resourceKind = "",
+                            subCategory = subCategory,
+                            title = title.trim(),
+                            description = description.trim(),
+                            address = address,
+                            city = city,
+                            state = state,
+                            basePrice = basePrice,
+                            totalCost = totalCost,
+                            pricingUnit = selectedPricingUnit.value,
+                            amenities = amenities.toList(),
+                            deadlineAt = deadlineAt,
+                            requirements = requirements,
+                        ))
                         currentStep++
                     } else {
                         // Build payload matching iOS ListingsPublisherService
@@ -848,7 +1035,6 @@ private fun CreateListingWizardScreen(
                             // isPublishing will be reset when the effect is received.
                             isPublishing = false
                             isUploadingOverlay = false
-                            onPublishSuccess("new-listing-id", title.ifBlank { "Your listing" })
                         }
                     }
                 },
@@ -1889,23 +2075,29 @@ private fun ReviewPublishStep(
 }
 
 // ── Phase 4: Publish Success (iOS: ListingPublishSuccessView) ──
+// iOS parity: shows green checkmark, "Submitted!", Under Review banner,
+// cover image preview, and 3 CTAs: View Listing, Go to My Listings, Back to Home.
 
 @Composable
 private fun PublishSuccessScreen(
+    listingId: String,
     title: String,
+    coverUrl: String? = null,
+    onViewListing: () -> Unit,
+    onGoToMyListings: () -> Unit,
     onBackToHome: () -> Unit,
-    onClose: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         Spacer(modifier = Modifier.weight(1f))
 
+        // Green checkmark (iOS parity)
         Box(
             modifier = Modifier
                 .size(88.dp)
@@ -1932,37 +2124,113 @@ private fun PublishSuccessScreen(
             text = title,
             style = PaceDreamTypography.Headline,
             color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 22.dp),
         )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Your listing is under review and will be visible once approved.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL),
-        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        // Under Review banner (iOS parity: orange banner with clock icon)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                .background(Color(0xFFFFA500).copy(alpha = 0.12f))
+                .padding(14.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                PaceDreamIcons.Schedule,
+                contentDescription = null,
+                tint = Color(0xFFFFA500),
+                modifier = Modifier.size(18.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Under Review",
+                    style = PaceDreamTypography.Callout,
+                    fontWeight = FontWeight.Bold,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                Text(
+                    text = "Your listing is being reviewed and will be visible once approved.",
+                    style = PaceDreamTypography.Caption,
+                    fontWeight = FontWeight.Medium,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+        }
+
+        // Cover image preview (iOS parity)
+        if (coverUrl != null && coverUrl.startsWith("http")) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            AsyncImage(
+                model = coverUrl,
+                contentDescription = "Listing cover",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(18.dp)),
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = onBackToHome,
+        // 3 CTAs matching iOS: View Listing, Go to My Listings, Back to Home
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(PaceDreamButtonHeight.MD),
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                .padding(bottom = PaceDreamSpacing.XL),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            Text("Back to Home", style = PaceDreamTypography.Button)
+            // Primary: View Listing (iOS parity)
+            Button(
+                onClick = onViewListing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.MD),
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+            ) {
+                Text("View Listing", style = PaceDreamTypography.Button)
+            }
+
+            // Secondary: Go to My Listings (iOS parity)
+            Button(
+                onClick = onGoToMyListings,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.MD),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Gray100,
+                    contentColor = PaceDreamColors.TextPrimary,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+            ) {
+                Text(
+                    "Go to My Listings",
+                    style = PaceDreamTypography.Button,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            // Tertiary: Back to Home (iOS parity)
+            TextButton(
+                onClick = onBackToHome,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    "Back to Home",
+                    style = PaceDreamTypography.Button,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        TextButton(onClick = onClose) {
-            Text(
-                "Back to Post",
-                style = PaceDreamTypography.Button,
-                color = PaceDreamColors.TextSecondary,
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
     }
 }
 

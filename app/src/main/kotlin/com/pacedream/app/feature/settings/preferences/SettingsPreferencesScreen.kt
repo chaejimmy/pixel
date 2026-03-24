@@ -61,6 +61,9 @@ fun SettingsPreferencesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // Supported options - these are UI-level constants for the dropdown menus.
+    // The selected value is saved/loaded from the backend via SettingsPreferencesViewModel.
+    // TODO: Fetch available options from the backend if a /preferences/options endpoint is added.
     val languageOptions = listOf("English", "Spanish", "French")
     val currencyOptions = listOf("USD", "EUR", "GBP")
     val timezoneOptions = listOf("UTC", "America/Los_Angeles", "Europe/London")

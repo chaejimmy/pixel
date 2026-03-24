@@ -41,17 +41,23 @@ class HostRepository @Inject constructor(
 
     suspend fun loadDashboard(): DashboardLoadResult = coroutineScope {
         var hadFailure = false
+        Timber.d("Loading host dashboard: bookings, listings, overview, payout state, eligibility")
 
         val bookingsDeferred = async {
             try {
+                Timber.d("Fetching host bookings from /bookings/host")
                 val response = hostApiService.getHostBookings()
                 if (response.isSuccessful) {
-                    response.body()?.bookings ?: emptyList()
+                    val bookings = response.body()?.bookings ?: emptyList()
+                    Timber.d("Loaded ${bookings.size} host bookings")
+                    bookings
                 } else {
+                    Timber.w("Host bookings failed [${response.code()}]")
                     hadFailure = true
                     emptyList()
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Host bookings fetch exception")
                 hadFailure = true
                 emptyList<HostBookingDTO>()
             }
@@ -59,16 +65,20 @@ class HostRepository @Inject constructor(
 
         val listingsDeferred = async {
             try {
+                Timber.d("Fetching host listings from /host/listings")
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
                     val json = response.body()
-                    if (json != null) parseHostListings(json) else emptyList()
+                    val listings = if (json != null) parseHostListings(json) else emptyList()
+                    Timber.d("Loaded ${listings.size} host listings")
+                    listings
                 } else {
+                    Timber.w("Host listings failed [${response.code()}]")
                     hadFailure = true
                     emptyList()
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Failed to load host listings")
+                Timber.e(e, "Host listings fetch exception")
                 hadFailure = true
                 emptyList<Property>()
             }
@@ -76,12 +86,18 @@ class HostRepository @Inject constructor(
 
         val overviewDeferred = async {
             try {
+                Timber.d("Fetching dashboard overview from /hosts/dashboard/overview")
                 val response = hostApiService.getDashboardOverview()
-                if (response.isSuccessful) response.body() else {
+                if (response.isSuccessful) {
+                    Timber.d("Dashboard overview loaded")
+                    response.body()
+                } else {
+                    Timber.w("Dashboard overview failed [${response.code()}]")
                     hadFailure = true
                     null
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Dashboard overview fetch exception")
                 hadFailure = true
                 null
             }
@@ -89,8 +105,10 @@ class HostRepository @Inject constructor(
 
         val payoutDeferred = async {
             try {
+                Timber.d("Resolving payout state from /host/payouts/status")
                 resolvePayoutState()
             } catch (e: Exception) {
+                Timber.e(e, "Payout state resolution exception")
                 hadFailure = true
                 PayoutConnectionState.NOT_CONNECTED
             }

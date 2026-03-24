@@ -17,6 +17,7 @@ fun HostDashboardScreenWithViewModel(
     onEarningsClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onSwitchToGuestMode: () -> Unit = {},
     viewModel: HostDashboardViewModel = hiltViewModel()
 ) {
     HostDashboardScreen(
@@ -26,6 +27,7 @@ fun HostDashboardScreenWithViewModel(
         onEarningsClick = onEarningsClick,
         onAnalyticsClick = onAnalyticsClick,
         onProfileClick = onProfileClick,
+        onSwitchToGuestMode = onSwitchToGuestMode,
         viewModel = viewModel
     )
 }

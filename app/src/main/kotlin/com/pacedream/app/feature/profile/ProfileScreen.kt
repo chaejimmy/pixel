@@ -55,7 +55,9 @@ fun ProfileScreen(
     onAboutClick: () -> Unit = {},
     onMyListsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
-    onFavoritesClick: () -> Unit = {}
+    onFavoritesClick: () -> Unit = {},
+    /** iOS parity: "Create a listing" from guest profile. Triggers pending host route. */
+    onCreateListingClick: () -> Unit = onHostModeClick,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -121,7 +123,10 @@ fun ProfileScreen(
         ) {
             if (!uiState.isLoggedIn) {
                 item {
-                    LoggedOutSection(onLoginClick = onLoginClick)
+                    LoggedOutSection(
+                        onLoginClick = onLoginClick,
+                        onCreateListingClick = onCreateListingClick,
+                    )
                 }
             } else {
                 item {
@@ -144,9 +149,9 @@ fun ProfileScreen(
                     )
                 }
 
-                // Create listing CTA (iOS parity: gradient button)
+                // Create listing CTA (iOS parity: gradient button → switchToHost + postCreateListing)
                 item {
-                    CreateListingCTA(onClick = onHostModeClick)
+                    CreateListingCTA(onClick = onCreateListingClick)
                 }
 
                 // Host mode CTA (iOS parity: gradient button)

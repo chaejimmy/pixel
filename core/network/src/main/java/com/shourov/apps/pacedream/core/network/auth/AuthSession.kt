@@ -20,9 +20,13 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
@@ -488,6 +492,20 @@ class AuthSession @Inject constructor(
                 ?: dataObject
                 ?: jsonObject
 
+            // ── Host-related fields (iOS parity) ──────────────────────
+            val superHost = userData["superHost"]?.jsonPrimitive?.booleanOrNull ?: false
+            val isHostFlag = userData["isHost"]?.jsonPrimitive?.booleanOrNull ?: false
+
+            // Properties may be in the user object or at the data root level
+            val propertiesElement = userData["properties"]
+                ?: dataObject?.get("properties")
+            val propertiesCount = when (propertiesElement) {
+                is JsonArray -> propertiesElement.jsonArray.size
+                else -> propertiesElement?.jsonPrimitive?.intOrNull ?: 0
+            }
+
+            Timber.d("[HostMode] Parsing user profile — superHost=$superHost, isHostFlag=$isHostFlag, propertiesCount=$propertiesCount")
+
             val user = User(
                 id = userData["_id"]?.jsonPrimitive?.content
                     ?: userData["id"]?.jsonPrimitive?.content
@@ -502,14 +520,17 @@ class AuthSession @Inject constructor(
                     ?: userData["avatarUrl"]?.jsonPrimitive?.content
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
-                    ?: userData["phoneNumber"]?.jsonPrimitive?.content
+                    ?: userData["phoneNumber"]?.jsonPrimitive?.content,
+                superHost = superHost,
+                propertiesCount = propertiesCount,
+                isHostFlag = isHostFlag
             )
 
             _currentUser.value = user
             tokenStorage.userId = user.id
             tokenStorage.cachedUserSummary = responseBody
 
-            Timber.d("User set: id=${user.id}")
+            Timber.d("[HostMode] User set: id=${user.id}, isHost=${user.isHost} (superHost=$superHost, properties=$propertiesCount, flag=$isHostFlag)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
             if (!fromCache) {
@@ -556,6 +577,10 @@ sealed class AuthState {
 
 /**
  * User model
+ *
+ * iOS parity: includes host-related fields from /account/me so the app
+ * can determine whether the user is already a host without relying solely
+ * on client-side SharedPreferences.
  */
 data class User(
     val id: String,
@@ -563,7 +588,13 @@ data class User(
     val firstName: String? = null,
     val lastName: String? = null,
     val profileImage: String? = null,
-    val phone: String? = null
+    val phone: String? = null,
+    /** True when the backend marks this user as a super-host. */
+    val superHost: Boolean = false,
+    /** Number of properties/listings owned by this user. */
+    val propertiesCount: Int = 0,
+    /** True when the backend response contains an explicit isHost flag. */
+    val isHostFlag: Boolean = false
 ) {
     val displayName: String
         get() = when {
@@ -572,6 +603,19 @@ data class User(
             !email.isNullOrBlank() -> email.substringBefore("@")
             else -> "User"
         }
+
+    /**
+     * Derived host status: the user is considered a host when any of
+     * the following is true:
+     *  - backend returned isHost = true
+     *  - user has superHost status
+     *  - user owns at least one property/listing
+     *
+     * iOS parity: matches the logic used by iOS AppModeStore to decide
+     * whether to auto-switch into host mode on login.
+     */
+    val isHost: Boolean
+        get() = isHostFlag || superHost || propertiesCount > 0
 }
 
 /**
