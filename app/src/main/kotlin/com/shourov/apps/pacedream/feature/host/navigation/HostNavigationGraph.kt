@@ -1,6 +1,5 @@
 package com.shourov.apps.pacedream.feature.host.navigation
 
-import android.app.Activity
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -14,7 +13,6 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenW
 import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
-import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.inbox.InboxScreen
 import com.pacedream.app.feature.profile.ProfileScreen
@@ -72,13 +70,21 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // iOS parity: Post tab (routes to create listing flow)
+    // iOS parity: Post tab routes directly to the create-listing flow
     composable(HostScreen.Post.route) {
-        PostTabScreen(
-            onPropertyClick = onNavigateToProperty,
-            onAddPropertyClick = onNavigateToAddListing,
-            onAnalyticsClick = onNavigateToAnalytics,
-            onEarningsClick = onNavigateToWithdraw
+        val context = LocalContext.current
+        val uploadService = try {
+            EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                ImageUploadEntryPoint::class.java
+            ).imageUploadService()
+        } catch (_: Exception) { null }
+
+        CreateListingScreen(
+            listingMode = ListingMode.SHARE,
+            imageUploadService = uploadService,
+            onBackClick = { navController.popBackStack() },
+            onPublishSuccess = { navController.popBackStack() }
         )
     }
 
