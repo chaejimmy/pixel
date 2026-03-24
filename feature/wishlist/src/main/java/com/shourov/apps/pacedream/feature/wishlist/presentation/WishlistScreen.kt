@@ -55,9 +55,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -80,11 +83,12 @@ fun WishlistScreen(
     onNavigateToTimeBasedDetail: (String) -> Unit,
     onNavigateToGearDetail: (String) -> Unit,
     onShowAuthSheet: () -> Unit,
+    onExploreListings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Handle navigation events
     LaunchedEffect(Unit) {
         viewModel.navigation.collectLatest { navigation ->
@@ -92,24 +96,25 @@ fun WishlistScreen(
                 is WishlistNavigation.ToTimeBasedDetail -> onNavigateToTimeBasedDetail(navigation.itemId)
                 is WishlistNavigation.ToHourlyGearDetail -> onNavigateToGearDetail(navigation.gearId)
                 WishlistNavigation.ShowAuthSheet -> onShowAuthSheet()
+                WishlistNavigation.ExploreListings -> onExploreListings()
             }
         }
     }
-    
+
     // Handle toast messages
     LaunchedEffect(Unit) {
         viewModel.toastMessage.collectLatest { message ->
             snackbarHostState.showSnackbar(message)
         }
     }
-    
+
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Favorites",
+                        text = "Wishlist",
                         style = PaceDreamTypography.Title2
                     )
                 },
@@ -136,7 +141,9 @@ fun WishlistScreen(
                     message = state.message,
                     onRetry = { viewModel.onEvent(WishlistEvent.Refresh) }
                 )
-                is WishlistUiState.Empty -> EmptyState()
+                is WishlistUiState.Empty -> EmptyState(
+                    onExplore = onExploreListings
+                )
                 is WishlistUiState.RequiresAuth -> RequiresAuthState(
                     onSignIn = onShowAuthSheet
                 )
@@ -152,7 +159,7 @@ private fun SuccessState(
     onEvent: (WishlistEvent) -> Unit
 ) {
     val isRefreshing = false // Could add refresh state tracking
-    
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = { onEvent(WishlistEvent.Refresh) },
@@ -164,7 +171,7 @@ private fun SuccessState(
                 selectedFilter = state.selectedFilter,
                 onFilterSelected = { onEvent(WishlistEvent.FilterSelected(it)) }
             )
-            
+
             if (state.isEmpty) {
                 EmptyFilteredState(filter = state.selectedFilter)
             } else {
@@ -219,7 +226,7 @@ private fun FilterChipsRow(
             )
         }
     }
-    
+
     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 }
 
@@ -256,7 +263,7 @@ private fun WishlistItemCard(
                         .fillMaxSize()
                         .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
                 )
-                
+
                 // Gradient overlay at bottom
                 Box(
                     modifier = Modifier
@@ -269,7 +276,7 @@ private fun WishlistItemCard(
                             )
                         )
                 )
-                
+
                 // Heart/remove button
                 IconButton(
                     onClick = onRemoveClick,
@@ -281,12 +288,12 @@ private fun WishlistItemCard(
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.Favorite,
-                        contentDescription = "Remove from favorites",
+                        contentDescription = "Remove from wishlist",
                         tint = PaceDreamColors.Error,
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
+
                 // Type badge
                 Box(
                     modifier = Modifier
@@ -305,7 +312,7 @@ private fun WishlistItemCard(
                     )
                 }
             }
-            
+
             // Content
             Column(
                 modifier = Modifier.padding(PaceDreamSpacing.SM)
@@ -316,7 +323,7 @@ private fun WishlistItemCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 item.location?.let { location ->
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
@@ -327,9 +334,9 @@ private fun WishlistItemCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                
+
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -345,7 +352,7 @@ private fun WishlistItemCard(
                             )
                         )
                     }
-                    
+
                     // Rating
                     item.rating?.let { rating ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -379,38 +386,67 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(
+    onExplore: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
+            .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL)
         ) {
+            // Heart icon — iOS uses SF Symbol "heart" at 56pt regular weight
             Icon(
                 imageVector = PaceDreamIcons.FavoriteBorder,
-                contentDescription = "No favorites",
+                contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(56.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Title — iOS: .system(size: 22, weight: .bold)
             Text(
                 text = "No favorites yet",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary
             )
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            // Subtitle — iOS: .system(size: 15), textSecondary
             Text(
-                text = "Tap the heart on any listing to save it here for easy access later.",
-                style = PaceDreamTypography.Body,
+                text = "Save listings you love and they'll appear here.",
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
             )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            // CTA button — iOS: "Explore listings", 16sp bold, white on primary,
+            // minWidth 220, minHeight 48, cornerRadius 14
+            Button(
+                onClick = onExplore,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamColors.Primary
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.65f)
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = "Explore listings",
+                    style = PaceDreamTypography.CalloutBold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -460,9 +496,14 @@ private fun ErrorState(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Button(
                 onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Retry")
+                Text(
+                    text = "Retry",
+                    style = PaceDreamTypography.CalloutBold,
+                    color = Color.White
+                )
             }
         }
     }
@@ -475,44 +516,53 @@ private fun RequiresAuthState(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
+            .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL)
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Lock,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(56.dp)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
             Text(
                 text = "Sign in to view favorites",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamColors.TextPrimary
             )
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
             Text(
                 text = "Save your favorite spaces and access them anywhere",
-                style = PaceDreamTypography.Body,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
             Button(
                 onClick = onSignIn,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                modifier = Modifier.fillMaxWidth(0.6f)
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.65f)
+                    .height(48.dp)
             ) {
-                Text("Sign In", style = PaceDreamTypography.Headline)
+                Text(
+                    text = "Sign In",
+                    style = PaceDreamTypography.CalloutBold,
+                    color = Color.White
+                )
             }
         }
     }
 }
-
-
