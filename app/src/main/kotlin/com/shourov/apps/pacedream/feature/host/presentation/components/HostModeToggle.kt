@@ -211,7 +211,7 @@ fun HostModeBanner(
                     onClick = onSwitchToHost
                 ) {
                     Text(
-                        text = "Switch to Host",
+                        text = "Switch to Host Mode",
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.Info,
                         fontWeight = FontWeight.SemiBold

@@ -158,6 +158,8 @@ data class HostEarningsUiState(
     val transfers: List<Transfer> = emptyList(),
     val payouts: List<Payout> = emptyList(),
     val connectAccount: ConnectAccount? = null,
+    // Comprehensive dashboard data (from /host/earnings/dashboard - iOS parity)
+    val dashboardData: EarningsDashboardResponse? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null

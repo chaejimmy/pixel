@@ -23,6 +23,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,10 +57,18 @@ class ProfileTabViewModel @Inject constructor(
         _isRefreshing
     ) { authState, user, refreshing ->
         when (authState) {
-            is AuthState.Unauthenticated -> ProfileTabUiState.Locked
+            is AuthState.Unauthenticated -> {
+                Timber.d("[HostMode] ProfileTab: unauthenticated → Locked")
+                ProfileTabUiState.Locked
+            }
             else -> {
-                if (user == null) ProfileTabUiState.Loading(refreshing = refreshing)
-                else ProfileTabUiState.Authenticated(user = user, refreshing = refreshing)
+                if (user == null) {
+                    Timber.d("[HostMode] ProfileTab: authenticated but user=null → Loading")
+                    ProfileTabUiState.Loading(refreshing = refreshing)
+                } else {
+                    Timber.d("[HostMode] ProfileTab: authenticated user=${user.id}, isHost=${user.isHost}")
+                    ProfileTabUiState.Authenticated(user = user, refreshing = refreshing)
+                }
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileTabUiState.Loading(refreshing = false))
