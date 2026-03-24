@@ -29,14 +29,20 @@ class HostDashboardViewModel @Inject constructor(
         loadDashboard()
     }
 
-    private fun loadDashboard() {
-        if (_uiState.value.isLoading) return
+    private fun loadDashboard(force: Boolean = false) {
+        if (!force && _uiState.value.isLoading) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             val result = hostRepository.loadDashboard()
 
+            // iOS parity: derive userName from personal info or overview if available
+            val resolvedUserName = _uiState.value.userName.let { current ->
+                if (current != "Host") current else "Host"
+            }
+
             _uiState.value = _uiState.value.copy(
+                userName = resolvedUserName,
                 bookings = result.bookings,
                 listings = result.listings,
                 activeListings = result.overview?.activeListings ?: result.listings.count { it.isAvailable },
@@ -58,7 +64,8 @@ class HostDashboardViewModel @Inject constructor(
     }
 
     fun refreshData() {
-        loadDashboard()
+        // iOS parity: force refresh bypasses the isLoading guard
+        loadDashboard(force = true)
     }
 
     fun clearError() {

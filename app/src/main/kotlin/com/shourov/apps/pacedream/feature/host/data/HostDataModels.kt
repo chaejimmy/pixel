@@ -57,7 +57,8 @@ data class HostDashboardData(
                 cal.timeInMillis = created
                 if (cal.get(java.util.Calendar.MONTH) == currentMonth &&
                     cal.get(java.util.Calendar.YEAR) == currentYear) {
-                    booking.resolvedTotal
+                    // iOS parity: use hostEarnings (net) when available, fall back to total
+                    booking.resolvedHostEarnings ?: booking.resolvedTotal
                 } else null
             }.sum()
     }
@@ -93,14 +94,25 @@ data class HostDashboardData(
                     subtitle = "$guest requested $listingTitle",
                     createdAt = created
                 )
+                // iOS parity: show confirmed AND past bookings in history
                 isConfirmedBooking(booking) && (statusLower.contains("confirm") ||
                     statusLower.contains("book") || statusLower.contains("active") ||
-                    statusLower.contains("accept")) -> DashboardEvent(
-                    id = "confirmed-${booking.id}",
-                    title = "Payment received",
-                    subtitle = "$listingTitle • $${String.format("%.0f", booking.resolvedTotal)}",
-                    createdAt = created
-                )
+                    statusLower.contains("accept")) -> {
+                    // iOS parity: use payoutStatus to determine label
+                    val paymentTitle = when (booking.resolvedPayoutStatus?.lowercase()) {
+                        "transferred" -> "Payment received"
+                        "blocked" -> "Payout on hold"
+                        else -> "Earning pending"
+                    }
+                    // iOS parity: use hostEarnings (net) when available
+                    val displayAmount = booking.resolvedHostEarnings ?: booking.resolvedTotal
+                    DashboardEvent(
+                        id = "confirmed-${booking.id}",
+                        title = paymentTitle,
+                        subtitle = "$listingTitle • $${String.format("%.0f", displayAmount)}",
+                        createdAt = created
+                    )
+                }
                 else -> null
             }
         }

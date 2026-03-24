@@ -16,6 +16,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.components.HostBotto
 fun HostModeScreen(
     hostModeManager: HostModeManager,
     onSwitchToGuestMode: () -> Unit,
+    onSignOut: () -> Unit = {},
     onNavigateToProperty: (String) -> Unit = {},
     onNavigateToBooking: (String) -> Unit = {},
     onNavigateToAddListing: () -> Unit = {},
@@ -55,6 +56,7 @@ fun HostModeScreen(
             HostNavigationGraph(
                 navController = navController,
                 onSwitchToGuestMode = onSwitchToGuestMode,
+                onSignOut = onSignOut,
                 onNavigateToProperty = onNavigateToProperty,
                 onNavigateToBooking = onNavigateToBooking,
                 onNavigateToAddListing = onNavigateToAddListing,
