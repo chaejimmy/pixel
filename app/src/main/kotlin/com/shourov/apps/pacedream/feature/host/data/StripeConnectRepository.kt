@@ -48,12 +48,12 @@ class StripeConnectRepository @Inject constructor(
                 val body = response.body()
                 if (body != null) {
                     Timber.d(
-                        "[Earnings] Dashboard loaded: connected=${body.stripe.connected}, " +
-                            "payoutsEnabled=${body.stripe.payoutsEnabled}, " +
-                            "available=${body.balances.available}, " +
-                            "pending=${body.balances.pending}, " +
-                            "settling=${body.balances.settling}, " +
-                            "lifetime=${body.balances.lifetime}, " +
+                        "[Earnings] Dashboard loaded: connected=${body.stripe?.connected}, " +
+                            "payoutsEnabled=${body.stripe?.payoutsEnabled}, " +
+                            "available=${body.balances?.available}, " +
+                            "pending=${body.balances?.pending}, " +
+                            "settling=${body.balances?.settling}, " +
+                            "lifetime=${body.balances?.lifetime}, " +
                             "payouts=${body.payouts.size}, " +
                             "transactions=${body.transactions.size}"
                     )

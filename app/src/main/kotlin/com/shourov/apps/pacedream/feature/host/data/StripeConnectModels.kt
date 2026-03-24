@@ -162,12 +162,12 @@ data class PayoutMethod(
  */
 data class EarningsDashboardResponse(
     val success: Boolean = false,
-    val stripe: DashboardStripeStatus = DashboardStripeStatus(),
-    val balances: DashboardBalances = DashboardBalances(),
+    val stripe: DashboardStripeStatus? = null,
+    val balances: DashboardBalances? = null,
     val payouts: List<DashboardPayout> = emptyList(),
     val transactions: List<DashboardTransaction> = emptyList(),
-    val stats: DashboardStats = DashboardStats(),
-    val payoutRules: DashboardPayoutRules = DashboardPayoutRules()
+    val stats: DashboardStats? = null,
+    val payoutRules: DashboardPayoutRules? = null
 )
 
 data class DashboardStripeStatus(
@@ -257,7 +257,8 @@ enum class EarningsConnectionState {
     CONNECTED;
 
     companion object {
-        fun from(stripe: DashboardStripeStatus): EarningsConnectionState {
+        fun from(stripe: DashboardStripeStatus?): EarningsConnectionState {
+            if (stripe == null) return NOT_CONNECTED
             return when {
                 stripe.onboardingComplete && stripe.payoutsEnabled -> CONNECTED
                 stripe.connected || stripe.detailsSubmitted -> PENDING

@@ -63,7 +63,7 @@ class HostEarningsViewModel @Inject constructor(
                     Timber.d(
                         "[Earnings] Dashboard loaded successfully. " +
                             "connectionState=$connectionState, " +
-                            "available=${dashboard.balances.available}, " +
+                            "available=${dashboard.balances?.available}, " +
                             "payouts=${dashboard.payouts.size}, " +
                             "transactions=${dashboard.transactions.size}"
                     )
