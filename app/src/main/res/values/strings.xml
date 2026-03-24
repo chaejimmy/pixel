@@ -4,7 +4,10 @@
     <string name="app_name">PaceDream</string>
     <string name="home">Home</string>
     <string name="search">Search</string>
-    <string name="favorites">Favorites</string>
+    <string name="favorites">Wishlist</string>
+    <string name="wishlist_empty_title">No favorites yet</string>
+    <string name="wishlist_empty_subtitle">Save listings you love and they\'ll appear here.</string>
+    <string name="wishlist_explore_cta">Explore listings</string>
     <string name="booking">Booking</string>
     <string name="bookings">Bookings</string>
     <string name="post">Post</string>

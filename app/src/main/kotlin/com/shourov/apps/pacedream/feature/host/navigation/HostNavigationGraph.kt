@@ -33,6 +33,7 @@ interface ImageUploadEntryPoint {
 fun NavGraphBuilder.HostNavigationGraph(
     navController: NavController,
     onSwitchToGuestMode: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     onNavigateToProperty: (String) -> Unit = {},
     onNavigateToBooking: (String) -> Unit = {},
     onNavigateToAddListing: () -> Unit = {},
@@ -47,7 +48,8 @@ fun NavGraphBuilder.HostNavigationGraph(
             onBookingClick = onNavigateToBooking,
             onEarningsClick = onNavigateToWithdraw,
             onAnalyticsClick = onNavigateToAnalytics,
-            onSwitchToGuestMode = onSwitchToGuestMode
+            onSwitchToGuestMode = onSwitchToGuestMode,
+            onSignOut = onSignOut
         )
     }
 
@@ -99,9 +101,11 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // iOS parity: Profile tab uses dedicated host profile (not guest ProfileScreen)
+    // iOS parity: Dedicated Host Profile screen (no longer reuses guest ProfileScreen)
     composable(HostScreen.Profile.route) {
         HostProfileScreen(
+            onEditProfileClick = { /* TODO: open edit profile sheet */ },
+            onEditPhotoClick = { /* TODO: open photo picker */ },
             onListingsClick = { navController.navigate(HostScreen.Listings.route) },
             onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
             onInboxClick = { navController.navigate(HostScreen.Inbox.route) },
@@ -110,7 +114,7 @@ fun NavGraphBuilder.HostNavigationGraph(
             onPersonalInfoClick = { navController.navigate(HostScreen.Settings.route) },
             onPaymentPayoutClick = { navController.navigate(HostScreen.Earnings.route) },
             onSwitchToGuestMode = onSwitchToGuestMode,
-            onEditProfileClick = { /* Edit profile sheet */ }
+            onLoggedOut = onSwitchToGuestMode
         )
     }
 

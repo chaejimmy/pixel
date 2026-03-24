@@ -14,11 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,20 +27,24 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.*
 
 /**
- * Host Profile Screen — iOS parity.
+ * HostProfileScreen — iOS HostProfileView parity.
  *
- * Dedicated host profile matching iOS HostProfileView.swift structure:
- * - Host identity (avatar, name, email, edit photo)
- * - Stats (listings, booked this month)
- * - Host tools (Listings, Bookings, Inbox, Earnings)
- * - Settings (Account settings, Personal information, Payment & payout)
- * - Switch to Guest Mode
- * - Sign Out
+ * Structure (matching iOS List sections):
+ * 1. Host identity card (avatar, name, email, "Edit photo")
+ * 2. Stats section (Listings count, Booked This Month)
+ * 3. Host tools section (Listings, Bookings, Inbox, Earnings)
+ * 4. Settings section (Account settings, Personal information, Payment & payout)
+ * 5. Switch to Guest Mode
+ * 6. Sign Out
+ *
+ * Uses green host accent (PaceDreamColors.Success) instead of purple primary.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostProfileScreen(
     viewModel: HostProfileViewModel = hiltViewModel(),
+    onEditProfileClick: () -> Unit = {},
+    onEditPhotoClick: () -> Unit = {},
     onListingsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
     onInboxClick: () -> Unit = {},
@@ -49,357 +53,531 @@ fun HostProfileScreen(
     onPersonalInfoClick: () -> Unit = {},
     onPaymentPayoutClick: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
-    onEditProfileClick: () -> Unit = {},
+    onLoggedOut: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Host accent color — iOS uses PaceDreamDesignSystem.Colors.primary which renders green in host context
+    val hostAccent = PaceDreamColors.Success
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Host Profile",
-                        style = PaceDreamTypography.Title1,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        "Host Profile",
+                        style = PaceDreamTypography.Title2
                     )
                 },
                 actions = {
                     TextButton(onClick = onEditProfileClick) {
                         Text(
-                            text = "Edit",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.Primary,
-                            fontWeight = FontWeight.SemiBold
+                            "Edit",
+                            style = PaceDreamTypography.Callout.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = hostAccent
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                )
             )
         },
-        containerColor = PaceDreamColors.Background
-    ) { paddingValues ->
+        containerColor = PaceDreamColors.Surface
+    ) { padding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
-            onRefresh = { viewModel.refreshData() },
+            onRefresh = { viewModel.refresh() },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 28.dp)
+                contentPadding = PaddingValues(
+                    horizontal = PaceDreamSpacing.MD,
+                    vertical = PaceDreamSpacing.SM
+                ),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
             ) {
-                // Inline error
-                uiState.error?.let { err ->
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(PaceDreamColors.Warning.copy(alpha = 0.12f))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Warning,
-                                contentDescription = null,
-                                tint = PaceDreamColors.Warning,
-                                modifier = Modifier.size(PaceDreamIconSize.SM)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = err,
-                                style = PaceDreamTypography.Subheadline,
-                                color = PaceDreamColors.TextPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-
-                // Host Identity Section
+                // ── Section 1: Host Identity Card ──────────────────────
                 item {
-                    HostIdentitySection(
-                        avatarUrl = uiState.avatarUrl,
-                        fullName = uiState.fullName,
-                        email = uiState.email,
+                    HostIdentityCard(
+                        userName = uiState.userName,
+                        userEmail = uiState.userEmail,
+                        userAvatar = uiState.userAvatar,
                         initials = uiState.initials,
-                        onEditPhotoClick = onEditProfileClick
+                        hostAccent = hostAccent,
+                        onEditPhotoClick = onEditPhotoClick
                     )
                 }
 
-                // Stats Section
+                // ── Section 2: Stats ───────────────────────────────────
                 item {
-                    ProfileSectionHeader(title = "Stats")
+                    SectionHeader(title = "Stats")
+                }
+                item {
                     LazyRow(
-                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(top = 6.dp, bottom = 6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         item {
-                            ProfileKPIChip(
+                            HostKPIChip(
                                 title = "Listings",
                                 value = "${uiState.activeListingsCount}",
-                                icon = PaceDreamIcons.Home
+                                icon = PaceDreamIcons.Home,
+                                accent = hostAccent
                             )
                         }
                         item {
-                            ProfileKPIChip(
+                            HostKPIChip(
                                 title = "Booked This Month",
-                                value = "$${String.format("%.0f", uiState.monthlyEarnings)}",
-                                icon = PaceDreamIcons.AttachMoney
-                            )
-                        }
-                    }
-                }
-
-                // Host Tools Section
-                item {
-                    ProfileSectionHeader(title = "Host tools")
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                    ) {
-                        Column {
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.Home,
-                                title = "Listings",
-                                onClick = onListingsClick
-                            )
-                            ProfileDivider()
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.CalendarToday,
-                                title = "Bookings",
-                                onClick = onBookingsClick
-                            )
-                            ProfileDivider()
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.Mail,
-                                title = "Inbox",
-                                onClick = onInboxClick
-                            )
-                            ProfileDivider()
-                            ProfileToolRow(
+                                value = formatHostCurrency(uiState.monthlyEarnings),
                                 icon = PaceDreamIcons.AttachMoney,
-                                title = "Earnings",
-                                onClick = onEarningsClick
+                                accent = hostAccent
                             )
                         }
                     }
                 }
 
-                // Settings Section
+                // ── Section 3: Host Tools ──────────────────────────────
                 item {
-                    ProfileSectionHeader(title = "Settings")
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                    ) {
-                        Column {
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.Settings,
-                                title = "Account settings",
-                                onClick = onAccountSettingsClick
-                            )
-                            ProfileDivider()
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.Person,
-                                title = "Personal information",
-                                onClick = onPersonalInfoClick
-                            )
-                            ProfileDivider()
-                            ProfileToolRow(
-                                icon = PaceDreamIcons.CreditCard,
-                                title = "Payment & payout",
-                                onClick = onPaymentPayoutClick
-                            )
-                        }
-                    }
+                    SectionHeader(title = "Host tools")
+                }
+                item {
+                    HostToolsCard(
+                        hostAccent = hostAccent,
+                        onListingsClick = onListingsClick,
+                        onBookingsClick = onBookingsClick,
+                        onInboxClick = onInboxClick,
+                        onEarningsClick = onEarningsClick
+                    )
                 }
 
-                // Switch to Guest Mode
+                // ── Section 4: Settings ────────────────────────────────
                 item {
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onSwitchToGuestMode)
-                                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.SwapHoriz,
-                                contentDescription = null,
-                                tint = PaceDreamColors.Primary,
-                                modifier = Modifier.size(PaceDreamIconSize.SM)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Switch to Guest Mode",
-                                style = PaceDreamTypography.Callout,
-                                color = PaceDreamColors.Primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
+                    SectionHeader(title = "Settings")
+                }
+                item {
+                    SettingsCard(
+                        hostAccent = hostAccent,
+                        onAccountSettingsClick = onAccountSettingsClick,
+                        onPersonalInfoClick = onPersonalInfoClick,
+                        onPaymentPayoutClick = onPaymentPayoutClick
+                    )
                 }
 
-                // Sign Out
+                // ── Section 5: Switch to Guest Mode ────────────────────
                 item {
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = { viewModel.signOut(onSwitchToGuestMode) })
-                                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.ExitToApp,
-                                contentDescription = null,
-                                tint = PaceDreamColors.Error,
-                                modifier = Modifier.size(PaceDreamIconSize.SM)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Sign Out",
-                                style = PaceDreamTypography.Callout,
-                                color = PaceDreamColors.Error,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                    SwitchModeRow(
+                        hostAccent = hostAccent,
+                        onClick = {
+                            viewModel.switchToGuestMode()
+                            onSwitchToGuestMode()
                         }
-                    }
+                    )
+                }
+
+                // ── Section 6: Sign Out ────────────────────────────────
+                item {
+                    SignOutRow(
+                        onClick = { showLogoutDialog = true }
+                    )
+                }
+
+                // Bottom spacer
+                item {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 }
             }
         }
     }
+
+    // Logout confirmation dialog (iOS parity: "Sign out?" / "You can sign back in anytime.")
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    "Sign out?",
+                    style = PaceDreamTypography.Title3
+                )
+            },
+            text = {
+                Text(
+                    "You can sign back in anytime.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+                        onLoggedOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Error
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD)
+                ) {
+                    Text("Sign Out", style = PaceDreamTypography.Button)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutDialog = false }
+                ) {
+                    Text(
+                        "Cancel",
+                        color = PaceDreamColors.TextPrimary
+                    )
+                }
+            },
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            containerColor = PaceDreamColors.Card
+        )
+    }
 }
 
-// ── Host Identity Section ──────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Host Identity Card (iOS parity: hostIdentity)
+// Avatar (60dp circle) + Name + Email + "Edit photo"
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HostIdentitySection(
-    avatarUrl: String?,
-    fullName: String,
-    email: String,
+private fun HostIdentityCard(
+    userName: String,
+    userEmail: String?,
+    userAvatar: String?,
     initials: String,
+    hostAccent: Color,
     onEditPhotoClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
-        // Avatar
-        Box(
+        Row(
             modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(PaceDreamColors.Gray100),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Profile photo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text(
-                    text = initials,
-                    style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
+            // Avatar circle (iOS: 60×60)
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Gray100),
+                contentAlignment = Alignment.Center
+            ) {
+                if (userAvatar != null) {
+                    AsyncImage(
+                        model = userAvatar,
+                        contentDescription = userName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Text(
+                        text = initials,
+                        style = PaceDreamTypography.Title3.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = hostAccent
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.width(14.dp))
+            // Name + email
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = userName.ifEmpty { "Host" },
+                    style = PaceDreamTypography.Callout.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = PaceDreamColors.TextPrimary
+                )
+                userEmail?.let { email ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = email,
+                        style = PaceDreamTypography.Caption.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = PaceDreamColors.TextSecondary,
+                        maxLines = 1
+                    )
+                }
+            }
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = fullName.ifBlank { "Host" },
-                style = PaceDreamTypography.Callout.copy(fontSize = 16.sp),
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = email.ifBlank { "—" },
-                style = PaceDreamTypography.Footnote,
-                color = PaceDreamColors.TextSecondary,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        TextButton(onClick = onEditPhotoClick) {
+            // "Edit photo" (iOS parity: PhotosPicker text)
             Text(
                 text = "Edit photo",
-                style = PaceDreamTypography.Footnote,
-                color = PaceDreamColors.Primary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Caption.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = hostAccent,
+                modifier = Modifier.clickable(onClick = onEditPhotoClick)
             )
         }
     }
 }
 
-// ── Section Header ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// KPI Chip (iOS parity: KPIChip — icon top-left, value bold 22sp, title 12sp)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ProfileSectionHeader(title: String) {
+private fun HostKPIChip(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    accent: Color
+) {
+    Card(
+        modifier = Modifier.width(160.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(PaceDreamIconSize.MD)
+            )
+            Text(
+                text = value,
+                style = PaceDreamTypography.Title2.copy(
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = PaceDreamColors.TextPrimary
+            )
+            Text(
+                text = title,
+                style = PaceDreamTypography.Caption.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Host Tools Card (iOS parity: Listings / Bookings / Inbox / Earnings)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HostToolsCard(
+    hostAccent: Color,
+    onListingsClick: () -> Unit,
+    onBookingsClick: () -> Unit,
+    onInboxClick: () -> Unit,
+    onEarningsClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Column {
+            HostProfileRow(
+                icon = PaceDreamIcons.Home,
+                title = "Listings",
+                iconTint = hostAccent,
+                onClick = onListingsClick
+            )
+            RowDivider()
+            HostProfileRow(
+                icon = PaceDreamIcons.CalendarToday,
+                title = "Bookings",
+                iconTint = hostAccent,
+                onClick = onBookingsClick
+            )
+            RowDivider()
+            HostProfileRow(
+                icon = PaceDreamIcons.Mail,
+                title = "Inbox",
+                iconTint = hostAccent,
+                onClick = onInboxClick
+            )
+            RowDivider()
+            HostProfileRow(
+                icon = PaceDreamIcons.AttachMoney,
+                title = "Earnings",
+                iconTint = hostAccent,
+                onClick = onEarningsClick
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings Card (iOS parity: Account settings / Personal info / Payment & payout)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsCard(
+    hostAccent: Color,
+    onAccountSettingsClick: () -> Unit,
+    onPersonalInfoClick: () -> Unit,
+    onPaymentPayoutClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Column {
+            HostProfileRow(
+                icon = PaceDreamIcons.Settings,
+                title = "Account settings",
+                iconTint = PaceDreamColors.TextSecondary,
+                onClick = onAccountSettingsClick
+            )
+            RowDivider()
+            HostProfileRow(
+                icon = PaceDreamIcons.Person,
+                title = "Personal information",
+                iconTint = PaceDreamColors.TextSecondary,
+                onClick = onPersonalInfoClick
+            )
+            RowDivider()
+            HostProfileRow(
+                icon = PaceDreamIcons.CreditCard,
+                title = "Payment & payout",
+                iconTint = PaceDreamColors.TextSecondary,
+                onClick = onPaymentPayoutClick
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Switch to Guest Mode (iOS parity: green-accent row)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SwitchModeRow(
+    hostAccent: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.SwapHoriz,
+                contentDescription = null,
+                tint = hostAccent,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Text(
+                text = "Switch to Guest Mode",
+                style = PaceDreamTypography.Callout,
+                color = hostAccent,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign Out (iOS parity: destructive red row)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SignOutRow(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.ExitToApp,
+                contentDescription = null,
+                tint = PaceDreamColors.Error,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Text(
+                text = "Sign Out",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.Error,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared components
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionHeader(title: String) {
     Text(
         text = title,
-        style = PaceDreamTypography.Caption,
-        color = PaceDreamColors.TextTertiary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(
-            start = PaceDreamSpacing.MD + PaceDreamSpacing.XS,
-            top = PaceDreamSpacing.MD,
-            bottom = PaceDreamSpacing.SM
-        )
+        style = PaceDreamTypography.Subheadline.copy(
+            fontWeight = FontWeight.SemiBold
+        ),
+        color = PaceDreamColors.TextSecondary,
+        modifier = Modifier.padding(top = PaceDreamSpacing.SM, bottom = PaceDreamSpacing.XS)
     )
 }
 
-// ── Tool / Settings Row ────────────────────────────────────────
-
 @Composable
-private fun ProfileToolRow(
+private fun HostProfileRow(
     icon: ImageVector,
     title: String,
+    iconTint: Color,
     onClick: () -> Unit
 ) {
     Row(
@@ -411,75 +589,34 @@ private fun ProfileToolRow(
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = null,
-            tint = PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(PaceDreamIconSize.SM)
+            contentDescription = title,
+            tint = iconTint,
+            modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
         Text(
             text = title,
             style = PaceDreamTypography.Callout,
             color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f)
         )
         Icon(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
-            modifier = Modifier.size(PaceDreamIconSize.XS)
+            modifier = Modifier.size(18.dp)
         )
     }
 }
 
-// ── Divider ────────────────────────────────────────────────────
-
 @Composable
-private fun ProfileDivider() {
+private fun RowDivider() {
     HorizontalDivider(
         color = PaceDreamColors.Border,
-        thickness = 0.5.dp,
-        modifier = Modifier.padding(start = 48.dp)
+        modifier = Modifier.padding(start = 56.dp)
     )
 }
 
-// ── KPI Chip ───────────────────────────────────────────────────
-
-@Composable
-private fun ProfileKPIChip(
-    title: String,
-    value: String,
-    icon: ImageVector
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(PaceDreamRadius.LG)
-    ) {
-        Column(
-            modifier = Modifier
-                .width(160.dp)
-                .padding(14.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(PaceDreamIconSize.SM)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                text = value,
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = title,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                color = PaceDreamColors.TextSecondary
-            )
-        }
-    }
+private fun formatHostCurrency(amount: Double): String {
+    return if (amount == 0.0) "$0" else "$${String.format("%,.0f", amount)}"
 }

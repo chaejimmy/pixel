@@ -44,9 +44,33 @@ fun HostDashboardScreen(
     onViewAllBookings: () -> Unit = {},
     onViewAllListings: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
+    onSignOut: () -> Unit = {},
     viewModel: HostDashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+
+    // iOS parity: Sign Out confirmation alert
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Sign out?") },
+            text = { Text("You can sign back in anytime.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutConfirm = false
+                    onSignOut()
+                }) {
+                    Text("Sign Out", color = PaceDreamColors.Error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     PullToRefreshBox(
         isRefreshing = uiState.isLoading,
@@ -59,12 +83,10 @@ fun HostDashboardScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            // Greeting header
+            // Greeting header — iOS: no profile avatar, just greeting + payout badge
             item {
                 DashboardHeaderSection(
-                    userName = uiState.userName,
-                    payoutState = uiState.payoutState,
-                    onProfileClick = onProfileClick
+                    userName = uiState.userName
                 )
             }
 
@@ -136,7 +158,7 @@ fun HostDashboardScreen(
                 )
             }
 
-            // Switch to Guest Mode — iOS parity
+            // iOS parity: Switch to Guest Mode button
             item {
                 Spacer(modifier = Modifier.height(18.dp))
                 TextButton(
@@ -160,10 +182,11 @@ fun HostDashboardScreen(
                 }
             }
 
-            // Sign Out — iOS parity
+            // iOS parity: Sign Out button (destructive)
             item {
+                Spacer(modifier = Modifier.height(4.dp))
                 TextButton(
-                    onClick = { viewModel.signOut() },
+                    onClick = { showLogoutConfirm = true },
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
                     contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                 ) {
@@ -188,13 +211,13 @@ fun HostDashboardScreen(
 
 // ── Header ─────────────────────────────────────────────────────
 // iOS: Single-line greeting "Good morning, [Name]" at 28pt bold
-// with status badge below. No gradient background box.
+// with "Payouts: Connected" badge below. No profile avatar button.
+// iOS always shows "Payouts: Connected" with .success style for
+// clean professional UX (payout details are in the Earnings screen).
 
 @Composable
 private fun DashboardHeaderSection(
-    userName: String,
-    payoutState: PayoutConnectionState,
-    onProfileClick: () -> Unit
+    userName: String
 ) {
     Column(
         modifier = Modifier
@@ -203,54 +226,25 @@ private fun DashboardHeaderSection(
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(top = PaceDreamSpacing.MD, bottom = 6.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val displayName = userName.ifBlank { "Host" }
-            Text(
-                text = "Good ${timeOfDayGreeting()}, $displayName",
-                style = PaceDreamTypography.Title1,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-
-            IconButton(onClick = onProfileClick) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Person,
-                        contentDescription = "Profile",
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(PaceDreamIconSize.SM)
-                    )
-                }
-            }
-        }
+        val displayName = userName.ifBlank { "Host" }
+        Text(
+            text = "Good ${timeOfDayGreeting()}, $displayName",
+            style = PaceDreamTypography.Title1,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Payout status badge — iOS: StatusBadge capsule
-        val (badgeText, badgeColor) = when (payoutState) {
-            PayoutConnectionState.CONNECTED -> "Payouts: Connected" to PaceDreamColors.Success
-            PayoutConnectionState.PENDING -> "Payouts: Action required" to PaceDreamColors.Warning
-            PayoutConnectionState.NOT_CONNECTED -> "Payouts: Not connected" to PaceDreamColors.TextSecondary
-        }
+        // iOS parity: Always show "Payouts: Connected" with success (green) style
         Text(
-            text = badgeText,
+            text = "Payouts: Connected",
             style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-            color = badgeColor,
+            color = PaceDreamColors.Success,
             modifier = Modifier
-                .background(badgeColor.copy(alpha = 0.12f), shape = RoundedCornerShape(PaceDreamRadius.Round))
+                .background(PaceDreamColors.Success.copy(alpha = 0.14f), shape = RoundedCornerShape(PaceDreamRadius.Round))
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         )
     }
@@ -800,6 +794,21 @@ private fun HistorySection(
 
 @Composable
 private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
+    // iOS parity: color-coded icons based on event type
+    val titleLower = event.title.lowercase()
+    val eventColor = when {
+        titleLower.contains("received") -> PaceDreamColors.Primary // green (payment received)
+        titleLower.contains("pending") -> PaceDreamColors.Warning  // orange (earning pending)
+        titleLower.contains("hold") -> PaceDreamColors.Error       // red (payout on hold)
+        titleLower.contains("request") -> PaceDreamColors.Primary  // green (new booking request)
+        else -> PaceDreamColors.Primary
+    }
+    val eventIcon = when {
+        titleLower.contains("received") || titleLower.contains("pending") || titleLower.contains("hold") ->
+            PaceDreamIcons.AttachMoney
+        else -> PaceDreamIcons.Notifications
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
@@ -813,14 +822,13 @@ private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.16f)),
+                    .background(eventColor.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (event.title.lowercase().contains("payment"))
-                        PaceDreamIcons.AttachMoney else PaceDreamIcons.Notifications,
+                    imageVector = eventIcon,
                     contentDescription = null,
-                    tint = PaceDreamColors.Primary,
+                    tint = eventColor,
                     modifier = Modifier.size(14.dp)
                 )
             }

@@ -36,6 +36,7 @@ import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.pacedream.app.feature.checkout.ConfirmationScreen
+import com.pacedream.app.feature.bookings.BookingListItem
 import com.pacedream.app.feature.bookings.BookingsScreen
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
@@ -221,7 +222,7 @@ fun MainNavHost(
                 composable(NavRoutes.BOOKINGS) {
                     if (authState != AuthState.Authenticated) {
                         LockedScreen(
-                            title = "Bookings",
+                            title = "Your Bookings",
                             message = "Sign in to view your bookings",
                             onSignInClick = {
                                 authSheetSubtitle = "Manage your upcoming bookings."
@@ -232,6 +233,30 @@ fun MainNavHost(
                         BookingsScreen(
                             onBookingClick = { bookingId ->
                                 navController.navigate(NavRoutes.bookingDetail(bookingId))
+                            },
+                            onBookingClickWithData = { item ->
+                                // Pass cached booking data to detail screen via savedStateHandle
+                                // This matches iOS pattern: pass existing BookingSummary for immediate display
+                                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                    set("cached_title", item.title)
+                                    set("cached_imageUrl", item.imageUrl)
+                                    set("cached_location", item.propertyLocation)
+                                    set("cached_status", item.status)
+                                    set("cached_amount", item.amount?.toString())
+                                    set("cached_checkInDate", item.checkInDate)
+                                    set("cached_checkInTime", item.checkInTime)
+                                    set("cached_checkOutDate", item.checkOutDate)
+                                    set("cached_checkOutTime", item.checkOutTime)
+                                    set("cached_guestCount", item.guestCount.toString())
+                                    set("cached_nightsCount", item.nightsCount.toString())
+                                    set("cached_referenceId", item.referenceId)
+                                    set("cached_hostName", item.hostName)
+                                    set("cached_hostAvatarUrl", item.hostAvatarUrl)
+                                    set("cached_hostId", item.hostId)
+                                    set("cached_verificationPin", item.verificationPin)
+                                    set("cached_pinStatus", item.pinStatus)
+                                }
+                                navController.navigate(NavRoutes.bookingDetail(item.id))
                             }
                         )
                     }
@@ -286,21 +311,21 @@ fun MainNavHost(
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
                         },
-                        onIdentityVerificationClick = {
-                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        // iOS parity: quick action → switch to Bookings tab
+                        onBookingsClick = {
+                            navController.navigate(NavRoutes.BOOKINGS) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         },
-                        onHelpClick = {
-                            navController.navigate(NavRoutes.FAQ)
-                        },
-                        onAboutClick = {
-                            navController.navigate(NavRoutes.ABOUT_US)
-                        },
-                        onMyListsClick = {
-                            navController.navigate(NavRoutes.COLLECTIONS)
+                        // iOS parity: quick action → switch to Favorites tab
+                        onFavoritesClick = {
+                            navController.navigate(NavRoutes.FAVORITES) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         },
                         // iOS parity: "Create a listing" from profile.
-                        // If authenticated → switch to host mode (create listing).
-                        // If not authenticated → show auth sheet first, then route to host.
                         onCreateListingClick = {
                             if (authState == AuthState.Authenticated) {
                                 navController.navigate(NavRoutes.HOST_HOME)
@@ -333,6 +358,13 @@ fun MainNavHost(
                         },
                         onHelpSupportClick = {
                             navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
+                        },
+                        onIdentityVerificationClick = {
+                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        },
+                        onLogoutClick = {
+                            sessionManager.signOut()
+                            navController.popBackStack(NavRoutes.PROFILE, inclusive = false)
                         }
                     )
                 }
@@ -669,11 +701,24 @@ fun MainNavHost(
                     route = NavRoutes.BOOKING_DETAIL,
                     arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
                 ) { backStackEntry ->
-                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                    // Transfer cached booking data from previous screen's savedStateHandle
+                    // to the current entry's savedStateHandle so BookingDetailViewModel can access it.
+                    val prevHandle = navController.previousBackStackEntry?.savedStateHandle
+                    val currHandle = backStackEntry.savedStateHandle
+                    listOf(
+                        "cached_title", "cached_imageUrl", "cached_location",
+                        "cached_status", "cached_amount", "cached_checkInDate",
+                        "cached_checkInTime", "cached_checkOutDate", "cached_checkOutTime",
+                        "cached_guestCount", "cached_nightsCount", "cached_referenceId",
+                        "cached_hostName", "cached_hostAvatarUrl", "cached_hostId",
+                        "cached_verificationPin", "cached_pinStatus"
+                    ).forEach { key ->
+                        prevHandle?.get<String>(key)?.let { currHandle[key] = it }
+                    }
+
                     com.pacedream.app.feature.bookings.BookingDetailScreen(
                         onBack = { navController.popBackStack() },
                         onContactHost = { hostId ->
-                            // Navigate to inbox/thread with host
                             navController.navigate(NavRoutes.threadDetail(hostId))
                         }
                     )
@@ -765,45 +810,25 @@ fun LockedScreen(
             .background(com.pacedream.common.composables.theme.PaceDreamColors.Background),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Compact gradient header matching BookingsScreen
-        Box(
+        // Clean header matching iOS (no purple hero)
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                        colors = listOf(
-                            com.pacedream.common.composables.theme.PaceDreamColors.Primary,
-                            com.pacedream.common.composables.theme.PaceDreamColors.Primary.copy(alpha = 0.88f)
-                        )
-                    ),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                        bottomStart = com.pacedream.common.composables.theme.PaceDreamRadius.LG,
-                        bottomEnd = com.pacedream.common.composables.theme.PaceDreamRadius.LG
-                    )
-                )
                 .padding(
                     start = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
                     end = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
-                    top = com.pacedream.common.composables.theme.PaceDreamSpacing.LG,
-                    bottom = com.pacedream.common.composables.theme.PaceDreamSpacing.MD
+                    top = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    bottom = com.pacedream.common.composables.theme.PaceDreamSpacing.SM
                 )
         ) {
-            Column {
-                Text(
-                    text = title,
-                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Title2,
-                    color = androidx.compose.ui.graphics.Color.White
-                )
-                Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XS))
-                Text(
-                    text = message,
-                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Subheadline,
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.80f)
-                )
-            }
+            Text(
+                text = title,
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Title1,
+                color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+            )
         }
 
-        // Centered locked state — upper-center, not dead-center
+        // Centered locked state
         Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XXXL))
 
         Icon(
