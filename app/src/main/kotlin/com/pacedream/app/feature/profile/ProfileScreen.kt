@@ -33,14 +33,14 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
- * ProfileScreen - User profile with Guest/Host mode toggle
+ * ProfileScreen - iOS parity
  *
- * iOS Parity:
- * - Guest mode: show profile, bookings, favorites, settings
- * - Host mode: switch to host dashboard
- * - Persisted mode preference (SharedPreferences)
- * - Logout confirmation dialog
- * - Verified badge when identity is verified
+ * Structure matches iOS ProfileView.swift:
+ * 1. Profile card (avatar, name, email, stat pills, identity)
+ * 2. Quick action chips (Edit profile, Bookings, Wishlist, Host Mode)
+ * 3. Create a listing CTA
+ * 4. Switch to Host Mode CTA
+ * 5. Settings shortcuts section (Account settings, Notifications & preferences)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,11 +56,9 @@ fun ProfileScreen(
     onMyListsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
-    /** iOS parity: "Create a listing" from guest profile. Triggers pending host route. */
     onCreateListingClick: () -> Unit = onHostModeClick,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -72,7 +70,7 @@ fun ProfileScreen(
                     )
                 },
                 actions = {
-                    // Settings gear button (iOS parity)
+                    // Settings gear button (iOS parity: gearshape in upper-right)
                     if (uiState.isLoggedIn) {
                         IconButton(onClick = onSettingsClick) {
                             Box(
@@ -114,126 +112,72 @@ fun ProfileScreen(
                     )
                 )
         ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(PaceDreamSpacing.MD),
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
-        ) {
-            if (!uiState.isLoggedIn) {
-                item {
-                    LoggedOutSection(
-                        onLoginClick = onLoginClick,
-                        onCreateListingClick = onCreateListingClick,
-                    )
-                }
-            } else {
-                item {
-                    UserProfileHeader(
-                        userName = uiState.userName,
-                        userEmail = uiState.userEmail,
-                        userAvatar = uiState.userAvatar,
-                        onEditClick = onEditProfileClick
-                    )
-                }
-
-                // Quick action chips (iOS parity: horizontal scrollable chips)
-                item {
-                    QuickActionsRow(
-                        onEditProfile = onEditProfileClick,
-                        onBookings = onBookingsClick,
-                        onWishlist = onFavoritesClick,
-                        onHostMode = onHostModeClick,
-                        onMyLists = onMyListsClick
-                    )
-                }
-
-                // Create listing CTA (iOS parity: gradient button → switchToHost + postCreateListing)
-                item {
-                    CreateListingCTA(onClick = onCreateListingClick)
-                }
-
-                // Host mode CTA (iOS parity: gradient button)
-                item {
-                    HostModeCTA(onClick = onHostModeClick)
-                }
-
-                // Verification section
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        ProfileMenuItem(
-                            icon = PaceDreamIcons.VerifiedUser,
-                            title = "Identity Verification",
-                            subtitle = "Verify your identity for a trusted experience",
-                            onClick = onIdentityVerificationClick
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(PaceDreamSpacing.MD),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+            ) {
+                if (!uiState.isLoggedIn) {
+                    item {
+                        LoggedOutSection(
+                            onLoginClick = onLoginClick,
+                            onCreateListingClick = onCreateListingClick,
                         )
                     }
-                }
+                } else {
+                    // 1. Profile card with stats and identity (iOS parity)
+                    item {
+                        UserProfileHeader(
+                            userName = uiState.userName,
+                            userEmail = uiState.userEmail,
+                            userAvatar = uiState.userAvatar,
+                            bookingsCount = uiState.bookingsCount,
+                            wishlistCount = uiState.wishlistCount,
+                            identityStatus = uiState.identityStatus
+                        )
+                    }
 
-                // Settings and support section
-                item {
-                    ProfileMenuSection(
-                        onSettingsClick = onSettingsClick,
-                        onHelpClick = onHelpClick,
-                        onAboutClick = onAboutClick,
-                        onLogoutClick = { showLogoutDialog = true }
-                    )
+                    // 2. Quick action chips (iOS parity)
+                    item {
+                        QuickActionsRow(
+                            onEditProfile = onEditProfileClick,
+                            onBookings = onBookingsClick,
+                            onWishlist = onFavoritesClick,
+                            onHostMode = onHostModeClick
+                        )
+                    }
+
+                    // 3. Create listing CTA (iOS parity)
+                    item {
+                        CreateListingCTA(onClick = onCreateListingClick)
+                    }
+
+                    // 4. Host mode CTA (iOS parity)
+                    item {
+                        HostModeCTA(onClick = onHostModeClick)
+                    }
+
+                    // 5. Settings shortcuts section (iOS parity)
+                    item {
+                        SettingsShortcutsSection(onSettingsClick = onSettingsClick)
+                    }
                 }
             }
-        }
-        } // Box (gradient background)
-    }
 
-    // Logout confirmation dialog
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = {
-                Text(
-                    "Sign Out",
-                    style = PaceDreamTypography.Title3
+            // Loading indicator overlay (iOS parity)
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = padding.calculateTopPadding() + 8.dp)
+                        .size(32.dp),
+                    color = PaceDreamColors.Primary,
+                    strokeWidth = 3.dp
                 )
-            },
-            text = {
-                Text(
-                    "Are you sure you want to sign out of your account?",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showLogoutDialog = false
-                        viewModel.logout()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PaceDreamColors.Error
-                    ),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD)
-                ) {
-                    Text("Sign Out", style = PaceDreamTypography.Button)
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showLogoutDialog = false }
-                ) {
-                    Text(
-                        "Cancel",
-                        color = PaceDreamColors.TextPrimary
-                    )
-                }
-            },
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            containerColor = PaceDreamColors.Card
-        )
+            }
+        }
     }
 }
 
@@ -248,7 +192,6 @@ private fun LoggedOutSection(
             .padding(vertical = PaceDreamSpacing.XL),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Lock shield icon (iOS parity)
         Icon(
             imageVector = PaceDreamIcons.Shield,
             contentDescription = "Profile",
@@ -276,7 +219,6 @@ private fun LoggedOutSection(
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-        // Primary button: Sign in / Create account (iOS parity)
         Button(
             onClick = onLoginClick,
             modifier = Modifier
@@ -297,7 +239,6 @@ private fun LoggedOutSection(
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
-        // Secondary button: Create a listing (iOS parity)
         OutlinedButton(
             onClick = onCreateListingClick,
             modifier = Modifier
@@ -327,7 +268,6 @@ private fun UserProfileHeader(
     userName: String,
     userEmail: String?,
     userAvatar: String?,
-    onEditClick: () -> Unit,
     bookingsCount: Int = 0,
     wishlistCount: Int = 0,
     identityStatus: String? = null
@@ -339,8 +279,7 @@ private fun UserProfileHeader(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(20.dp),
                 ambientColor = Color.Black.copy(alpha = 0.06f)
-            )
-            .clickable(onClick = onEditClick),
+            ),
         shape = RoundedCornerShape(20.dp),
         color = PaceDreamColors.Card
     ) {
@@ -353,7 +292,7 @@ private fun UserProfileHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Avatar with white stroke (iOS parity)
+                // Avatar with white stroke (iOS parity: 72x72)
                 Box(
                     modifier = Modifier
                         .size(72.dp)
@@ -373,25 +312,24 @@ private fun UserProfileHeader(
                                 .clip(CircleShape)
                         )
                     } else {
-                        // Initials fallback (iOS parity)
                         val initials = userName.split(" ")
                             .take(2)
                             .mapNotNull { it.firstOrNull()?.uppercase() }
                             .joinToString("")
                         Text(
-                            text = initials.ifEmpty { "?" },
+                            text = initials.ifEmpty { "U" },
                             style = PaceDreamTypography.Title3.copy(
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             ),
-                            color = PaceDreamColors.TextSecondary
+                            color = PaceDreamColors.TextPrimary
                         )
                     }
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = userName,
+                        text = userName.ifEmpty { "Your account" },
                         style = PaceDreamTypography.Title3.copy(
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
@@ -411,7 +349,7 @@ private fun UserProfileHeader(
                 }
             }
 
-            // Stats pills (iOS parity)
+            // Stats pills (iOS parity: bookings + wishlist count in capsule)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatPill(value = "$bookingsCount", label = "Bookings")
                 StatPill(value = "$wishlistCount", label = "Wishlist")
@@ -471,7 +409,7 @@ private fun StatPill(value: String, label: String) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Actions Row (iOS parity: horizontal scrollable action chips)
+// Quick Actions Row (iOS parity: Edit profile, Bookings, Wishlist, Host Mode)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -479,8 +417,7 @@ private fun QuickActionsRow(
     onEditProfile: () -> Unit,
     onBookings: () -> Unit,
     onWishlist: () -> Unit,
-    onHostMode: () -> Unit,
-    onMyLists: () -> Unit
+    onHostMode: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -492,7 +429,6 @@ private fun QuickActionsRow(
         ActionChip(title = "Bookings", icon = PaceDreamIcons.DateRange, onClick = onBookings)
         ActionChip(title = "Wishlist", icon = PaceDreamIcons.FavoriteBorder, onClick = onWishlist)
         ActionChip(title = "Host Mode", icon = PaceDreamIcons.Group, onClick = onHostMode)
-        ActionChip(title = "My Lists", icon = PaceDreamIcons.ListIcon, onClick = onMyLists)
     }
 }
 
@@ -649,110 +585,82 @@ private fun HostModeCTA(onClick: () -> Unit) {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings Shortcuts Section (iOS parity: "Settings" header + 2 rows in card)
+// Matches iOS settingsShortcuts: Account settings + Notifications & preferences
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun ProfileMenuSection(
-    onSettingsClick: () -> Unit,
-    onHelpClick: () -> Unit,
-    onAboutClick: () -> Unit,
-    onLogoutClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column {
-            ProfileMenuItem(
-                icon = PaceDreamIcons.Settings,
-                title = "Settings",
-                subtitle = "Account preferences and privacy",
-                onClick = onSettingsClick
-            )
+private fun SettingsShortcutsSection(onSettingsClick: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "Settings",
+            style = PaceDreamTypography.Title3.copy(fontWeight = FontWeight.Bold),
+            color = PaceDreamColors.TextPrimary
+        )
 
-            HorizontalDivider(
-                color = PaceDreamColors.Border,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-            )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column {
+                SettingsShortcutRow(
+                    icon = PaceDreamIcons.Settings,
+                    title = "Account settings",
+                    onClick = onSettingsClick
+                )
 
-            ProfileMenuItem(
-                icon = PaceDreamIcons.Help,
-                title = "Help & Support",
-                subtitle = "Get help with your account",
-                onClick = onHelpClick
-            )
+                HorizontalDivider(
+                    color = PaceDreamColors.Border,
+                    modifier = Modifier.padding(start = 52.dp)
+                )
 
-            HorizontalDivider(
-                color = PaceDreamColors.Border,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-            )
-
-            ProfileMenuItem(
-                icon = PaceDreamIcons.Info,
-                title = "About",
-                subtitle = "App information and legal",
-                onClick = onAboutClick
-            )
-
-            HorizontalDivider(
-                color = PaceDreamColors.Border,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-            )
-
-            ProfileMenuItem(
-                icon = PaceDreamIcons.ExitToApp,
-                title = "Sign Out",
-                onClick = onLogoutClick,
-                tint = PaceDreamColors.Error
-            )
+                SettingsShortcutRow(
+                    icon = PaceDreamIcons.Notifications,
+                    title = "Notifications & preferences",
+                    onClick = onSettingsClick
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ProfileMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun SettingsShortcutRow(
+    icon: ImageVector,
     title: String,
-    subtitle: String? = null,
-    onClick: () -> Unit,
-    tint: androidx.compose.ui.graphics.Color = PaceDreamColors.TextPrimary
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = icon,
-            contentDescription = title,
-            tint = if (tint == PaceDreamColors.Error) tint else PaceDreamColors.Primary,
-            modifier = Modifier.size(24.dp)
+            contentDescription = null,
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier.size(20.dp)
         )
 
-        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+        Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = PaceDreamTypography.Callout,
-                color = tint
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
-                )
-            }
-        }
+        Text(
+            text = title,
+            style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+            color = PaceDreamColors.TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
 
         Icon(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(14.dp)
         )
     }
 }
