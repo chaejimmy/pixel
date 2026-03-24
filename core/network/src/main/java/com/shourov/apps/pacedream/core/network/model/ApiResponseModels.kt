@@ -160,10 +160,32 @@ data class NotificationResponse(
     @SerializedName("_id") val id: String = "",
     @SerializedName("userId") val userId: String = "",
     @SerializedName("title") val title: String = "",
-    @SerializedName("message") val message: String = "",
-    @SerializedName("type") val type: String = "",
-    @SerializedName("isRead") val isRead: Boolean = false,
+    @SerializedName("body") val body: String = "",
+    @SerializedName("event") val event: String = "",
+    @SerializedName("readAt") val readAt: String? = null,
+    @SerializedName("deepLink") val deepLink: String? = null,
+    @SerializedName("status") val status: String = "",
     @SerializedName("createdAt") val createdAt: String = ""
+) {
+    val isRead: Boolean get() = readAt != null
+    val type: String get() = event
+    val message: String get() = body
+}
+
+data class NotificationListData(
+    @SerializedName("notifications") val notifications: List<NotificationResponse> = emptyList(),
+    @SerializedName("pagination") val pagination: PaginationData? = null
+)
+
+data class PaginationData(
+    @SerializedName("page") val page: Int = 1,
+    @SerializedName("pageSize") val pageSize: Int = 20,
+    @SerializedName("total") val total: Int = 0,
+    @SerializedName("totalPages") val totalPages: Int = 0
+)
+
+data class UnreadCountData(
+    @SerializedName("count") val count: Int = 0
 )
 
 // ── Payment ──────────────────────────────────────────────────────────────────

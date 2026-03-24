@@ -38,23 +38,25 @@ data class NotificationCenterUiState(
         get() = when (selectedTab) {
             NotificationTab.ALL -> notifications
             NotificationTab.BOOKINGS -> notifications.filter { n ->
-                n.type.startsWith("booking") || n.type.startsWith("checkin") ||
-                    n.type.startsWith("extend") || n.type.startsWith("overtime") ||
-                    n.type.startsWith("session") || n.type.startsWith("split")
+                n.resolvedType.startsWith("booking") || n.resolvedType.startsWith("checkin") ||
+                    n.resolvedType.startsWith("extend") || n.resolvedType.startsWith("overtime") ||
+                    n.resolvedType.startsWith("session") || n.resolvedType.startsWith("split")
             }
             NotificationTab.MESSAGES -> notifications.filter { n ->
-                n.type == "message_received" || n.type == "message"
+                n.resolvedType == "message_received" || n.resolvedType == "message" ||
+                    n.resolvedType.startsWith("message.")
             }
             NotificationTab.PAYMENTS -> notifications.filter { n ->
-                n.type.startsWith("payment") || n.type.startsWith("payout") ||
-                    n.type.startsWith("chargeback")
+                n.resolvedType.startsWith("payment") || n.resolvedType.startsWith("payout") ||
+                    n.resolvedType.startsWith("chargeback")
             }
             NotificationTab.SYSTEM -> notifications.filter { n ->
-                n.type.startsWith("system") || n.type.startsWith("maintenance") ||
-                    n.type.startsWith("security") || n.type.startsWith("account") ||
-                    n.type.startsWith("verification") || n.type.startsWith("support") ||
-                    n.type.startsWith("content") || n.type == "marketing" ||
-                    n.type == "reminder" || n.type == "alert"
+                n.resolvedType.startsWith("system") || n.resolvedType.startsWith("maintenance") ||
+                    n.resolvedType.startsWith("security") || n.resolvedType.startsWith("account") ||
+                    n.resolvedType.startsWith("verification") || n.resolvedType.startsWith("support") ||
+                    n.resolvedType.startsWith("content") || n.resolvedType == "marketing" ||
+                    n.resolvedType == "reminder" || n.resolvedType == "alert" ||
+                    n.resolvedType.startsWith("review")
             }
         }
 

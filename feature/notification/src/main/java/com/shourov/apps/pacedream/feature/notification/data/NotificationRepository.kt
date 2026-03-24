@@ -2,7 +2,6 @@ package com.shourov.apps.pacedream.feature.notification.data
 
 import com.shourov.apps.pacedream.core.network.model.NotificationResponse
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
-import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.feature.notification.model.AppNotification
 import timber.log.Timber
 import javax.inject.Inject
@@ -10,15 +9,14 @@ import javax.inject.Singleton
 
 @Singleton
 class NotificationRepository @Inject constructor(
-    private val apiService: PaceDreamApiService,
-    private val authSession: AuthSession
+    private val apiService: PaceDreamApiService
 ) {
     suspend fun getNotifications(): Result<List<AppNotification>> {
         return try {
-            val userId = authSession.currentUserId ?: return Result.failure(Exception("Not authenticated"))
-            val response = apiService.getUserNotifications(userId)
+            val response = apiService.getNotifications()
             if (response.isSuccessful) {
-                val notifications = response.body()?.data?.map { it.toAppNotification() } ?: emptyList()
+                val notifications = response.body()?.data?.notifications
+                    ?.map { it.toAppNotification() } ?: emptyList()
                 Result.success(notifications.sortedByDescending { it.parsedDate })
             } else {
                 Result.failure(Exception("Failed to load notifications: ${response.message()}"))
@@ -45,8 +43,7 @@ class NotificationRepository @Inject constructor(
 
     suspend fun markAllAsRead(): Result<Unit> {
         return try {
-            val userId = authSession.currentUserId ?: return Result.failure(Exception("Not authenticated"))
-            val response = apiService.markAllNotificationsAsRead(userId)
+            val response = apiService.markAllNotificationsAsRead()
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
@@ -62,7 +59,7 @@ class NotificationRepository @Inject constructor(
 private fun NotificationResponse.toAppNotification() = AppNotification(
     id = id,
     title = title,
-    body = message,
+    body = body,
     type = type,
     isRead = isRead,
     createdAt = createdAt
