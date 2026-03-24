@@ -22,11 +22,26 @@ import javax.inject.Singleton
  * On profile load, [syncWithBackendHostStatus] reconciles the local
  * preference with the backend state so that users who are already hosts
  * are never shown the "Start Hosting" CTA incorrectly.
+ *
+ * iOS parity: supports PendingHostRoute so that unauthenticated users
+ * can tap "Create a listing" and be routed to Host → Post → Create Listing
+ * after login completes (see iOS AppModeStore.setPendingHostRoute).
  */
 @Singleton
 class HostModeManager @Inject constructor(
     @ApplicationContext context: Context
 ) {
+    /**
+     * iOS parity: mirrors iOS PendingHostRoute enum.
+     * Stores the intended destination after switching to host mode.
+     */
+    enum class PendingHostRoute {
+        /** Navigate to host listings / dashboard */
+        LISTINGS,
+        /** Navigate to Post tab and auto-open the Create Listing wizard */
+        POST_CREATE_LISTING,
+    }
+
     private val prefs: SharedPreferences = context.getSharedPreferences(
         PREFS_NAME,
         Context.MODE_PRIVATE
@@ -37,6 +52,9 @@ class HostModeManager @Inject constructor(
 
     private val _isHostVerified = MutableStateFlow(loadHostVerified())
     val isHostVerified: StateFlow<Boolean> = _isHostVerified.asStateFlow()
+
+    private val _pendingHostRoute = MutableStateFlow<PendingHostRoute?>(null)
+    val pendingHostRoute: StateFlow<PendingHostRoute?> = _pendingHostRoute.asStateFlow()
 
     /**
      * Whether the backend has confirmed this user is a host
@@ -76,6 +94,39 @@ class HostModeManager @Inject constructor(
         Timber.d("[HostMode] setHostMode: $enabled (was ${_isHostMode.value})")
         _isHostMode.value = enabled
         prefs.edit().putBoolean(KEY_HOST_MODE, enabled).apply()
+    }
+
+    /**
+     * iOS parity: switchToHost(route:) — switch to host mode and store a pending route.
+     */
+    fun switchToHost(route: PendingHostRoute? = null) {
+        _pendingHostRoute.value = route
+        setHostMode(true)
+    }
+
+    /**
+     * iOS parity: setPendingHostRoute — store intent without switching mode.
+     * Used before auth when the user isn't logged in yet.
+     */
+    fun setPendingHostRoute(route: PendingHostRoute) {
+        _pendingHostRoute.value = route
+    }
+
+    /**
+     * iOS parity: consumePendingHostRoute — return and clear the pending route.
+     */
+    fun consumePendingHostRoute(): PendingHostRoute? {
+        val route = _pendingHostRoute.value
+        _pendingHostRoute.value = null
+        return route
+    }
+
+    /**
+     * iOS parity: switchToGuest — clear pending route and switch to guest mode.
+     */
+    fun switchToGuest() {
+        _pendingHostRoute.value = null
+        setHostMode(false)
     }
 
     /**
@@ -141,6 +192,7 @@ class HostModeManager @Inject constructor(
         Timber.d("[HostMode] clearHostModeData")
         _isHostMode.value = false
         _isHostVerified.value = false
+        _pendingHostRoute.value = null
         _isBackendHost.value = false
         prefs.edit().clear().apply()
     }
