@@ -25,11 +25,8 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.*
-import com.pacedream.common.util.showToast
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRentedGearsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
@@ -64,8 +61,6 @@ fun EnhancedDashboardScreen(
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-
     // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -141,8 +136,6 @@ fun CompactDashboardScreen(
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = onRefresh
@@ -209,8 +202,6 @@ fun MinimalDashboardScreen(
     onActionClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = onRefresh

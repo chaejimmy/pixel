@@ -24,33 +24,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
-import com.pacedream.common.util.Consts
-import com.pacedream.common.util.Consts.FASHION_TYPE
-import com.pacedream.common.util.Consts.MUSIC_GEAR_TYPE
-import com.pacedream.common.util.Consts.PHOTOGRAPHY_TYPE
-import com.pacedream.common.util.Consts.TECH_GEAR_TYPE
-import com.pacedream.common.util.showToast
-import com.shourov.apps.pacedream.feature.home.domain.models.CategoryModel
-import com.shourov.apps.pacedream.feature.home.domain.models.DestinationModel
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRentedGearsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
 import com.shourov.apps.pacedream.feature.home.presentation.R
-import kotlin.math.abs
 
 /**
- * Inline warning banner component for section errors
- * Matches iOS behavior of showing inline warnings instead of just toasts
+ * Inline warning banner component for section errors.
+ * Matches iOS behavior of showing inline warnings instead of just toasts.
  */
 @Composable
 fun SectionWarningBanner(
@@ -85,9 +74,7 @@ fun SectionWarningBanner(
             if (onRetry != null) {
                 TextButton(
                     onClick = onRetry,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = PaceDreamPrimary
-                    )
+                    colors = ButtonDefaults.textButtonColors(contentColor = PaceDreamPrimary)
                 ) {
                     Text(
                         text = "Retry",
@@ -99,6 +86,24 @@ fun SectionWarningBanner(
     }
 }
 
+/**
+ * Enhanced Dashboard Content — iOS-matched section order
+ *
+ * Section order (matching iOS HomeView.swift):
+ * 1. Quick Chips (category filter)
+ * 2. Spaces section (featured listings — hourly spaces)
+ * 3. Items section (featured listings — rent gear)
+ * 4. Services section
+ * 5. Browse by Type (Spaces / Items / Services segmented selector)
+ * 6. Trending Destinations
+ *
+ * Removed (not in iOS):
+ * - Metrics Cards (Available Rooms / Items / Services counts)
+ * - Last-Minute Deals section
+ * - Find Roommate section
+ * - Browse by Category (replaced by Quick Chips + Browse by Type)
+ * - Browse by Destination with hardcoded drawable resources
+ */
 @Composable
 fun EnhancedDashboardContent(
     roomsState: HomeScreenRoomsState,
@@ -109,579 +114,325 @@ fun EnhancedDashboardContent(
     onSplitStaysRetry: () -> Unit = {},
     onPropertyClick: (String) -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
-    onDestinationClick: (String) -> Unit = {},
     onViewAllClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(PaceDreamBackground)
-            .padding(PaceDreamSpacing.LG)
+            .background(PaceDreamBackground),
     ) {
-        // Metrics Cards Section - derived from actual loaded data
+        // 1. Quick Chips — matches iOS QuickChips.swift
         item {
-            val roomCount = roomsState.rooms.size
-            val gearCount = gearsState.rentedGears.size
-            val splitCount = splitStaysState.splitStays.size
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                PaceDreamMetricCard(
-                    title = "Available Rooms",
-                    value = if (roomsState.loading) "—" else roomCount.toString(),
-                    icon = PaceDreamIcons.Home,
-                    modifier = Modifier.weight(1f)
-                )
-                PaceDreamMetricCard(
-                    title = "Items",
-                    value = if (gearsState.loading) "—" else gearCount.toString(),
-                    icon = PaceDreamIcons.ShoppingBag,
-                    modifier = Modifier.weight(1f)
-                )
-                PaceDreamMetricCard(
-                    title = "Services",
-                    value = if (splitStaysState.loading) "—" else splitCount.toString(),
-                    icon = PaceDreamIcons.People,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        
-        // Categories Section
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = "Browse by Category",
-                onViewAllClick = { onViewAllClick("categories") }
+            QuickChipsSection(
+                onChipClick = { chip -> onCategoryClick(chip) }
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            val categories = listOf(
-                CategoryModel(
-                    stringResource(R.string.feature_home_entire_home),
-                    R.drawable.ic_apartment,
-                    PaceDreamColors.Error,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_private_room),
-                    R.drawable.ic_luxury_room,
-                    PaceDreamColors.CategoryEVParking,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_rest_room),
-                    R.drawable.ic_rest_room,
-                    PaceDreamColors.CategoryRestRoom,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_nap_room),
-                    R.drawable.ic_nap_pod,
-                    PaceDreamColors.CategoryMeetingRoom,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_meeting_room),
-                    R.drawable.ic_meeting_room,
-                    PaceDreamColors.Secondary,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_workspace),
-                    R.drawable.ic_study_room,
-                    PaceDreamColors.CategoryRentalGear,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_ev_parking),
-                    R.drawable.ic_ev_parking,
-                    PaceDreamColors.CategoryEVParking,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_nap_pod),
-                    R.drawable.ic_nap_pod,
-                    PaceDreamColors.Accent,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_study_room),
-                    R.drawable.ic_study_room,
-                    PaceDreamColors.CategoryRentalGear,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_short_stay),
-                    R.drawable.ic_short_stay,
-                    PaceDreamColors.CategoryParking,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_apartment),
-                    R.drawable.ic_apartment,
-                    PaceDreamColors.Error,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_parking),
-                    R.drawable.ic_ev_parking,
-                    PaceDreamColors.CategoryTimeBased,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_luxury_room),
-                    R.drawable.ic_luxury_room,
-                    PaceDreamColors.CategoryParking,
-                ),
-                CategoryModel(
-                    stringResource(R.string.feature_home_storage_space),
-                    R.drawable.ic_storage_room,
-                    PaceDreamColors.CategoryTimeBased,
-                ),
-            )
-            
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                items(categories, key = { it.title }) { category ->
-                    PaceDreamCategoryPill(
-                        title = category.title,
-                        icon = when (category.title) {
-                            stringResource(R.string.feature_home_rest_room) -> PaceDreamIcons.Bed
-                            stringResource(R.string.feature_home_ev_parking) -> PaceDreamIcons.ElectricCar
-                            stringResource(R.string.feature_home_storage_room) -> PaceDreamIcons.Storage
-                            stringResource(R.string.feature_home_parking_spot) -> PaceDreamIcons.LocalParking
-                            else -> PaceDreamIcons.Category
-                        },
-                        isSelected = false,
-                        onClick = { onCategoryClick(category.title) }
-                    )
-                }
-            }
-        }
-        
-        // Recent Searches Section - starts empty until persistent history is wired
-        // No hardcoded seed data; actual search history will be populated from local storage
-        
-        // Browse by Destination Section
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = "Browse by Destination",
-                onViewAllClick = { onViewAllClick("destinations") }
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Text(
-                text = stringResource(R.string.feature_home_explore_perfect_places_by_destination),
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            val destinations = listOf(
-                DestinationModel("London", R.drawable.london),
-                DestinationModel("New York", R.drawable.new_york),
-                DestinationModel("Tokyo", R.drawable.tokyo),
-                DestinationModel("Toronto", R.drawable.toronto),
-            )
-            
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-            ) {
-                items(destinations, key = { it.title }) { destination ->
-                    PaceDreamDestinationCard(
-                        name = destination.title,
-                        imageUrl = null, // Will use drawable resource
-                        onClick = { onDestinationClick(destination.title) }
-                    )
-                }
-            }
-        }
-        
-        // Last-Minute Deals Section (Web parity: 20-40% discounts on available spaces)
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = stringResource(R.string.feature_home_last_minute_deals),
-                onViewAllClick = { onViewAllClick("last-minute-deals") }
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            Text(
-                text = stringResource(R.string.feature_home_last_minute_deals_subtitle),
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            if (roomsState.loading) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(3) {
-                        PaceDreamShimmerCard()
-                    }
-                }
-            } else if (roomsState.rooms.isNotEmpty()) {
-                // Show available rooms as last-minute deals with dynamic discount
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    val dealRooms = roomsState.rooms.filter { it.available }.take(6)
-                    items(dealRooms, key = { it.id }) { room ->
-                        val discountPercent = 20 + (abs(room.id.hashCode()) % 21) // 20-40%
-                        val spotsLeft = 1 + (abs(room.id.hashCode()) % 5) // 1-5
-                        LastMinuteDealCard(
-                            roomModel = room,
-                            discountPercent = discountPercent,
-                            spotsLeft = spotsLeft,
-                            onClick = { onPropertyClick(room.id) }
-                        )
-                    }
-                }
-            } else {
-                PaceDreamEmptyState(
-                    title = "No Deals Right Now",
-                    description = "Check back later for last-minute deals on available spaces.",
-                    icon = PaceDreamIcons.LocalOffer
-                )
-            }
         }
 
-        // Find Roommate Section (Web parity: Roommate Finder feature)
+        // 2. Spaces Section (Hourly Spaces) — matches iOS FeaturedListingsSection for hourlySpaces
         item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = stringResource(R.string.feature_home_find_roommate),
-                onViewAllClick = { onViewAllClick("roommate") }
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            Text(
-                text = stringResource(R.string.feature_home_find_roommate_subtitle),
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            // Inline warning banner if section failed
-            if (!splitStaysState.error.isNullOrEmpty() && !splitStaysState.loading) {
-                SectionWarningBanner(
-                    message = splitStaysState.error,
-                    onRetry = onSplitStaysRetry
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            }
-
-            if (splitStaysState.loading) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(3) {
-                        PaceDreamShimmerCard()
-                    }
-                }
-            } else if (splitStaysState.splitStays.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(splitStaysState.splitStays, key = { it._id ?: it.hashCode() }) { stay ->
-                        PaceDreamPropertyCard(
-                            title = stay.name ?: "Roommate Listing",
-                            location = stay.location ?: stay.city ?: "Location",
-                            price = "$${stay.price ?: "0"}/${stay.priceUnit ?: "month"}",
-                            rating = stay.rating?.toDouble() ?: 0.0,
-                            reviewCount = stay.reviewCount ?: 0,
-                            imageUrl = stay.images?.firstOrNull(),
-                            onClick = { onPropertyClick(stay._id ?: "") }
-                        )
-                    }
-                }
-            } else {
-                PaceDreamEmptyState(
-                    title = "No Roommate Listings",
-                    description = "Be the first to post a roommate listing, or check back later.",
-                    icon = PaceDreamIcons.People
-                )
-            }
-        }
-
-        // Spaces Section (Time-based Properties)
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
+            FeaturedSection(
                 title = "Spaces",
-                onViewAllClick = { onViewAllClick("time-based") }
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Text(
-                text = stringResource(R.string.help_you_what_needed),
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            // Inline warning banner if section failed
-            if (!roomsState.error.isNullOrEmpty() && !roomsState.loading) {
-                SectionWarningBanner(
-                    message = roomsState.error,
-                    onRetry = { onTimeBasedRoomsChanged(Consts.ROOM_TYPE) }
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            }
-            
-            var timeBasedSelectedTabIndex by remember { mutableIntStateOf(0) }
-            val timeBasedTabs = listOf("Room", "Restroom", "EV Parking", "Parking")
-            
-            // Enhanced Tab Component
-            ScrollableTabRow(
-                selectedTabIndex = timeBasedSelectedTabIndex,
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = PaceDreamSurface,
-                contentColor = PaceDreamTextPrimary,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[timeBasedSelectedTabIndex]),
-                        color = PaceDreamPrimary,
-                        height = 3.dp
-                    )
-                }
+                subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
+                isLoading = roomsState.loading,
+                error = roomsState.error,
+                isEmpty = roomsState.rooms.isEmpty(),
+                onViewAllClick = { onViewAllClick("time-based") },
+                onRetry = { onTimeBasedRoomsChanged("room") },
             ) {
-                timeBasedTabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = timeBasedSelectedTabIndex == index,
-                        onClick = {
-                            timeBasedSelectedTabIndex = index
-                            onTimeBasedRoomsChanged(
-                                when (index) {
-                                    0 -> Consts.ROOM_TYPE
-                                    1 -> Consts.REST_ROOM_TYPE
-                                    2 -> Consts.EV_PARKING_TYPE
-                                    3 -> Consts.PARKING_TYPE
-                                    else -> Consts.ROOM_TYPE
-                                }
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = title,
-                                style = PaceDreamTypography.Callout,
-                                color = if (timeBasedSelectedTabIndex == index) 
-                                    PaceDreamPrimary else PaceDreamTextSecondary
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (roomsState.loading) {
+                        items(3) { PaceDreamShimmerCard() }
+                    } else {
+                        items(roomsState.rooms.take(10), key = { it.id }) { room ->
+                            PaceDreamPropertyCard(
+                                title = room.title,
+                                location = room.location.city,
+                                price = "$${room.price?.firstOrNull()?.amount ?: 0}/hr",
+                                rating = room.rating.toDouble(),
+                                reviewCount = 0,
+                                imageUrl = room.gallery.images.firstOrNull(),
+                                onClick = { onPropertyClick(room.id) }
                             )
                         }
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            if (roomsState.loading) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(5) {
-                        PaceDreamShimmerCard()
-                    }
-                }
-            } else if (roomsState.error.isNullOrEmpty() && roomsState.rooms.isEmpty()) {
-                PaceDreamEmptyState(
-                    title = "No Properties Found",
-                    description = "Try adjusting your search criteria or check back later.",
-                    icon = PaceDreamIcons.Search
-                )
-            } else if (roomsState.rooms.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(roomsState.rooms, key = { it.id }) { room ->
-                        PaceDreamPropertyCard(
-                            title = room.title,
-                            location = room.location.city,
-                            price = "$${room.price?.firstOrNull()?.amount ?: 0}/hour",
-                            rating = room.rating.toDouble(),
-                            reviewCount = 0, // Not provided by listings API; available on detail view
-                            imageUrl = room.gallery.images.firstOrNull(),
-                            onClick = { onPropertyClick(room.id) }
-                        )
                     }
                 }
             }
         }
-        
-        // Items Section (Rented Gear)
+
+        // 3. Items Section (Rent Gear) — matches iOS FeaturedListingsSection for rentGear
         item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
+            FeaturedSection(
                 title = "Items",
-                onViewAllClick = { onViewAllClick("gear") }
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Text(
-                text = stringResource(R.string.help_you_what_needed),
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            // Inline warning banner if section failed
-            if (!gearsState.error.isNullOrEmpty() && !gearsState.loading) {
-                SectionWarningBanner(
-                    message = gearsState.error,
-                    onRetry = { onRentedGearsChanged(TECH_GEAR_TYPE) }
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            }
-            
-            var rentedGearsSelectedTabIndex by remember { mutableIntStateOf(0) }
-            val rentedGearTabs = listOf("Tech Gear", "Music Gear", "Photography", "Fashion")
-            
-            // Enhanced Tab Component
-            ScrollableTabRow(
-                selectedTabIndex = rentedGearsSelectedTabIndex,
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = PaceDreamSurface,
-                contentColor = PaceDreamTextPrimary,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[rentedGearsSelectedTabIndex]),
-                        color = PaceDreamPrimary,
-                        height = 3.dp
-                    )
-                }
+                subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
+                isLoading = gearsState.loading,
+                error = gearsState.error,
+                isEmpty = gearsState.rentedGears.isEmpty(),
+                onViewAllClick = { onViewAllClick("gear") },
+                onRetry = { onRentedGearsChanged("tech_gear") },
             ) {
-                rentedGearTabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = rentedGearsSelectedTabIndex == index,
-                        onClick = {
-                            rentedGearsSelectedTabIndex = index
-                            onRentedGearsChanged(
-                                when (index) {
-                                    0 -> TECH_GEAR_TYPE
-                                    1 -> MUSIC_GEAR_TYPE
-                                    2 -> PHOTOGRAPHY_TYPE
-                                    3 -> FASHION_TYPE
-                                    else -> TECH_GEAR_TYPE
-                                }
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = title,
-                                style = PaceDreamTypography.Callout,
-                                color = if (rentedGearsSelectedTabIndex == index) 
-                                    PaceDreamPrimary else PaceDreamTextSecondary
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (gearsState.loading) {
+                        items(3) { PaceDreamShimmerCard() }
+                    } else {
+                        items(gearsState.rentedGears.take(10), key = { it.id }) { gear ->
+                            PaceDreamPropertyCard(
+                                title = gear.name,
+                                location = gear.location,
+                                price = "$${gear.hourlyRate}/hr",
+                                rating = 0.0,
+                                reviewCount = 0,
+                                imageUrl = gear.images?.firstOrNull(),
+                                onClick = { onPropertyClick(gear.id) }
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // 4. Services Section — matches iOS ServicesGridSection
+        item {
+            val hasServices = splitStaysState.splitStays.isNotEmpty()
+            val isLoading = splitStaysState.loading
+
+            if (isLoading || hasServices) {
+                FeaturedSection(
+                    title = "Services",
+                    subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
+                    isLoading = isLoading,
+                    error = splitStaysState.error,
+                    isEmpty = splitStaysState.splitStays.isEmpty(),
+                    onViewAllClick = { onViewAllClick("services") },
+                    onRetry = onSplitStaysRetry,
+                ) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (isLoading) {
+                            items(3) { PaceDreamShimmerCard() }
+                        } else {
+                            items(
+                                splitStaysState.splitStays.take(10),
+                                key = { it._id ?: it.hashCode() }
+                            ) { stay ->
+                                PaceDreamPropertyCard(
+                                    title = stay.name ?: "Service",
+                                    location = stay.location ?: stay.city ?: "Location",
+                                    price = "$${stay.price ?: "0"} total",
+                                    rating = stay.rating?.toDouble() ?: 0.0,
+                                    reviewCount = stay.reviewCount ?: 0,
+                                    imageUrl = stay.images?.firstOrNull(),
+                                    onClick = { onPropertyClick(stay._id ?: "") }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Browse by Type — matches iOS ExploreByTypeSection.swift
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+            BrowseByTypeSection(
+                roomsState = roomsState,
+                gearsState = gearsState,
+                splitStaysState = splitStaysState,
+                onPropertyClick = onPropertyClick,
+                onViewAllClick = onViewAllClick,
+                onSubcategoryClick = { _, sub -> onCategoryClick(sub.title) },
+            )
+        }
+
+        // 6. Trending Destinations — matches iOS TrendingDestinationsSection.swift
+        // Uses backend data from rooms/gear locations as proxy since iOS
+        // destinations endpoint returns real data.
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            val destinations = buildTrendingDestinations(roomsState, gearsState)
+            if (destinations.isNotEmpty()) {
+                TrendingDestinationsSection(
+                    destinations = destinations,
+                    onDestinationClick = { dest -> onCategoryClick(dest.title) },
+                    onViewAllClick = { onViewAllClick("destinations") },
+                )
+            }
+        }
+
+        // 7. Full-width empty state when everything is empty (matches iOS)
+        item {
+            if (!roomsState.loading && !gearsState.loading && !splitStaysState.loading &&
+                roomsState.rooms.isEmpty() && gearsState.rentedGears.isEmpty() &&
+                splitStaysState.splitStays.isEmpty()
+            ) {
+                val hasError = !roomsState.error.isNullOrEmpty() ||
+                        !gearsState.error.isNullOrEmpty() ||
+                        !splitStaysState.error.isNullOrEmpty()
+
+                if (hasError) {
+                    PaceDreamErrorState(
+                        title = "Couldn't load Home",
+                        description = roomsState.error ?: gearsState.error
+                            ?: splitStaysState.error ?: "Something went wrong",
+                        onRetryClick = onSplitStaysRetry,
+                    )
+                } else {
+                    PaceDreamEmptyState(
+                        title = "Nothing to show right now",
+                        description = "Pull to refresh.",
+                        icon = PaceDreamIcons.Search,
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            if (gearsState.loading) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(5) {
-                        PaceDreamShimmerCard()
-                    }
-                }
-            } else if (gearsState.error.isNullOrEmpty() && gearsState.rentedGears.isEmpty()) {
-                PaceDreamEmptyState(
-                    title = "No Gear Available",
-                    description = "Check back later for available rental gear.",
-                    icon = PaceDreamIcons.ShoppingBag
-                )
-            } else if (gearsState.rentedGears.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(gearsState.rentedGears, key = { it.id }) { gear ->
-                        PaceDreamPropertyCard(
-                            title = gear.name,
-                            location = gear.location,
-                            price = "$${gear.hourlyRate}/hour",
-                            rating = 0.0, // Gear model doesn't have rating
-                            reviewCount = 0, // Not provided by listings API; available on detail view
-                            imageUrl = gear.images?.firstOrNull(),
-                            onClick = { onPropertyClick(gear.id) }
-                        )
-                    }
-                }
-            }
         }
-        
-        // Services Section
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            PaceDreamSectionHeader(
-                title = "Services",
-                onViewAllClick = { onViewAllClick("services") }
-            )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            Text(
-                text = "Book help when you need it",
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamTextSecondary
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            // Inline warning banner if section failed
-            if (!splitStaysState.error.isNullOrEmpty() && !splitStaysState.loading) {
-                SectionWarningBanner(
-                    message = splitStaysState.error,
-                    onRetry = onSplitStaysRetry
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            }
-            
-            if (splitStaysState.loading) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(5) {
-                        PaceDreamShimmerCard()
-                    }
-                }
-            } else if (splitStaysState.error.isNullOrEmpty() && splitStaysState.splitStays.isEmpty()) {
-                PaceDreamEmptyState(
-                    title = "No Services Available",
-                    description = "Check back later for services near you.",
-                    icon = PaceDreamIcons.People
-                )
-            } else if (splitStaysState.splitStays.isNotEmpty()) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(splitStaysState.splitStays, key = { it._id ?: it.hashCode() }) { stay ->
-                        PaceDreamPropertyCard(
-                            title = stay.name ?: "Service",
-                            location = stay.location ?: stay.city ?: "Location",
-                            price = "$${stay.price ?: "0"}/${stay.priceUnit ?: "night"}",
-                            rating = stay.rating?.toDouble() ?: 0.0,
-                            reviewCount = stay.reviewCount ?: 0,
-                            imageUrl = stay.images?.firstOrNull(),
-                            onClick = { onPropertyClick(stay._id ?: "") }
-                        )
-                    }
-                }
-            }
-        }
-        
-        // Bottom padding for better scrolling
+        // Bottom padding for tab bar
         item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+/**
+ * Reusable featured section wrapper — matches iOS FeaturedListingsSection pattern.
+ * Shows title, subtitle, warning banner (if error), and content slot.
+ */
+@Composable
+private fun FeaturedSection(
+    title: String,
+    subtitle: String,
+    isLoading: Boolean,
+    error: String?,
+    isEmpty: Boolean,
+    onViewAllClick: () -> Unit,
+    onRetry: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 32.dp),
+    ) {
+        // Section header with View All
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Title2,
+                color = PaceDreamTextPrimary,
+                fontWeight = FontWeight.Bold,
+            )
+            TextButton(onClick = onViewAllClick) {
+                Text(
+                    text = "View All",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamPrimary,
+                )
+            }
+        }
+
+        // Subtitle
+        Text(
+            text = subtitle,
+            style = PaceDreamTypography.Footnote,
+            color = PaceDreamTextSecondary,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Warning banner if error
+        if (!error.isNullOrEmpty() && !isLoading) {
+            SectionWarningBanner(
+                message = error,
+                onRetry = onRetry,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Content
+        content()
+    }
+}
+
+/**
+ * Build trending destinations from loaded data — extracts unique city names
+ * from rooms and gear to create destination cards with fallback images.
+ * This mirrors how iOS toDestinationData() maps backend DestinationSummary objects.
+ */
+private fun buildTrendingDestinations(
+    roomsState: HomeScreenRoomsState,
+    gearsState: HomeScreenRentedGearsState,
+): List<TrendingDestination> {
+    val citySet = mutableSetOf<String>()
+    val destinations = mutableListOf<TrendingDestination>()
+
+    // Extract cities from rooms
+    roomsState.rooms.forEach { room ->
+        val city = room.location.city.trim()
+        if (city.isNotEmpty() && citySet.add(city.lowercase())) {
+            destinations.add(
+                TrendingDestination(
+                    title = city,
+                    subtitle = room.location.state.ifEmpty { null },
+                    imageUrl = destinationFallbackImage(city),
+                    propertyCount = roomsState.rooms.count {
+                        it.location.city.trim().equals(city, ignoreCase = true)
+                    },
+                )
+            )
+        }
+    }
+
+    // Extract cities from gear
+    gearsState.rentedGears.forEach { gear ->
+        val city = gear.location.trim()
+        if (city.isNotEmpty() && citySet.add(city.lowercase())) {
+            destinations.add(
+                TrendingDestination(
+                    title = city,
+                    imageUrl = destinationFallbackImage(city),
+                )
+            )
+        }
+    }
+
+    return destinations.take(6)
+}
+
+/** City-specific fallback images matching iOS DestinationSummary fallback logic. */
+private fun destinationFallbackImage(name: String): String = when (name.lowercase().trim()) {
+    "new york", "manhattan", "brooklyn" -> "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80"
+    "los angeles" -> "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&q=80"
+    "san francisco" -> "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&q=80"
+    "chicago" -> "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=400&q=80"
+    "miami" -> "https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&q=80"
+    "seattle" -> "https://images.unsplash.com/photo-1502175353174-a7a70e73b4c3?w=400&q=80"
+    "austin" -> "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=400&q=80"
+    "denver" -> "https://images.unsplash.com/photo-1619856699906-09e1f4ef478b?w=400&q=80"
+    "boston" -> "https://images.unsplash.com/photo-1501979376754-1d3b25f22a4e?w=400&q=80"
+    "honolulu" -> "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=400&q=80"
+    "maui" -> "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=400&q=80"
+    "grand canyon" -> "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=400&q=80"
+    "nashville" -> "https://images.unsplash.com/photo-1545419913-775e2e168cd0?w=400&q=80"
+    "portland" -> "https://images.unsplash.com/photo-1507245338956-79a3a4b41583?w=400&q=80"
+    "san diego" -> "https://images.unsplash.com/photo-1538097304804-2a1b932466a9?w=400&q=80"
+    "atlanta" -> "https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?w=400&q=80"
+    "washington", "washington dc" -> "https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=400&q=80"
+    else -> "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80"
 }
