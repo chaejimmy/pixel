@@ -51,6 +51,7 @@ class HostDashboardViewModel @Inject constructor(
                 shouldShowPayoutSetupPrompt = result.payoutEligibility?.shouldShowPayoutSetupPrompt ?: false,
                 payoutPromptReason = result.payoutEligibility?.payoutPromptReason,
                 isLoading = false,
+                hasLoaded = result.hasLoaded,
                 error = result.errorMessage
             )
         }

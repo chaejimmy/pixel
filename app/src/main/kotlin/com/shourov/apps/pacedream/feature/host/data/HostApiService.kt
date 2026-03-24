@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.host.data
 
+import com.google.gson.JsonElement
 import com.shourov.apps.pacedream.core.network.ApiEndPoints
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.Property
@@ -53,7 +54,7 @@ interface HostApiService {
     suspend fun getHostListings(
         @Query("filter") filter: String? = null,
         @Query("sort") sort: String? = null
-    ): Response<List<Property>>
+    ): Response<JsonElement>
 
     @POST(ApiEndPoints.CREATE_LISTING)
     suspend fun createListing(@Body listing: CreateListingRequest): Response<Property>

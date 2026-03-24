@@ -1,5 +1,10 @@
 package com.shourov.apps.pacedream.feature.host.data
 
+import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import com.shourov.apps.pacedream.model.Property
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -30,7 +35,8 @@ class HostRepository @Inject constructor(
         val payoutState: PayoutConnectionState,
         val payoutEligibility: PayoutSetupEligibilityResponse?,
         val hadPartialFailure: Boolean,
-        val errorMessage: String?
+        val errorMessage: String?,
+        val hasLoaded: Boolean = true
     )
 
     suspend fun loadDashboard(): DashboardLoadResult = coroutineScope {
@@ -55,12 +61,14 @@ class HostRepository @Inject constructor(
             try {
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
-                    response.body() ?: emptyList()
+                    val json = response.body()
+                    if (json != null) parseHostListings(json) else emptyList()
                 } else {
                     hadFailure = true
                     emptyList()
                 }
             } catch (e: Exception) {
+                Timber.e(e, "Failed to load host listings")
                 hadFailure = true
                 emptyList<Property>()
             }
@@ -103,9 +111,12 @@ class HostRepository @Inject constructor(
         val payoutState = payoutDeferred.await()
         val payoutEligibility = eligibilityDeferred.await()
 
+        // iOS parity: only show full error when primary data (bookings + listings)
+        // both failed. Overview/payout failures are non-critical.
+        val primaryDataFailed = hadFailure && bookings.isEmpty() && listings.isEmpty()
         val errorMessage = when {
-            hadFailure && bookings.isEmpty() && listings.isEmpty() ->
-                "Couldn't load host dashboard. Pull to refresh."
+            primaryDataFailed ->
+                "Couldn't load host data. Pull to refresh."
             hadFailure ->
                 "Some data couldn't load. Pull to refresh."
             else -> null
@@ -118,7 +129,8 @@ class HostRepository @Inject constructor(
             payoutState = payoutState,
             payoutEligibility = payoutEligibility,
             hadPartialFailure = hadFailure,
-            errorMessage = errorMessage
+            errorMessage = errorMessage,
+            hasLoaded = true
         )
     }
 
@@ -174,7 +186,8 @@ class HostRepository @Inject constructor(
         return try {
             val response = hostApiService.getHostListings(filter, sort)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+                val json = response.body()
+                Result.success(if (json != null) parseHostListings(json) else emptyList())
             } else {
                 Result.failure(Exception("Failed to fetch listings: ${response.code()}"))
             }
@@ -355,6 +368,74 @@ class HostRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.success(emptyList())
+        }
+    }
+
+    // ── Flexible listings parser (iOS parity: HostListingsService.parseHostListings) ──
+
+    private val gson = Gson()
+    private val propertyListType = object : TypeToken<List<Property>>() {}.type
+
+    /**
+     * Parses host listings from multiple backend response shapes:
+     * - Raw JSON array: [...]
+     * - Wrapped: { data: [...] }, { items: [...] }, { results: [...] }, { listings: [...] }
+     * - Category-keyed: { rooms: [...], properties: [...], rentableItems: [...], ... }
+     */
+    private fun parseHostListings(json: JsonElement): List<Property> {
+        // Shape 1: raw array
+        if (json.isJsonArray) {
+            return parsePropertyArray(json.asJsonArray)
+        }
+
+        // Shape 2: wrapped object
+        if (json.isJsonObject) {
+            val obj = json.asJsonObject
+
+            // Unwrap common wrapper keys
+            val unwrapped = obj.get("data") ?: obj.get("items") ?: obj.get("results")
+            if (unwrapped != null && unwrapped.isJsonArray) {
+                return parsePropertyArray(unwrapped.asJsonArray)
+            }
+
+            // "listings" key
+            val listings = obj.get("listings")
+            if (listings != null && listings.isJsonArray) {
+                return parsePropertyArray(listings.asJsonArray)
+            }
+
+            // Category-keyed (iOS parity)
+            val categoryKeys = listOf("rooms", "properties", "rentableItems", "services", "attractions", "roommates")
+            val all = mutableListOf<Property>()
+            val seenIds = mutableSetOf<String>()
+            for (key in categoryKeys) {
+                val arr = obj.get(key)
+                if (arr != null && arr.isJsonArray) {
+                    for (p in parsePropertyArray(arr.asJsonArray)) {
+                        if (p.id.isNotEmpty() && seenIds.add(p.id)) {
+                            all.add(p)
+                        }
+                    }
+                }
+            }
+            if (all.isNotEmpty()) return all
+        }
+
+        return emptyList()
+    }
+
+    private fun parsePropertyArray(arr: JsonArray): List<Property> {
+        return try {
+            gson.fromJson<List<Property>>(arr, propertyListType) ?: emptyList()
+        } catch (e: Exception) {
+            Timber.e(e, "Gson parsing failed for listings array, trying element-by-element")
+            arr.mapNotNull { element ->
+                try {
+                    gson.fromJson(element, Property::class.java)
+                } catch (_: Exception) {
+                    null
+                }
+            }
         }
     }
 
