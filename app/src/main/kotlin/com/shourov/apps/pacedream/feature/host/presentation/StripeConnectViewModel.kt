@@ -44,11 +44,8 @@ class StripeConnectViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(connectAccount = null)
                 }
 
-            // Also load balance
-            stripeConnectRepository.getBalance()
-                .onSuccess { balance ->
-                    _uiState.value = _uiState.value.copy(balance = balance)
-                }
+            // Balance is now loaded via the earnings dashboard endpoint
+            // (HostEarningsViewModel handles this)
         }
     }
 

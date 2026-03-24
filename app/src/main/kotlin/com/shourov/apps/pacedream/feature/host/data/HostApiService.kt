@@ -90,21 +90,12 @@ interface HostApiService {
     @POST("host/payouts/methods/set-primary")
     suspend fun setPrimaryPayoutMethod(@Body body: SetPrimaryMethodRequest): Response<Unit>
 
-    // ── Earnings Dashboard (iOS parity: PayoutsService.fetchDashboard) ──
+    // ── Earnings Dashboard (iOS parity: single all-in-one endpoint) ──
 
     @GET(ApiEndPoints.HOST_EARNINGS_DASHBOARD)
     suspend fun getEarningsDashboard(): Response<EarningsDashboardResponse>
 
-    // ── Stripe Connect - Balance & Transfers ────────────────────
-
-    @GET("host/stripe/balance")
-    suspend fun getStripeBalance(): Response<ConnectBalance>
-
-    @GET("host/stripe/transfers")
-    suspend fun getStripeTransfers(@Query("limit") limit: Int = 20): Response<List<Transfer>>
-
-    @GET("host/stripe/payouts")
-    suspend fun getStripePayouts(@Query("limit") limit: Int = 20): Response<List<Payout>>
+    // ── Legacy Stripe Connect endpoints (kept for createPayout/createConnectAccount) ──
 
     @POST("host/stripe/payouts/create")
     suspend fun createPayout(@Body request: CreatePayoutRequest): Response<Payout>
