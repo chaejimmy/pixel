@@ -231,6 +231,20 @@ class InboxViewModel @Inject constructor(
     }
 
     /**
+     * Silently refresh threads in the background (e.g., when returning from a thread).
+     * Does not show loading state -- only updates data on success.
+     */
+    fun refreshIfNeeded() {
+        val current = _uiState.value
+        if (current is InboxUiState.Success || current is InboxUiState.Empty) {
+            viewModelScope.launch {
+                nextCursor = null
+                loadThreadsAndCounts()
+            }
+        }
+    }
+
+    /**
      * Mark thread as locally read when entering a thread (matches iOS markThreadReadLocally).
      * Optimistically reduces unread count in the UI without waiting for a server round-trip.
      */

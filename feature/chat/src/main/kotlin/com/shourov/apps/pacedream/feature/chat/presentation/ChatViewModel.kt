@@ -64,9 +64,18 @@ class ChatViewModel @Inject constructor(
             messageRepository.getChatMessages(chatId).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        // Derive otherUserId from message history if not yet set
+                        val currentOther = _uiState.value.otherUserId
+                        val derivedOther = if (currentOther.isBlank()) {
+                            result.data.firstOrNull { it.senderId != resolvedUserId }?.senderId
+                                ?: result.data.firstOrNull()?.receiverId
+                                ?: ""
+                        } else currentOther
+
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             messages = result.data,
+                            otherUserId = derivedOther,
                             error = null
                         )
                     }
