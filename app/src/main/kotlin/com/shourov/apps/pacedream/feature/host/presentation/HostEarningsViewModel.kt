@@ -37,7 +37,6 @@ class HostEarningsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HostEarningsData())
     val uiState: StateFlow<HostEarningsData> = _uiState.asStateFlow()
 
-    // Tabbed earnings state (matching iOS EarningsView)
     private val _earningsUiState = MutableStateFlow(HostEarningsUiState())
     val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
 
@@ -59,14 +58,14 @@ class HostEarningsViewModel @Inject constructor(
             if (dashboardResult.isSuccess) {
                 val dashboard = dashboardResult.getOrNull()
                 _dashboardData.value = dashboard
-                Timber.d("Earnings dashboard loaded successfully, falling through to individual endpoints for tabbed UI")
+                Timber.d("Earnings dashboard loaded successfully, falling through to individual endpoints")
             } else {
                 Timber.d("Earnings dashboard not available, using individual Stripe endpoints")
             }
 
-            // Always load individual endpoints for the tabbed UI
+            // Always load individual endpoints for the UI
             // (the dashboard provides aggregate data, but we still need
-            // the Stripe-specific formats for balance/transfers/payouts tabs)
+            // the Stripe-specific formats for balance/transfers/payouts)
             loadIndividualEndpoints()
         }
     }
@@ -90,7 +89,7 @@ class HostEarningsViewModel @Inject constructor(
             ?: payoutsResult.exceptionOrNull()?.message
 
         if (errorMessage != null) {
-            Timber.w("Earnings tab partial failure: $errorMessage")
+            Timber.w("Earnings partial failure: $errorMessage")
         }
 
         _earningsUiState.value = _earningsUiState.value.copy(
@@ -118,45 +117,9 @@ class HostEarningsViewModel @Inject constructor(
         )
     }
 
-    fun selectTab(index: Int) {
-        _earningsUiState.value = _earningsUiState.value.copy(selectedTab = index)
-    }
-
     fun refreshData() {
         _earningsUiState.value = _earningsUiState.value.copy(isRefreshing = true)
         loadAllData()
-    }
-
-    fun showPayoutSheet() {
-        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = true)
-    }
-
-    fun hidePayoutSheet() {
-        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
-    }
-
-    fun requestPayout(amount: Double) {
-        viewModelScope.launch {
-            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
-
-            val amountInCents = (amount * 100).toInt()
-            stripeConnectRepository.createPayout(amountInCents)
-                .onSuccess {
-                    Timber.d("Payout request succeeded for $amountInCents cents")
-                    _earningsUiState.value = _earningsUiState.value.copy(
-                        showPayoutSheet = false,
-                        payoutAmount = ""
-                    )
-                    refreshData()
-                }
-                .onFailure { exception ->
-                    Timber.e(exception, "Payout request failed")
-                    _earningsUiState.value = _earningsUiState.value.copy(
-                        isLoading = false,
-                        errorMessage = exception.message ?: "Failed to request payout"
-                    )
-                }
-        }
     }
 
     fun clearError() {
@@ -169,6 +132,7 @@ class HostEarningsViewModel @Inject constructor(
     }
 
     fun withdrawEarnings(amount: Double) {
-        requestPayout(amount)
+        // Payout requests are handled via Stripe dashboard
+        refreshData()
     }
 }

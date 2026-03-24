@@ -152,9 +152,8 @@ data class PayoutMethod(
     val isPrimary: Boolean = false
 )
 
-// Earnings UI State for tabbed view (matching iOS)
+// Earnings UI State (iOS parity: single-scroll view)
 data class HostEarningsUiState(
-    val selectedTab: Int = 0,
     val balance: ConnectBalance? = null,
     val transfers: List<Transfer> = emptyList(),
     val payouts: List<Payout> = emptyList(),
@@ -163,7 +162,5 @@ data class HostEarningsUiState(
     val dashboardData: EarningsDashboardResponse? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null,
-    val showPayoutSheet: Boolean = false,
-    val payoutAmount: String = ""
+    val errorMessage: String? = null
 )
