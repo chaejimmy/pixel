@@ -152,15 +152,136 @@ data class PayoutMethod(
     val isPrimary: Boolean = false
 )
 
-// Earnings UI State (iOS parity: single-scroll view)
+// ── Earnings Dashboard Response (iOS parity: all-in-one endpoint) ─────
+
+/**
+ * Response from GET /host/earnings/dashboard.
+ * Matches the backend response exactly. This is the single source of truth
+ * endpoint that iOS uses — replaces the 4 separate stripe endpoints that
+ * were returning 404s.
+ */
+data class EarningsDashboardResponse(
+    val success: Boolean = false,
+    val stripe: DashboardStripeStatus = DashboardStripeStatus(),
+    val balances: DashboardBalances = DashboardBalances(),
+    val payouts: List<DashboardPayout> = emptyList(),
+    val transactions: List<DashboardTransaction> = emptyList(),
+    val stats: DashboardStats = DashboardStats(),
+    val payoutRules: DashboardPayoutRules = DashboardPayoutRules()
+)
+
+data class DashboardStripeStatus(
+    val connected: Boolean = false,
+    val accountId: String? = null,
+    val chargesEnabled: Boolean = false,
+    val payoutsEnabled: Boolean = false,
+    val detailsSubmitted: Boolean = false,
+    val onboardingComplete: Boolean = false,
+    val disabledReason: String? = null,
+    val requirements: List<String> = emptyList()
+)
+
+data class DashboardBalances(
+    val available: Double = 0.0,
+    val pending: Double = 0.0,
+    val settling: Double = 0.0,
+    val readyForTransfer: Double = 0.0,
+    val lifetime: Double = 0.0,
+    val currency: String = "usd",
+    val fundsSettling: Boolean = false,
+    val settlingNote: String? = null
+)
+
+data class DashboardPayout(
+    val id: String = "",
+    val amount: Double = 0.0,
+    val currency: String = "usd",
+    val status: String = "unknown",
+    val method: String? = null,
+    val arrivalDate: String? = null,
+    val createdAt: String? = null,
+    val description: String? = null,
+    val destination: DashboardPayoutDestination? = null
+)
+
+data class DashboardPayoutDestination(
+    val last4: String? = null,
+    val bankName: String? = null
+)
+
+data class DashboardTransaction(
+    val id: String = "",
+    val bookingId: String? = null,
+    val bookingType: String? = null,
+    val amount: Double = 0.0,
+    val grossAmount: Double = 0.0,
+    val stripeProcessingFee: Double = 0.0,
+    val netAmount: Double = 0.0,
+    val currency: String = "usd",
+    val status: String? = null,
+    val payoutStatus: String? = null,
+    val platformFee: Double = 0.0,
+    val releaseRule: String? = null,
+    val payoutReleaseAt: String? = null,
+    val stripeTransferId: String? = null,
+    val blockedReason: String? = null,
+    val createdAt: String? = null,
+    val description: String? = null
+)
+
+data class DashboardStats(
+    val totalTransactions: Int = 0,
+    val completedPayouts: Int = 0,
+    val completedAmount: Double = 0.0,
+    val heldPayouts: Int = 0,
+    val heldAmount: Double = 0.0,
+    val settlingPayouts: Int = 0,
+    val settlingAmount: Double = 0.0,
+    val readyPayouts: Int = 0,
+    val readyAmount: Double = 0.0,
+    val blockedPayouts: Int = 0,
+    val blockedAmount: Double = 0.0
+)
+
+data class DashboardPayoutRules(
+    val shortBookingThresholdHours: Int = 24,
+    val shortBookingRule: String = "",
+    val longBookingRule: String = ""
+)
+
+// ── Connection state derived from dashboard (iOS parity) ─────
+
+enum class EarningsConnectionState {
+    NOT_CONNECTED,
+    PENDING,
+    CONNECTED;
+
+    companion object {
+        fun from(stripe: DashboardStripeStatus): EarningsConnectionState {
+            return when {
+                stripe.onboardingComplete && stripe.payoutsEnabled -> CONNECTED
+                stripe.connected || stripe.detailsSubmitted -> PENDING
+                else -> NOT_CONNECTED
+            }
+        }
+    }
+}
+
+// Earnings UI State for tabbed view (matching iOS)
 data class HostEarningsUiState(
+    val selectedTab: Int = 0,
+    // Dashboard data (from /host/earnings/dashboard)
+    val dashboard: EarningsDashboardResponse? = null,
+    val connectionState: EarningsConnectionState = EarningsConnectionState.NOT_CONNECTED,
+    // Legacy fields kept for backward compat
     val balance: ConnectBalance? = null,
     val transfers: List<Transfer> = emptyList(),
     val payouts: List<Payout> = emptyList(),
     val connectAccount: ConnectAccount? = null,
-    // Comprehensive dashboard data (from /host/earnings/dashboard - iOS parity)
-    val dashboardData: EarningsDashboardResponse? = null,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showPayoutSheet: Boolean = false,
+    val payoutAmount: String = "",
+    val hasLoaded: Boolean = false
 )

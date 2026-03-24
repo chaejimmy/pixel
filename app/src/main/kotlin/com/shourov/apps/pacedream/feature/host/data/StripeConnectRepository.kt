@@ -32,28 +32,43 @@ class StripeConnectRepository @Inject constructor(
         }
     }
 
-    // ── Earnings Dashboard (iOS parity: PayoutsService.fetchDashboard) ──
+    // ── Earnings Dashboard (iOS parity: single all-in-one endpoint) ──
 
     /**
-     * Fetch comprehensive earnings dashboard from /host/earnings/dashboard.
-     * This matches the iOS PayoutsService.fetchDashboard() endpoint which returns
-     * balances, transactions, stats, and payout rules in a single call.
+     * Fetch the all-in-one earnings dashboard from /host/earnings/dashboard.
+     * This is the same endpoint iOS uses (PayoutsService.fetchDashboard).
+     * Returns stripe status, balances, payouts, transactions, and stats.
      */
     suspend fun getEarningsDashboard(): Result<EarningsDashboardResponse> {
+        Timber.d("[Earnings] Fetching dashboard from /host/earnings/dashboard")
         return try {
-            Timber.d("Fetching earnings dashboard from /host/earnings/dashboard")
             val response = hostApiService.getEarningsDashboard()
+            Timber.d("[Earnings] Dashboard response: status=${response.code()}")
             if (response.isSuccessful) {
-                val body = response.body() ?: EarningsDashboardResponse()
-                Timber.d("Earnings dashboard loaded: ${body.transactions.size} transactions, ${body.payouts.size} payouts")
-                Result.success(body)
+                val body = response.body()
+                if (body != null) {
+                    Timber.d(
+                        "[Earnings] Dashboard loaded: connected=${body.stripe.connected}, " +
+                            "payoutsEnabled=${body.stripe.payoutsEnabled}, " +
+                            "available=${body.balances.available}, " +
+                            "pending=${body.balances.pending}, " +
+                            "settling=${body.balances.settling}, " +
+                            "lifetime=${body.balances.lifetime}, " +
+                            "payouts=${body.payouts.size}, " +
+                            "transactions=${body.transactions.size}"
+                    )
+                    Result.success(body)
+                } else {
+                    Timber.w("[Earnings] Dashboard response body is null")
+                    Result.success(EarningsDashboardResponse())
+                }
             } else {
-                val msg = extractErrorMessage(response, "Failed to fetch earnings dashboard")
-                Timber.w("Earnings dashboard request failed [${response.code()}]: $msg")
-                Result.failure(Exception(msg))
+                val errorMsg = extractErrorMessage(response, "Failed to fetch earnings dashboard")
+                Timber.e("[Earnings] Dashboard failed: ${response.code()} - $errorMsg")
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Timber.e(e, "Earnings dashboard fetch exception")
+            Timber.e(e, "[Earnings] Dashboard request exception")
             Result.failure(e)
         }
     }
@@ -118,63 +133,8 @@ class StripeConnectRepository @Inject constructor(
         }
     }
 
-    // Balance
-    suspend fun getBalance(): Result<ConnectBalance> {
-        return try {
-            Timber.d("Fetching Stripe balance from /host/stripe/balance")
-            val response = hostApiService.getStripeBalance()
-            if (response.isSuccessful) {
-                Result.success(response.body() ?: ConnectBalance())
-            } else {
-                val msg = extractErrorMessage(response, "Failed to fetch balance")
-                Timber.w("Stripe balance failed [${response.code()}]: $msg")
-                Result.failure(Exception(msg))
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Stripe balance fetch exception")
-            Result.failure(e)
-        }
-    }
-
-    // Transfers
-    suspend fun getTransfers(limit: Int = 20): Result<List<Transfer>> {
-        return try {
-            Timber.d("Fetching Stripe transfers from /host/stripe/transfers")
-            val response = hostApiService.getStripeTransfers(limit)
-            if (response.isSuccessful) {
-                val transfers = response.body() ?: emptyList()
-                Timber.d("Loaded ${transfers.size} transfers")
-                Result.success(transfers)
-            } else {
-                val msg = extractErrorMessage(response, "Failed to fetch transfers")
-                Timber.w("Stripe transfers failed [${response.code()}]: $msg")
-                Result.failure(Exception(msg))
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Stripe transfers fetch exception")
-            Result.failure(e)
-        }
-    }
-
-    // Payouts
-    suspend fun getPayouts(limit: Int = 20): Result<List<Payout>> {
-        return try {
-            Timber.d("Fetching Stripe payouts from /host/stripe/payouts")
-            val response = hostApiService.getStripePayouts(limit)
-            if (response.isSuccessful) {
-                val payouts = response.body() ?: emptyList()
-                Timber.d("Loaded ${payouts.size} payouts")
-                Result.success(payouts)
-            } else {
-                val msg = extractErrorMessage(response, "Failed to fetch payouts")
-                Timber.w("Stripe payouts failed [${response.code()}]: $msg")
-                Result.failure(Exception(msg))
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Stripe payouts fetch exception")
-            Result.failure(e)
-        }
-    }
+    // Note: Balance, transfers, and payouts are now fetched via getEarningsDashboard()
+    // which uses the single /host/earnings/dashboard endpoint (iOS parity).
 
     suspend fun createPayout(amount: Int, currency: String = "usd"): Result<Payout> {
         return try {

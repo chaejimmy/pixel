@@ -2,15 +2,13 @@ package com.shourov.apps.pacedream.feature.host.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shourov.apps.pacedream.feature.host.data.EarningsConnectionState
 import com.shourov.apps.pacedream.feature.host.data.HostEarningsData
 import com.shourov.apps.pacedream.feature.host.data.HostEarningsUiState
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import com.shourov.apps.pacedream.feature.host.data.EarningsDashboardResponse
-import com.shourov.apps.pacedream.feature.host.data.ConnectBalance
-import com.shourov.apps.pacedream.feature.host.data.BalanceAmount
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,11 +19,10 @@ import javax.inject.Inject
 /**
  * Host Earnings ViewModel - iOS parity.
  *
- * Primary: tries /host/earnings/dashboard (iOS PayoutsService.fetchDashboard)
- * for comprehensive earnings data including transactions, stats, and payout rules.
+ * Uses the single /host/earnings/dashboard endpoint (same as iOS PayoutsService.fetchDashboard)
+ * instead of 4 separate stripe endpoints that don't exist on the backend.
  *
- * Fallback: if the dashboard endpoint fails, loads data from individual
- * Stripe Connect endpoints (/host/stripe/balance, transfers, payouts, connect/status).
+ * iOS source of truth: HostEarningsViewModel.swift + PayoutsService.swift
  */
 @HiltViewModel
 class HostEarningsViewModel @Inject constructor(
@@ -40,86 +37,96 @@ class HostEarningsViewModel @Inject constructor(
     private val _earningsUiState = MutableStateFlow(HostEarningsUiState())
     val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
 
-    // Comprehensive dashboard data (when available)
-    private val _dashboardData = MutableStateFlow<EarningsDashboardResponse?>(null)
-    val dashboardData: StateFlow<EarningsDashboardResponse?> = _dashboardData.asStateFlow()
-
     init {
         loadAllData()
     }
 
     private fun loadAllData() {
         viewModelScope.launch {
-            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true, errorMessage = null)
-
-            // Try the comprehensive dashboard endpoint first (iOS parity)
-            val dashboardResult = stripeConnectRepository.getEarningsDashboard()
-
-            if (dashboardResult.isSuccess) {
-                val dashboard = dashboardResult.getOrNull()
-                _dashboardData.value = dashboard
-                Timber.d("Earnings dashboard loaded successfully, falling through to individual endpoints")
-            } else {
-                Timber.d("Earnings dashboard not available, using individual Stripe endpoints")
+            // Guard against duplicate loads (iOS parity: if isLoading { return })
+            if (_earningsUiState.value.isLoading && !_earningsUiState.value.isRefreshing) {
+                Timber.d("[Earnings] Already loading, skipping")
+                return@launch
             }
 
-            // Always load individual endpoints for the UI
-            // (the dashboard provides aggregate data, but we still need
-            // the Stripe-specific formats for balance/transfers/payouts)
-            loadIndividualEndpoints()
+            _earningsUiState.value = _earningsUiState.value.copy(
+                isLoading = true,
+                errorMessage = null
+            )
+
+            Timber.d("[Earnings] Loading dashboard data...")
+
+            // Use the single all-in-one dashboard endpoint (iOS parity)
+            stripeConnectRepository.getEarningsDashboard()
+                .onSuccess { dashboard ->
+                    val connectionState = EarningsConnectionState.from(dashboard.stripe)
+                    Timber.d(
+                        "[Earnings] Dashboard loaded successfully. " +
+                            "connectionState=$connectionState, " +
+                            "available=${dashboard.balances.available}, " +
+                            "payouts=${dashboard.payouts.size}, " +
+                            "transactions=${dashboard.transactions.size}"
+                    )
+
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        dashboard = dashboard,
+                        connectionState = connectionState,
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = null,
+                        hasLoaded = true
+                    )
+                }
+                .onFailure { exception ->
+                    Timber.e(exception, "[Earnings] Dashboard load failed")
+
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = exception.message ?: "Couldn't load earnings data.",
+                        hasLoaded = true
+                    )
+                }
         }
     }
 
-    private suspend fun loadIndividualEndpoints() {
-        val balanceDeferred = viewModelScope.async { stripeConnectRepository.getBalance() }
-        val transfersDeferred = viewModelScope.async { stripeConnectRepository.getTransfers() }
-        val payoutsDeferred = viewModelScope.async { stripeConnectRepository.getPayouts() }
-        val accountDeferred = viewModelScope.async { stripeConnectRepository.getConnectAccountStatus() }
-
-        val balanceResult = balanceDeferred.await()
-        val transfersResult = transfersDeferred.await()
-        val payoutsResult = payoutsDeferred.await()
-        val accountResult = accountDeferred.await()
-
-        // If individual balance fails but we have dashboard data, construct balance from dashboard
-        val balance = balanceResult.getOrNull() ?: constructBalanceFromDashboard()
-
-        val errorMessage = balanceResult.exceptionOrNull()?.message
-            ?: transfersResult.exceptionOrNull()?.message
-            ?: payoutsResult.exceptionOrNull()?.message
-
-        if (errorMessage != null) {
-            Timber.w("Earnings partial failure: $errorMessage")
-        }
-
-        _earningsUiState.value = _earningsUiState.value.copy(
-            balance = balance,
-            transfers = transfersResult.getOrDefault(emptyList()),
-            payouts = payoutsResult.getOrDefault(emptyList()),
-            connectAccount = accountResult.getOrNull(),
-            isLoading = false,
-            isRefreshing = false,
-            errorMessage = errorMessage
-        )
-    }
-
-    /**
-     * If individual /host/stripe/balance fails but the comprehensive dashboard
-     * endpoint succeeded, construct a ConnectBalance from the dashboard balances.
-     */
-    private fun constructBalanceFromDashboard(): ConnectBalance? {
-        val dashboard = _dashboardData.value ?: return null
-        val balances = dashboard.balances ?: return null
-
-        return ConnectBalance(
-            available = listOf(BalanceAmount(amount = (balances.available * 100).toInt(), currency = balances.currency)),
-            pending = listOf(BalanceAmount(amount = (balances.pending * 100).toInt(), currency = balances.currency))
-        )
+    fun selectTab(index: Int) {
+        _earningsUiState.value = _earningsUiState.value.copy(selectedTab = index)
     }
 
     fun refreshData() {
         _earningsUiState.value = _earningsUiState.value.copy(isRefreshing = true)
         loadAllData()
+    }
+
+    fun showPayoutSheet() {
+        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = true)
+    }
+
+    fun hidePayoutSheet() {
+        _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
+    }
+
+    fun requestPayout(amount: Double) {
+        viewModelScope.launch {
+            _earningsUiState.value = _earningsUiState.value.copy(isLoading = true)
+
+            val amountInCents = (amount * 100).toInt()
+            stripeConnectRepository.createPayout(amountInCents)
+                .onSuccess {
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        showPayoutSheet = false,
+                        payoutAmount = ""
+                    )
+                    refreshData()
+                }
+                .onFailure { exception ->
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        isLoading = false,
+                        errorMessage = exception.message ?: "Failed to request payout"
+                    )
+                }
+        }
     }
 
     fun clearError() {
@@ -132,7 +139,6 @@ class HostEarningsViewModel @Inject constructor(
     }
 
     fun withdrawEarnings(amount: Double) {
-        // Payout requests are handled via Stripe dashboard
-        refreshData()
+        requestPayout(amount)
     }
 }
