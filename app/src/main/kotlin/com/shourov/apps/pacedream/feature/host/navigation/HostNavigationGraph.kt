@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.host.navigation
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -11,11 +12,13 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostBookingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel
 import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
+import com.shourov.apps.pacedream.feature.host.presentation.HostInboxScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
+import com.shourov.apps.pacedream.feature.host.presentation.HostPostScreen
+import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.inbox.InboxScreen
-import com.pacedream.app.feature.profile.ProfileScreen
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -47,7 +50,7 @@ fun NavGraphBuilder.HostNavigationGraph(
             onSwitchToGuestMode = onSwitchToGuestMode
         )
     }
-    
+
     composable(HostScreen.Listings.route) {
         HostListingsScreen(
             onListingClick = onNavigateToProperty,
@@ -55,7 +58,7 @@ fun NavGraphBuilder.HostNavigationGraph(
             onEditListingClick = onNavigateToEditListing
         )
     }
-    
+
     composable(HostScreen.Bookings.route) {
         HostBookingsScreen(
             onBookingClick = onNavigateToBooking
@@ -65,47 +68,49 @@ fun NavGraphBuilder.HostNavigationGraph(
     composable(HostScreen.Earnings.route) {
         HostEarningsScreen()
     }
-    
+
     composable(HostScreen.Analytics.route) {
         HostAnalyticsScreen(
             onBackClick = { navController.popBackStack() }
         )
     }
 
-    // iOS parity: Post tab routes directly to the create-listing flow
+    // iOS parity: Post tab routes to PostStartView hub (not directly to create listing)
     composable(HostScreen.Post.route) {
-        val context = LocalContext.current
-        val uploadService = try {
-            EntryPointAccessors.fromApplication(
-                context.applicationContext,
-                ImageUploadEntryPoint::class.java
-            ).imageUploadService()
-        } catch (_: Exception) { null }
-
-        CreateListingScreen(
-            listingMode = ListingMode.SHARE,
-            imageUploadService = uploadService,
-            onBackClick = { navController.popBackStack() },
-            onPublishSuccess = { navController.popBackStack() }
+        HostPostScreen(
+            onCreateListingClick = onNavigateToAddListing,
+            onCreateListingWithType = { type ->
+                navController.navigate("${HostNavigationDestinations.ADD_LISTING}?type=$type")
+            },
+            onMyListingsClick = { navController.navigate(HostScreen.Listings.route) },
+            onAnalyticsClick = { navController.navigate(HostScreen.Analytics.route) }
         )
     }
 
-    // iOS parity: Inbox tab (reuses existing messaging screen)
+    // iOS parity: Inbox tab uses dedicated host inbox with Messages/Notifications segments
     composable(HostScreen.Inbox.route) {
-        InboxScreen(
-            onThreadClick = { threadId -> }
+        HostInboxScreen(
+            onThreadClick = { threadId -> },
+            messagesContent = {
+                InboxScreen(
+                    onThreadClick = { threadId -> }
+                )
+            }
         )
     }
 
-    // iOS parity: Profile tab (reuses existing profile screen)
+    // iOS parity: Profile tab uses dedicated host profile (not guest ProfileScreen)
     composable(HostScreen.Profile.route) {
-        ProfileScreen(
-            onLoginClick = {},
-            onHostModeClick = { navController.navigate(HostScreen.Dashboard.route) },
-            onEditProfileClick = {},
-            onSettingsClick = { navController.navigate(HostScreen.Settings.route) },
+        HostProfileScreen(
+            onListingsClick = { navController.navigate(HostScreen.Listings.route) },
             onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
-            onFavoritesClick = {}
+            onInboxClick = { navController.navigate(HostScreen.Inbox.route) },
+            onEarningsClick = { navController.navigate(HostScreen.Earnings.route) },
+            onAccountSettingsClick = { navController.navigate(HostScreen.Settings.route) },
+            onPersonalInfoClick = { navController.navigate(HostScreen.Settings.route) },
+            onPaymentPayoutClick = { navController.navigate(HostScreen.Earnings.route) },
+            onSwitchToGuestMode = onSwitchToGuestMode,
+            onEditProfileClick = { /* Edit profile sheet */ }
         )
     }
 

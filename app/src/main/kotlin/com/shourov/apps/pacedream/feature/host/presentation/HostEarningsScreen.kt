@@ -207,58 +207,298 @@ fun HostEarningsScreen(
     }
 }
 
-// ── Not Connected State ──────────────────────────────────────
+// ── Not Connected State — iOS parity ─────────────────────────
+// Matches iOS HostEarningsView: "How you get paid" banner + Stripe connection card + How payouts work
 
 @Composable
 private fun NotConnectedContent(stripe: DashboardStripeStatus?, onSetupClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(PaceDreamSpacing.LG),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(PaceDreamIcons.AttachMoney, null, tint = PaceDreamColors.TextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(48.dp))
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        Text("Connect a payout account", style = PaceDreamTypography.Title2, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text("Set up Stripe to receive payouts from your bookings. You'll need to provide basic business information.", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextSecondary, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Button(onClick = onSetupClick, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(0.7f), contentPadding = PaddingValues(vertical = 14.dp)) {
-            Text("Set Up Payouts", style = PaceDreamTypography.Button, color = Color.White)
-        }
-    }
-}
-
-// ── Pending Setup State ──────────────────────────────────────
-
-@Composable
-private fun PendingSetupContent(stripe: DashboardStripeStatus?) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(PaceDreamSpacing.LG),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(PaceDreamIcons.Schedule, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(48.dp))
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        Text("Stripe setup incomplete", style = PaceDreamTypography.Title2, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text("Your Stripe account is being reviewed or has pending requirements. Complete the setup to start receiving payouts.", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextSecondary, textAlign = TextAlign.Center)
-
-        val requirements = stripe?.requirements ?: emptyList()
-        if (requirements.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Warning.copy(alpha = 0.08f)), shape = RoundedCornerShape(PaceDreamRadius.MD)) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Requirements", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                    requirements.forEach { req -> Text("• ${req.replace("_", " ")}", style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary) }
+        // "How you get paid" banner — iOS: banknote icon, primary bg
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.06f))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.AttachMoney,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(PaceDreamIconSize.LG)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "How you get paid",
+                        style = PaceDreamTypography.Subheadline,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "PaceDream uses Stripe to send your earnings directly to your bank account. Set up takes just a few minutes.",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary
+                    )
                 }
             }
         }
 
-        stripe?.disabledReason?.let { reason ->
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text("Reason: ${reason.replace("_", " ")}", style = PaceDreamTypography.Footnote, color = PaceDreamColors.Warning, textAlign = TextAlign.Center)
+        // Stripe Connection Card — iOS: icon box, title/subtitle, status chip, CTA button
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
+                shape = RoundedCornerShape(PaceDreamRadius.LG)
+            ) {
+                Column(
+                    modifier = Modifier.padding(PaceDreamSpacing.MD)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CreditCard,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Payout account",
+                                style = PaceDreamTypography.Subheadline,
+                                color = PaceDreamColors.TextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Connect your bank via Stripe",
+                                style = PaceDreamTypography.Footnote,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Status chip
+                    Text(
+                        text = "Not Connected",
+                        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
+                        color = PaceDreamColors.TextSecondary,
+                        modifier = Modifier
+                            .background(
+                                PaceDreamColors.TextSecondary.copy(alpha = 0.14f),
+                                RoundedCornerShape(PaceDreamRadius.Round)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // CTA button
+                    Button(
+                        onClick = onSetupClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Success),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text(
+                            text = "Connect Stripe",
+                            style = PaceDreamTypography.Subheadline,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Icon(
+                            imageVector = PaceDreamIcons.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Stripe security note
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Lock,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Secured by Stripe",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextTertiary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
+
+        // How payouts work — iOS: numbered green steps
+        item { PayoutTimelineCard() }
+    }
+}
+
+// ── Pending Setup State — iOS parity ─────────────────────────
+
+@Composable
+private fun PendingSetupContent(stripe: DashboardStripeStatus?) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // "Finish setup" banner — iOS: orange bg, exclamation icon
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Warning,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Warning,
+                    modifier = Modifier.size(PaceDreamIconSize.LG)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Finish setup to get paid",
+                        style = PaceDreamTypography.Subheadline,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Complete your Stripe payout setup to start receiving earnings from bookings.",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
+            }
+        }
+
+        // Stripe Connection Card — pending state
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
+                shape = RoundedCornerShape(PaceDreamRadius.LG)
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(PaceDreamColors.Warning.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(PaceDreamIcons.CreditCard, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Payout account", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.Bold)
+                            Text("Setup in progress", style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Status chip
+                    Text(
+                        text = "Pending",
+                        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
+                        color = PaceDreamColors.Warning,
+                        modifier = Modifier
+                            .background(PaceDreamColors.Warning.copy(alpha = 0.16f), RoundedCornerShape(PaceDreamRadius.Round))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+
+                    // Requirements
+                    val requirements = stripe?.requirements ?: emptyList()
+                    if (requirements.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                                .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
+                                .padding(12.dp)
+                        ) {
+                            Text("Requirements", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                            requirements.forEach { req ->
+                                Text("• ${req.replace("_", " ")}", style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                            }
+                        }
+                    }
+
+                    stripe?.disabledReason?.let { reason ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                                .background(PaceDreamColors.Error.copy(alpha = 0.08f))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(PaceDreamIcons.Info, null, tint = PaceDreamColors.Error, modifier = Modifier.size(PaceDreamIconSize.SM))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(reason.replace("_", " "), style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // CTA
+                    Button(
+                        onClick = { /* Complete setup */ },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Success),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        Text("Complete Setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Icon(PaceDreamIcons.Check, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                    }
+                }
+            }
+        }
+
+        // How payouts work
+        item { PayoutTimelineCard() }
     }
 }
 
@@ -566,7 +806,7 @@ private fun PayoutTimelineCard() {
             steps.forEachIndexed { index, (title, description) ->
                 Row(modifier = Modifier.padding(vertical = PaceDreamSpacing.XS)) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(PaceDreamColors.Primary), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(PaceDreamColors.Success), contentAlignment = Alignment.Center) {
                             Text("${index + 1}", style = PaceDreamTypography.Caption, color = Color.White, fontWeight = FontWeight.Bold)
                         }
                         if (index < steps.size - 1) Box(modifier = Modifier.width(2.dp).height(24.dp).background(PaceDreamColors.Divider))

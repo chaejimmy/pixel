@@ -136,7 +136,7 @@ fun HostDashboardScreen(
                 )
             }
 
-            // Switch to Guest Mode + spacing
+            // Switch to Guest Mode — iOS parity
             item {
                 Spacer(modifier = Modifier.height(18.dp))
                 TextButton(
@@ -145,7 +145,7 @@ fun HostDashboardScreen(
                     contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                 ) {
                     Icon(
-                        imageVector = PaceDreamIcons.ExitToApp,
+                        imageVector = PaceDreamIcons.SwapHoriz,
                         contentDescription = null,
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -155,6 +155,29 @@ fun HostDashboardScreen(
                         text = "Switch to Guest Mode",
                         style = PaceDreamTypography.Subheadline,
                         color = PaceDreamColors.Primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Sign Out — iOS parity
+            item {
+                TextButton(
+                    onClick = { viewModel.signOut() },
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
+                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.ExitToApp,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Error,
+                        modifier = Modifier.size(PaceDreamIconSize.SM)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Sign Out",
+                        style = PaceDreamTypography.Subheadline,
+                        color = PaceDreamColors.Error,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
