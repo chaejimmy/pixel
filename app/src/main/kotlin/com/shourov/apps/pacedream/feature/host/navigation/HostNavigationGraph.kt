@@ -15,7 +15,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.inbox.InboxScreen
-import com.pacedream.app.feature.profile.ProfileScreen
+import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -97,15 +97,20 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // iOS parity: Profile tab (reuses existing profile screen)
+    // iOS parity: Dedicated Host Profile screen (no longer reuses guest ProfileScreen)
     composable(HostScreen.Profile.route) {
-        ProfileScreen(
-            onLoginClick = {},
-            onHostModeClick = { navController.navigate(HostScreen.Dashboard.route) },
-            onEditProfileClick = {},
-            onSettingsClick = { navController.navigate(HostScreen.Settings.route) },
+        HostProfileScreen(
+            onEditProfileClick = { /* TODO: open edit profile sheet */ },
+            onEditPhotoClick = { /* TODO: open photo picker */ },
+            onListingsClick = { navController.navigate(HostScreen.Listings.route) },
             onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
-            onFavoritesClick = {}
+            onInboxClick = { navController.navigate(HostScreen.Inbox.route) },
+            onEarningsClick = { navController.navigate(HostScreen.Earnings.route) },
+            onAccountSettingsClick = { navController.navigate(HostScreen.Settings.route) },
+            onPersonalInfoClick = { navController.navigate(HostScreen.Settings.route) },
+            onPaymentPayoutClick = { navController.navigate(HostScreen.Earnings.route) },
+            onSwitchToGuestMode = onSwitchToGuestMode,
+            onLoggedOut = onSwitchToGuestMode
         )
     }
 
