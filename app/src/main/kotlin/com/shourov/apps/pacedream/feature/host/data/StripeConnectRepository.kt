@@ -32,16 +32,46 @@ class StripeConnectRepository @Inject constructor(
         }
     }
 
+    // ── Earnings Dashboard (iOS parity: PayoutsService.fetchDashboard) ──
+
+    /**
+     * Fetch comprehensive earnings dashboard from /host/earnings/dashboard.
+     * This matches the iOS PayoutsService.fetchDashboard() endpoint which returns
+     * balances, transactions, stats, and payout rules in a single call.
+     */
+    suspend fun getEarningsDashboard(): Result<EarningsDashboardResponse> {
+        return try {
+            Timber.d("Fetching earnings dashboard from /host/earnings/dashboard")
+            val response = hostApiService.getEarningsDashboard()
+            if (response.isSuccessful) {
+                val body = response.body() ?: EarningsDashboardResponse()
+                Timber.d("Earnings dashboard loaded: ${body.transactions.size} transactions, ${body.payouts.size} payouts")
+                Result.success(body)
+            } else {
+                val msg = extractErrorMessage(response, "Failed to fetch earnings dashboard")
+                Timber.w("Earnings dashboard request failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Earnings dashboard fetch exception")
+            Result.failure(e)
+        }
+    }
+
     // Connect Account
     suspend fun getConnectAccountStatus(): Result<ConnectAccount> {
         return try {
+            Timber.d("Fetching connect account status from /host/stripe/connect/status")
             val response = hostApiService.getConnectAccountStatus()
             if (response.isSuccessful) {
                 Result.success(response.body() ?: ConnectAccount())
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch connect account")))
+                val msg = extractErrorMessage(response, "Failed to fetch connect account")
+                Timber.w("Connect account status failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Connect account status fetch exception")
             Result.failure(e)
         }
     }
@@ -91,13 +121,17 @@ class StripeConnectRepository @Inject constructor(
     // Balance
     suspend fun getBalance(): Result<ConnectBalance> {
         return try {
+            Timber.d("Fetching Stripe balance from /host/stripe/balance")
             val response = hostApiService.getStripeBalance()
             if (response.isSuccessful) {
                 Result.success(response.body() ?: ConnectBalance())
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch balance")))
+                val msg = extractErrorMessage(response, "Failed to fetch balance")
+                Timber.w("Stripe balance failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Stripe balance fetch exception")
             Result.failure(e)
         }
     }
@@ -105,13 +139,19 @@ class StripeConnectRepository @Inject constructor(
     // Transfers
     suspend fun getTransfers(limit: Int = 20): Result<List<Transfer>> {
         return try {
+            Timber.d("Fetching Stripe transfers from /host/stripe/transfers")
             val response = hostApiService.getStripeTransfers(limit)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+                val transfers = response.body() ?: emptyList()
+                Timber.d("Loaded ${transfers.size} transfers")
+                Result.success(transfers)
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch transfers")))
+                val msg = extractErrorMessage(response, "Failed to fetch transfers")
+                Timber.w("Stripe transfers failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Stripe transfers fetch exception")
             Result.failure(e)
         }
     }
@@ -119,26 +159,37 @@ class StripeConnectRepository @Inject constructor(
     // Payouts
     suspend fun getPayouts(limit: Int = 20): Result<List<Payout>> {
         return try {
+            Timber.d("Fetching Stripe payouts from /host/stripe/payouts")
             val response = hostApiService.getStripePayouts(limit)
             if (response.isSuccessful) {
-                Result.success(response.body() ?: emptyList())
+                val payouts = response.body() ?: emptyList()
+                Timber.d("Loaded ${payouts.size} payouts")
+                Result.success(payouts)
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payouts")))
+                val msg = extractErrorMessage(response, "Failed to fetch payouts")
+                Timber.w("Stripe payouts failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Stripe payouts fetch exception")
             Result.failure(e)
         }
     }
 
     suspend fun createPayout(amount: Int, currency: String = "usd"): Result<Payout> {
         return try {
+            Timber.d("Requesting payout: ${amount}c $currency")
             val response = hostApiService.createPayout(CreatePayoutRequest(amount, currency))
             if (response.isSuccessful) {
+                Timber.d("Payout request succeeded")
                 Result.success(response.body() ?: throw Exception("Empty response"))
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to request payout")))
+                val msg = extractErrorMessage(response, "Failed to request payout")
+                Timber.w("Payout request failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Payout request exception")
             Result.failure(e)
         }
     }
@@ -146,6 +197,7 @@ class StripeConnectRepository @Inject constructor(
     // Payout Methods
     suspend fun getPayoutMethods(): Result<List<PayoutMethod>> {
         return try {
+            Timber.d("Fetching payout methods from /host/payouts/methods")
             val response = hostApiService.getPayoutMethods()
             if (response.isSuccessful) {
                 val methods = response.body()?.resolvedMethods?.map { m ->
@@ -156,11 +208,15 @@ class StripeConnectRepository @Inject constructor(
                         isPrimary = m.resolvedIsPrimary
                     )
                 } ?: emptyList()
+                Timber.d("Loaded ${methods.size} payout methods")
                 Result.success(methods)
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payout methods")))
+                val msg = extractErrorMessage(response, "Failed to fetch payout methods")
+                Timber.w("Payout methods failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Payout methods fetch exception")
             Result.failure(e)
         }
     }
@@ -168,13 +224,17 @@ class StripeConnectRepository @Inject constructor(
     // Payout Status
     suspend fun getPayoutStatus(): Result<PayoutStatusResponse> {
         return try {
+            Timber.d("Fetching payout status from /host/payouts/status")
             val response = hostApiService.getPayoutStatus()
             if (response.isSuccessful) {
                 Result.success(response.body() ?: PayoutStatusResponse())
             } else {
-                Result.failure(Exception(extractErrorMessage(response, "Failed to fetch payout status")))
+                val msg = extractErrorMessage(response, "Failed to fetch payout status")
+                Timber.w("Payout status failed [${response.code()}]: $msg")
+                Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Payout status fetch exception")
             Result.failure(e)
         }
     }
