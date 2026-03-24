@@ -93,9 +93,10 @@ fun HomeFeedScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.filteredState.collectAsStateWithLifecycle()
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val selectedCategoryFilter by viewModel.selectedCategory.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -118,8 +119,6 @@ fun HomeFeedScreen(
             }
         }
     }
-
-    var selectedCategoryFilter by remember { mutableStateOf("All") }
 
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -145,7 +144,7 @@ fun HomeFeedScreen(
                 item(key = "category_tabs", contentType = "filter") {
                     CategoryFilterTabs(
                         selectedCategory = selectedCategoryFilter,
-                        onCategorySelected = { selectedCategoryFilter = it },
+                        onCategorySelected = { viewModel.selectCategory(it) },
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }

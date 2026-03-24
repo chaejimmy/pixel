@@ -36,6 +36,10 @@ class SearchViewModel @Inject constructor(
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
     init {
+        // iOS/web parity: auto-load initial results when search opens
+        // (browse by default mode without requiring a query)
+        submitSearch()
+
         viewModelScope.launch {
             authSession.authState.collectLatest { st ->
                 if (st == AuthState.Unauthenticated) {
@@ -244,7 +248,7 @@ data class SearchUiState(
     val suggestions: List<AutocompleteSuggestion> = emptyList(),
     val phase: SearchPhase = SearchPhase.Idle,
     val errorMessage: String? = null,
-    val shareType: String? = null, // USE, BORROW, or SPLIT
+    val shareType: String? = "SHARE", // Default to SHARE (Spaces) matching iOS/web
     val whatQuery: String? = null, // Keywords search
     val startDate: String? = null, // ISO date string
     val endDate: String? = null // ISO date string
