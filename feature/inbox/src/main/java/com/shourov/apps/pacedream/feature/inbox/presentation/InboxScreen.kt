@@ -77,6 +77,9 @@ import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
 import com.shourov.apps.pacedream.feature.inbox.model.InboxSegment
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,7 +92,18 @@ fun InboxScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val loadMoreRequestedForSize = remember { mutableIntStateOf(-1) }
-    
+
+    // Refresh threads when returning from a thread (ON_RESUME)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshIfNeeded()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+    }
+
     // Handle navigation - mark thread as read locally when navigating (matches iOS)
     LaunchedEffect(Unit) {
         viewModel.navigation.collectLatest { navigation ->

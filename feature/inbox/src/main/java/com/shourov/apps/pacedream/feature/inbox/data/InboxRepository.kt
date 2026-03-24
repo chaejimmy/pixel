@@ -140,17 +140,17 @@ class InboxRepository @Inject constructor(
         attachments: List<String> = emptyList()
     ): ApiResult<Message> {
         val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
-        
-        val body = buildString {
-            append("{")
-            append("\"text\":\"${text.escapeJson()}\"")
+
+        // Use kotlinx.serialization for safe JSON construction
+        val bodyObj = kotlinx.serialization.json.buildJsonObject {
+            put("text", kotlinx.serialization.json.JsonPrimitive(text))
             if (attachments.isNotEmpty()) {
-                append(",\"attachments\":[")
-                append(attachments.joinToString(",") { "\"$it\"" })
-                append("]")
+                put("attachments", kotlinx.serialization.json.JsonArray(
+                    attachments.map { kotlinx.serialization.json.JsonPrimitive(it) }
+                ))
             }
-            append("}")
         }
+        val body = bodyObj.toString()
         
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
@@ -166,6 +166,29 @@ class InboxRepository @Inject constructor(
         }
     }
     
+    /**
+     * Get a single thread's details (opponent, listing, unread count, etc.)
+     * GET /v1/inbox/threads/:id
+     */
+    suspend fun getThread(threadId: String): ApiResult<Thread> {
+        val url = appConfig.buildApiUrl("inbox", "threads", threadId)
+
+        return when (val result = apiClient.get(url, includeAuth = true)) {
+            is ApiResult.Success -> {
+                try {
+                    val jsonElement = json.parseToJsonElement(result.data)
+                    val data = jsonElement.jsonObject["data"]?.jsonObject ?: jsonElement.jsonObject
+                    val thread = parseThread(data)
+                    ApiResult.Success(thread)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to parse thread details")
+                    ApiResult.Failure(ApiError.DecodingError("Failed to parse thread details", e))
+                }
+            }
+            is ApiResult.Failure -> result
+        }
+    }
+
     /**
      * Archive a thread
      */
@@ -190,12 +213,11 @@ class InboxRepository @Inject constructor(
         }
         
         // Create new thread
-        val body = buildString {
-            append("{")
-            append("\"participantId\":\"$opponentId\"")
-            listingId?.let { append(",\"listingId\":\"$it\"") }
-            append("}")
+        val bodyObj = kotlinx.serialization.json.buildJsonObject {
+            put("participantId", kotlinx.serialization.json.JsonPrimitive(opponentId))
+            listingId?.let { put("listingId", kotlinx.serialization.json.JsonPrimitive(it)) }
         }
+        val body = bodyObj.toString()
         
         // Try primary endpoint
         val primaryUrl = appConfig.buildApiUrl("inbox", "threads")
@@ -504,14 +526,6 @@ class InboxRepository @Inject constructor(
         return emptyList()
     }
     
-    private fun String.escapeJson(): String {
-        return this
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-    }
 }
 
 // Result classes

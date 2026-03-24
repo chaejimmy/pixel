@@ -48,11 +48,32 @@ class ThreadViewModel @Inject constructor(
     
     init {
         if (threadId.isNotBlank()) {
+            loadThreadDetails()
             loadMessages()
         } else {
             _uiState.value = ThreadDetailUiState.Error("Invalid thread ID")
         }
     }
+
+    /**
+     * Fetch thread metadata (opponent name, avatar, listing) so the
+     * top-bar title shows the real name instead of "Unknown".
+     */
+    private fun loadThreadDetails() {
+        viewModelScope.launch {
+            val result = inboxRepository.getThread(threadId)
+            if (result is ApiResult.Success) {
+                val latestState = _uiState.value as? ThreadDetailUiState.Success
+                if (latestState != null) {
+                    _uiState.value = latestState.copy(thread = result.data)
+                }
+                // If messages haven't loaded yet, stash the thread for later
+                cachedThread = result.data
+            }
+        }
+    }
+
+    private var cachedThread: com.shourov.apps.pacedream.feature.inbox.model.Thread? = null
     
     /**
      * Handle UI events
@@ -89,8 +110,8 @@ class ThreadViewModel @Inject constructor(
                     val currentUserId = existingState?.currentUserId
                         ?: authSession.currentUser.value?.id ?: ""
 
-                    // Reuse existing thread on refresh, or create minimal object
-                    val thread = existingState?.thread ?: Thread(
+                    // Reuse existing thread, cached details from getThread, or create minimal object
+                    val thread = existingState?.thread ?: cachedThread ?: Thread(
                         id = threadId,
                         participants = emptyList(),
                         lastMessage = result.data.messages.firstOrNull(),
