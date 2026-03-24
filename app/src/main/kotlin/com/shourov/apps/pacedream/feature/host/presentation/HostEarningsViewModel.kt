@@ -80,10 +80,27 @@ class HostEarningsViewModel @Inject constructor(
                 .onFailure { exception ->
                     Timber.e(exception, "[Earnings] Dashboard load failed")
 
+                    // iOS parity: abstract raw backend errors into user-friendly messages.
+                    // Don't expose "Access token required" or other implementation details.
+                    val rawMessage = exception.message ?: ""
+                    val userMessage = when {
+                        rawMessage.contains("token", ignoreCase = true) ||
+                        rawMessage.contains("auth", ignoreCase = true) ||
+                        rawMessage.contains("unauthorized", ignoreCase = true) ||
+                        rawMessage.contains("401") ->
+                            "Please sign in again to view your earnings."
+                        rawMessage.contains("network", ignoreCase = true) ||
+                        rawMessage.contains("connect", ignoreCase = true) ||
+                        rawMessage.contains("timeout", ignoreCase = true) ->
+                            "Network error. Check your connection and try again."
+                        else ->
+                            "Couldn't load earnings data. Pull to refresh."
+                    }
+
                     _earningsUiState.value = _earningsUiState.value.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        errorMessage = exception.message ?: "Couldn't load earnings data.",
+                        errorMessage = userMessage,
                         hasLoaded = true
                     )
                 }

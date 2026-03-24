@@ -167,7 +167,7 @@ fun HostDashboardScreen(
                     contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                 ) {
                     Icon(
-                        imageVector = PaceDreamIcons.ExitToApp,
+                        imageVector = PaceDreamIcons.SwapHoriz,
                         contentDescription = null,
                         tint = PaceDreamColors.Primary,
                         modifier = Modifier.size(PaceDreamIconSize.SM)

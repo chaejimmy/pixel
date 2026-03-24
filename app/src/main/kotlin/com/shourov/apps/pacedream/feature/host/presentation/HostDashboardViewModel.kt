@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.feature.host.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,14 +20,28 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HostDashboardViewModel @Inject constructor(
-    private val hostRepository: HostRepository
+    private val hostRepository: HostRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HostDashboardData())
     val uiState: StateFlow<HostDashboardData> = _uiState.asStateFlow()
 
     init {
+        observeUser()
         loadDashboard()
+    }
+
+    private fun observeUser() {
+        viewModelScope.launch {
+            sessionManager.currentUser.collect { user ->
+                if (user != null) {
+                    _uiState.value = _uiState.value.copy(
+                        userName = user.displayName
+                    )
+                }
+            }
+        }
     }
 
     private fun loadDashboard(force: Boolean = false) {
@@ -70,5 +85,9 @@ class HostDashboardViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun signOut() {
+        sessionManager.signOut()
     }
 }

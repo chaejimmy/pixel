@@ -15,4 +15,39 @@
     <string name="messages">Messages</string>
     <string name="profile">Profile</string>
     <string name="not_connected">You are not connected to the internet</string>
+
+    <!-- Host Mode — iOS parity -->
+    <string name="host_dashboard">Dashboard</string>
+    <string name="host_earnings">Earnings</string>
+    <string name="host_post">Post</string>
+    <string name="host_inbox">Inbox</string>
+    <string name="host_profile">Host Profile</string>
+    <string name="host_earnings_title">Earnings &amp; Payments</string>
+    <string name="host_create_listing">Create listing</string>
+    <string name="host_view_listings">View listings</string>
+    <string name="host_manage_payouts">Manage payouts</string>
+    <string name="host_upcoming_bookings">Upcoming bookings</string>
+    <string name="host_your_listings">Your listings</string>
+    <string name="host_history">History</string>
+    <string name="host_switch_to_guest">Switch to Guest Mode</string>
+    <string name="host_sign_out">Sign Out</string>
+    <string name="host_tools">Host tools</string>
+    <string name="host_listings">Listings</string>
+    <string name="host_account_settings">Account settings</string>
+    <string name="host_personal_info">Personal information</string>
+    <string name="host_payment_payout">Payment &amp; payout</string>
+    <string name="host_settings">Settings</string>
+    <string name="host_edit">Edit</string>
+    <string name="host_edit_photo">Edit photo</string>
+    <string name="host_no_bookings">No upcoming bookings yet.</string>
+    <string name="host_no_listings">No listings yet.</string>
+    <string name="host_no_activity">No recent activity yet.</string>
+    <string name="host_see_all">See all</string>
+    <string name="host_notifications">Notifications</string>
+    <string name="host_connect_stripe">Connect Stripe</string>
+    <string name="host_complete_setup">Complete Setup</string>
+    <string name="host_how_you_get_paid">How you get paid</string>
+    <string name="host_payouts_connected">Payouts: Connected</string>
+    <string name="host_payouts_action_required">Payouts: Action required</string>
+    <string name="host_payouts_not_connected">Payouts: Not connected</string>
 </resources>
