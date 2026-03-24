@@ -1,7 +1,9 @@
 package com.pacedream.app.feature.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +17,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,12 +28,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -36,15 +47,15 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
- * SettingsRootScreen
+ * SettingsRootScreen - iOS parity
  *
- * Root Settings screen with grouped sections:
- * - Account: Personal Information, Login & Security
- * - Notifications
- * - Preferences: Language & Region, Payment Methods
- * - Privacy & Sharing
- * - Support: Help & Support
- * - App version footer
+ * Matches iOS SettingsHomeView.swift structure:
+ * - Single main section: Personal Information, Login & Security, Notifications,
+ *   Preferences, Identity Verification, Payment Methods
+ * - Separate Help & Support section
+ * - Log out button (red, destructive) with confirmation
+ * - Icon background containers with colored rounded rect
+ * - No section labels (flat structure like iOS)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,8 +67,11 @@ fun SettingsRootScreen(
     onPreferencesClick: () -> Unit,
     onPaymentMethodsClick: () -> Unit,
     onHelpSupportClick: () -> Unit,
-    onIdentityVerificationClick: () -> Unit = {}
+    onIdentityVerificationClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -92,8 +106,7 @@ fun SettingsRootScreen(
         ) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-            // Account section
-            SectionLabel("Account")
+            // Main settings section (iOS parity: all 6 items in one card)
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
@@ -102,83 +115,54 @@ fun SettingsRootScreen(
                 Column {
                     SettingsRow(
                         icon = PaceDreamIcons.Person,
+                        iconColor = PaceDreamColors.Success,
                         title = "Personal Information",
-                        subtitle = "Name, email, and phone",
                         onClick = onPersonalInfoClick
                     )
-                    HorizontalDivider(
-                        color = PaceDreamColors.Border,
-                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-                    )
+                    SettingsDivider()
 
                     SettingsRow(
                         icon = PaceDreamIcons.Lock,
+                        iconColor = PaceDreamColors.Success,
                         title = "Login & Security",
-                        subtitle = "Password and authentication",
                         onClick = onLoginSecurityClick
                     )
-                }
-            }
+                    SettingsDivider()
 
-            // Identity Verification (iOS parity)
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                SettingsRow(
-                    icon = PaceDreamIcons.VerifiedUser,
-                    title = "Identity Verification",
-                    subtitle = "Verify your identity for a trusted experience",
-                    onClick = onIdentityVerificationClick
-                )
-            }
-
-            // Notifications section
-            SectionLabel("Notifications")
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                SettingsRow(
-                    icon = PaceDreamIcons.Notifications,
-                    title = "Notifications",
-                    subtitle = "Push, email, and SMS preferences",
-                    onClick = onNotificationsClick
-                )
-            }
-
-            // Preferences section
-            SectionLabel("Preferences")
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column {
                     SettingsRow(
-                        icon = PaceDreamIcons.Language,
-                        title = "Language & Region",
-                        subtitle = "Language, currency, and timezone",
+                        icon = PaceDreamIcons.Notifications,
+                        iconColor = PaceDreamColors.Success,
+                        title = "Notifications",
+                        onClick = onNotificationsClick
+                    )
+                    SettingsDivider()
+
+                    SettingsRow(
+                        icon = PaceDreamIcons.Tune,
+                        iconColor = PaceDreamColors.Success,
+                        title = "Preferences",
                         onClick = onPreferencesClick
                     )
-                    HorizontalDivider(
-                        color = PaceDreamColors.Border,
-                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                    SettingsDivider()
+
+                    SettingsRow(
+                        icon = PaceDreamIcons.VerifiedUser,
+                        iconColor = PaceDreamColors.Success,
+                        title = "Identity Verification",
+                        onClick = onIdentityVerificationClick
                     )
+                    SettingsDivider()
 
                     SettingsRow(
                         icon = PaceDreamIcons.CreditCard,
+                        iconColor = PaceDreamColors.Success,
                         title = "Payment Methods",
-                        subtitle = "Saved cards and billing",
                         onClick = onPaymentMethodsClick
                     )
                 }
             }
 
-            // Support section
-            SectionLabel("Support")
+            // Help & Support section (iOS parity: separate card)
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
@@ -186,43 +170,110 @@ fun SettingsRootScreen(
             ) {
                 SettingsRow(
                     icon = PaceDreamIcons.HelpOutline,
+                    iconColor = PaceDreamColors.Success,
                     title = "Help & Support",
-                    subtitle = "FAQs, contact, and feedback",
                     onClick = onHelpSupportClick
                 )
             }
 
-            // App version footer
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            // Log out button (iOS parity: red destructive button in separate card)
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showLogoutConfirm = true }
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.ExitToApp,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Error,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Log out",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.Error
+                    )
+                }
+            }
 
-            Text(
-                text = "PaceDream v${getAppVersion()}",
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextTertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = PaceDreamSpacing.XL)
-            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
+    }
+
+    // Logout confirmation dialog (iOS parity: "Log out?" / "You can sign back in anytime.")
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = {
+                Text(
+                    "Log out?",
+                    style = PaceDreamTypography.Title3
+                )
+            },
+            text = {
+                Text(
+                    "You can sign back in anytime.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirm = false
+                        onLogoutClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Error
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD)
+                ) {
+                    Text("Log out", style = PaceDreamTypography.Button)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutConfirm = false }
+                ) {
+                    Text(
+                        "Cancel",
+                        color = PaceDreamColors.TextPrimary
+                    )
+                }
+            },
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            containerColor = PaceDreamColors.Card
+        )
     }
 }
 
 @Composable
-private fun SectionLabel(title: String) {
-    Text(
-        text = title.uppercase(),
-        style = PaceDreamTypography.Caption,
-        color = PaceDreamColors.TextTertiary,
-        modifier = Modifier.padding(start = PaceDreamSpacing.XS)
+private fun SettingsDivider() {
+    HorizontalDivider(
+        color = PaceDreamColors.Border,
+        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
     )
 }
 
+/**
+ * SettingsRow with icon background container (iOS parity)
+ *
+ * iOS uses a colored rounded rect behind each icon:
+ * ZStack { RoundedRectangle.fill(iconColor.opacity(0.15)) ; Image }
+ */
 @Composable
 private fun SettingsRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
+    iconColor: Color = PaceDreamColors.Primary,
     title: String,
-    subtitle: String? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -232,29 +283,32 @@ private fun SettingsRow(
             .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = PaceDreamColors.Primary,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamColors.TextPrimary
+        // Icon with colored background container (iOS parity)
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    iconColor.copy(alpha = 0.15f),
+                    RoundedCornerShape(10.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = iconColor,
+                modifier = Modifier.size(20.dp)
             )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
-                )
-            }
         }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = title,
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
 
         Icon(
             imageVector = PaceDreamIcons.ChevronRight,
@@ -262,13 +316,5 @@ private fun SettingsRow(
             tint = PaceDreamColors.TextTertiary,
             modifier = Modifier.size(18.dp)
         )
-    }
-}
-
-private fun getAppVersion(): String {
-    return try {
-        com.shourov.apps.pacedream.BuildConfig.VERSION_NAME
-    } catch (_: Exception) {
-        "1.0.0"
     }
 }

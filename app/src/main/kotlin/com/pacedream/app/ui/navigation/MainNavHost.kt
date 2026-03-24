@@ -286,21 +286,21 @@ fun MainNavHost(
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
                         },
-                        onIdentityVerificationClick = {
-                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        // iOS parity: quick action → switch to Bookings tab
+                        onBookingsClick = {
+                            navController.navigate(NavRoutes.BOOKINGS) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         },
-                        onHelpClick = {
-                            navController.navigate(NavRoutes.FAQ)
-                        },
-                        onAboutClick = {
-                            navController.navigate(NavRoutes.ABOUT_US)
-                        },
-                        onMyListsClick = {
-                            navController.navigate(NavRoutes.COLLECTIONS)
+                        // iOS parity: quick action → switch to Favorites tab
+                        onFavoritesClick = {
+                            navController.navigate(NavRoutes.FAVORITES) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
                         },
                         // iOS parity: "Create a listing" from profile.
-                        // If authenticated → switch to host mode (create listing).
-                        // If not authenticated → show auth sheet first, then route to host.
                         onCreateListingClick = {
                             if (authState == AuthState.Authenticated) {
                                 navController.navigate(NavRoutes.HOST_HOME)
@@ -333,6 +333,13 @@ fun MainNavHost(
                         },
                         onHelpSupportClick = {
                             navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
+                        },
+                        onIdentityVerificationClick = {
+                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        },
+                        onLogoutClick = {
+                            sessionManager.signOut()
+                            navController.popBackStack(NavRoutes.PROFILE, inclusive = false)
                         }
                     )
                 }
