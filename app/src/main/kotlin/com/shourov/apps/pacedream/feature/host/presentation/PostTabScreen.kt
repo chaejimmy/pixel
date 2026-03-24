@@ -5,205 +5,356 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
+import com.shourov.apps.pacedream.feature.host.data.HostBookingDTO
+import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
+import com.shourov.apps.pacedream.model.Property
 
+/**
+ * Post Tab Screen - fully backend-driven.
+ *
+ * Uses HostDashboardViewModel to load real data from:
+ * - GET /hosts/dashboard/overview (KPIs)
+ * - GET /bookings/host (bookings)
+ * - GET /host/listings (listings)
+ * - GET /host/payouts/status (payout state)
+ *
+ * Supports: loading, success, empty, and error states.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostTabScreen(
     onPropertyClick: (String) -> Unit = {},
     onAddPropertyClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
-    onEarningsClick: () -> Unit = {}
+    onEarningsClick: () -> Unit = {},
+    viewModel: HostDashboardViewModel = hiltViewModel()
 ) {
-    // Sample data - replace with actual data from ViewModel
-    val hostStats = remember {
-        listOf(
-            HostStatData("Total Earnings", "$2,450", "+12%", true),
-            HostStatData("Bookings", "24", "+8%", true),
-            HostStatData("Occupancy", "78%", "+5%", true),
-            HostStatData("Rating", "4.8", "+0.2", true)
-        )
-    }
-    
-    val recentBookings = remember {
-        listOf(
-            RecentBookingData(
-                id = "1",
-                propertyName = "Modern Downtown Loft",
-                guestName = "Sarah Johnson",
-                checkIn = "Feb 15",
-                checkOut = "Feb 18",
-                amount = 320.0,
-                status = "Confirmed"
-            ),
-            RecentBookingData(
-                id = "2",
-                propertyName = "Cozy Beach House",
-                guestName = "Mike Chen",
-                checkIn = "Feb 20",
-                checkOut = "Feb 25",
-                amount = 450.0,
-                status = "Pending"
-            )
-        )
-    }
-    
-    Column(
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refreshData() },
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
-            .statusBarsPadding()
     ) {
-        // Header
-        PaceDreamHeroHeader(
-            title = "Host Dashboard",
-            subtitle = "Manage your properties and earnings",
-            modifier = Modifier.padding(PaceDreamSpacing.LG)
-        )
-        
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(PaceDreamSpacing.LG),
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.LG)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
         ) {
-            // Quick Actions
-            item {
-                Text(
-                    text = "Quick Actions",
-                    style = PaceDreamTypography.Title3,
-                    color = PaceDreamColors.TextPrimary,
-                    modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
-                )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+            // Header
+            PaceDreamHeroHeader(
+                title = "Host Dashboard",
+                subtitle = "Manage your properties and earnings",
+                modifier = Modifier.padding(PaceDreamSpacing.LG)
+            )
+
+            // Error banner
+            uiState.error?.let { error ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = CardDefaults.cardColors(
+                        containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    item {
-                        QuickActionCard(
-                            icon = PaceDreamIcons.Add,
-                            title = "Add Property",
-                            subtitle = "List your space",
-                            onClick = onAddPropertyClick
+                    Row(
+                        modifier = Modifier.padding(PaceDreamSpacing.SM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Warning,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Error,
+                            modifier = Modifier.size(PaceDreamIconSize.SM)
                         )
-                    }
-                    item {
-                        QuickActionCard(
-                            icon = PaceDreamIcons.Analytics,
-                            title = "Analytics",
-                            subtitle = "View insights",
-                            onClick = onAnalyticsClick
-                        )
-                    }
-                    item {
-                        QuickActionCard(
-                            icon = PaceDreamIcons.AttachMoney,
-                            title = "Earnings",
-                            subtitle = "Track income",
-                            onClick = onEarningsClick
-                        )
-                    }
-                }
-            }
-            
-            // Stats Overview
-            item {
-                Text(
-                    text = "Overview",
-                    style = PaceDreamTypography.Title3,
-                    color = PaceDreamColors.TextPrimary,
-                    modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
-                )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    items(hostStats) { stat ->
-                        HostStatCard(
-                            title = stat.title,
-                            value = stat.value,
-                            change = stat.change,
-                            isPositive = stat.isPositive
-                        )
-                    }
-                }
-            }
-            
-            // Recent Bookings
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent Bookings",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.TextPrimary
-                    )
-                    
-                    TextButton(onClick = { /* Navigate to all bookings */ }) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text(
-                            text = "View All",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.Primary
+                            text = error,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.Error,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
                         )
+                        TextButton(onClick = { viewModel.refreshData() }) {
+                            Text(
+                                text = "Retry",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Error,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
-                recentBookings.forEach { booking ->
-                    RecentBookingCard(
-                        booking = booking,
-                        onClick = { onPropertyClick(booking.id) }
+            }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(PaceDreamSpacing.LG),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.LG)
+            ) {
+                // Quick Actions
+                item {
+                    Text(
+                        text = "Quick Actions",
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextPrimary,
+                        modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
                     )
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                    ) {
+                        item {
+                            QuickActionCard(
+                                icon = PaceDreamIcons.Add,
+                                title = "Add Property",
+                                subtitle = "List your space",
+                                onClick = onAddPropertyClick
+                            )
+                        }
+                        item {
+                            QuickActionCard(
+                                icon = PaceDreamIcons.Analytics,
+                                title = "Analytics",
+                                subtitle = "View insights",
+                                onClick = onAnalyticsClick
+                            )
+                        }
+                        item {
+                            QuickActionCard(
+                                icon = PaceDreamIcons.AttachMoney,
+                                title = "Earnings",
+                                subtitle = "Track income",
+                                onClick = onEarningsClick
+                            )
+                        }
+                    }
+                }
+
+                // Stats Overview - from backend
+                item {
+                    Text(
+                        text = "Overview",
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextPrimary,
+                        modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
+                    )
+
+                    if (uiState.isLoading && uiState.totalBookings == 0) {
+                        // Loading placeholders
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                        ) {
+                            items(4) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(140.dp)
+                                        .height(90.dp)
+                                        .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                                        .background(PaceDreamColors.Gray100)
+                                )
+                            }
+                        }
+                    } else {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                        ) {
+                            item {
+                                HostStatCard(
+                                    title = "Active Listings",
+                                    value = "${uiState.activeListingsCount}",
+                                    change = "",
+                                    isPositive = true
+                                )
+                            }
+                            item {
+                                HostStatCard(
+                                    title = "Bookings",
+                                    value = "${uiState.totalBookings}",
+                                    change = "",
+                                    isPositive = true
+                                )
+                            }
+                            item {
+                                HostStatCard(
+                                    title = "This Month",
+                                    value = "$${String.format("%.0f", uiState.monthlyEarnings)}",
+                                    change = "",
+                                    isPositive = uiState.monthlyEarnings > 0
+                                )
+                            }
+                            item {
+                                HostStatCard(
+                                    title = "Rating",
+                                    value = if (uiState.averageRating > 0) String.format("%.1f", uiState.averageRating) else "—",
+                                    change = "",
+                                    isPositive = uiState.averageRating >= 4.0
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Recent Bookings - from backend
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Recent Bookings",
+                            style = PaceDreamTypography.Title3,
+                            color = PaceDreamColors.TextPrimary
+                        )
+
+                        TextButton(onClick = { /* Navigate to all bookings */ }) {
+                            Text(
+                                text = "View All",
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.Primary
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                }
-            }
-            
-            // Properties Section
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "My Properties",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.TextPrimary
-                    )
-                    
-                    TextButton(onClick = { /* Navigate to properties */ }) {
-                        Text(
-                            text = "Manage",
-                            style = PaceDreamTypography.Callout,
-                            color = PaceDreamColors.Primary
-                        )
+
+                    val upcomingBookings = uiState.topUpcomingBookings
+                    if (uiState.isLoading && upcomingBookings.isEmpty()) {
+                        // Loading placeholders
+                        repeat(2) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(72.dp)
+                                    .padding(vertical = PaceDreamSpacing.XS)
+                                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                                    .background(PaceDreamColors.Gray100)
+                            )
+                        }
+                    } else if (upcomingBookings.isEmpty()) {
+                        // Empty state
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                .background(PaceDreamColors.Gray50)
+                                .padding(PaceDreamSpacing.MD),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CalendarToday,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextTertiary,
+                                modifier = Modifier.size(PaceDreamIconSize.SM)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(
+                                text = "No upcoming bookings yet",
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                        }
+                    } else {
+                        upcomingBookings.forEach { booking ->
+                            RecentBookingCardFromApi(
+                                booking = booking,
+                                onClick = { onPropertyClick(booking.id) }
+                            )
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                
-                // Property cards would go here
-                PropertyManagementCard(
-                    title = "Modern Downtown Loft",
-                    status = "Active",
-                    bookings = 12,
-                    earnings = 1200.0,
-                    onClick = { onPropertyClick("prop1") }
-                )
+
+                // Properties Section - from backend
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "My Properties",
+                            style = PaceDreamTypography.Title3,
+                            color = PaceDreamColors.TextPrimary
+                        )
+
+                        TextButton(onClick = { /* Navigate to properties */ }) {
+                            Text(
+                                text = "Manage",
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.Primary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                    val activeListings = uiState.topActiveListings
+                    if (uiState.isLoading && activeListings.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp)
+                                .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                                .background(PaceDreamColors.Gray100)
+                        )
+                    } else if (activeListings.isEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                .background(PaceDreamColors.Gray50)
+                                .padding(PaceDreamSpacing.MD),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Home,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextTertiary,
+                                modifier = Modifier.size(PaceDreamIconSize.SM)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(
+                                text = "No active listings yet",
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                        }
+                    } else {
+                        activeListings.forEach { listing ->
+                            PropertyManagementCardFromApi(
+                                listing = listing,
+                                onClick = { onPropertyClick(listing.id) }
+                            )
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        }
+                    }
+                }
             }
         }
     }
@@ -242,16 +393,16 @@ private fun QuickActionCard(
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
+
             Text(
                 text = title,
                 style = PaceDreamTypography.Callout,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
-            
+
             Text(
                 text = subtitle,
                 style = PaceDreamTypography.Caption,
@@ -283,44 +434,46 @@ fun HostStatCard(
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary
             )
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-            
+
             Text(
                 text = value,
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold
             )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (isPositive) PaceDreamIcons.TrendingUp else PaceDreamIcons.TrendingDown,
-                    contentDescription = "Trend",
-                    tint = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
-                    modifier = Modifier.size(12.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                
-                Text(
-                    text = change,
-                    style = PaceDreamTypography.Caption,
-                    color = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
-                    fontWeight = FontWeight.SemiBold
-                )
+
+            if (change.isNotBlank()) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isPositive) PaceDreamIcons.TrendingUp else PaceDreamIcons.TrendingDown,
+                        contentDescription = "Trend",
+                        tint = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                    Text(
+                        text = change,
+                        style = PaceDreamTypography.Caption,
+                        color = if (isPositive) PaceDreamColors.Success else PaceDreamColors.Error,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
 }
 
+/**
+ * Booking card driven by real HostBookingDTO from the API.
+ */
 @Composable
-fun RecentBookingCard(
-    booking: RecentBookingData,
+fun RecentBookingCardFromApi(
+    booking: HostBookingDTO,
     onClick: () -> Unit
 ) {
     Card(
@@ -335,72 +488,90 @@ fun RecentBookingCard(
             modifier = Modifier.padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Property image placeholder
+            // Guest initials
+            val initials = booking.resolvedGuestName.split(" ")
+                .mapNotNull { it.firstOrNull()?.uppercase() }
+                .take(2)
+                .joinToString("")
+                .ifEmpty { "G" }
+
             Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                    .clip(CircleShape)
                     .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Home,
-                    contentDescription = "Property",
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = initials,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary,
+                    fontWeight = FontWeight.Bold
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-            
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = booking.propertyName,
+                    text = booking.resolvedListingTitle,
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                
+
                 Text(
-                    text = booking.guestName,
+                    text = booking.resolvedGuestName,
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary
                 )
-                
-                Text(
-                    text = "${booking.checkIn} - ${booking.checkOut}",
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
-                )
+
+                val dateRange = listOfNotNull(booking.resolvedStart, booking.resolvedEnd)
+                    .joinToString(" - ")
+                if (dateRange.isNotBlank()) {
+                    Text(
+                        text = dateRange,
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.End
             ) {
-                Text(
-                    text = "$${String.format("%.0f", booking.amount)}",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                PaceDreamStatusChip(
-                    status = booking.status,
-                    isActive = booking.status == "Confirmed"
-                )
+                if (booking.resolvedTotal > 0) {
+                    Text(
+                        text = "$${String.format("%.0f", booking.resolvedTotal)}",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.Primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                booking.status?.let { status ->
+                    PaceDreamStatusChip(
+                        status = status,
+                        isActive = status.lowercase().contains("confirm") ||
+                            status.lowercase().contains("active") ||
+                            status.lowercase().contains("accept")
+                    )
+                }
             }
         }
     }
 }
 
+/**
+ * Property management card driven by real Property from the API.
+ */
 @Composable
-fun PropertyManagementCard(
-    title: String,
-    status: String,
-    bookings: Int,
-    earnings: Double,
+fun PropertyManagementCardFromApi(
+    listing: Property,
     onClick: () -> Unit
 ) {
     Card(
@@ -420,56 +591,48 @@ fun PropertyManagementCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = title,
+                    text = listing.title,
                     style = PaceDreamTypography.Headline,
                     color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                
+
+                val statusText = if (listing.isAvailable) "Active" else "Inactive"
                 PaceDreamStatusChip(
-                    status = status,
-                    isActive = status == "Active"
+                    status = statusText,
+                    isActive = listing.isAvailable
                 )
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Bookings",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                    Text(
-                        text = bookings.toString(),
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "Earnings",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                    Text(
-                        text = "$${String.format("%.0f", earnings)}",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            val location = "${listing.location.city}, ${listing.location.state}".trim(", ".toCharArray())
+            if (location.isNotBlank() && location != ",") {
+                Text(
+                    text = location,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+
+            if (listing.pricing.basePrice > 0) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Text(
+                    text = "$${listing.pricing.basePrice.toInt()}/${listing.pricing.unit.ifBlank { "hr" }}",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.Primary,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 }
 
+// Keep these data classes for backward compat if referenced elsewhere,
+// but they are no longer used by PostTabScreen.
 data class HostStatData(
     val title: String,
     val value: String,
