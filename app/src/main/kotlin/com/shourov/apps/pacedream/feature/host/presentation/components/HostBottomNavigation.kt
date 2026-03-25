@@ -22,7 +22,7 @@ fun HostBottomNavigation(
         HostScreenItem("host_dashboard", "Dashboard", PaceDreamIcons.Dashboard),
         HostScreenItem("host_earnings", "Earnings", PaceDreamIcons.AttachMoney),
         HostScreenItem("host_post", "Post", PaceDreamIcons.AddCircle),
-        HostScreenItem("host_inbox", "Inbox", PaceDreamIcons.Mail),
+        HostScreenItem("host_inbox", "Messages", PaceDreamIcons.Mail),
         HostScreenItem("host_profile", "Profile", PaceDreamIcons.Person)
     )
 

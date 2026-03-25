@@ -199,31 +199,32 @@ private fun WishlistItemCard(
                 ) {
                     Text(
                         text = item.title,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = PaceDreamTypography.Subheadline,
                         fontWeight = FontWeight.SemiBold,
+                        color = PaceDreamColors.TextPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    
+
                     item.location?.let { location ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = location,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     item.price?.let { price ->
                         Text(
                             text = price,
-                            style = MaterialTheme.typography.titleSmall,
+                            style = PaceDreamTypography.Subheadline,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = PaceDreamColors.Primary
                         )
                     }
                 }
@@ -252,30 +253,37 @@ private fun LockedState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = PaceDreamIcons.Lock,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Sign in to view your favorites",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Save your favorite spaces and gear",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Save your favorite spaces, items, and services",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onSignInClick) {
-            Text("Sign In")
+        Button(
+            onClick = onSignInClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Sign In", style = PaceDreamTypography.Button)
         }
     }
 }
@@ -283,26 +291,29 @@ private fun LockedState(
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = PaceDreamIcons.Favorite,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No favorites yet",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Start exploring and save your favorite items",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Start exploring and save your favorite spaces, items, and services",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -314,23 +325,36 @@ private fun ErrorState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = PaceDreamIcons.ErrorOutline,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = PaceDreamColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Something went wrong",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetryClick) {
-            Text("Try Again")
+        Button(
+            onClick = onRetryClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Try Again", style = PaceDreamTypography.Button)
         }
     }
 }

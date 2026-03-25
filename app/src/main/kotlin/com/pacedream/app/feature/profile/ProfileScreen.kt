@@ -140,7 +140,7 @@ fun ProfileScreen(
                         )
                     }
 
-                    // 2. Quick action chips (iOS parity)
+                    // 2. Quick action chips
                     item {
                         QuickActionsRow(
                             onEditProfile = onEditProfileClick,
@@ -150,17 +150,12 @@ fun ProfileScreen(
                         )
                     }
 
-                    // 3. Create listing CTA (iOS parity)
+                    // 3. Host mode entry point (single, compact)
                     item {
-                        CreateListingCTA(onClick = onCreateListingClick)
+                        HostModeRow(onClick = onHostModeClick)
                     }
 
-                    // 4. Host mode CTA (iOS parity)
-                    item {
-                        HostModeCTA(onClick = onHostModeClick)
-                    }
-
-                    // 5. Settings shortcuts section (iOS parity)
+                    // 4. Settings shortcuts section
                     item {
                         SettingsShortcutsSection(onSettingsClick = onSettingsClick)
                     }
@@ -475,112 +470,57 @@ private fun ActionChip(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun CreateListingCTA(onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.Transparent,
-        shadowElevation = 8.dp
+private fun HostModeRow(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            PaceDreamColors.Primary,
-                            PaceDreamColors.Primary.copy(alpha = 0.78f)
-                        )
-                    ),
-                    RoundedCornerShape(20.dp)
-                )
+                .clickable(onClick = onClick)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = PaceDreamIcons.AddCircle,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Create listing",
-                    style = PaceDreamTypography.Headline.copy(
-                        fontWeight = FontWeight.Bold
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        PaceDreamColors.Primary.copy(alpha = 0.10f),
+                        CircleShape
                     ),
-                    color = Color.White
-                )
-                Text(
-                    text = "Start hosting in minutes",
-                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White.copy(alpha = 0.9f)
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Home,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Icon(
-                imageVector = PaceDreamIcons.ArrowForward,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.95f),
-                modifier = Modifier.size(13.dp)
-            )
-        }
-    }
-}
 
-@Composable
-private fun HostModeCTA(onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.Transparent,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            PaceDreamColors.Primary,
-                            PaceDreamColors.Primary.copy(alpha = 0.80f)
-                        )
-                    ),
-                    RoundedCornerShape(20.dp)
-                )
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Home,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(18.dp)
-            )
             Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Switch to Host Mode",
-                    style = PaceDreamTypography.Headline.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color.White
+                    style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                    color = PaceDreamColors.TextPrimary
                 )
                 Text(
-                    text = "Manage listings and bookings",
-                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White.copy(alpha = 0.9f)
+                    text = "Manage listings, bookings, and earnings",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
                 )
             }
+
             Icon(
-                imageVector = PaceDreamIcons.ArrowForward,
+                imageVector = PaceDreamIcons.ChevronRight,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.95f),
-                modifier = Modifier.size(13.dp)
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(14.dp)
             )
         }
     }
