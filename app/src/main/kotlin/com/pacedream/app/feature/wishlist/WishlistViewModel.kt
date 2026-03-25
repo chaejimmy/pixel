@@ -228,7 +228,14 @@ class WishlistViewModel @Inject constructor(
                             ?: listingData["title"]?.jsonPrimitive?.content
                             ?: "Item",
                         imageUrl = listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
-                            ?: listingData["image"]?.jsonPrimitive?.content,
+                            ?: listingData["image"]?.jsonPrimitive?.content
+                            ?: listingData["imageUrl"]?.jsonPrimitive?.content
+                            ?: listingData["thumbnail"]?.jsonPrimitive?.content
+                            ?: (listingData["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
+                            ?: (listingData["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                            ?: (listingData["galleryImages"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()?.jsonPrimitive?.content
+                            ?: listingData["coverPhoto"]?.jsonPrimitive?.content
+                            ?: listingData["cover"]?.jsonPrimitive?.content,
                         location = listingData["location"]?.let { loc ->
                             when (loc) {
                                 is JsonObject -> loc["city"]?.jsonPrimitive?.content
@@ -261,11 +268,23 @@ class WishlistViewModel @Inject constructor(
     
     private fun parsePrice(obj: JsonObject): String? {
         return try {
+            // Extract standalone frequency from top-level pricingUnit or pricing fields
+            val standaloneFrequency = obj["pricingUnit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                ?: obj["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                ?: (obj["pricing"] as? JsonObject)?.let { p ->
+                    p["pricing_type"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["frequencyLabel"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                }
+
             // Try dynamic_price first (for hourly spaces)
             obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
                 val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
                     ?: price["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                priceValue?.let { formatPrice(it, "hr") }
+                val freq = price["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+                priceValue?.let { formatPrice(it, freq) }
             }
             // Try pricing object
             ?: obj["pricing"]?.jsonObject?.let { pricing ->
@@ -273,27 +292,38 @@ class WishlistViewModel @Inject constructor(
                     ?: pricing["hourly_from"]?.jsonPrimitive?.doubleOrNull
                 val basePrice = pricing["basePrice"]?.jsonPrimitive?.doubleOrNull
                     ?: pricing["base_price"]?.jsonPrimitive?.doubleOrNull
-                val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content
-                    ?: pricing["frequency"]?.jsonPrimitive?.content
-                    ?: pricing["unit"]?.jsonPrimitive?.content
-                
+                val freq = pricing["frequencyLabel"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["pricing_type"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+
                 val amount = hourlyFrom ?: basePrice
-                val unit = frequency?.lowercase()?.takeIf { it.isNotBlank() } ?: "hr"
-                amount?.let { formatPrice(it, unit) }
+                amount?.let { formatPrice(it, freq) }
             }
-            // Try price object
+            // Try price object/array/primitive
             ?: obj["price"]?.let { price ->
                 when (price) {
                     is JsonObject -> {
                         val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
                             ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                        val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
-                        amount?.let { formatPrice(it, unit) }
+                        val freq = price["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                            ?: price["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                            ?: standaloneFrequency
+                        amount?.let { formatPrice(it, freq) }
+                    }
+                    is kotlinx.serialization.json.JsonArray -> {
+                        price.jsonArray.firstOrNull()?.jsonObject?.let { p ->
+                            val amount = p["amount"]?.jsonPrimitive?.doubleOrNull
+                            val freq = p["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                                ?: standaloneFrequency
+                            amount?.let { formatPrice(it, freq) }
+                        }
                     }
                     else -> {
                         val priceValue = price.jsonPrimitive.doubleOrNull
                             ?: price.jsonPrimitive.content.toDoubleOrNull()
-                        priceValue?.let { formatPrice(it, "hr") }
+                        priceValue?.let { formatPrice(it, standaloneFrequency) }
                     }
                 }
             }
@@ -301,18 +331,29 @@ class WishlistViewModel @Inject constructor(
             null
         }
     }
-    
+
+    private fun formatPriceUnit(frequency: String): String {
+        return when (frequency.lowercase().trim()) {
+            "hourly", "hour", "hr" -> "hr"
+            "daily", "day" -> "day"
+            "weekly", "week", "wk" -> "wk"
+            "monthly", "month", "mo" -> "mo"
+            "once" -> "total"
+            else -> frequency.lowercase()
+        }
+    }
+
     /**
      * Format price to match iOS format: "$12/hr" (no spaces, lowercase unit)
+     * When unit is null, displays price without suffix
      */
-    private fun formatPrice(amount: Double, unit: String): String {
+    private fun formatPrice(amount: Double, unit: String?): String {
         val formattedAmount = if (amount == amount.toInt().toDouble()) {
             amount.toInt().toString()
         } else {
             "%.2f".format(amount).trimEnd('0').trimEnd('.')
         }
-        val normalizedUnit = unit.lowercase().trim()
-        return "$$formattedAmount/$normalizedUnit"
+        return if (unit != null) "$$formattedAmount/$unit" else "$$formattedAmount"
     }
     
     /**
