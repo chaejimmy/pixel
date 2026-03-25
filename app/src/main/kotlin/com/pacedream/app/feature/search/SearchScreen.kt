@@ -119,7 +119,7 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        "Share \u00B7 Book \u00B7 Split",
+                        "Spaces \u00B7 Items \u00B7 Services",
                         style = PaceDreamTypography.Footnote.copy(
                             fontFamily = paceDreamFontFamily
                         ),
@@ -136,7 +136,7 @@ fun SearchScreen(
                 onValueChange = { viewModel.onQueryChanged(it) },
                 placeholder = {
                     Text(
-                        "Search spaces, gear, stays...",
+                        "Search spaces, items, and services...",
                         style = PaceDreamTypography.Callout.copy(
                             fontFamily = paceDreamFontFamily
                         ),
@@ -427,10 +427,10 @@ private fun SearchResultCard(
                 ) {
                     Text(
                         text = when (item.type) {
-                            "share" -> "Space"
-                            "gear" -> "Gear"
-                            "split-stay" -> "Stay"
-                            else -> item.type
+                            "space" -> "Space"
+                            "item" -> "Item"
+                            "service" -> "Service"
+                            else -> item.type.replaceFirstChar { it.uppercase() }
                         },
                         style = PaceDreamTypography.Caption2.copy(
                             fontFamily = paceDreamFontFamily,
@@ -786,7 +786,7 @@ private fun SearchEmptyState() {
             }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
-                "Search for spaces, gear, and more",
+                "Search for spaces, items, and services",
                 style = PaceDreamTypography.Title3.copy(
                     fontFamily = paceDreamDisplayFontFamily,
                     fontWeight = FontWeight.SemiBold
@@ -796,7 +796,7 @@ private fun SearchEmptyState() {
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                "Find studios, equipment, and shared stays",
+                "Find spaces, items, and services near you",
                 style = PaceDreamTypography.Subheadline.copy(
                     fontFamily = paceDreamFontFamily
                 ),

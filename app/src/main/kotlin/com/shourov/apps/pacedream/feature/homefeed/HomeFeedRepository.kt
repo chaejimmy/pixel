@@ -138,12 +138,20 @@ class HomeFeedRepository @Inject constructor(
 
             val priceText = obj["priceText"].stringOrNull()
                 ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
-                ?: (obj["price"] as? JsonObject)?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
+                ?: (obj["price"] as? JsonObject)?.let { p ->
+                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
                 ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
-                    p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
                 }
                 ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
-                    (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
+                    val amount = (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = pricing["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
                 }
 
             // Extract subcategory from multiple possible fields for resource type filtering.
@@ -173,6 +181,16 @@ class HomeFeedRepository @Inject constructor(
         // If backend returns a plain number string, prefix with $
         val numeric = s.toDoubleOrNull()
         return if (numeric != null) "$${s}" else s
+    }
+
+    private fun formatPriceUnit(frequency: String): String {
+        return when (frequency.lowercase().trim()) {
+            "hourly", "hour", "hr" -> "hr"
+            "daily", "day" -> "day"
+            "weekly", "week" -> "wk"
+            "monthly", "month", "mo" -> "mo"
+            else -> frequency.lowercase()
+        }
     }
 
     private fun JsonElement?.stringOrNull(): String? {

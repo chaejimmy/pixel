@@ -287,17 +287,17 @@ fun SearchScreen(
                 )
 
                 // Enhanced Search Bar
-                var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.SHARE) }
+                var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.SPACES) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
 
                 LaunchedEffect(state.shareType) {
                     selectedTab = when (state.shareType?.uppercase()) {
-                        "SHARE" -> com.pacedream.app.feature.search.SearchTab.SHARE
-                        "BORROW" -> com.pacedream.app.feature.search.SearchTab.BORROW
-                        "SPLIT" -> com.pacedream.app.feature.search.SearchTab.SPLIT
-                        else -> com.pacedream.app.feature.search.SearchTab.SHARE
+                        "SHARE" -> com.pacedream.app.feature.search.SearchTab.SPACES
+                        "BORROW" -> com.pacedream.app.feature.search.SearchTab.ITEMS
+                        "SPLIT" -> com.pacedream.app.feature.search.SearchTab.SERVICES
+                        else -> com.pacedream.app.feature.search.SearchTab.SPACES
                     }
                 }
 
@@ -306,9 +306,9 @@ fun SearchScreen(
                     onTabSelected = { tab ->
                         selectedTab = tab
                         val shareType = when (tab) {
-                            com.pacedream.app.feature.search.SearchTab.SHARE -> "SHARE"
-                            com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
-                            com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
+                            com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
+                            com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
+                            com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
                         }
                         viewModel.updateSearchParams(shareType = shareType)
                     },
@@ -358,9 +358,9 @@ fun SearchScreen(
                     onSearchClick = {
                         viewModel.updateSearchParams(
                             shareType = when (selectedTab) {
-                                com.pacedream.app.feature.search.SearchTab.SHARE -> "SHARE"
-                                com.pacedream.app.feature.search.SearchTab.BORROW -> "BORROW"
-                                com.pacedream.app.feature.search.SearchTab.SPLIT -> "SPLIT"
+                                com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
+                                com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
+                                com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
                             },
                             whatQuery = whatQuery.takeIf { it.isNotBlank() },
                             city = whereQuery.takeIf { it.isNotBlank() },

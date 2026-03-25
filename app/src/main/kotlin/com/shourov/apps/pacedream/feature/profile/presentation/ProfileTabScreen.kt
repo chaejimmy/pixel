@@ -39,9 +39,7 @@ fun ProfileTabScreen(
     onSwitchToGuestMode: () -> Unit = {},
     isHostMode: Boolean = false,
     onReviewsClick: () -> Unit = {},
-    onBlogClick: () -> Unit = {},
     onTripPlannerClick: () -> Unit = {},
-    onSplitBookingsClick: () -> Unit = {},
     onBidsClick: () -> Unit = {},
     onDestinationsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
@@ -147,9 +145,7 @@ fun ProfileTabScreen(
                                 title = "Explore",
                                 items = listOf(
                                     ProfileMenuItem("Trip Planner", PaceDreamIcons.Map, onTripPlannerClick),
-                                    ProfileMenuItem("Destinations", PaceDreamIcons.LocationOn, onDestinationsClick),
-                                    ProfileMenuItem("Blog", PaceDreamIcons.Article, onBlogClick),
-                                    ProfileMenuItem("Split Bookings", PaceDreamIcons.Group, onSplitBookingsClick)
+                                    ProfileMenuItem("Destinations", PaceDreamIcons.LocationOn, onDestinationsClick)
                                 )
                             ),
                             modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)

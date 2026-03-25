@@ -495,9 +495,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     isHostMode = isHostMode,
                                     // iOS/Web parity: navigate to new feature screens
                                     onReviewsClick = { navController.navigate("reviews") },
-                                    onBlogClick = { navController.navigate("blog") },
                                     onTripPlannerClick = { navController.navigate("trip_planner") },
-                                    onSplitBookingsClick = { navController.navigate("split_bookings") },
                                     onBidsClick = { navController.navigate("bids") },
                                     onDestinationsClick = { navController.navigate("destinations") }
                                 )
@@ -790,55 +788,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
-                            // Blog Screens
-                            composable("blog") {
-                                com.pacedream.app.feature.blog.BlogListScreen(
-                                    onBackClick = { navController.popBackStack() },
-                                    onPostClick = { postId ->
-                                        navController.navigate("blog_detail/$postId")
-                                    }
-                                )
-                            }
-                            composable(
-                                route = "blog_detail/{postId}",
-                                arguments = listOf(navArgument("postId") { type = NavType.StringType })
-                            ) { backStackEntry ->
-                                val postId = backStackEntry.arguments?.getString("postId") ?: ""
-                                // Load blog post by ID then show detail
-                                val viewModel: com.pacedream.app.feature.blog.BlogViewModel = hiltViewModel()
-                                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                                LaunchedEffect(postId) { viewModel.loadPostDetail(postId) }
-                                uiState.selectedPost?.let { post ->
-                                    com.pacedream.app.feature.blog.BlogDetailScreen(
-                                        post = post,
-                                        onBackClick = { navController.popBackStack() }
-                                    )
-                                }
-                            }
-
                             // Trip Planner Screen
                             composable("trip_planner") {
                                 com.pacedream.app.feature.tripplanner.TripPlannerScreen(
-                                    onBackClick = { navController.popBackStack() }
-                                )
-                            }
-
-                            // Split Booking Screens
-                            composable("split_bookings") {
-                                com.pacedream.app.feature.splitbooking.SplitBookingListScreen(
-                                    onBackClick = { navController.popBackStack() },
-                                    onSplitClick = { splitId ->
-                                        navController.navigate("split_booking_detail/$splitId")
-                                    }
-                                )
-                            }
-                            composable(
-                                route = "split_booking_detail/{splitId}",
-                                arguments = listOf(navArgument("splitId") { type = NavType.StringType })
-                            ) { backStackEntry ->
-                                val splitId = backStackEntry.arguments?.getString("splitId") ?: ""
-                                com.pacedream.app.feature.splitbooking.SplitBookingScreen(
-                                    splitId = splitId,
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }

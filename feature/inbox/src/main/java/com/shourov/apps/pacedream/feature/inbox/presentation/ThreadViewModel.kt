@@ -94,52 +94,66 @@ class ThreadViewModel @Inject constructor(
             if (_uiState.value !is ThreadDetailUiState.Success) {
                 _uiState.value = ThreadDetailUiState.Loading
             }
-            
-            val result = inboxRepository.getMessages(
-                threadId = threadId,
-                limit = 50,
-                before = null
-            )
-            
-            when (result) {
-                is ApiResult.Success -> {
-                    beforeCursor = result.data.messages.lastOrNull()?.id
-                    val existingState = _uiState.value as? ThreadDetailUiState.Success
 
-                    // Get current user ID
-                    val currentUserId = existingState?.currentUserId
-                        ?: authSession.currentUser.value?.id ?: ""
+            try {
+                val result = inboxRepository.getMessages(
+                    threadId = threadId,
+                    limit = 50,
+                    before = null
+                )
 
-                    // Reuse existing thread, cached details from getThread, or create minimal object
-                    val thread = existingState?.thread ?: cachedThread ?: Thread(
-                        id = threadId,
-                        participants = emptyList(),
-                        lastMessage = result.data.messages.firstOrNull(),
-                        unreadCount = 0,
-                        updatedAt = null,
-                        listing = null,
-                        opponent = null
-                    )
+                when (result) {
+                    is ApiResult.Success -> {
+                        beforeCursor = result.data.messages.lastOrNull()?.id
+                        val existingState = _uiState.value as? ThreadDetailUiState.Success
 
-                    _uiState.value = ThreadDetailUiState.Success(
-                        thread = thread,
-                        messages = result.data.messages,
-                        currentUserId = currentUserId,
-                        isRefreshing = false,
-                        hasMore = result.data.hasMore,
-                        isSending = false
-                    )
-                }
-                is ApiResult.Failure -> {
-                    // On refresh failure, show error only if we have no existing content
-                    val existing = _uiState.value as? ThreadDetailUiState.Success
-                    if (existing != null) {
-                        _uiState.value = existing.copy(isRefreshing = false)
-                    } else {
-                        _uiState.value = ThreadDetailUiState.Error(
-                            result.error.message ?: "Failed to load messages"
+                        // Get current user ID
+                        val currentUserId = existingState?.currentUserId
+                            ?: authSession.currentUser.value?.id ?: ""
+
+                        // Reuse existing thread, cached details from getThread, or create minimal object
+                        val thread = existingState?.thread ?: cachedThread ?: Thread(
+                            id = threadId,
+                            participants = emptyList(),
+                            lastMessage = result.data.messages.firstOrNull(),
+                            unreadCount = 0,
+                            updatedAt = null,
+                            listing = null,
+                            opponent = null
+                        )
+
+                        _uiState.value = ThreadDetailUiState.Success(
+                            thread = thread,
+                            messages = result.data.messages,
+                            currentUserId = currentUserId,
+                            isRefreshing = false,
+                            hasMore = result.data.hasMore,
+                            isSending = false
                         )
                     }
+                    is ApiResult.Failure -> {
+                        Timber.e("ThreadViewModel: loadMessages FAILED — ${result.error.message}")
+                        // On refresh failure, show error only if we have no existing content
+                        val existing = _uiState.value as? ThreadDetailUiState.Success
+                        if (existing != null) {
+                            _uiState.value = existing.copy(isRefreshing = false)
+                        } else {
+                            _uiState.value = ThreadDetailUiState.Error(
+                                result.error.message ?: "Failed to load messages"
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Guarantee we never stay stuck in Loading state
+                Timber.e(e, "ThreadViewModel: loadMessages EXCEPTION")
+                val existing = _uiState.value as? ThreadDetailUiState.Success
+                if (existing != null) {
+                    _uiState.value = existing.copy(isRefreshing = false)
+                } else {
+                    _uiState.value = ThreadDetailUiState.Error(
+                        e.message ?: "An unexpected error occurred"
+                    )
                 }
             }
         }

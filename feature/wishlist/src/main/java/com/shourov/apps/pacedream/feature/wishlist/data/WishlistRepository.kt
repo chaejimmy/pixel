@@ -336,9 +336,20 @@ class WishlistRepository @Inject constructor(
             ?: itemObject["imageUrl"]?.jsonPrimitive?.content
             ?: itemObject["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
             ?: itemObject["thumbnail"]?.jsonPrimitive?.content
+            ?: (itemObject["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
+            ?: (itemObject["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            ?: (itemObject["galleryImages"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()?.jsonPrimitive?.content
+            ?: itemObject["coverPhoto"]?.jsonPrimitive?.content
+            ?: itemObject["photo"]?.jsonPrimitive?.content
         
         val priceValue = itemObject["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
             ?: itemObject["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
+            ?: (itemObject["price"] as? JsonObject)?.get("amount")?.jsonPrimitive?.content?.toDoubleOrNull()
+
+        val priceUnit = (itemObject["price"] as? JsonObject)?.get("frequency")?.jsonPrimitive?.content
+            ?: (itemObject["pricing"] as? JsonObject)?.get("frequency")?.jsonPrimitive?.content
+            ?: (itemObject["price"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()
+                ?.jsonObject?.get("frequency")?.jsonPrimitive?.content
         
         val itemTypeString = itemObject["type"]?.jsonPrimitive?.content
             ?: itemObject["listingType"]?.jsonPrimitive?.content
@@ -359,6 +370,7 @@ class WishlistRepository @Inject constructor(
             description = description,
             imageUrl = imageUrl,
             price = priceValue,
+            priceUnit = priceUnit,
             itemType = itemType,
             location = location,
             rating = rating
