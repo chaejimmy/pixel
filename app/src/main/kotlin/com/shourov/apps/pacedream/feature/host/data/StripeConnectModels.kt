@@ -268,21 +268,43 @@ enum class EarningsConnectionState {
     }
 }
 
+// ── Screen-level state: one sealed hierarchy for the entire Earnings screen ──
+
+sealed class EarningsScreenState {
+    /** Initial load in progress */
+    data object Loading : EarningsScreenState()
+
+    /** Auth token missing / expired — show sign-in prompt */
+    data object SessionExpired : EarningsScreenState()
+
+    /** Stripe account not created yet */
+    data object StripeNotConnected : EarningsScreenState()
+
+    /** Stripe onboarding started but incomplete */
+    data class StripePending(
+        val requirements: List<String> = emptyList(),
+        val disabledReason: String? = null
+    ) : EarningsScreenState()
+
+    /** Stripe connected, dashboard data available (may have zero earnings) */
+    data class Ready(
+        val dashboard: EarningsDashboardResponse,
+        val hasEarnings: Boolean
+    ) : EarningsScreenState()
+
+    /** Non-auth error (network, server, etc.) */
+    data class Error(val message: String) : EarningsScreenState()
+}
+
 // Earnings UI State for tabbed view (matching iOS)
 data class HostEarningsUiState(
     val selectedTab: Int = 0,
+    val screenState: EarningsScreenState = EarningsScreenState.Loading,
     // Dashboard data (from /host/earnings/dashboard)
     val dashboard: EarningsDashboardResponse? = null,
     val connectionState: EarningsConnectionState = EarningsConnectionState.NOT_CONNECTED,
-    // Legacy fields kept for backward compat
-    val balance: ConnectBalance? = null,
-    val transfers: List<Transfer> = emptyList(),
-    val payouts: List<Payout> = emptyList(),
-    val connectAccount: ConnectAccount? = null,
-    val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null,
     val showPayoutSheet: Boolean = false,
     val payoutAmount: String = "",
-    val hasLoaded: Boolean = false
+    val payoutError: String? = null
 )
