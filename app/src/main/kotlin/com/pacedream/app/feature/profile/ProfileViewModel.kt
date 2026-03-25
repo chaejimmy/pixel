@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import timber.log.Timber
@@ -95,7 +96,7 @@ class ProfileViewModel @Inject constructor(
         when (val result = apiClient.get(url)) {
             is ApiResult.Success -> {
                 val count = try {
-                    val root = result.data.jsonObject
+                    val root = Json.parseToJsonElement(result.data).jsonObject
                     val data = root["data"]?.jsonObject
                     val items = data?.get("items")?.jsonArray
                         ?: data?.get("wishlist")?.jsonArray
@@ -105,7 +106,7 @@ class ProfileViewModel @Inject constructor(
                 } catch (_: Exception) { 0 }
                 _uiState.update { it.copy(wishlistCount = count) }
             }
-            is ApiResult.Error -> {
+            is ApiResult.Failure -> {
                 Timber.w("Wishlist count fetch failed: ${result.error}")
             }
         }
@@ -116,7 +117,7 @@ class ProfileViewModel @Inject constructor(
         when (val result = apiClient.get(url)) {
             is ApiResult.Success -> {
                 val count = try {
-                    val root = result.data.jsonObject
+                    val root = Json.parseToJsonElement(result.data).jsonObject
                     val data = root["data"]?.jsonObject
                     val items = data?.get("items")?.jsonArray
                         ?: data?.get("bookings")?.jsonArray
@@ -126,7 +127,7 @@ class ProfileViewModel @Inject constructor(
                 } catch (_: Exception) { 0 }
                 _uiState.update { it.copy(bookingsCount = count) }
             }
-            is ApiResult.Error -> {
+            is ApiResult.Failure -> {
                 Timber.w("Bookings count fetch failed: ${result.error}")
             }
         }
