@@ -449,11 +449,11 @@ private fun SectionRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PaceDreamColors.Primary,
+            tint = PaceDreamColors.TextSecondary,
             modifier = Modifier.size(20.dp)
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
