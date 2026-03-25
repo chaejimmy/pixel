@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.*
+import com.shourov.apps.pacedream.feature.host.presentation.components.*
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Currency
@@ -58,14 +59,14 @@ fun HostEarningsScreen(
                         Icon(
                             imageVector = PaceDreamIcons.History,
                             contentDescription = "Refresh",
-                            tint = PaceDreamColors.Primary
+                            tint = PaceDreamColors.HostAccent
                         )
                     }
                     val availableBalance = uiState.dashboard?.balances?.available ?: 0.0
                     Button(
                         onClick = { viewModel.showPayoutSheet() },
                         enabled = availableBalance > 0 && uiState.connectionState == EarningsConnectionState.CONNECTED,
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                         modifier = Modifier.height(PaceDreamButtonHeight.SM)
@@ -95,39 +96,15 @@ fun HostEarningsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Error banner
+            // Error banner — shared component
             uiState.errorMessage?.let { error ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
-                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Error.copy(alpha = 0.1f)),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Info,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Error,
-                            modifier = Modifier.size(PaceDreamIconSize.SM)
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Text(
-                            text = error,
-                            style = PaceDreamTypography.Footnote,
-                            color = PaceDreamColors.Error,
-                            modifier = Modifier.weight(1f)
-                        )
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss", style = PaceDreamTypography.Caption, color = PaceDreamColors.Error)
-                        }
-                    }
-                }
+                HostAlertBanner(
+                    text = error,
+                    color = PaceDreamColors.Error,
+                    icon = PaceDreamIcons.Info,
+                    actionLabel = "Dismiss",
+                    onAction = { viewModel.clearError() }
+                )
             }
 
             // Loading state — only show on initial load
@@ -137,7 +114,7 @@ fun HostEarningsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PaceDreamColors.Primary)
+                        CircularProgressIndicator(color = PaceDreamColors.HostAccent)
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         Text(
                             text = "Loading earnings...",
@@ -168,7 +145,7 @@ fun HostEarningsScreen(
             PrimaryTabRow(
                 selectedTabIndex = uiState.selectedTab,
                 containerColor = PaceDreamColors.Background,
-                contentColor = PaceDreamColors.Primary
+                contentColor = PaceDreamColors.HostAccent
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
@@ -179,7 +156,7 @@ fun HostEarningsScreen(
                                 text = title,
                                 style = PaceDreamTypography.Subheadline,
                                 fontWeight = if (uiState.selectedTab == index) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (uiState.selectedTab == index) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
+                                color = if (uiState.selectedTab == index) PaceDreamColors.HostAccent else PaceDreamColors.TextSecondary
                             )
                         }
                     )
@@ -222,14 +199,14 @@ private fun NotConnectedContent(stripe: DashboardStripeStatus?, onSetupClick: ()
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.06f))
+                    .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f))
                     .padding(14.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.AttachMoney,
                     contentDescription = null,
-                    tint = PaceDreamColors.Primary,
+                    tint = PaceDreamColors.HostAccent,
                     modifier = Modifier.size(PaceDreamIconSize.LG)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -266,13 +243,13 @@ private fun NotConnectedContent(stripe: DashboardStripeStatus?, onSetupClick: ()
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
+                                .background(PaceDreamColors.HostAccent.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.CreditCard,
                                 contentDescription = null,
-                                tint = PaceDreamColors.Primary,
+                                tint = PaceDreamColors.HostAccent,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -519,11 +496,11 @@ private fun BalanceTabContent(uiState: HostEarningsUiState, onPayoutClick: () ->
                     Column(modifier = Modifier.fillMaxWidth().padding(PaceDreamSpacing.LG), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Available Balance", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextSecondary)
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        Text(formatDollarAmount(balances.available, balances.currency), style = PaceDreamTypography.LargeTitle.copy(fontSize = 36.sp), color = PaceDreamColors.Primary, fontWeight = FontWeight.Bold)
+                        Text(formatDollarAmount(balances.available, balances.currency), style = PaceDreamTypography.LargeTitle.copy(fontSize = 36.sp), color = PaceDreamColors.HostAccent, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                         Text("Ready for payout", style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextTertiary)
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        Button(onClick = onPayoutClick, enabled = balances.available > 0, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(0.6f), contentPadding = PaddingValues(vertical = 12.dp)) {
+                        Button(onClick = onPayoutClick, enabled = balances.available > 0, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(0.6f), contentPadding = PaddingValues(vertical = 12.dp)) {
                             Icon(PaceDreamIcons.AttachMoney, null, modifier = Modifier.size(PaceDreamIconSize.SM), tint = Color.White)
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                             Text("Request Payout", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -559,7 +536,7 @@ private fun BalanceTabContent(uiState: HostEarningsUiState, onPayoutClick: () ->
         } else if (uiState.hasLoaded) {
             item { EarningsEmptyState(PaceDreamIcons.AttachMoney, "No balance data", uiState.errorMessage ?: "Pull to refresh to try again.") }
         } else {
-            item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.Primary) } }
+            item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.HostAccent) } }
         }
     }
 }
@@ -581,8 +558,8 @@ private fun TransfersTabContent(transactions: List<DashboardTransaction>) {
 private fun TransactionRow(transaction: DashboardTransaction) {
     Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card), elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS), shape = RoundedCornerShape(PaceDreamRadius.LG)) {
         Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(38.dp).clip(CircleShape).background(PaceDreamColors.Primary.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Icon(PaceDreamIcons.Payment, null, tint = PaceDreamColors.Primary, modifier = Modifier.size(14.dp))
+            Box(modifier = Modifier.size(38.dp).clip(CircleShape).background(PaceDreamColors.HostAccent.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                Icon(PaceDreamIcons.Payment, null, tint = PaceDreamColors.HostAccent, modifier = Modifier.size(14.dp))
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -610,7 +587,7 @@ private fun PayoutsTabContent(payouts: List<DashboardPayout>, onRequestPayout: (
             item {
                 EarningsEmptyState(PaceDreamIcons.AttachMoney, "No payouts yet", "Your payout history will appear here.")
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                Button(onClick = onRequestPayout, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 12.dp)) {
+                Button(onClick = onRequestPayout, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 12.dp)) {
                     Text("Request Payout", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -653,7 +630,7 @@ private fun StatusBadge(status: String) {
     val badgeColor = when (status.lowercase()) {
         "succeeded", "paid", "transferred", "paid_out" -> PaceDreamColors.Success
         "pending", "processing", "pending_settlement", "in_transit" -> PaceDreamColors.Warning
-        "held", "ready_for_transfer" -> PaceDreamColors.Primary
+        "held", "ready_for_transfer" -> PaceDreamColors.HostAccent
         "failed", "canceled", "blocked", "clawed_back" -> PaceDreamColors.Error
         else -> PaceDreamColors.TextSecondary
     }
@@ -706,8 +683,8 @@ private fun PayoutRequestBottomSheet(availableAmount: Double, currency: String, 
                         if (index < quickAmounts.size) {
                             val quickAmount = quickAmounts[index]
                             val isSelected = selectedAmount == quickAmount
-                            Button(onClick = { amount = quickAmount.toString(); selectedAmount = quickAmount }, colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Surface), shape = RoundedCornerShape(PaceDreamRadius.SM), modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
-                                Text("$$quickAmount", style = PaceDreamTypography.Subheadline, color = if (isSelected) Color.White else PaceDreamColors.Primary, fontWeight = FontWeight.SemiBold)
+                            Button(onClick = { amount = quickAmount.toString(); selectedAmount = quickAmount }, colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) PaceDreamColors.HostAccent else PaceDreamColors.Surface), shape = RoundedCornerShape(PaceDreamRadius.SM), modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 12.dp)) {
+                                Text("$$quickAmount", style = PaceDreamTypography.Subheadline, color = if (isSelected) Color.White else PaceDreamColors.HostAccent, fontWeight = FontWeight.SemiBold)
                             }
                         } else { Spacer(modifier = Modifier.weight(1f)) }
                     }
@@ -718,11 +695,11 @@ private fun PayoutRequestBottomSheet(availableAmount: Double, currency: String, 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text("Custom Amount", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            OutlinedTextField(value = amount, onValueChange = { amount = it; selectedAmount = 0 }, placeholder = { Text("0.00", color = PaceDreamColors.TextTertiary) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(PaceDreamRadius.MD), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PaceDreamColors.Primary, unfocusedBorderColor = PaceDreamColors.Border))
+            OutlinedTextField(value = amount, onValueChange = { amount = it; selectedAmount = 0 }, placeholder = { Text("0.00", color = PaceDreamColors.TextTertiary) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(PaceDreamRadius.MD), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PaceDreamColors.HostAccent, unfocusedBorderColor = PaceDreamColors.Border))
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             val parsedAmount = amount.toDoubleOrNull()
-            Button(onClick = { parsedAmount?.let { onPayoutRequested(it) } }, enabled = parsedAmount != null && parsedAmount > 0, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary), shape = RoundedCornerShape(PaceDreamRadius.MD), modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.LG)) {
+            Button(onClick = { parsedAmount?.let { onPayoutRequested(it) } }, enabled = parsedAmount != null && parsedAmount > 0, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent), shape = RoundedCornerShape(PaceDreamRadius.MD), modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.LG)) {
                 Text("Request Payout", style = PaceDreamTypography.Button, color = Color.White)
             }
         }
@@ -765,7 +742,7 @@ private fun SettlementStatusCard(balances: DashboardBalances) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 SettlementColumn("Available Now", formatDollarAmount(balances.available, balances.currency), PaceDreamColors.Success)
                 SettlementColumn("Settling on Stripe", formatDollarAmount(balances.settling, balances.currency), PaceDreamColors.Warning)
-                SettlementColumn("Lifetime Earnings", formatDollarAmount(balances.lifetime, balances.currency), PaceDreamColors.Primary)
+                SettlementColumn("Lifetime Earnings", formatDollarAmount(balances.lifetime, balances.currency), PaceDreamColors.HostAccent)
             }
             if (balances.fundsSettling) {
                 Spacer(modifier = Modifier.height(14.dp))

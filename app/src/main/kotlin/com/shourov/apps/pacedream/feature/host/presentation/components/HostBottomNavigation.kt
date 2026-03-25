@@ -42,7 +42,7 @@ fun HostBottomNavigation(
             hostScreens.forEach { screen ->
                 val selected = currentRoute == screen.route
                 val iconColor by animateColorAsState(
-                    targetValue = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                    targetValue = if (selected) PaceDreamColors.HostAccent else PaceDreamColors.TextSecondary,
                     animationSpec = tween(PaceDreamAnimationDuration.FAST),
                     label = "iconColor"
                 )
@@ -69,11 +69,11 @@ fun HostBottomNavigation(
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PaceDreamColors.Primary,
-                        selectedTextColor = PaceDreamColors.Primary,
+                        selectedIconColor = PaceDreamColors.HostAccent,
+                        selectedTextColor = PaceDreamColors.HostAccent,
                         unselectedIconColor = PaceDreamColors.TextSecondary,
                         unselectedTextColor = PaceDreamColors.TextSecondary,
-                        indicatorColor = PaceDreamColors.Primary.copy(alpha = 0.1f)
+                        indicatorColor = PaceDreamColors.HostAccent.copy(alpha = 0.1f)
                     )
                 )
             }

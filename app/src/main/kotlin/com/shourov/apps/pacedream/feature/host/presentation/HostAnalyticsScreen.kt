@@ -20,13 +20,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
+import com.shourov.apps.pacedream.feature.host.presentation.components.*
 
 /**
  * HostAnalyticsScreen - iOS parity.
  *
- * Matches iOS HostAnalyticsView: KPI overview (2x2 grid), listings breakdown,
- * bookings breakdown, and earnings section. All data is backend-driven via
- * HostDashboardViewModel (shared data source, same as iOS HostDataStore).
+ * KPI overview (2x2 grid), listings breakdown, bookings breakdown, earnings.
+ * Unified with HostAccent color and shared components.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,48 +72,25 @@ fun HostAnalyticsScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PaceDreamColors.Primary)
+                    CircularProgressIndicator(color = PaceDreamColors.HostAccent)
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
                 ) {
-                    // Error banner
+                    // Error banner — shared component
                     uiState.error?.let { error ->
                         item {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-                                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = PaceDreamColors.Error.copy(alpha = 0.08f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(PaceDreamSpacing.MD),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = PaceDreamIcons.Warning,
-                                        contentDescription = null,
-                                        tint = PaceDreamColors.Error,
-                                        modifier = Modifier.size(PaceDreamIconSize.SM)
-                                    )
-                                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                                    Text(
-                                        text = error,
-                                        style = PaceDreamTypography.Caption,
-                                        color = PaceDreamColors.Error,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
+                            HostAlertBanner(
+                                text = error,
+                                color = PaceDreamColors.Error,
+                                icon = PaceDreamIcons.Warning
+                            )
                         }
                     }
 
-                    // KPI Overview (2x2 grid) - matches iOS HostAnalyticsView
+                    // KPI Overview (2x2 grid)
                     item {
                         Row(
                             modifier = Modifier
@@ -125,14 +102,14 @@ fun HostAnalyticsScreen(
                                 label = "Active Listings",
                                 value = uiState.activeListingsCount.toString(),
                                 icon = PaceDreamIcons.CheckCircle,
-                                tint = PaceDreamColors.Success,
+                                tint = PaceDreamColors.HostAccent,
                                 modifier = Modifier.weight(1f)
                             )
                             AnalyticsKpiCard(
                                 label = "Upcoming Bookings",
                                 value = uiState.upcomingBookingsCount.toString(),
                                 icon = PaceDreamIcons.CalendarToday,
-                                tint = PaceDreamColors.Info,
+                                tint = PaceDreamColors.HostAccent,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -157,13 +134,13 @@ fun HostAnalyticsScreen(
                                 label = "Booked This Month",
                                 value = formatCurrency(uiState.monthlyEarnings),
                                 icon = PaceDreamIcons.AttachMoney,
-                                tint = PaceDreamColors.Primary,
+                                tint = PaceDreamColors.HostAccent,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
 
-                    // Listings Breakdown - matches iOS
+                    // Listings Breakdown
                     item {
                         BreakdownCard(
                             title = "Listings Breakdown",
@@ -171,7 +148,7 @@ fun HostAnalyticsScreen(
                         )
                     }
 
-                    // Bookings Breakdown - matches iOS
+                    // Bookings Breakdown
                     item {
                         BreakdownCard(
                             title = "Bookings Breakdown",
@@ -179,7 +156,7 @@ fun HostAnalyticsScreen(
                         )
                     }
 
-                    // Earnings Section - matches iOS
+                    // Earnings Section
                     item {
                         EarningsSummaryCard(uiState)
                     }
@@ -203,7 +180,7 @@ private fun AnalyticsKpiCard(
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
-        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -227,7 +204,7 @@ private fun AnalyticsKpiCard(
             )
             Text(
                 text = label,
-                style = PaceDreamTypography.Caption,
+                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
                 color = PaceDreamColors.TextSecondary
             )
         }
@@ -250,9 +227,8 @@ private fun BreakdownCard(
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Text(
                 text = title,
-                style = PaceDreamTypography.Headline,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Headline.copy(fontWeight = FontWeight.SemiBold),
+                color = PaceDreamColors.TextPrimary
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
@@ -311,9 +287,8 @@ private fun EarningsSummaryCard(uiState: HostDashboardData) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Text(
                 text = "Earnings",
-                style = PaceDreamTypography.Headline,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Headline.copy(fontWeight = FontWeight.SemiBold),
+                color = PaceDreamColors.TextPrimary
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
@@ -326,7 +301,7 @@ private fun EarningsSummaryCard(uiState: HostDashboardData) {
             Text(
                 text = formatCurrency(uiState.monthlyEarnings),
                 style = PaceDreamTypography.LargeTitle,
-                color = PaceDreamColors.Primary,
+                color = PaceDreamColors.HostAccent,
                 fontWeight = FontWeight.Bold
             )
 
@@ -346,9 +321,8 @@ private fun EarningsSummaryCard(uiState: HostDashboardData) {
                 )
                 Text(
                     text = formatCurrency(uiState.totalRevenue),
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold
+                    style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                    color = PaceDreamColors.TextPrimary
                 )
             }
 
@@ -366,9 +340,8 @@ private fun EarningsSummaryCard(uiState: HostDashboardData) {
                 )
                 Text(
                     text = uiState.totalBookings.toString(),
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.SemiBold
+                    style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                    color = PaceDreamColors.TextPrimary
                 )
             }
         }
@@ -391,7 +364,7 @@ private fun buildListingsBreakdown(uiState: HostDashboardData): List<BreakdownIt
     val total = uiState.listings.size
 
     return listOf(
-        BreakdownItem("Active", active.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.Success),
+        BreakdownItem("Active", active.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.HostAccent),
         BreakdownItem("Inactive", inactive.toString(), PaceDreamIcons.VisibilityOff, PaceDreamColors.TextSecondary),
         BreakdownItem("Total", total.toString(), PaceDreamIcons.Home, PaceDreamColors.TextPrimary, isBold = true)
     )
@@ -407,9 +380,9 @@ private fun buildBookingsBreakdown(uiState: HostDashboardData): List<BreakdownIt
     val total = uiState.bookings.size
 
     return listOf(
-        BreakdownItem("Upcoming", upcoming.toString(), PaceDreamIcons.CalendarToday, PaceDreamColors.Info),
+        BreakdownItem("Upcoming", upcoming.toString(), PaceDreamIcons.CalendarToday, PaceDreamColors.HostAccent),
         BreakdownItem("Pending Requests", pending.toString(), PaceDreamIcons.Schedule, PaceDreamColors.Warning),
-        BreakdownItem("Completed", completed.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.Success),
+        BreakdownItem("Completed", completed.toString(), PaceDreamIcons.CheckCircle, PaceDreamColors.HostAccent),
         BreakdownItem("Total", total.toString(), PaceDreamIcons.CalendarToday, PaceDreamColors.TextPrimary, isBold = true)
     )
 }

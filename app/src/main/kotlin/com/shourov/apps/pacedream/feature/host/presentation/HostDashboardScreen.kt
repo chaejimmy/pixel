@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +28,7 @@ import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
 import com.shourov.apps.pacedream.feature.host.data.HostBookingDTO
 import com.shourov.apps.pacedream.feature.host.data.PayoutConnectionState
+import com.shourov.apps.pacedream.feature.host.presentation.components.*
 import com.shourov.apps.pacedream.model.Property
 import java.util.Calendar
 
@@ -50,25 +50,13 @@ fun HostDashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutConfirm by remember { mutableStateOf(false) }
 
-    // iOS parity: Sign Out confirmation alert
     if (showLogoutConfirm) {
-        AlertDialog(
-            onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Sign out?") },
-            text = { Text("You can sign back in anytime.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLogoutConfirm = false
-                    onSignOut()
-                }) {
-                    Text("Sign Out", color = PaceDreamColors.Error)
-                }
+        HostSignOutDialog(
+            onConfirm = {
+                showLogoutConfirm = false
+                onSignOut()
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showLogoutConfirm = false }
         )
     }
 
@@ -83,24 +71,24 @@ fun HostDashboardScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            // Greeting header — iOS: no profile avatar, just greeting + payout badge
+            // Greeting header
             item {
-                DashboardHeaderSection(
-                    userName = uiState.userName
-                )
+                DashboardHeaderSection(userName = uiState.userName)
             }
 
             // Error banner with retry
             uiState.error?.let { error ->
                 item {
-                    InlineErrorBannerWithRetry(
+                    HostAlertBanner(
                         text = error,
-                        onRetry = { viewModel.refreshData() }
+                        color = PaceDreamColors.Warning,
+                        actionLabel = "Retry",
+                        onAction = { viewModel.refreshData() }
                     )
                 }
             }
 
-            // Payout setup prompt (website parity: show when eligible)
+            // Payout setup prompt
             if (uiState.shouldShowPayoutSetupPrompt &&
                 uiState.payoutState != PayoutConnectionState.CONNECTED) {
                 item {
@@ -158,67 +146,31 @@ fun HostDashboardScreen(
                 )
             }
 
-            // iOS parity: Switch to Guest Mode button
+            // Switch to Guest Mode
             item {
-                Spacer(modifier = Modifier.height(18.dp))
-                TextButton(
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                HostSwitchModeRow(
                     onClick = onSwitchToGuestMode,
-                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
-                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.SwapHoriz,
-                        contentDescription = null,
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(PaceDreamIconSize.SM)
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text(
-                        text = "Switch to Guest Mode",
-                        style = PaceDreamTypography.Subheadline,
-                        color = PaceDreamColors.Primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                )
             }
 
-            // iOS parity: Sign Out button (destructive)
+            // Sign Out
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                TextButton(
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                HostSignOutRow(
                     onClick = { showLogoutConfirm = true },
-                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
-                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.ExitToApp,
-                        contentDescription = null,
-                        tint = PaceDreamColors.Error,
-                        modifier = Modifier.size(PaceDreamIconSize.SM)
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text(
-                        text = "Sign Out",
-                        style = PaceDreamTypography.Subheadline,
-                        color = PaceDreamColors.Error,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                )
             }
         }
     }
 }
 
 // ── Header ─────────────────────────────────────────────────────
-// iOS: Single-line greeting "Good morning, [Name]" at 28pt bold
-// with "Payouts: Connected" badge below. No profile avatar button.
-// iOS always shows "Payouts: Connected" with .success style for
-// clean professional UX (payout details are in the Earnings screen).
 
 @Composable
-private fun DashboardHeaderSection(
-    userName: String
-) {
+private fun DashboardHeaderSection(userName: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -238,61 +190,11 @@ private fun DashboardHeaderSection(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // iOS parity: Always show "Payouts: Connected" with success (green) style
-        Text(
-            text = "Payouts: Connected",
-            style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-            color = PaceDreamColors.Success,
-            modifier = Modifier
-                .background(PaceDreamColors.Success.copy(alpha = 0.14f), shape = RoundedCornerShape(PaceDreamRadius.Round))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-        )
+        HostPayoutBadge(text = "Payouts: Connected")
     }
 }
 
-// ── Error Banner with Retry ──────────────────────────────────
-// iOS: Orange bg, triangle icon, semibold subheadline text, no card elevation
-
-@Composable
-private fun InlineErrorBannerWithRetry(text: String, onRetry: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS)
-            .clip(RoundedCornerShape(12.dp))
-            .background(PaceDreamColors.Warning.copy(alpha = 0.12f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.Warning,
-            contentDescription = null,
-            tint = PaceDreamColors.Warning,
-            modifier = Modifier.size(PaceDreamIconSize.SM)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = text,
-            style = PaceDreamTypography.Subheadline,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f)
-        )
-        TextButton(
-            onClick = onRetry,
-            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM)
-        ) {
-            Text(
-                text = "Retry",
-                style = PaceDreamTypography.Footnote,
-                color = PaceDreamColors.Warning,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-// ── Payout Setup Prompt (website parity) ─────────────────────
+// ── Payout Setup Prompt ─────────────────────────────────────────
 
 @Composable
 private fun PayoutSetupPromptCard(
@@ -304,8 +206,8 @@ private fun PayoutSetupPromptCard(
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(top = PaceDreamSpacing.SM)
-            .clip(RoundedCornerShape(14.dp))
-            .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Warning.copy(alpha = 0.10f))
             .clickable(onClick = onSetupClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -328,9 +230,8 @@ private fun PayoutSetupPromptCard(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "Set up payouts",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.SemiBold
+                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
+                color = PaceDreamColors.TextPrimary
             )
             Text(
                 text = reason ?: "Connect your account to receive earnings from bookings.",
@@ -344,13 +245,12 @@ private fun PayoutSetupPromptCard(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.Warning,
-            modifier = Modifier.size(PaceDreamIconSize.SM)
+            modifier = Modifier.size(18.dp)
         )
     }
 }
 
-// ── Quick Actions ─────────────────────────────────────────────
-// iOS: Capsule buttons with 14h/10v padding, 14pt bold text
+// ── Quick Actions ─────────────────────────────────────────────────
 
 @Composable
 private fun QuickActionsCapsules(
@@ -364,21 +264,21 @@ private fun QuickActionsCapsules(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            CapsuleButton(
+            HostCapsuleButton(
                 icon = PaceDreamIcons.Add,
                 title = "Create listing",
                 onClick = onCreateListing
             )
         }
         item {
-            CapsuleButton(
+            HostCapsuleButton(
                 icon = PaceDreamIcons.Home,
                 title = "View listings",
                 onClick = onViewListings
             )
         }
         item {
-            CapsuleButton(
+            HostCapsuleButton(
                 icon = PaceDreamIcons.CreditCard,
                 title = "Manage payouts",
                 onClick = onManagePayouts
@@ -387,38 +287,7 @@ private fun QuickActionsCapsules(
     }
 }
 
-@Composable
-private fun CapsuleButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(PaceDreamRadius.Round),
-        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(PaceDreamIconSize.SM)
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = title,
-            color = Color.White,
-            style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-// ── KPI Chips ─────────────────────────────────────────────────
-// iOS: Vertical layout — icon top-left, value 22pt bold, title 12pt semibold
-//      160pt width, 14pt padding, 16pt corner radius, soft shadow
+// ── KPI Chips ─────────────────────────────────────────────────────
 
 @Composable
 private fun KPIChipsRow(
@@ -432,54 +301,14 @@ private fun KPIChipsRow(
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item { KPIChip(title = "Active listings", value = "$activeListings", icon = PaceDreamIcons.Home) }
-        item { KPIChip(title = "Upcoming", value = "$upcomingBookings", icon = PaceDreamIcons.CalendarToday) }
-        item { KPIChip(title = "Pending", value = "$pendingRequests", icon = PaceDreamIcons.Schedule) }
-        item { KPIChip(title = "This month", value = "$${String.format("%.0f", monthlyEarnings)}", icon = PaceDreamIcons.AttachMoney) }
+        item { HostKpiChip(title = "Active listings", value = "$activeListings", icon = PaceDreamIcons.Home) }
+        item { HostKpiChip(title = "Upcoming", value = "$upcomingBookings", icon = PaceDreamIcons.CalendarToday) }
+        item { HostKpiChip(title = "Pending", value = "$pendingRequests", icon = PaceDreamIcons.Schedule) }
+        item { HostKpiChip(title = "This month", value = "$${String.format("%.0f", monthlyEarnings)}", icon = PaceDreamIcons.AttachMoney) }
     }
 }
 
-@Composable
-private fun KPIChip(
-    title: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(PaceDreamRadius.LG)
-    ) {
-        Column(
-            modifier = Modifier
-                .width(160.dp)
-                .padding(14.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(PaceDreamIconSize.SM)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                text = value,
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = title,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                color = PaceDreamColors.TextSecondary
-            )
-        }
-    }
-}
-
-// ── Upcoming Bookings ─────────────────────────────────────────
-// iOS: 18pt bold header, 13pt semibold "See all", 10pt spacing between cards
+// ── Upcoming Bookings ─────────────────────────────────────────────
 
 @Composable
 private fun UpcomingBookingsSection(
@@ -493,7 +322,7 @@ private fun UpcomingBookingsSection(
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(top = 18.dp)
     ) {
-        SectionHeader(title = "Upcoming bookings", onViewAll = onViewAllClick)
+        HostSectionHeader(title = "Upcoming bookings", onViewAll = onViewAllClick)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -551,27 +380,7 @@ private fun BookingRowCard(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Guest initials — iOS: 40pt circle
-            val initials = guestName.split(" ")
-                .mapNotNull { it.firstOrNull()?.uppercase() }
-                .take(2)
-                .joinToString("")
-                .ifEmpty { "G" }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = initials,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold,
-                    style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp)
-                )
-            }
+            HostInitialsAvatar(name = guestName)
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -606,8 +415,7 @@ private fun BookingRowCard(
     }
 }
 
-// ── Your Listings ─────────────────────────────────────────────
-// iOS: 224pt card width, 200x120pt image, 12pt padding, 18pt radius
+// ── Your Listings ─────────────────────────────────────────────────
 
 @Composable
 private fun YourListingsSection(
@@ -617,7 +425,7 @@ private fun YourListingsSection(
     onViewAllClick: () -> Unit
 ) {
     Column(modifier = Modifier.padding(top = 18.dp)) {
-        SectionHeader(
+        HostSectionHeader(
             title = "Your listings",
             onViewAll = onViewAllClick,
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
@@ -635,7 +443,7 @@ private fun YourListingsSection(
                         modifier = Modifier
                             .width(224.dp)
                             .height(220.dp)
-                            .clip(RoundedCornerShape(18.dp))
+                            .clip(RoundedCornerShape(PaceDreamRadius.LG))
                             .background(PaceDreamColors.Gray100)
                     )
                 }
@@ -681,7 +489,7 @@ private fun ListingMiniCard(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(18.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Column {
             Box(
@@ -743,8 +551,7 @@ private fun ListingMiniCard(
     }
 }
 
-// ── History Section ───────────────────────────────────────────
-// iOS: 18pt bold "History" title, 38pt icon circles, 14pt padding, 16pt radius
+// ── History Section ───────────────────────────────────────────────
 
 @Composable
 private fun HistorySection(
@@ -756,12 +563,7 @@ private fun HistorySection(
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(top = 18.dp)
     ) {
-        Text(
-            text = "History",
-            style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Bold
-        )
+        HostSectionHeader(title = "History")
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -794,14 +596,13 @@ private fun HistorySection(
 
 @Composable
 private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
-    // iOS parity: color-coded icons based on event type
     val titleLower = event.title.lowercase()
     val eventColor = when {
-        titleLower.contains("received") -> PaceDreamColors.Primary // green (payment received)
-        titleLower.contains("pending") -> PaceDreamColors.Warning  // orange (earning pending)
-        titleLower.contains("hold") -> PaceDreamColors.Error       // red (payout on hold)
-        titleLower.contains("request") -> PaceDreamColors.Primary  // green (new booking request)
-        else -> PaceDreamColors.Primary
+        titleLower.contains("received") -> PaceDreamColors.HostAccent
+        titleLower.contains("pending") -> PaceDreamColors.Warning
+        titleLower.contains("hold") -> PaceDreamColors.Error
+        titleLower.contains("request") -> PaceDreamColors.HostAccent
+        else -> PaceDreamColors.HostAccent
     }
     val eventIcon = when {
         titleLower.contains("received") || titleLower.contains("pending") || titleLower.contains("hold") ->
@@ -869,38 +670,7 @@ private fun HistoryEventRow(event: HostDashboardData.DashboardEvent) {
     }
 }
 
-// ── Shared Section Components ─────────────────────────────────
-// iOS: 18pt bold title, 13pt semibold primary-colored "See all"
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    onViewAll: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Bold
-        )
-        TextButton(onClick = onViewAll) {
-            Text(
-                text = "See all",
-                style = PaceDreamTypography.Footnote,
-                color = PaceDreamColors.Primary,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-// ── Helper ────────────────────────────────────────────────────
+// ── Helper ────────────────────────────────────────────────────────
 
 private fun timeOfDayGreeting(): String {
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)

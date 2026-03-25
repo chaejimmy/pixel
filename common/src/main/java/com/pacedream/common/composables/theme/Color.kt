@@ -180,6 +180,11 @@ object PaceDreamColors {
     val Mint = SystemMint
     val Brown = SystemBrown
 
+    // Host mode accent — iOS canonical host tint
+    // Use this for all host-specific icons, badges, and primary host actions.
+    // Bottom nav and brand-level elements keep using Primary (#336633).
+    val HostAccent = PaceDreamSuccess // #10B981
+
     // Semantic colors for components
     val SurfaceVariant = SystemGray5 // #E5E5EA
     val OnSurfaceVariant = SystemGray // #8E8E93

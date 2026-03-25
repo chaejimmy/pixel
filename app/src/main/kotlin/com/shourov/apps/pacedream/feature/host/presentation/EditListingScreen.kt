@@ -278,11 +278,11 @@ fun EditListingScreen(
                             if (uiState.isSaving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
-                                    color = PaceDreamColors.Primary, strokeWidth = 2.dp,
+                                    color = PaceDreamColors.HostAccent, strokeWidth = 2.dp,
                                 )
                             } else {
                                 Text("Save", style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
-                                    color = if (uiState.hasChanges) PaceDreamColors.Primary
+                                    color = if (uiState.hasChanges) PaceDreamColors.HostAccent
                                     else PaceDreamColors.TextTertiary)
                             }
                         }
@@ -298,7 +298,7 @@ fun EditListingScreen(
             uiState.isLoading -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PaceDreamColors.Primary)
+                        CircularProgressIndicator(color = PaceDreamColors.HostAccent)
                         Spacer(Modifier.height(PaceDreamSpacing.MD))
                         Text("Loading listing...", style = PaceDreamTypography.Body,
                             color = PaceDreamColors.TextSecondary)
@@ -316,7 +316,7 @@ fun EditListingScreen(
                         Spacer(Modifier.height(PaceDreamSpacing.LG))
                         Button(
                             onClick = { viewModel.loadListing(listingId) },
-                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                             shape = RoundedCornerShape(PaceDreamRadius.LG),
                         ) { Text("Retry", style = PaceDreamTypography.Button) }
                     }
@@ -549,7 +549,7 @@ private fun EditListingForm(
             onClick = onSave,
             modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.LG),
             enabled = !uiState.isSaving && uiState.hasChanges,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
@@ -584,10 +584,10 @@ private fun CollapsibleSection(
             ) {
                 Box(
                     Modifier.size(36.dp).clip(CircleShape)
-                        .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(icon, contentDescription = null, tint = PaceDreamColors.Primary,
+                    Icon(icon, contentDescription = null, tint = PaceDreamColors.HostAccent,
                         modifier = Modifier.size(PaceDreamIconSize.SM))
                 }
                 Spacer(Modifier.width(PaceDreamSpacing.SM))
@@ -613,7 +613,7 @@ private fun CollapsibleSection(
 private fun EditPricingUnitSelector(selectedUnit: PricingUnit, onUnitSelected: (PricingUnit) -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(PaceDreamRadius.MD))
-            .background(PaceDreamColors.Primary.copy(alpha = 0.06f)).padding(PaceDreamSpacing.XS),
+            .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f)).padding(PaceDreamSpacing.XS),
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
     ) {
         PricingUnit.entries.forEach { unit ->
@@ -626,7 +626,7 @@ private fun EditPricingUnitSelector(selectedUnit: PricingUnit, onUnitSelected: (
             ) {
                 Text(unit.displayLabel, style = PaceDreamTypography.Callout,
                     fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (sel) PaceDreamColors.Primary else PaceDreamColors.TextSecondary)
+                    color = if (sel) PaceDreamColors.HostAccent else PaceDreamColors.TextSecondary)
             }
         }
     }
@@ -681,13 +681,13 @@ private fun EditAmenitiesChips(selected: List<String>, onToggle: (String) -> Uni
                     { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PaceDreamColors.Primary,
+                    selectedContainerColor = PaceDreamColors.HostAccent,
                     selectedLabelColor = Color.White, selectedLeadingIconColor = Color.White,
                     containerColor = PaceDreamColors.Card, labelColor = PaceDreamColors.TextPrimary,
                 ),
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
                 border = FilterChipDefaults.filterChipBorder(
-                    borderColor = PaceDreamColors.Border, selectedBorderColor = PaceDreamColors.Primary,
+                    borderColor = PaceDreamColors.Border, selectedBorderColor = PaceDreamColors.HostAccent,
                     enabled = true, selected = isOn,
                 ),
             )
@@ -716,5 +716,5 @@ private fun EditPhotoPlaceholder(onClick: () -> Unit) {
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = PaceDreamColors.Primary, unfocusedBorderColor = PaceDreamColors.Border,
+    focusedBorderColor = PaceDreamColors.HostAccent, unfocusedBorderColor = PaceDreamColors.Border,
 )
