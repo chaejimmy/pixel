@@ -5,6 +5,7 @@ import com.google.firebase.messaging.RemoteMessage
 import com.shourov.apps.pacedream.core.network.api.ApiClient
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.TokenStorage
+import com.shourov.apps.pacedream.BuildConfig
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +58,9 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var fcmTokenStore: FcmTokenStore
+
+    @Inject
+    lateinit var oneSignalService: OneSignalService
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -153,12 +157,23 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
                         applicationContext.packageManager.getPackageInfo(packageName, 0).versionName ?: ""
                     } catch (_: Exception) { "" }
                 )
+
+                // iOS parity: include OneSignal subscription ID so the backend
+                // can route pushes via OneSignal without creating a duplicate player.
+                val onesignalId = oneSignalService.getSubscriptionId()
+                if (onesignalId != null) {
+                    Timber.d("Including OneSignal subscriptionId=%s", onesignalId)
+                }
+
                 val body = json.encodeToString(
                     RegisterDeviceRequest.serializer(),
                     RegisterDeviceRequest(
                         fcmToken = token,
                         platform = "android",
-                        deviceInfo = deviceInfo
+                        deviceInfo = deviceInfo,
+                        onesignalPlayerId = onesignalId,
+                        // iOS parity: debug builds use sandbox APNs; inform backend.
+                        sandbox = if (BuildConfig.DEBUG) true else null
                     )
                 )
                 when (val result = apiClient.post(url, body, includeAuth = true)) {
@@ -194,7 +209,9 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     private data class RegisterDeviceRequest(
         val fcmToken: String,
         val platform: String,
-        val deviceInfo: Map<String, String> = emptyMap()
+        val deviceInfo: Map<String, String> = emptyMap(),
+        val onesignalPlayerId: String? = null,
+        val sandbox: Boolean? = null
     )
 
     @Serializable

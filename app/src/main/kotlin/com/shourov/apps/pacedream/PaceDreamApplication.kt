@@ -11,6 +11,7 @@ import coil.request.CachePolicy
 import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.shourov.apps.pacedream.notification.OneSignalService
 import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,9 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
     @Inject
     lateinit var sessionManager: SessionManager
 
+    @Inject
+    lateinit var oneSignalService: OneSignalService
+
     override fun onCreate() {
         super.onCreate()
 
@@ -54,11 +58,27 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
 
         profileVerifierLogger()
 
+        // iOS parity: Initialize OneSignal (matches iOS setupOneSignal in AppDelegate).
+        // Non-blocking; must run after Firebase init so FCM token is available.
+        oneSignalService.initialize(BuildConfig.ONESIGNAL_APP_ID)
+
         // iOS parity: bootstrap session on app start if tokens exist.
         // Do not block app startup; protected actions can still gate via AuthFlowSheet.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             authSession.initialize()
             sessionManager.initialize()
+        }
+
+        // iOS parity: bind OneSignal external user ID when user is authenticated.
+        // Mirrors iOS OneSignalService.setExternalUserId() called after auth.
+        ProcessLifecycleOwner.get().lifecycleScope.launch {
+            authSession.currentUser.collect { user ->
+                if (user != null && user.id.isNotBlank()) {
+                    oneSignalService.setExternalUserId(user.id)
+                } else {
+                    oneSignalService.setExternalUserId(null)
+                }
+            }
         }
     }
 

@@ -30,6 +30,8 @@ android {
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${(project.findProperty("stripePublishableKey") as? String) ?: ""}\"")
         // Auth0 client ID
         buildConfigField("String", "AUTH0_CLIENT_ID", "\"${(project.findProperty("auth0ClientId") as? String) ?: ""}\"")
+        // OneSignal App ID (iOS parity: OneSignal_AppID in Info.plist)
+        buildConfigField("String", "ONESIGNAL_APP_ID", "\"${(project.findProperty("onesignalAppId") as? String) ?: ""}\"")
     }
 
     buildTypes {
@@ -114,6 +116,9 @@ dependencies {
 
     // Firebase Messaging for push notifications
     implementation(libs.firebase.cloud.messaging)
+
+    // OneSignal SDK for push notification delivery (iOS parity)
+    implementation(libs.onesignal)
 
     // Kotlinx Serialization for JSON parsing
     implementation(libs.kotlinx.serialization.json)
