@@ -26,7 +26,7 @@ fun HostModeToggle(
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(
-            containerColor = if (isHostMode) PaceDreamColors.Primary else PaceDreamColors.Card
+            containerColor = if (isHostMode) PaceDreamColors.HostAccent else PaceDreamColors.Card
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -88,7 +88,7 @@ fun HostModeIndicator(
         Card(
             modifier = modifier
                 .clip(RoundedCornerShape(PaceDreamRadius.SM)),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.HostAccent),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
@@ -130,7 +130,7 @@ fun HostModeBanner(
             modifier = modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary.copy(alpha = 0.1f)),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.HostAccent.copy(alpha = 0.1f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Row(
@@ -146,7 +146,7 @@ fun HostModeBanner(
                     Icon(
                         imageVector = PaceDreamIcons.Home,
                         contentDescription = "Host Mode",
-                        tint = PaceDreamColors.Primary,
+                        tint = PaceDreamColors.HostAccent,
                         modifier = Modifier.size(20.dp)
                     )
                     
@@ -155,7 +155,7 @@ fun HostModeBanner(
                     Text(
                         text = "You're in Host Mode",
                         style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.Primary,
+                        color = PaceDreamColors.HostAccent,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -166,7 +166,7 @@ fun HostModeBanner(
                     Text(
                         text = "Switch to Guest",
                         style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.Primary,
+                        color = PaceDreamColors.HostAccent,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

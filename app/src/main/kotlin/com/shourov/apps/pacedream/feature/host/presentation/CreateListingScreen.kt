@@ -431,7 +431,7 @@ private fun CreateListingEntryScreen(
                 title = "Spaces",
                 subtitle = "List a space people can book by time or stay",
                 icon = PaceDreamIcons.Home,
-                tint = PaceDreamColors.Primary,
+                tint = PaceDreamColors.HostAccent,
                 onClick = { onResourceKindSelected(ResourceKind.SPACES) },
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -706,13 +706,13 @@ private fun SubcategoryCard(
                     .fillMaxWidth()
                     .height(56.dp)
                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.06f)),
+                    .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
-                    tint = PaceDreamColors.Primary,
+                    tint = PaceDreamColors.HostAccent,
                     modifier = Modifier.size(PaceDreamIconSize.MD),
                 )
             }
@@ -1054,7 +1054,7 @@ private fun CreateListingWizardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp),
-                color = PaceDreamColors.Primary,
+                color = PaceDreamColors.HostAccent,
                 trackColor = PaceDreamColors.Border,
             )
 
@@ -1240,7 +1240,7 @@ private fun BasicsStep(
                 singleLine = true,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
+                    focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
@@ -1258,7 +1258,7 @@ private fun BasicsStep(
                 maxLines = 8,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
+                    focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
@@ -1276,7 +1276,7 @@ private fun BasicsStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1289,7 +1289,7 @@ private fun BasicsStep(
                     maxLines = 6,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1408,7 +1408,7 @@ private fun PhotosLocationPricingStep(
                 singleLine = true,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
+                    focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
@@ -1424,7 +1424,7 @@ private fun PhotosLocationPricingStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1436,7 +1436,7 @@ private fun PhotosLocationPricingStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1463,7 +1463,7 @@ private fun PhotosLocationPricingStep(
                     leadingIcon = { Text("$", style = PaceDreamTypography.Title3, color = PaceDreamColors.TextSecondary, fontWeight = FontWeight.SemiBold) },
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1508,7 +1508,7 @@ private fun PhotosLocationPricingStep(
                     },
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1576,7 +1576,7 @@ private fun ScheduleAvailabilityStep(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                .background(PaceDreamColors.Primary.copy(alpha = 0.08f))
+                .background(PaceDreamColors.HostAccent.copy(alpha = 0.08f))
                 .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
@@ -1584,13 +1584,13 @@ private fun ScheduleAvailabilityStep(
             Icon(
                 PaceDreamIcons.Schedule,
                 contentDescription = null,
-                tint = PaceDreamColors.Primary,
+                tint = PaceDreamColors.HostAccent,
                 modifier = Modifier.size(16.dp),
             )
             Text(
                 text = "Pricing mode: ${pricingUnit.displayLabel}",
                 style = PaceDreamTypography.Callout,
-                color = PaceDreamColors.Primary,
+                color = PaceDreamColors.HostAccent,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -1625,7 +1625,7 @@ private fun ScheduleAvailabilityStep(
                             { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                         } else null,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PaceDreamColors.Primary,
+                            selectedContainerColor = PaceDreamColors.HostAccent,
                             selectedLabelColor = Color.White,
                             selectedLeadingIconColor = Color.White,
                             containerColor = PaceDreamColors.Card,
@@ -1634,7 +1634,7 @@ private fun ScheduleAvailabilityStep(
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
                         border = FilterChipDefaults.filterChipBorder(
                             borderColor = PaceDreamColors.Border,
-                            selectedBorderColor = PaceDreamColors.Primary,
+                            selectedBorderColor = PaceDreamColors.HostAccent,
                             enabled = true,
                             selected = isSelected,
                         ),
@@ -1662,7 +1662,7 @@ private fun ScheduleAvailabilityStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1674,7 +1674,7 @@ private fun ScheduleAvailabilityStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1705,7 +1705,7 @@ private fun ScheduleAvailabilityStep(
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1721,7 +1721,7 @@ private fun ScheduleAvailabilityStep(
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1748,7 +1748,7 @@ private fun ScheduleAvailabilityStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1761,7 +1761,7 @@ private fun ScheduleAvailabilityStep(
                     singleLine = true,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.Primary,
+                        focusedBorderColor = PaceDreamColors.HostAccent,
                         unfocusedBorderColor = PaceDreamColors.Border,
                     ),
                 )
@@ -1794,7 +1794,7 @@ private fun ScheduleAvailabilityStep(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
+                    focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
@@ -1822,7 +1822,7 @@ private fun ScheduleAvailabilityStep(
                 singleLine = true,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.Primary,
+                    focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
@@ -1851,7 +1851,7 @@ private fun ScheduleAvailabilityStep(
                         modifier = Modifier
                             .size(width = 44.dp, height = 34.dp)
                             .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                            .background(if (isOn) PaceDreamColors.Primary else PaceDreamColors.Primary.copy(alpha = 0.06f))
+                            .background(if (isOn) PaceDreamColors.HostAccent else PaceDreamColors.HostAccent.copy(alpha = 0.06f))
                             .clickable { onToggleDay(value) },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -1877,7 +1877,7 @@ private fun ScheduleAvailabilityStep(
             singleLine = true,
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PaceDreamColors.Primary,
+                focusedBorderColor = PaceDreamColors.HostAccent,
                 unfocusedBorderColor = PaceDreamColors.Border,
             ),
         )
@@ -1963,8 +1963,8 @@ private fun ReviewPublishStep(
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    PaceDreamColors.Primary.copy(alpha = 0.08f),
-                                    PaceDreamColors.Primary.copy(alpha = 0.03f)
+                                    PaceDreamColors.HostAccent.copy(alpha = 0.08f),
+                                    PaceDreamColors.HostAccent.copy(alpha = 0.03f)
                                 )
                             )
                         ),
@@ -2009,11 +2009,11 @@ private fun ReviewPublishStep(
                     Text(
                         text = subCategory,
                         style = PaceDreamTypography.Caption2,
-                        color = PaceDreamColors.Primary,
+                        color = PaceDreamColors.HostAccent,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(PaceDreamRadius.Round))
-                            .background(PaceDreamColors.Primary.copy(alpha = 0.1f))
+                            .background(PaceDreamColors.HostAccent.copy(alpha = 0.1f))
                             .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                     )
                 }
@@ -2191,7 +2191,7 @@ private fun PublishSuccessScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
@@ -2288,7 +2288,7 @@ private fun WizardBottomBar(
                 Button(
                     onClick = onNext,
                     modifier = Modifier.height(PaceDreamButtonHeight.MD),
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                     shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     enabled = !isPublishing,
@@ -2323,7 +2323,7 @@ private fun PricingUnitSelector(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.MD))
-            .background(PaceDreamColors.Primary.copy(alpha = 0.06f))
+            .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f))
             .padding(PaceDreamSpacing.XS),
     ) {
         Row(
@@ -2338,7 +2338,7 @@ private fun PricingUnitSelector(
                     label = "segmented_bg",
                 )
                 val textColor by animateColorAsState(
-                    targetValue = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                    targetValue = if (isSelected) PaceDreamColors.HostAccent else PaceDreamColors.TextSecondary,
                     animationSpec = tween(200),
                     label = "segmented_text",
                 )
@@ -2351,7 +2351,7 @@ private fun PricingUnitSelector(
                                 .shadow(PaceDreamElevation.XS, RoundedCornerShape(PaceDreamRadius.SM))
                                 .border(
                                     1.dp,
-                                    PaceDreamColors.Primary.copy(alpha = 0.2f),
+                                    PaceDreamColors.HostAccent.copy(alpha = 0.2f),
                                     RoundedCornerShape(PaceDreamRadius.SM),
                                 )
                             else Modifier
@@ -2395,7 +2395,7 @@ private fun AmenitiesGrid(
                     { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PaceDreamColors.Primary,
+                    selectedContainerColor = PaceDreamColors.HostAccent,
                     selectedLabelColor = Color.White,
                     selectedLeadingIconColor = Color.White,
                     containerColor = PaceDreamColors.Card,
@@ -2404,7 +2404,7 @@ private fun AmenitiesGrid(
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
                 border = FilterChipDefaults.filterChipBorder(
                     borderColor = PaceDreamColors.Border,
-                    selectedBorderColor = PaceDreamColors.Primary,
+                    selectedBorderColor = PaceDreamColors.HostAccent,
                     enabled = true,
                     selected = isOn,
                 ),

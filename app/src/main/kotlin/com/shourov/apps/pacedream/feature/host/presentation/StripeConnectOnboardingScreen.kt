@@ -76,7 +76,7 @@ fun StripeConnectOnboardingScreen(
                 Icon(
                     imageVector = PaceDreamIcons.CreditCard,
                     contentDescription = null,
-                    tint = PaceDreamColors.Primary,
+                    tint = PaceDreamColors.HostAccent,
                     modifier = Modifier.size(60.dp)
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -117,7 +117,7 @@ fun StripeConnectOnboardingScreen(
                     Button(
                         onClick = { viewModel.createConnectAccount() },
                         enabled = !uiState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -180,7 +180,7 @@ fun StripeConnectOnboardingScreen(
                                 context.startActivity(intent)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -207,7 +207,7 @@ fun StripeConnectOnboardingScreen(
                 ) {
                     if (uiState.isRefreshing) {
                         CircularProgressIndicator(
-                            color = PaceDreamColors.Primary,
+                            color = PaceDreamColors.HostAccent,
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp
                         )
@@ -216,7 +216,7 @@ fun StripeConnectOnboardingScreen(
                         Icon(
                             imageVector = PaceDreamIcons.History,
                             contentDescription = null,
-                            tint = PaceDreamColors.Primary,
+                            tint = PaceDreamColors.HostAccent,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
@@ -224,7 +224,7 @@ fun StripeConnectOnboardingScreen(
                     Text(
                         text = "Refresh Status",
                         style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.Primary
+                        color = PaceDreamColors.HostAccent
                     )
                 }
             }
@@ -447,7 +447,7 @@ private fun BalancePreviewCard(
                     Text(
                         text = formatBalanceAmount(balance.available.firstOrNull()?.amount ?: 0),
                         style = PaceDreamTypography.Title2,
-                        color = PaceDreamColors.Primary
+                        color = PaceDreamColors.HostAccent
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
@@ -479,7 +479,7 @@ private fun BenefitRow(icon: ImageVector, text: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PaceDreamColors.Primary,
+            tint = PaceDreamColors.HostAccent,
             modifier = Modifier.size(16.dp)
         )
         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
