@@ -125,7 +125,7 @@ data class ListingPricing(
                 "AUD" -> "A$"
                 else -> "$"
             }
-            val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.lowercase()
+            val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.let { normalizeUnit(it) }
                 ?: if (hourlyFrom != null) "hr" else null
             val formattedAmount = trimTrailingZeros(amount)
             return if (freq != null) "$symbol$formattedAmount/$freq" else "$symbol$formattedAmount"
@@ -134,6 +134,16 @@ data class ListingPricing(
     private fun trimTrailingZeros(value: Double): String {
         val asLong = value.toLong()
         return if (value == asLong.toDouble()) asLong.toString() else value.toString()
+    }
+
+    /** Normalize backend frequency strings to short display labels matching iOS. */
+    private fun normalizeUnit(raw: String): String = when (raw.lowercase().trim()) {
+        "hourly", "hour", "hr" -> "hr"
+        "daily", "day" -> "day"
+        "weekly", "week", "wk" -> "wk"
+        "monthly", "month", "mo" -> "mo"
+        "once" -> "total"
+        else -> raw.lowercase()
     }
 }
 
