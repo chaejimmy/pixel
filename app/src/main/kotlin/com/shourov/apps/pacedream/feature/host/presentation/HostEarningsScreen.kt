@@ -398,6 +398,7 @@ private fun StripePendingContent(
 
 // ── State 5: Ready (Connected — with or without earnings) ─────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReadyContent(
     uiState: HostEarningsUiState,
