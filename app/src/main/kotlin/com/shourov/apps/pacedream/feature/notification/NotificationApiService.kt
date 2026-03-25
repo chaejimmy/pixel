@@ -182,6 +182,55 @@ class NotificationApiService @Inject constructor(
         return false
     }
 
+    /**
+     * Fetch notification settings (iOS parity: GET /notifications/settings).
+     */
+    suspend fun getNotificationSettings(): NotificationSettings? {
+        try {
+            val url = appConfig.buildApiUrl("notifications", "settings")
+            when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    val response = json.decodeFromString(
+                        NotificationSettingsResponse.serializer(),
+                        result.data
+                    )
+                    return response.data
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Failed to fetch notification settings: ${result.error.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch notification settings")
+        }
+        return null
+    }
+
+    /**
+     * Update notification settings (iOS parity: PUT /notifications/settings).
+     */
+    suspend fun updateNotificationSettings(settings: NotificationSettings): NotificationSettings? {
+        try {
+            val url = appConfig.buildApiUrl("notifications", "settings")
+            val body = json.encodeToString(NotificationSettings.serializer(), settings)
+            when (val result = apiClient.put(url, body, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    val response = json.decodeFromString(
+                        NotificationSettingsResponse.serializer(),
+                        result.data
+                    )
+                    return response.data
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Failed to update notification settings: ${result.error.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to update notification settings")
+        }
+        return null
+    }
+
     private fun updateUnreadCount() {
         _unreadCount.value = _notifications.value.count { !it.isRead }
     }
@@ -254,4 +303,32 @@ private data class SendNotificationRequest(
     val title: String,
     val body: String,
     val data: Map<String, String>? = null
+)
+
+/**
+ * Notification settings matching iOS LocalNotificationSettings (iOS parity).
+ *
+ * Maps to backend notification preferences for push, email, SMS,
+ * and per-category notification toggles with quiet hours support.
+ */
+@Serializable
+data class NotificationSettings(
+    @SerialName("push_enabled") val pushEnabled: Boolean = true,
+    @SerialName("email_enabled") val emailEnabled: Boolean = true,
+    @SerialName("sms_enabled") val smsEnabled: Boolean = false,
+    @SerialName("booking_notifications") val bookingNotifications: Boolean = true,
+    @SerialName("message_notifications") val messageNotifications: Boolean = true,
+    @SerialName("review_notifications") val reviewNotifications: Boolean = true,
+    @SerialName("marketing_notifications") val marketingNotifications: Boolean = false,
+    @SerialName("quiet_hours_enabled") val quietHoursEnabled: Boolean = false,
+    @SerialName("quiet_hours_start") val quietHoursStart: String = "22:00",
+    @SerialName("quiet_hours_end") val quietHoursEnd: String = "07:00",
+    val timezone: String = ""
+)
+
+@Serializable
+private data class NotificationSettingsResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val data: NotificationSettings? = null
 )

@@ -135,6 +135,7 @@ data class NotificationData(
             "payout_history",
             "payment_methods",
             "payment_history",
+            "host_verification",
         )
 
     /**
