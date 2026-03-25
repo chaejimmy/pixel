@@ -450,7 +450,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         navController.navigate("settings_root")
                                     },
                                     onNotificationsClick = {
-                                        navController.navigate("notifications")
+                                        navController.navigate("settings_notifications")
                                     },
                                     onBookingsClick = {
                                         navigateToTab(navController, DashboardDestination.BOOKINGS.name)
@@ -857,7 +857,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNotificationsClick = { navController.navigate("settings_notifications") },
                                     onPreferencesClick = { navController.navigate("settings_preferences") },
                                     onPaymentMethodsClick = { navController.navigate("settings_payment_methods") },
-                                    onHelpSupportClick = { navController.navigate("support") }
+                                    onHelpSupportClick = { navController.navigate("support") },
+                                    onIdentityVerificationClick = { navController.navigate("settings_identity_verification") }
                                 )
                             }
 
@@ -893,6 +894,13 @@ fun NavGraphBuilder.DashboardNavigation(
                             // Payment Methods Screen
                             composable("settings_payment_methods") {
                                 com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Identity Verification Screen
+                            composable("settings_identity_verification") {
+                                com.pacedream.app.feature.verification.IdentityVerificationScreen(
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }
