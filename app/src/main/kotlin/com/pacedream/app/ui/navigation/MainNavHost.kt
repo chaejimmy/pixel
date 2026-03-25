@@ -262,7 +262,7 @@ fun MainNavHost(
                     }
                 }
                 
-                // Inbox Tab
+                // Messages Tab
                 composable(NavRoutes.INBOX) {
                     if (authState != AuthState.Authenticated) {
                         // Show locked state, trigger auth modal
@@ -311,21 +311,18 @@ fun MainNavHost(
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
                         },
-                        // iOS parity: quick action → switch to Bookings tab
                         onBookingsClick = {
                             navController.navigate(NavRoutes.BOOKINGS) {
                                 popUpTo(NavRoutes.HOME) { inclusive = false }
                                 launchSingleTop = true
                             }
                         },
-                        // iOS parity: quick action → switch to Favorites tab
                         onFavoritesClick = {
                             navController.navigate(NavRoutes.FAVORITES) {
                                 popUpTo(NavRoutes.HOME) { inclusive = false }
                                 launchSingleTop = true
                             }
                         },
-                        // iOS parity: "Create listing" from profile.
                         onCreateListingClick = {
                             if (authState == AuthState.Authenticated) {
                                 navController.navigate(NavRoutes.HOST_HOME)
@@ -333,6 +330,12 @@ fun MainNavHost(
                                 authSheetSubtitle = "Sign in to create a listing."
                                 showAuthSheet = true
                             }
+                        },
+                        onNotificationsClick = {
+                            navController.navigate(NavRoutes.SETTINGS_NOTIFICATIONS)
+                        },
+                        onHelpClick = {
+                            navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
                         },
                     )
                 }

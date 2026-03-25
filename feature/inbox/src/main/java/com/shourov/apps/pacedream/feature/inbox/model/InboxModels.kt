@@ -155,7 +155,6 @@ sealed class InboxUiState {
     data class Success(
         val threads: List<Thread>,
         val mode: InboxMode,
-        val segment: InboxSegment = InboxSegment.CHATS,
         val unreadCounts: UnreadCounts,
         val isRefreshing: Boolean = false,
         val hasMore: Boolean = false
@@ -186,20 +185,11 @@ sealed class ThreadDetailUiState {
 }
 
 /**
- * Inbox tab segment - matches iOS Chats/Notifications picker
- */
-enum class InboxSegment(val displayName: String) {
-    CHATS("Chats"),
-    NOTIFICATIONS("Notifications")
-}
-
-/**
  * Events from inbox UI
  */
 sealed class InboxEvent {
     object Refresh : InboxEvent()
     data class ModeChanged(val mode: InboxMode) : InboxEvent()
-    data class SegmentChanged(val segment: InboxSegment) : InboxEvent()
     data class ThreadClicked(val thread: Thread) : InboxEvent()
     data class ArchiveThread(val thread: Thread) : InboxEvent()
     object LoadMore : InboxEvent()

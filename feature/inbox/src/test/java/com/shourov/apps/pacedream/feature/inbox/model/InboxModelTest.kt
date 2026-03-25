@@ -123,14 +123,6 @@ class InboxModelTest {
         assertFalse(msg.isSending)
     }
 
-    // ── InboxSegment ─────────────────────────────────────────────────
-
-    @Test
-    fun `InboxSegment has correct display names`() {
-        assertEquals("Chats", InboxSegment.CHATS.displayName)
-        assertEquals("Notifications", InboxSegment.NOTIFICATIONS.displayName)
-    }
-
     // ── UnreadCounts ────────────────────────────────────────────────
 
     @Test
