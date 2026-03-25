@@ -50,7 +50,12 @@ fun SignIn(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { },
+                title = {
+                    Text(
+                        text = "",
+                        style = PaceDreamTypography.Headline
+                    )
+                },
                 navigationIcon = {
                     RoundIconButton(
                         icon = PaceDreamIcons.ArrowBack,

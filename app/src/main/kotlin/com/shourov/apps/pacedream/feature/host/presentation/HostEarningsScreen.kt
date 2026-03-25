@@ -48,7 +48,6 @@ fun HostEarningsScreen(
                     Text(
                         text = "Earnings & Payments",
                         style = PaceDreamTypography.Title1,
-                        color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.Bold
                     )
                 },

@@ -6,6 +6,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,7 +43,12 @@ fun IdentityVerificationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Identity Verification") },
+                title = {
+                    Text(
+                        "Identity Verification",
+                        style = PaceDreamTypography.Headline
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -49,9 +56,13 @@ fun IdentityVerificationScreen(
                             contentDescription = "Back"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                )
             )
-        }
+        },
+        containerColor = PaceDreamColors.Background
     ) { padding ->
         LazyColumn(
             modifier = Modifier

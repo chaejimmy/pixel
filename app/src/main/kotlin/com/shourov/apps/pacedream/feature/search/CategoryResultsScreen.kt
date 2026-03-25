@@ -64,7 +64,7 @@ fun CategoryResultsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Category", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
+                title = { Text("Category", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")

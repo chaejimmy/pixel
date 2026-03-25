@@ -123,7 +123,7 @@ fun InboxScreen(
                 title = {
                     Text(
                         text = "Messages",
-                        style = PaceDreamTypography.Title2,
+                        style = PaceDreamTypography.Title1,
                         fontWeight = FontWeight.Bold
                     )
                 },

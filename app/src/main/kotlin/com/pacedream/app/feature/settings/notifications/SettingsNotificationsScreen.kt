@@ -92,7 +92,7 @@ fun SettingsNotificationsScreen(
                 title = {
                     Text(
                         "Notifications",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

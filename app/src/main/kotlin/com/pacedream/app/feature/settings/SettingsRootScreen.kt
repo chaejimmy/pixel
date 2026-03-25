@@ -78,7 +78,7 @@ fun SettingsRootScreen(
                 title = {
                     Text(
                         text = "Settings",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

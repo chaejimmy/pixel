@@ -19,6 +19,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -60,7 +62,14 @@ fun WishlistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Favorites") }
+                title = {
+                    Text(
+                        "Favorites",
+                        style = PaceDreamTypography.Title1,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }

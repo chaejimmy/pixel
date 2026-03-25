@@ -86,11 +86,10 @@ fun FAQScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
                         "Frequently Asked Questions",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

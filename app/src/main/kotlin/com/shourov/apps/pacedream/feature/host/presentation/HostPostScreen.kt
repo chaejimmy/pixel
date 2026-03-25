@@ -50,9 +50,8 @@ fun HostPostScreen(
                 title = {
                     Text(
                         text = "Host Dashboard",
-                        style = PaceDreamTypography.Title1,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Title1.copy(fontWeight = FontWeight.Bold),
+                        color = PaceDreamColors.TextPrimary
                     )
                 },
                 actions = {

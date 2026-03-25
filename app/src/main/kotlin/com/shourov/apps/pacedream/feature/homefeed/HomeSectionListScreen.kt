@@ -162,7 +162,7 @@ fun HomeSectionListScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(section.displayTitle, style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold) },
+                title = { Text(section.displayTitle, style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

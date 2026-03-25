@@ -75,7 +75,7 @@ fun BookingDetailScreen(
                 title = {
                     Text(
                         "Booking Details",
-                        style = PaceDreamTypography.Title3
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

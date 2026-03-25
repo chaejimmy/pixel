@@ -65,7 +65,12 @@ fun ForgotPasswordScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { },
+                title = {
+                    Text(
+                        text = "",
+                        style = PaceDreamTypography.Headline
+                    )
+                },
                 navigationIcon = {
                     RoundIconButton(
                         icon = PaceDreamIcons.ArrowBack,

@@ -105,9 +105,8 @@ fun HostSettingsScreen(
                     Column {
                         Text(
                             text = "Settings",
-                            style = PaceDreamTypography.Title1,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.Bold
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary
                         )
                         Text(
                             text = "Host preferences",

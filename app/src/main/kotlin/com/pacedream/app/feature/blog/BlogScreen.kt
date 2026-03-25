@@ -225,7 +225,7 @@ fun BlogListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Blog", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("Blog", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")

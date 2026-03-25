@@ -196,9 +196,9 @@ fun TripPlannerScreen(onBackClick: () -> Unit = {}, viewModel: TripPlannerViewMo
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Trip Planner", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("Trip Planner", style = PaceDreamTypography.Headline) },
                 navigationIcon = { IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back") } },
-                actions = { TextButton(onClick = { viewModel.toggleCreateDialog() }) { Text("New Trip", color = PaceDreamColors.Primary, fontWeight = FontWeight.SemiBold) } },
+                actions = { TextButton(onClick = { viewModel.toggleCreateDialog() }) { Text("New Trip", style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold), color = PaceDreamColors.Primary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },

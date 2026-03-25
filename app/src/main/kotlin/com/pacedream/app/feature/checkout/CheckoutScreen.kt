@@ -109,7 +109,7 @@ fun CheckoutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Checkout", style = PaceDreamTypography.Title2) },
+                title = { Text("Checkout", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
