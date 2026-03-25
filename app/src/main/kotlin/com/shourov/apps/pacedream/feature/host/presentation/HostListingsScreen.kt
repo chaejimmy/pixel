@@ -97,7 +97,7 @@ fun HostListingsScreen(
                     HostEmptyState(
                         icon = PaceDreamIcons.Home,
                         title = "No listings yet",
-                        subtitle = "Start earning by listing your space on PaceDream",
+                        subtitle = "Create your first listing and start welcoming guests.",
                         ctaLabel = "Add Your First Listing",
                         onCta = onAddListingClick
                     )

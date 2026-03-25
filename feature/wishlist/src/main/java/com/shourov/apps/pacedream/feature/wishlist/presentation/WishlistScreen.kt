@@ -447,18 +447,28 @@ private fun EmptyFilteredState(filter: WishlistFilter) {
             .padding(PaceDreamSpacing.XL),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        ) {
             Icon(
                 imageVector = PaceDreamIcons.FavoriteBorder,
                 contentDescription = null,
                 tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(56.dp)
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Text(
                 text = "No ${filter.displayName.lowercase()} favorites",
-                style = PaceDreamTypography.Headline,
-                color = PaceDreamColors.TextSecondary
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Save ${filter.displayName.lowercase()} you like and they'll appear here.",
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center
             )
         }
     }

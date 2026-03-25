@@ -100,7 +100,13 @@ fun HostBookingsScreen(
                     HostEmptyState(
                         icon = PaceDreamIcons.CalendarToday,
                         title = "No ${uiState.selectedStatus.lowercase()} bookings",
-                        subtitle = "Bookings will appear here once guests make reservations"
+                        subtitle = when (uiState.selectedStatus.lowercase()) {
+                            "pending" -> "New booking requests from guests will appear here."
+                            "confirmed" -> "Confirmed upcoming stays will appear here."
+                            "past" -> "Completed bookings will appear here after checkout."
+                            "cancelled" -> "Cancelled or declined bookings will show up here."
+                            else -> "Bookings will appear here once guests make reservations."
+                        }
                     )
                 }
             } else {

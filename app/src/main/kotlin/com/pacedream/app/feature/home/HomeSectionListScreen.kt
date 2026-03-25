@@ -48,7 +48,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.ui.text.style.TextAlign
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
@@ -372,12 +375,21 @@ private fun EmptyState(
         Icon(
             imageVector = PaceDreamIcons.Search,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(40.dp)
+            tint = PaceDreamColors.TextSecondary,
+            modifier = Modifier.size(PaceDreamIconSize.XXL)
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("No ${sectionTitle.lowercase()} available", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text("Pull to refresh.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Text(
+            "No ${sectionTitle.lowercase()} available",
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            "Check back soon — new options are added regularly.",
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center
+        )
     }
 }

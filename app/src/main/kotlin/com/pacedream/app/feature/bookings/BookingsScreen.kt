@@ -775,23 +775,29 @@ private fun BookingCardSkeleton() {
 // ============================================================================
 @Composable
 private fun BookingsEmptyState(tab: BookingTab) {
-    val (icon, title, subtitle) = when (tab) {
-        BookingTab.ALL -> Triple(
+    data class EmptyConfig(
+        val icon: androidx.compose.ui.graphics.vector.ImageVector,
+        val title: String,
+        val subtitle: String
+    )
+
+    val config = when (tab) {
+        BookingTab.ALL -> EmptyConfig(
             PaceDreamIcons.CalendarToday,
             "No bookings yet",
-            "When you book a stay or receive a guest, it will appear here."
+            "Book a space or experience and it will show up here."
         )
-        BookingTab.UPCOMING -> Triple(
+        BookingTab.UPCOMING -> EmptyConfig(
             PaceDreamIcons.CalendarToday,
             "No upcoming bookings",
-            "Your confirmed and pending bookings will show up here."
+            "Your confirmed and pending stays will appear here."
         )
-        BookingTab.PAST -> Triple(
+        BookingTab.PAST -> EmptyConfig(
             PaceDreamIcons.CheckCircle,
             "No past bookings",
             "Completed stays will appear here after checkout."
         )
-        BookingTab.CANCELLED -> Triple(
+        BookingTab.CANCELLED -> EmptyConfig(
             PaceDreamIcons.Cancel,
             "No cancelled bookings",
             "Cancelled or refunded bookings will show up here."
@@ -807,7 +813,7 @@ private fun BookingsEmptyState(tab: BookingTab) {
         Spacer(modifier = Modifier.weight(1f))
 
         Icon(
-            imageVector = icon,
+            imageVector = config.icon,
             contentDescription = null,
             tint = PaceDreamColors.TextSecondary,
             modifier = Modifier.size(56.dp)
@@ -816,7 +822,7 @@ private fun BookingsEmptyState(tab: BookingTab) {
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         Text(
-            text = title,
+            text = config.title,
             style = PaceDreamTypography.Title3,
             color = PaceDreamColors.TextPrimary
         )
@@ -824,7 +830,7 @@ private fun BookingsEmptyState(tab: BookingTab) {
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         Text(
-            text = subtitle,
+            text = config.subtitle,
             style = PaceDreamTypography.Subheadline,
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,

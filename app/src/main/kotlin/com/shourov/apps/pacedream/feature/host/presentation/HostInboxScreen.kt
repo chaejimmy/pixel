@@ -75,7 +75,7 @@ private fun DefaultMessagesPlaceholder() {
         HostEmptyState(
             icon = PaceDreamIcons.Mail,
             title = "No messages yet",
-            subtitle = "Messages from guests about your listings will appear here."
+            subtitle = "When guests reach out about your listings, their messages will show up here."
         )
     }
 }
@@ -89,7 +89,7 @@ private fun DefaultNotificationsPlaceholder() {
         HostEmptyState(
             icon = PaceDreamIcons.Notifications,
             title = "No notifications yet",
-            subtitle = "Booking requests and host notifications will appear here."
+            subtitle = "Booking requests, updates, and alerts will show up here."
         )
     }
 }
