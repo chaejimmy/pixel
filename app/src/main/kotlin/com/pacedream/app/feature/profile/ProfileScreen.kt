@@ -66,7 +66,8 @@ fun ProfileScreen(
                 title = {
                     Text(
                         "Profile",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Title1,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 actions = {

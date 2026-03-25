@@ -50,7 +50,7 @@ fun SettingsHelpSupportScreen(
                 title = {
                     Text(
                         "Help & Support",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

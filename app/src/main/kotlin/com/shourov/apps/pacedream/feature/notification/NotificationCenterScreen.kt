@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -79,8 +81,7 @@ fun NotificationCenterScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "Notifications",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                            style = PaceDreamTypography.Headline
                         )
                         if (uiState.unreadCount > 0) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -113,7 +114,7 @@ fun NotificationCenterScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors()
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         }
     ) { padding ->

@@ -332,7 +332,7 @@ fun DestinationListingsScreen(
 
     Scaffold(
         topBar = { TopAppBar(
-            title = { Text(uiState.selectedDestination?.name ?: "Listings", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+            title = { Text(uiState.selectedDestination?.name ?: "Listings", style = PaceDreamTypography.Headline) },
             navigationIcon = { IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, "Back") } },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
         ) },

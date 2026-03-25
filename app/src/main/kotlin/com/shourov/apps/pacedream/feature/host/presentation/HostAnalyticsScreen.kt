@@ -42,9 +42,8 @@ fun HostAnalyticsScreen(
                 title = {
                     Text(
                         text = "Analytics",
-                        style = PaceDreamTypography.Title1,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.TextPrimary
                     )
                 },
                 navigationIcon = {

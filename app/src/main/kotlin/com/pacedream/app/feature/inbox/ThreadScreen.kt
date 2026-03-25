@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import kotlinx.coroutines.launch
 
 /**
@@ -83,7 +85,7 @@ fun ThreadScreen(
                         Column {
                             Text(
                                 text = uiState.participantName,
-                                style = MaterialTheme.typography.titleMedium
+                                style = PaceDreamTypography.Headline
                             )
                             uiState.listingName?.let { listingName ->
                                 Text(
@@ -124,7 +126,8 @@ fun ThreadScreen(
                             )
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
         bottomBar = {

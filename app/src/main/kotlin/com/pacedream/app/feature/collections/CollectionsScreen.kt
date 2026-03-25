@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.TopAppBarDefaults
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -100,10 +103,14 @@ fun CollectionsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("My Lists", fontWeight = FontWeight.SemiBold)
-                }
+                    Text("My Lists", style = PaceDreamTypography.Headline)
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                )
             )
         },
+        containerColor = PaceDreamColors.Background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateSheet = true }

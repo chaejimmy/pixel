@@ -71,7 +71,7 @@ fun SettingsPersonalInfoScreen(
                 title = {
                     Text(
                         "Personal Information",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

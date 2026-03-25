@@ -53,6 +53,8 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,7 +164,12 @@ private fun SettingsPaymentMethodsContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Payment Methods") },
+                title = {
+                    Text(
+                        "Payment Methods",
+                        style = PaceDreamTypography.Headline
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -172,11 +179,12 @@ private fun SettingsPaymentMethodsContent(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = PaceDreamColors.Background
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = PaceDreamColors.Background
     ) { padding ->
         Box(
             modifier = Modifier

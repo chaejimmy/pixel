@@ -309,7 +309,7 @@ fun ReviewsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reviews", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("Reviews", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
@@ -317,7 +317,11 @@ fun ReviewsScreen(
                 },
                 actions = {
                     TextButton(onClick = { viewModel.toggleWriteReview() }) {
-                        Text("Write Review", color = PaceDreamColors.Primary, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Write Review",
+                            style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                            color = PaceDreamColors.Primary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)

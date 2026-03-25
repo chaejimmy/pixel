@@ -63,7 +63,7 @@ fun BookingConfirmationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Booking") },
+                title = { Text("Booking", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(PaceDreamIcons.Close, contentDescription = "Close")
@@ -339,7 +339,7 @@ fun BookingCancelledScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Booking Cancelled") },
+                title = { Text("Booking Cancelled", style = PaceDreamTypography.Headline) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PaceDreamColors.Background
                 )

@@ -259,7 +259,7 @@ fun SplitBookingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Split Booking", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("Split Booking", style = PaceDreamTypography.Headline) },
                 navigationIcon = { IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
@@ -461,7 +461,7 @@ fun SplitBookingListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Split Bookings", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("Split Bookings", style = PaceDreamTypography.Headline) },
                 navigationIcon = { IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back") } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )

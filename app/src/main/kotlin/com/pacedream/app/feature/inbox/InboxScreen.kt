@@ -20,6 +20,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.Arrangement
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 /**
  * InboxScreen - Thread list with unread counts
@@ -43,7 +45,11 @@ fun InboxScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Inbox")
+                        Text(
+                            "Inbox",
+                            style = PaceDreamTypography.Title1,
+                            fontWeight = FontWeight.Bold
+                        )
                         if (uiState.unreadCount > 0) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Badge {
@@ -51,7 +57,8 @@ fun InboxScreen(
                             }
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         }
     ) { padding ->

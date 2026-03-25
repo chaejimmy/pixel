@@ -295,15 +295,14 @@ fun EditProfileScreen(
                 title = {
                     Text(
                         "Edit Profile",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = PaceDreamIcons.ArrowBack,
-                            contentDescription = "Back",
-                            tint = PaceDreamColors.TextPrimary
+                            contentDescription = "Back"
                         )
                     }
                 },
