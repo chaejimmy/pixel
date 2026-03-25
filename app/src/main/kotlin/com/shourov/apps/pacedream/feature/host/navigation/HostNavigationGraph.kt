@@ -68,7 +68,11 @@ fun NavGraphBuilder.HostNavigationGraph(
     }
 
     composable(HostScreen.Earnings.route) {
-        HostEarningsScreen()
+        HostEarningsScreen(
+            onSignInClick = onSignOut, // triggers re-auth flow
+            onConnectStripeClick = { navController.navigate(HostScreen.PaymentSetup.route) },
+            onCompleteSetupClick = { navController.navigate(HostScreen.PaymentSetup.route) }
+        )
     }
 
     composable(HostScreen.Analytics.route) {
