@@ -262,7 +262,7 @@ fun MainNavHost(
                     }
                 }
                 
-                // Inbox Tab
+                // Messages Tab
                 composable(NavRoutes.INBOX) {
                     if (authState != AuthState.Authenticated) {
                         // Show locked state, trigger auth modal

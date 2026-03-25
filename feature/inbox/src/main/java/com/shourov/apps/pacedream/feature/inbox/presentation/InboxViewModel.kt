@@ -9,7 +9,6 @@ import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.feature.inbox.data.InboxRepository
 import com.shourov.apps.pacedream.feature.inbox.model.InboxEvent
 import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
-import com.shourov.apps.pacedream.feature.inbox.model.InboxSegment
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.UnreadCounts
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,7 +45,6 @@ class InboxViewModel @Inject constructor(
     val navigation = _navigation.receiveAsFlow()
     
     private var currentMode = InboxMode.GUEST
-    private var currentSegment = InboxSegment.CHATS
     private var nextCursor: String? = null
     
     init {
@@ -60,7 +58,6 @@ class InboxViewModel @Inject constructor(
         when (event) {
             is InboxEvent.Refresh -> refresh()
             is InboxEvent.ModeChanged -> onModeChanged(event.mode)
-            is InboxEvent.SegmentChanged -> onSegmentChanged(event.segment)
             is InboxEvent.ThreadClicked -> onThreadClicked(event.thread)
             is InboxEvent.ArchiveThread -> onArchiveThread(event.thread)
             is InboxEvent.LoadMore -> loadMore()
@@ -136,7 +133,6 @@ class InboxViewModel @Inject constructor(
                         _uiState.value = InboxUiState.Success(
                             threads = threadsResult.data.threads,
                             mode = currentMode,
-                            segment = currentSegment,
                             unreadCounts = unreadCounts,
                             isRefreshing = false,
                             hasMore = threadsResult.data.hasMore
@@ -204,13 +200,6 @@ class InboxViewModel @Inject constructor(
         }
     }
     
-    private fun onSegmentChanged(segment: InboxSegment) {
-        if (segment == currentSegment) return
-        currentSegment = segment
-        val currentState = _uiState.value as? InboxUiState.Success ?: return
-        _uiState.value = currentState.copy(segment = segment)
-    }
-
     private fun onModeChanged(mode: InboxMode) {
         if (mode == currentMode) return
         

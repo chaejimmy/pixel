@@ -33,10 +33,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -57,11 +54,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamLoadingState
 import com.pacedream.common.composables.shimmerEffect
@@ -73,8 +70,6 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.inbox.model.InboxEvent
-import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
-import com.shourov.apps.pacedream.feature.inbox.model.InboxSegment
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
 import androidx.lifecycle.Lifecycle
@@ -115,36 +110,36 @@ fun InboxScreen(
             }
         }
     }
-    
+
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Messages",
-                        style = PaceDreamTypography.Title1,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    // Unread badge in title
-                    (uiState as? InboxUiState.Success)?.let { state ->
-                        val totalUnread = state.unreadCounts.totalUnread
-                        if (totalUnread > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(end = PaceDreamSpacing.MD)
-                                    .size(24.dp)
-                                    .background(PaceDreamColors.Primary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = if (totalUnread > 99) "99+" else totalUnread.toString(),
-                                    style = PaceDreamTypography.Caption,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Messages",
+                            style = PaceDreamTypography.Title1,
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Unread count badge next to title
+                        (uiState as? InboxUiState.Success)?.let { state ->
+                            val totalUnread = state.unreadCounts.totalUnread
+                            if (totalUnread > 0) {
+                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .background(PaceDreamColors.Primary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (totalUnread > 99) "99+" else totalUnread.toString(),
+                                        style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -179,18 +174,11 @@ fun InboxScreen(
                         onRetryClick = { viewModel.onEvent(InboxEvent.Refresh) },
                         modifier = Modifier.fillMaxSize()
                     )
-                    is InboxUiState.Empty -> PaceDreamEmptyState(
-                        title = "No messages yet",
-                        description = "When you contact a host or receive a booking inquiry, your conversations will appear here.",
-                        icon = PaceDreamIcons.Message,
+                    is InboxUiState.Empty -> InboxEmptyState(
                         modifier = Modifier.fillMaxSize()
                     )
-                    is InboxUiState.RequiresAuth -> PaceDreamEmptyState(
-                        title = "Sign in to view messages",
-                        description = "Message hosts, ask questions, and manage your bookings — all in one place.",
-                        icon = PaceDreamIcons.Lock,
-                        actionText = "Sign In",
-                        onActionClick = onShowAuthSheet,
+                    is InboxUiState.RequiresAuth -> AuthRequiredState(
+                        onShowAuthSheet = onShowAuthSheet,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -211,254 +199,197 @@ private fun SuccessState(
         onRefresh = { onEvent(InboxEvent.Refresh) },
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Chats/Notifications segmented picker (matches iOS InboxMessagesView)
-            SegmentedTabRow(
-                selectedSegment = state.segment,
-                onSegmentSelected = { onEvent(InboxEvent.SegmentChanged(it)) }
-            )
-
-            when (state.segment) {
-                InboxSegment.CHATS -> {
-                    // Mode toggle chips (Guest/Host) - only for chats
-                    ModeToggleRow(
-                        selectedMode = state.mode,
-                        guestUnread = state.unreadCounts.guestUnread,
-                        hostUnread = state.unreadCounts.hostUnread,
-                        onModeSelected = { onEvent(InboxEvent.ModeChanged(it)) }
-                    )
-
-                    // Thread list
-                    LazyColumn(
-                        contentPadding = PaddingValues(
-                            horizontal = PaceDreamSpacing.MD,
-                            vertical = PaceDreamSpacing.SM
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(
-                            items = state.threads,
-                            key = { it.id }
-                        ) { thread ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        onEvent(InboxEvent.ArchiveThread(thread))
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                }
-                            )
-
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                enableDismissFromEndToStart = true,
-                                backgroundContent = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                            .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
-                                            .padding(horizontal = PaceDreamSpacing.MD),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                                        ) {
-                                            Text(
-                                                text = "Archive",
-                                                style = PaceDreamTypography.Callout,
-                                                color = PaceDreamColors.TextPrimary,
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                            Icon(
-                                                imageVector = PaceDreamIcons.Archive,
-                                                contentDescription = null,
-                                                tint = PaceDreamColors.TextPrimary
-                                            )
-                                        }
-                                    }
-                                }
-                            ) {
-                                ThreadCard(
-                                    thread = thread,
-                                    onClick = { onEvent(InboxEvent.ThreadClicked(thread)) },
-                                    modifier = Modifier.animateItemPlacement()
-                                )
-                            }
-                        }
-
-                        // Load more indicator
-                        if (state.hasMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(PaceDreamSpacing.MD),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = PaceDreamColors.Primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                // Trigger pagination only once per list-size to avoid event spam.
-                                LaunchedEffect(state.threads.size) {
-                                    if (loadMoreRequestedForSize.intValue != state.threads.size) {
-                                        loadMoreRequestedForSize.intValue = state.threads.size
-                                        onEvent(InboxEvent.LoadMore)
-                                    }
-                                }
-                            }
+        LazyColumn(
+            contentPadding = PaddingValues(
+                horizontal = PaceDreamSpacing.MD,
+                vertical = PaceDreamSpacing.SM
+            ),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(
+                items = state.threads,
+                key = { it.id }
+            ) { thread ->
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                            onEvent(InboxEvent.ArchiveThread(thread))
+                            true
+                        } else {
+                            false
                         }
                     }
-                }
-
-                InboxSegment.NOTIFICATIONS -> {
-                    NotificationsPlaceholder()
-                }
-            }
-        }
-    }
-}
-
-/**
- * Segmented tab row matching iOS Picker(.segmented) for Chats/Notifications
- */
-@Composable
-private fun SegmentedTabRow(
-    selectedSegment: InboxSegment,
-    onSegmentSelected: (InboxSegment) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
-            .background(
-                PaceDreamColors.Border.copy(alpha = 0.2f),
-                RoundedCornerShape(PaceDreamRadius.MD)
-            )
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        InboxSegment.entries.forEach { segment ->
-            val isSelected = segment == selectedSegment
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                    .background(
-                        if (isSelected) PaceDreamColors.Card else Color.Transparent
-                    )
-                    .clickable { onSegmentSelected(segment) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = segment.displayName,
-                    style = PaceDreamTypography.Callout,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary
                 )
-            }
-        }
-    }
-}
 
-/**
- * Notifications placeholder matching iOS NotificationsPlaceholderView.
- * Backend integration follows when notification endpoints are confirmed.
- */
-@Composable
-private fun NotificationsPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.LG),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Notifications,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = PaceDreamColors.TextSecondary
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Text(
-                text = "No notifications yet",
-                style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Text(
-                text = "Booking updates, messages, and alerts will show up here.",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ModeToggleRow(
-    selectedMode: InboxMode,
-    guestUnread: Int,
-    hostUnread: Int,
-    onModeSelected: (InboxMode) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-    ) {
-        InboxMode.entries.forEach { mode ->
-            val unread = when (mode) {
-                InboxMode.GUEST -> guestUnread
-                InboxMode.HOST -> hostUnread
-            }
-            
-            FilterChip(
-                selected = mode == selectedMode,
-                onClick = { onModeSelected(mode) },
-                label = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(mode.displayName)
-                        if (unread > 0) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .background(
-                                        if (mode == selectedMode) Color.White else PaceDreamColors.Primary,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
+                SwipeToDismissBox(
+                    state = dismissState,
+                    enableDismissFromStartToEnd = false,
+                    enableDismissFromEndToStart = true,
+                    backgroundContent = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                .background(PaceDreamColors.Warning.copy(alpha = 0.18f))
+                                .padding(horizontal = PaceDreamSpacing.MD),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                             ) {
                                 Text(
-                                    text = if (unread > 99) "99" else unread.toString(),
-                                    style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
-                                    color = if (mode == selectedMode) PaceDreamColors.Primary else Color.White,
-                                    fontWeight = FontWeight.Bold
+                                    text = "Archive",
+                                    style = PaceDreamTypography.Callout,
+                                    color = PaceDreamColors.TextPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Icon(
+                                    imageVector = PaceDreamIcons.Archive,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.TextPrimary
                                 )
                             }
                         }
                     }
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PaceDreamColors.Primary,
-                    selectedLabelColor = Color.White
-                )
+                ) {
+                    ThreadCard(
+                        thread = thread,
+                        onClick = { onEvent(InboxEvent.ThreadClicked(thread)) },
+                        modifier = Modifier.animateItemPlacement()
+                    )
+                }
+            }
+
+            // Load more indicator
+            if (state.hasMore) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(PaceDreamSpacing.MD),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = PaceDreamColors.Primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Trigger pagination only once per list-size to avoid event spam.
+                    LaunchedEffect(state.threads.size) {
+                        if (loadMoreRequestedForSize.intValue != state.threads.size) {
+                            loadMoreRequestedForSize.intValue = state.threads.size
+                            onEvent(InboxEvent.LoadMore)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Improved empty state with richer visual presentation and helpful guidance.
+ */
+@Composable
+private fun InboxEmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = PaceDreamSpacing.XL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(
+                    PaceDreamColors.Primary.copy(alpha = 0.08f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Message,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = PaceDreamColors.Primary.copy(alpha = 0.6f)
+            )
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        Text(
+            text = "No messages yet",
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "When you contact a host or receive a booking inquiry, your conversations will appear here.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+        )
+    }
+}
+
+/**
+ * Auth-required state with sign-in prompt.
+ */
+@Composable
+private fun AuthRequiredState(
+    onShowAuthSheet: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(horizontal = PaceDreamSpacing.XL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .background(
+                    PaceDreamColors.Primary.copy(alpha = 0.08f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = PaceDreamColors.Primary.copy(alpha = 0.6f)
+            )
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        Text(
+            text = "Sign in to view messages",
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Message hosts, ask questions, and manage your bookings — all in one place.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        Button(
+            onClick = onShowAuthSheet,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PaceDreamColors.Primary
+            ),
+            shape = RoundedCornerShape(PaceDreamRadius.MD)
+        ) {
+            Text(
+                text = "Sign In",
+                style = PaceDreamTypography.Button,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -476,9 +407,9 @@ private fun ThreadCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
-            containerColor = if (thread.hasUnread) 
-                PaceDreamColors.Primary.copy(alpha = 0.05f) 
-            else 
+            containerColor = if (thread.hasUnread)
+                PaceDreamColors.Primary.copy(alpha = 0.05f)
+            else
                 PaceDreamColors.Card
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -517,9 +448,9 @@ private fun ThreadCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-            
+
             // Content
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -535,16 +466,16 @@ private fun ThreadCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     Text(
                         text = thread.formattedTime,
                         style = PaceDreamTypography.Caption,
                         color = if (thread.hasUnread) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -558,7 +489,7 @@ private fun ThreadCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     // Unread badge
                     if (thread.hasUnread) {
                         Box(
@@ -577,7 +508,7 @@ private fun ThreadCard(
                         }
                     }
                 }
-                
+
                 // Listing info if available
                 thread.listing?.let { listing ->
                     Spacer(modifier = Modifier.height(4.dp))
@@ -651,5 +582,3 @@ private fun InboxSkeletonList(
         }
     }
 }
-
-
