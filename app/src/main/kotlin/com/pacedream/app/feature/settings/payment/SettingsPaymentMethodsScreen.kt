@@ -53,7 +53,10 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextAlign
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import timber.log.Timber
 
@@ -309,46 +312,57 @@ private fun EmptyPaymentMethodsState(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(PaceDreamSpacing.LG),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = PaceDreamIcons.CreditCard,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.height(48.dp)
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier.size(PaceDreamIconSize.XXL)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         Text(
             text = "No payment methods",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
-            text = "Add a card to securely store your payment details with Stripe.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Add a card to securely pay for bookings.",
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         Button(
             onClick = onAddCardClick,
             enabled = isStripeConfigured && !isCreatingSetupIntent,
-            modifier = Modifier.fillMaxWidth()
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.65f)
+                .height(48.dp)
         ) {
             if (isCreatingSetupIntent) {
                 CircularProgressIndicator(
                     modifier = Modifier
-                        .height(20.dp)
+                        .size(20.dp)
                         .padding(end = 8.dp),
-                    strokeWidth = 2.dp
+                    strokeWidth = 2.dp,
+                    color = Color.White
                 )
             }
-            Text("Add Card")
+            Text(
+                "Add Card",
+                style = PaceDreamTypography.CalloutBold,
+                color = Color.White
+            )
         }
         if (!isStripeConfigured) {
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             StripeMissingWarning()
         }
     }

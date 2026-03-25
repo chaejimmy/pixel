@@ -338,11 +338,10 @@ private fun UpcomingBookingsSection(
                 )
             }
         } else if (bookings.isEmpty()) {
-            Text(
-                text = "No upcoming bookings yet.",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.padding(vertical = 8.dp)
+            HostEmptyState(
+                icon = PaceDreamIcons.CalendarToday,
+                title = "No upcoming bookings",
+                subtitle = "When guests book your listings, upcoming stays will appear here."
             )
         } else {
             bookings.forEach { booking ->
@@ -449,13 +448,13 @@ private fun YourListingsSection(
                 }
             }
         } else if (listings.isEmpty()) {
-            Text(
-                text = "No listings yet.",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier
-                    .padding(horizontal = PaceDreamSpacing.MD)
-                    .padding(vertical = 8.dp)
+            HostEmptyState(
+                icon = PaceDreamIcons.Home,
+                title = "No listings yet",
+                subtitle = "Create your first listing and start welcoming guests.",
+                ctaLabel = "Add a Listing",
+                onCta = onViewAllClick,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
             )
         } else {
             LazyRow(
@@ -579,11 +578,10 @@ private fun HistorySection(
                 )
             }
         } else if (events.isEmpty()) {
-            Text(
-                text = "No recent activity yet.",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.padding(vertical = 8.dp)
+            HostEmptyState(
+                icon = PaceDreamIcons.Notifications,
+                title = "No activity yet",
+                subtitle = "Booking confirmations, payouts, and updates will show up here."
             )
         } else {
             events.forEach { event ->

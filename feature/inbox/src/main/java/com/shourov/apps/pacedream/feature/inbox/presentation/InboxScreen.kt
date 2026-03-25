@@ -181,13 +181,13 @@ fun InboxScreen(
                     )
                     is InboxUiState.Empty -> PaceDreamEmptyState(
                         title = "No messages yet",
-                        description = "Start a conversation with hosts or guests",
+                        description = "When you contact a host or receive a booking inquiry, your conversations will appear here.",
                         icon = PaceDreamIcons.Message,
                         modifier = Modifier.fillMaxSize()
                     )
                     is InboxUiState.RequiresAuth -> PaceDreamEmptyState(
                         title = "Sign in to view messages",
-                        description = "Connect with hosts and guests",
+                        description = "Message hosts, ask questions, and manage your bookings — all in one place.",
                         icon = PaceDreamIcons.Lock,
                         actionText = "Sign In",
                         onActionClick = onShowAuthSheet,
@@ -383,24 +383,24 @@ private fun NotificationsPlaceholder() {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Notifications,
                 contentDescription = null,
                 modifier = Modifier.size(56.dp),
-                tint = PaceDreamColors.Primary.copy(alpha = 0.5f)
+                tint = PaceDreamColors.TextSecondary
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Text(
                 text = "No notifications yet",
                 style = PaceDreamTypography.Title3,
-                fontWeight = FontWeight.Bold,
                 color = PaceDreamColors.TextPrimary
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
                 text = "Booking updates, messages, and alerts will show up here.",
-                style = PaceDreamTypography.Body,
+                style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)

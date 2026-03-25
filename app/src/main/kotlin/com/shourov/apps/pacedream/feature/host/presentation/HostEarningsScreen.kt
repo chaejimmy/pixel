@@ -534,7 +534,7 @@ private fun BalanceTabContent(uiState: HostEarningsUiState, onPayoutClick: () ->
             // Payout Timeline
             item { PayoutTimelineCard() }
         } else if (uiState.hasLoaded) {
-            item { EarningsEmptyState(PaceDreamIcons.AttachMoney, "No balance data", uiState.errorMessage ?: "Pull to refresh to try again.") }
+            item { EarningsEmptyState(PaceDreamIcons.AttachMoney, "No earnings yet", uiState.errorMessage ?: "Your balance will appear here once you receive bookings.") }
         } else {
             item { Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.HostAccent) } }
         }
@@ -547,7 +547,7 @@ private fun BalanceTabContent(uiState: HostEarningsUiState, onPayoutClick: () ->
 private fun TransfersTabContent(transactions: List<DashboardTransaction>) {
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(PaceDreamSpacing.MD), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (transactions.isEmpty()) {
-            item { EarningsEmptyState(PaceDreamIcons.Payment, "No transfers yet", "Transfers from bookings will appear here.") }
+            item { EarningsEmptyState(PaceDreamIcons.Payment, "No transfers yet", "Earnings from completed bookings will appear here.") }
         } else {
             items(transactions, key = { it.id }) { TransactionRow(it) }
         }
@@ -585,7 +585,7 @@ private fun PayoutsTabContent(payouts: List<DashboardPayout>, onRequestPayout: (
     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(PaceDreamSpacing.MD), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (payouts.isEmpty()) {
             item {
-                EarningsEmptyState(PaceDreamIcons.AttachMoney, "No payouts yet", "Your payout history will appear here.")
+                EarningsEmptyState(PaceDreamIcons.AttachMoney, "No payouts yet", "Request a payout and your history will appear here.")
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 Button(onClick = onRequestPayout, colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent), shape = RoundedCornerShape(PaceDreamRadius.Round), modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(vertical = 12.dp)) {
                     Text("Request Payout", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -646,12 +646,32 @@ private fun StatusBadge(status: String) {
 
 @Composable
 private fun EarningsEmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = PaceDreamSpacing.XL), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, tint = PaceDreamColors.TextSecondary.copy(alpha = 0.5f), modifier = Modifier.size(32.dp))
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(title, style = PaceDreamTypography.Headline.copy(fontSize = 17.sp), color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(subtitle, style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextSecondary, textAlign = TextAlign.Center)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = PaceDreamSpacing.XXXL),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            icon,
+            null,
+            tint = PaceDreamColors.TextSecondary.copy(alpha = 0.4f),
+            modifier = Modifier.size(PaceDreamIconSize.XXL)
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Text(
+            title,
+            style = PaceDreamTypography.Headline.copy(fontWeight = FontWeight.SemiBold),
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+        Text(
+            subtitle,
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+        )
     }
 }
 

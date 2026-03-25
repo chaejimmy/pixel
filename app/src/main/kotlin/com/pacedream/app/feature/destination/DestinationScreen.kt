@@ -31,6 +31,7 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.theme.*
 import com.pacedream.common.icon.PaceDreamIcons
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -372,7 +373,12 @@ fun DestinationListingsScreen(
             // Listings Grid
             when {
                 uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.Primary) }
-                uiState.listings.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) { Text("No listings found", color = PaceDreamColors.TextSecondary) }
+                uiState.listings.isEmpty() -> PaceDreamEmptyState(
+                    title = "No listings found",
+                    description = "Try a different destination or check back later.",
+                    icon = PaceDreamIcons.Search,
+                    modifier = Modifier.fillMaxSize()
+                )
                 else -> LazyVerticalGrid(GridCells.Fixed(2),
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
