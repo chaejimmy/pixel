@@ -136,22 +136,40 @@ class HomeFeedRepository @Inject constructor(
             val rating = (obj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
                 ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
+            // Try to extract frequency from any available source on the listing object.
+            // The standalone frequency/pricing fields are checked when price is a plain number.
+            val standaloneFrequency = obj["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: (obj["pricing"] as? JsonObject)?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: obj["dynamic_price"]?.let { dp ->
+                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
+                }
+
             val priceText = obj["priceText"].stringOrNull()
-                ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
                 ?: (obj["price"] as? JsonObject)?.let { p ->
                     val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
                     if (amount != null && frequency != null) "$amount/$frequency" else amount
                 }
                 ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
                     val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
                     if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
+                ?: obj["price"].stringOrNull()?.let { raw ->
+                    val amount = normalizePriceText(raw)
+                    if (amount.isNotBlank() && standaloneFrequency != null) "$amount/$standaloneFrequency" else amount
                 }
                 ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
                     val amount = (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = pricing["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                    val frequency = pricing["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
                     if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
+                ?: obj["dynamic_price"]?.let { dp ->
+                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
+                        val amount = p["price"]?.stringOrNull()?.let { normalizePriceText(it) }
+                        val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
+                        if (amount != null && frequency != null) "$amount/$frequency" else amount
+                    }
                 }
 
             // Extract subcategory from multiple possible fields for resource type filtering.

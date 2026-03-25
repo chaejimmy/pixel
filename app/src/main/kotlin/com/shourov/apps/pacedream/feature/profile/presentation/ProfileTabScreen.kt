@@ -529,7 +529,7 @@ private fun HostModeEntry(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isHostMode) PaceDreamIcons.Person else PaceDreamIcons.Home,
+                    imageVector = if (isHostMode) PaceDreamIcons.Person else PaceDreamIcons.Add,
                     contentDescription = null,
                     tint = if (isHostMode) PaceDreamColors.Primary else Color.White,
                     modifier = Modifier.size(PaceDreamIconSize.SM)
@@ -538,14 +538,14 @@ private fun HostModeEntry(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isHostMode) "Switch to Guest Mode" else "Switch to Host Mode",
+                    text = if (isHostMode) "Switch to Guest Mode" else "Create a Listing",
                     style = PaceDreamTypography.Subheadline,
                     color = if (isHostMode) PaceDreamColors.Primary else Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = if (isHostMode) "Browse and book spaces"
-                    else "Manage listings and bookings",
+                    else "Share your space, items, or services",
                     style = PaceDreamTypography.Caption,
                     color = if (isHostMode) PaceDreamColors.TextSecondary
                     else Color.White.copy(alpha = 0.8f)

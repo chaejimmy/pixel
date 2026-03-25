@@ -43,7 +43,22 @@ class HostEarningsViewModel @Inject constructor(
     val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
 
     init {
-        loadAllData()
+        // Observe auth state reactively so we load data once auth is confirmed,
+        // rather than racing against auth initialization on startup.
+        viewModelScope.launch {
+            authSession.authState.collect { state ->
+                when (state) {
+                    AuthState.Authenticated -> loadAllData()
+                    AuthState.Unauthenticated -> {
+                        _earningsUiState.value = _earningsUiState.value.copy(
+                            screenState = EarningsScreenState.SessionExpired,
+                            isRefreshing = false
+                        )
+                    }
+                    else -> { /* AuthState.Unknown — still initializing, wait */ }
+                }
+            }
+        }
     }
 
     private fun loadAllData() {
@@ -52,22 +67,12 @@ class HostEarningsViewModel @Inject constructor(
 
             // Guard against duplicate loads (iOS parity)
             if (current.screenState is EarningsScreenState.Loading && !current.isRefreshing) {
-                // Already loading on first call from init — allow it
                 if (current.screenState == EarningsScreenState.Loading && current.dashboard == null) {
                     // first load, proceed
                 } else {
                     Timber.d("[Earnings] Already loading, skipping")
                     return@launch
                 }
-            }
-
-            // Check auth before hitting the network
-            if (!authSession.isAuthenticated) {
-                _earningsUiState.value = current.copy(
-                    screenState = EarningsScreenState.SessionExpired,
-                    isRefreshing = false
-                )
-                return@launch
             }
 
             _earningsUiState.value = current.copy(
