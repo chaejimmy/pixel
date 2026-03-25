@@ -68,7 +68,7 @@ fun BookingTabScreen(
     ) {
         // Header — compact, no extra outer padding
         PaceDreamHeroHeader(
-            title = "My Bookings",
+            title = "Bookings",
             subtitle = "Manage your reservations"
         )
 

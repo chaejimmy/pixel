@@ -60,7 +60,7 @@ fun BookingScreen(
             .statusBarsPadding()
     ) {
         PaceDreamHeroHeader(
-            title = "My Bookings",
+            title = "Bookings",
             subtitle = "Manage your reservations",
             onNotificationClick = { /* Handle notification */ }
         )

@@ -1397,7 +1397,7 @@ private fun ThreeStepsCTASection(
     val steps = listOf(
         StepData(
             PaceDreamIcons.Add,
-            "Create a Listing",
+            "Create listing",
             "Share your space, item, or parking spot with others."
         ),
         StepData(

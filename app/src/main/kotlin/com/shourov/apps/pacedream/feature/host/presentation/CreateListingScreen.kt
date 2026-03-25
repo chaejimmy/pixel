@@ -383,7 +383,7 @@ private fun CreateListingEntryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create a Listing", style = PaceDreamTypography.Headline) },
+                title = { Text("Create listing", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.Close, contentDescription = "Cancel")
@@ -403,7 +403,7 @@ private fun CreateListingEntryScreen(
                 .padding(top = PaceDreamSpacing.SM, bottom = PaceDreamSpacing.XL),
         ) {
             Text(
-                text = "Create a Listing",
+                text = "Create listing",
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,

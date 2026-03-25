@@ -428,7 +428,7 @@ private fun PrimaryActionsRow(
         )
         PrimaryActionCard(
             icon = PaceDreamIcons.Favorite,
-            label = "Wishlist",
+            label = "Favorites",
             count = wishlistCount,
             onClick = onWishlist,
             modifier = Modifier.weight(1f)
