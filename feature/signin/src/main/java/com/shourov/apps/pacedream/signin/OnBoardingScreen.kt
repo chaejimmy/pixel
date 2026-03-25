@@ -21,10 +21,7 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +39,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.shourov.apps.pacedream.core.ui.OnBoardingScreenItems.onBoardingScreenItems
+import com.pacedream.common.composables.buttons.OutlineProcessButton
+import com.pacedream.common.composables.buttons.ProcessButton
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.shourov.apps.pacedream.feature.signin.R
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.slightlyDeemphasizedAlpha
@@ -105,33 +105,15 @@ fun OnBoardingScreen(
         Column(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OutlinedButton(
+            OutlineProcessButton(
                 onClick = onCreateAccount,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onBackground,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(),
-            ) {
-                Text(
-                    text = stringResource(id = R.string.feature_signin_onboarding_create_account),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-            Button(
+                text = stringResource(id = R.string.feature_signin_onboarding_create_account),
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            ProcessButton(
                 onClick = onSignIn,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onBackground,
-                    contentColor = MaterialTheme.colorScheme.background,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(),
-            ) {
-                Text(
-                    text = stringResource(id = R.string.feature_signin_onboarding_sign_in).uppercase(),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+                text = stringResource(id = R.string.feature_signin_onboarding_sign_in).uppercase(),
+            )
         }
     }
 }

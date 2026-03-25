@@ -49,6 +49,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.buttons.GradientProcessButton
+import com.pacedream.common.composables.buttons.PrimaryTextButton
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.theme.*
@@ -777,32 +779,16 @@ private fun BookingSummaryBar(
                 }
             }
 
-            // CTA Button
-            Button(
+            // CTA Button — iOS hero action pattern
+            GradientProcessButton(
                 onClick = onBookNow,
-                enabled = isSelectionComplete,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.LG),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary,
-                    disabledContainerColor = PaceDreamColors.Gray200
-                ),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = if (isSelectionComplete) 2.dp else 0.dp
-                ),
-            ) {
-                Text(
-                    text = when {
-                        !isSelectionComplete -> "Select duration, date & time"
-                        uiState.totalPrice > 0 -> "Reserve - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}"
-                        else -> "Reserve"
-                    },
-                    style = PaceDreamTypography.Button,
-                    color = if (isSelectionComplete) PaceDreamColors.OnPrimary else PaceDreamColors.TextSecondary
-                )
-            }
+                isEnabled = isSelectionComplete,
+                text = when {
+                    !isSelectionComplete -> "Select duration, date & time"
+                    uiState.totalPrice > 0 -> "Reserve - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}"
+                    else -> "Reserve"
+                },
+            )
 
             if (isSelectionComplete) {
                 Text(
@@ -881,9 +867,11 @@ private fun ErrorBanner(error: String, onDismiss: () -> Unit) {
                 color = PaceDreamColors.TextPrimary,
                 style = PaceDreamTypography.Callout
             )
-            TextButton(onClick = onDismiss) {
-                Text("Dismiss", color = PaceDreamColors.Primary, style = PaceDreamTypography.Caption)
-            }
+            PrimaryTextButton(
+                text = "Dismiss",
+                onClick = onDismiss,
+                modifier = Modifier,
+            )
         }
     }
 }

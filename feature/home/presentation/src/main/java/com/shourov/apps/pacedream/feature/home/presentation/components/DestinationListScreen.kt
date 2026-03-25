@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import com.pacedream.common.composables.buttons.CompactProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -85,11 +86,10 @@ fun DestinationListScreen(
                             color = PaceDreamColors.TextSecondary
                         )
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        Button(
+                        CompactProcessButton(
                             onClick = onRetry,
-                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.LG)
-                        ) { Text("Retry", style = PaceDreamTypography.Button) }
+                            text = "Retry",
+                        )
                     }
                 }
             }

@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -65,6 +63,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -430,24 +429,12 @@ private fun EmptyState(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-            // CTA button — iOS: "Explore listings", 16sp bold, white on primary,
-            // minWidth 220, minHeight 48, cornerRadius 14
-            Button(
+            // CTA button — iOS primary action pattern
+            ProcessButton(
                 onClick = onExplore,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary
-                ),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth(0.65f)
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = "Explore listings",
-                    style = PaceDreamTypography.CalloutBold,
-                    color = Color.White
-                )
-            }
+                text = "Explore listings",
+                modifier = Modifier.fillMaxWidth(0.65f),
+            )
         }
     }
 }
@@ -495,17 +482,11 @@ private fun ErrorState(
                 color = PaceDreamColors.Error
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Button(
+            ProcessButton(
                 onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Text(
-                    text = "Retry",
-                    style = PaceDreamTypography.CalloutBold,
-                    color = Color.White
-                )
-            }
+                text = "Retry",
+                modifier = Modifier.fillMaxWidth(0.5f),
+            )
         }
     }
 }
@@ -550,20 +531,11 @@ private fun RequiresAuthState(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-            Button(
+            ProcessButton(
                 onClick = onSignIn,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth(0.65f)
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = "Sign In",
-                    style = PaceDreamTypography.CalloutBold,
-                    color = Color.White
-                )
-            }
+                text = "Sign In",
+                modifier = Modifier.fillMaxWidth(0.65f),
+            )
         }
     }
 }

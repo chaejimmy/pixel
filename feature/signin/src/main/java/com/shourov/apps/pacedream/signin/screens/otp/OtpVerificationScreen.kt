@@ -2,23 +2,15 @@ package com.shourov.apps.pacedream.signin.screens.otp
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,13 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.buttons.PrimaryTextButton
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.core.ui.otp.OtpInputField
@@ -139,8 +129,8 @@ fun OtpVerificationScreen(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-            // Verify Button - iOS 26 style
-            Button(
+            // Verify Button — iOS primary action pattern
+            ProcessButton(
                 onClick = {
                     viewModel.verifyAndLogin(
                         phoneNumber = phoneNumber,
@@ -152,27 +142,10 @@ fun OtpVerificationScreen(
                         }
                     )
                 },
-                enabled = uiState.otpCode.length == 6 && !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary
-                ),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = PaceDreamColors.OnPrimary
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text("Verifying...", style = PaceDreamTypography.Button)
-                } else {
-                    Text("Verify", style = PaceDreamTypography.Button)
-                }
-            }
+                isEnabled = uiState.otpCode.length == 6,
+                isProcessing = uiState.isLoading,
+                text = if (uiState.isLoading) "Verifying..." else "Verify",
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
@@ -184,7 +157,12 @@ fun OtpVerificationScreen(
             )
 
             // Resend Button
-            TextButton(
+            PrimaryTextButton(
+                text = if (resendCountdown > 0) {
+                    "Resend code in ${resendCountdown}s"
+                } else {
+                    "Resend code"
+                },
                 onClick = {
                     if (resendCountdown == 0) {
                         viewModel.resendOTP(
@@ -201,29 +179,15 @@ fun OtpVerificationScreen(
                         )
                     }
                 },
-                enabled = resendCountdown == 0 && !uiState.isLoading
-            ) {
-                Text(
-                    text = if (resendCountdown > 0) {
-                        "Resend code in ${resendCountdown}s"
-                    } else {
-                        "Resend code"
-                    },
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             // Change phone number link
-            TextButton(onClick = onBackToPhone) {
-                Text(
-                    "← Change phone number",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary
-                )
-            }
+            PrimaryTextButton(
+                text = "← Change phone number",
+                onClick = onBackToPhone,
+            )
         }
     }
 }

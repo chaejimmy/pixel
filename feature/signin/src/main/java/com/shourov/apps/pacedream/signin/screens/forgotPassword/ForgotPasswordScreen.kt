@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -29,10 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.buttons.RoundIconButton
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -139,37 +135,17 @@ fun ForgotPasswordScreen(
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-                Button(
+                ProcessButton(
                     onClick = onBackClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PaceDreamButtonHeight.MD),
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                    shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                ) {
-                    Text("Back to Sign In", style = PaceDreamTypography.Button)
-                }
+                    text = "Back to Sign In",
+                )
             } else {
-                Button(
+                ProcessButton(
                     onClick = { viewModel.sendResetLink() },
-                    enabled = uiState.email.isNotBlank() && !uiState.isLoading,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(PaceDreamButtonHeight.MD),
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                    shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.height(20.dp),
-                            color = PaceDreamColors.OnPrimary,
-                        )
-                    } else {
-                        Text("Send Reset Link", style = PaceDreamTypography.Button)
-                    }
-                }
+                    isEnabled = uiState.email.isNotBlank(),
+                    isProcessing = uiState.isLoading,
+                    text = "Send Reset Link",
+                )
             }
         }
     }

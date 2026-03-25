@@ -24,6 +24,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -205,6 +206,7 @@ fun GradientProcessButton(
 
 /**
  * Outline button variant matching iOS PaceDreamButtonStyle.outline.
+ * Includes a 1dp border in the primary color (or gray when disabled).
  */
 @Composable
 fun OutlineProcessButton(
@@ -214,18 +216,130 @@ fun OutlineProcessButton(
     isEnabled: Boolean = true,
     isProcessing: Boolean = false,
 ) {
-    ProcessButton(
-        modifier = modifier,
+    val effectiveEnabled = !isProcessing && isEnabled
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "outline_button_press_scale"
+    )
+
+    androidx.compose.material3.OutlinedButton(
         onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(PaceDreamButtonHeight.MD)
+            .scale(scale),
+        enabled = effectiveEnabled,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.Transparent,
             contentColor = PaceDreamColors.Primary,
             disabledContainerColor = Color.Transparent,
             disabledContentColor = PaceDreamColors.TextTertiary,
         ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = if (effectiveEnabled) PaceDreamColors.Primary else PaceDreamColors.Gray300,
+        ),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { interactionSource ->
+            isPressed = interactionSource.collectIsPressedAsState().value
+        },
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(vertical = PaceDreamSpacing.XS),
+        ) {
+            Text(
+                text = text,
+                style = PaceDreamTypography.Button,
+            )
+            AnimatedVisibility(isProcessing) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(start = PaceDreamSpacing.XS),
+                    strokeWidth = 2.dp,
+                    color = PaceDreamColors.Primary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Destructive button for dangerous actions (Cancel booking, Delete account, Sign out).
+ * Red fill matching iOS destructive button pattern.
+ */
+@Composable
+fun DestructiveProcessButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    text: String = "",
+    isEnabled: Boolean = true,
+    isProcessing: Boolean = false,
+) {
+    ProcessButton(
+        modifier = modifier,
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = PaceDreamColors.Error,
+            contentColor = Color.White,
+            disabledContainerColor = PaceDreamColors.Gray200,
+            disabledContentColor = PaceDreamColors.TextSecondary,
+        ),
         text = text,
         isEnabled = isEnabled,
         isProcessing = isProcessing,
     )
+}
+
+/**
+ * Compact button for card-level inline actions.
+ * Uses SM height (36dp) and Callout typography.
+ * Matches iOS compact button in cards and inline contexts.
+ */
+@Composable
+fun CompactProcessButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    text: String = "",
+    isEnabled: Boolean = true,
+    containerColor: Color = PaceDreamColors.Primary,
+    contentColor: Color = Color.White,
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "compact_button_press_scale"
+    )
+
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .height(PaceDreamButtonHeight.SM)
+            .scale(scale),
+        enabled = isEnabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = PaceDreamColors.Gray200,
+            disabledContentColor = PaceDreamColors.TextSecondary,
+        ),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = 0.dp),
+        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }.also { interactionSource ->
+            isPressed = interactionSource.collectIsPressedAsState().value
+        },
+    ) {
+        Text(
+            text = text,
+            style = PaceDreamTypography.Callout.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+        )
+    }
 }
 

@@ -30,10 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,11 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.pacedream.common.composables.VerticalSpacer
+import com.pacedream.common.composables.buttons.OutlineProcessButton
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.texts.TitleText
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.core.ui.R
@@ -123,23 +118,13 @@ fun CreateAccountScreen(
                             ),
                     ) {
                         if (createAccountViewModel.accountCreationScreenState.showPreviousButton) {
-                            OutlinedButton(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(PaceDreamButtonHeight.MD),
+                            OutlineProcessButton(
+                                modifier = Modifier.weight(1f),
                                 onClick = {
                                     createAccountViewModel.onPreviousClicked()
                                 },
-                                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = PaceDreamColors.TextPrimary,
-                                ),
-                            ) {
-                                Text(
-                                    text = stringResource(id = R.string.feature_signin_ui_previous),
-                                    style = PaceDreamTypography.Button,
-                                )
-                            }
+                                text = stringResource(id = R.string.feature_signin_ui_previous),
+                            )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                         }
 

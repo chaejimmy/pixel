@@ -12,9 +12,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,6 +32,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 @Composable
 fun SignInButton(
@@ -41,8 +47,10 @@ fun SignInButton(
     isLoading: Boolean,
 ) {
     OutlinedButton(
-        modifier = modifier,
+        modifier = modifier.height(PaceDreamButtonHeight.MD),
         onClick = onClick,
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
     ) {
         logo?.let {
             Image(
@@ -68,9 +76,9 @@ fun SignInButton(
         Text(
             text = stringResource(id = text),
             modifier = Modifier
-                .padding(vertical = 2.dp)
+                .padding(vertical = PaceDreamSpacing.XXS)
                 .align(Alignment.CenterVertically),
-            style = MaterialTheme.typography.labelLarge,
+            style = PaceDreamTypography.Button,
             color = MaterialTheme.colorScheme.onBackground,
         )
         val density = LocalDensity.current
@@ -86,7 +94,7 @@ fun SignInButton(
                     easing = FastOutSlowInEasing,
                 ),
             ) + fadeOut(),
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = PaceDreamSpacing.SM),
         ) {
             CircularProgressIndicator(
                 modifier = Modifier
