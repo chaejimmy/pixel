@@ -474,6 +474,29 @@ class AuthSession @Inject constructor(
     }
     
     /**
+     * Extract user ID from JWT claims (iOS parity).
+     * iOS uses: JWT.decodePayloadClaims → claims["userId"] ?? claims["user_id"] ?? "me"
+     * This is the authoritative source for the authenticated user ID.
+     */
+    private fun extractUserIdFromJwt(): String? {
+        val token = tokenStorage.accessToken ?: return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size != 3) return null
+            // Decode the payload (second part) from Base64
+            val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            val payloadJson = json.parseToJsonElement(String(payload)).jsonObject
+            val id = payloadJson["userId"]?.jsonPrimitive?.content
+                ?: payloadJson["user_id"]?.jsonPrimitive?.content
+                ?: payloadJson["sub"]?.jsonPrimitive?.content
+            if (!id.isNullOrBlank()) id else null
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to extract user ID from JWT")
+            null
+        }
+    }
+
+    /**
      * Parse user from JSON response
      * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
@@ -506,10 +529,23 @@ class AuthSession @Inject constructor(
 
             Timber.d("[HostMode] Parsing user profile — superHost=$superHost, isHostFlag=$isHostFlag, propertiesCount=$propertiesCount")
 
+            // iOS parity: user ID comes from JWT claims first, then response body fields.
+            // The /account/me profile sub-object often does NOT contain _id/id,
+            // so relying on it alone leaves the user ID empty.
+            val responseId = userData["_id"]?.jsonPrimitive?.content
+                ?: userData["id"]?.jsonPrimitive?.content
+                ?: dataObject?.get("_id")?.jsonPrimitive?.content
+                ?: dataObject?.get("id")?.jsonPrimitive?.content
+                ?: jsonObject["_id"]?.jsonPrimitive?.content
+                ?: jsonObject["id"]?.jsonPrimitive?.content
+            val jwtId = extractUserIdFromJwt()
+            val resolvedId = responseId?.takeIf { it.isNotBlank() }
+                ?: jwtId
+                ?: tokenStorage.userId?.takeIf { it.isNotBlank() }
+                ?: ""
+
             val user = User(
-                id = userData["_id"]?.jsonPrimitive?.content
-                    ?: userData["id"]?.jsonPrimitive?.content
-                    ?: "",
+                id = resolvedId,
                 email = userData["email"]?.jsonPrimitive?.content,
                 firstName = userData["firstName"]?.jsonPrimitive?.content
                     ?: userData["first_name"]?.jsonPrimitive?.content,
@@ -526,8 +562,14 @@ class AuthSession @Inject constructor(
                 isHostFlag = isHostFlag
             )
 
+            if (user.id.isBlank()) {
+                Timber.e("User ID is blank after parsing — JWT and response both missing ID")
+            }
+
             _currentUser.value = user
-            tokenStorage.userId = user.id
+            if (user.id.isNotBlank()) {
+                tokenStorage.userId = user.id
+            }
             tokenStorage.cachedUserSummary = responseBody
 
             Timber.d("[HostMode] User set: id=${user.id}, isHost=${user.isHost} (superHost=$superHost, properties=$propertiesCount, flag=$isHostFlag)")

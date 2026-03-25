@@ -43,6 +43,9 @@ class HostRepository @Inject constructor(
         var hadFailure = false
         Timber.d("Loading host dashboard: bookings, listings, overview, payout state, eligibility")
 
+        // Track whether we got 401s (expected for non-host accounts)
+        var got401 = false
+
         val bookingsDeferred = async {
             try {
                 Timber.d("Fetching host bookings from /bookings/host")
@@ -52,8 +55,13 @@ class HostRepository @Inject constructor(
                     Timber.d("Loaded ${bookings.size} host bookings")
                     bookings
                 } else {
-                    Timber.w("Host bookings failed [${response.code()}]")
-                    hadFailure = true
+                    if (response.code() == 401 || response.code() == 403) {
+                        Timber.d("Host bookings returned ${response.code()} — user is likely not a host")
+                        got401 = true
+                    } else {
+                        Timber.w("Host bookings failed [${response.code()}]")
+                        hadFailure = true
+                    }
                     emptyList()
                 }
             } catch (e: Exception) {
@@ -73,8 +81,13 @@ class HostRepository @Inject constructor(
                     Timber.d("Loaded ${listings.size} host listings")
                     listings
                 } else {
-                    Timber.w("Host listings failed [${response.code()}]")
-                    hadFailure = true
+                    if (response.code() == 401 || response.code() == 403) {
+                        Timber.d("Host listings returned ${response.code()} — user is likely not a host")
+                        got401 = true
+                    } else {
+                        Timber.w("Host listings failed [${response.code()}]")
+                        hadFailure = true
+                    }
                     emptyList()
                 }
             } catch (e: Exception) {
@@ -92,8 +105,13 @@ class HostRepository @Inject constructor(
                     Timber.d("Dashboard overview loaded")
                     response.body()
                 } else {
-                    Timber.w("Dashboard overview failed [${response.code()}]")
-                    hadFailure = true
+                    if (response.code() == 401 || response.code() == 403) {
+                        Timber.d("Dashboard overview returned ${response.code()} — non-host account")
+                        got401 = true
+                    } else {
+                        Timber.w("Dashboard overview failed [${response.code()}]")
+                        hadFailure = true
+                    }
                     null
                 }
             } catch (e: Exception) {
@@ -129,10 +147,13 @@ class HostRepository @Inject constructor(
         val payoutState = payoutDeferred.await()
         val payoutEligibility = eligibilityDeferred.await()
 
-        // iOS parity: only show full error when primary data (bookings + listings)
-        // both failed. Overview/payout failures are non-critical.
+        // iOS parity: 401/403 on host-only endpoints for non-host accounts is NOT a failure.
+        // Treat as empty data with no error message — matches iOS HostDataStore behavior
+        // where non-host users simply see empty state, not error banners.
         val primaryDataFailed = hadFailure && bookings.isEmpty() && listings.isEmpty()
         val errorMessage = when {
+            got401 && !hadFailure && bookings.isEmpty() && listings.isEmpty() ->
+                null  // Non-host user: show empty state, not error
             primaryDataFailed ->
                 "Couldn't load host data. Pull to refresh."
             hadFailure ->

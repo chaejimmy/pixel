@@ -384,6 +384,27 @@ class SessionManager @Inject constructor(
     }
     
     /**
+     * Extract user ID from JWT claims (iOS parity).
+     * iOS: JWT.decodePayloadClaims → claims["userId"] ?? claims["user_id"] ?? "me"
+     */
+    private fun extractUserIdFromJwt(): String? {
+        val token = tokenStorage.accessToken ?: return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size != 3) return null
+            val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            val payloadJson = json.parseToJsonElement(String(payload)).jsonObject
+            val id = payloadJson["userId"]?.jsonPrimitive?.content
+                ?: payloadJson["user_id"]?.jsonPrimitive?.content
+                ?: payloadJson["sub"]?.jsonPrimitive?.content
+            if (!id.isNullOrBlank()) id else null
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to extract user ID from JWT")
+            null
+        }
+    }
+
+    /**
      * Parse user from JSON response (tolerant parsing)
      * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
@@ -393,14 +414,29 @@ class SessionManager @Inject constructor(
             val obj = element.jsonObject
 
             // Find user data in common locations
-            val userData = obj["data"]?.jsonObject
+            // /account/me returns { data: { profile: { firstName, ... } } }
+            val dataObject = obj["data"]?.jsonObject
+            val userData = dataObject?.get("profile")?.jsonObject
+                ?: dataObject?.get("user")?.jsonObject
                 ?: obj["user"]?.jsonObject
+                ?: dataObject
                 ?: obj
 
+            // iOS parity: user ID from JWT claims first, then response body, then cached
+            val responseId = userData["_id"]?.jsonPrimitive?.content
+                ?: userData["id"]?.jsonPrimitive?.content
+                ?: dataObject?.get("_id")?.jsonPrimitive?.content
+                ?: dataObject?.get("id")?.jsonPrimitive?.content
+                ?: obj["_id"]?.jsonPrimitive?.content
+                ?: obj["id"]?.jsonPrimitive?.content
+            val jwtId = extractUserIdFromJwt()
+            val resolvedId = responseId?.takeIf { it.isNotBlank() }
+                ?: jwtId
+                ?: tokenStorage.userId?.takeIf { it.isNotBlank() }
+                ?: ""
+
             val user = User(
-                id = userData["_id"]?.jsonPrimitive?.content
-                    ?: userData["id"]?.jsonPrimitive?.content
-                    ?: "",
+                id = resolvedId,
                 email = userData["email"]?.jsonPrimitive?.content,
                 firstName = userData["firstName"]?.jsonPrimitive?.content
                     ?: userData["first_name"]?.jsonPrimitive?.content,
@@ -408,15 +444,22 @@ class SessionManager @Inject constructor(
                     ?: userData["last_name"]?.jsonPrimitive?.content,
                 profileImage = userData["profileImage"]?.jsonPrimitive?.content
                     ?: userData["profile_image"]?.jsonPrimitive?.content
+                    ?: userData["avatarUrl"]?.jsonPrimitive?.content
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
             )
 
+            if (user.id.isBlank()) {
+                Timber.e("SessionManager: User ID is blank after parsing — JWT and response both missing ID")
+            }
+
             _currentUser.value = user
-            tokenStorage.userId = user.id
+            if (user.id.isNotBlank()) {
+                tokenStorage.userId = user.id
+            }
             tokenStorage.cachedUserSummary = responseBody
 
-            Timber.d("User set: id=${user.id}")
+            Timber.d("SessionManager: User set: id=${user.id}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
             if (!fromCache) {

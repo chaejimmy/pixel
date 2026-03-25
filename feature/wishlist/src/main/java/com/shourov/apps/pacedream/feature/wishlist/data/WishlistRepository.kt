@@ -246,9 +246,12 @@ class WishlistRepository @Inject constructor(
         val obj = (root as? JsonObject) ?: return emptyList()
 
         // 2) Try to find an array of wishlists
-        val wishlistsArray = obj["wishlists"]?.jsonArray
-            ?: obj["data"]?.jsonObject?.get("wishlists")?.jsonArray
-            ?: obj["data"]?.jsonArray
+        // Note: use safe casts to avoid "JsonArray is not a JsonObject" crash
+        // when backend returns { data: [...] } (data is array, not object)
+        val dataElement = obj["data"]
+        val wishlistsArray = (obj["wishlists"] as? kotlinx.serialization.json.JsonArray)
+            ?: ((dataElement as? JsonObject)?.get("wishlists") as? kotlinx.serialization.json.JsonArray)
+            ?: (dataElement as? kotlinx.serialization.json.JsonArray)
 
         // If we found wishlists, flatten nested listing arrays (properties/items/listings)
         if (wishlistsArray != null) {
