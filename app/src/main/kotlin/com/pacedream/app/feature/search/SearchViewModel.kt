@@ -76,48 +76,29 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         // Map tab to the web API's "category" parameter (iOS parity).
-        val category: String = when (state.selectedTab) {
-            SearchTab.SHARE -> "time-based"
-            SearchTab.BORROW -> "hourly-rental-gears"
-            SearchTab.SPLIT -> "room-stays"
+        // All first-stage categories use /poc/listings endpoint.
+        val backendCategory: String = when (state.selectedTab) {
+            SearchTab.SPACES -> "time_based"
+            SearchTab.ITEMS -> "hourly_rental_gear"
+            SearchTab.SERVICES -> "time_based"  // Services share the time-based endpoint
         }
 
-        // Website parity: map web category to backend category values
-        val backendCategoryMap = mapOf(
-            "time-based" to "time_based",
-            "hourly-rental-gears" to "hourly_rental_gear",
-            "room-stays" to "room_stays",
-            "find-roommates" to "find_roommate"
-        )
-        val backendCategory = backendCategoryMap[category] ?: "time_based"
-
-        // Website parity: time-based and hourly-rental-gears use /poc/listings,
-        // others use /listings
-        val usePOCEndpoint = category == "time-based" || category == "hourly-rental-gears"
+        val category: String = when (state.selectedTab) {
+            SearchTab.SPACES -> "time-based"
+            SearchTab.ITEMS -> "hourly-rental-gears"
+            SearchTab.SERVICES -> "time-based"
+        }
 
         val queryParams = buildMap<String, String?> {
             put("status", "published")
             put("limit", "24")
             put("skip_pagination", "true")
-            if (usePOCEndpoint) {
-                put("category", backendCategory)
-            } else {
-                val shareTypeValue = when (state.selectedTab) {
-                    SearchTab.SHARE -> "USE"
-                    SearchTab.BORROW -> "BORROW"
-                    SearchTab.SPLIT -> "SPLIT"
-                }
-                put("shareType", shareTypeValue)
-            }
+            put("category", backendCategory)
             if (state.query.isNotBlank()) put("q", state.query)
         }
 
         // Primary: backend API directly (website parity)
-        val primaryUrl = if (usePOCEndpoint) {
-            appConfig.buildApiUrl("poc", "listings", queryParams = queryParams)
-        } else {
-            appConfig.buildApiUrl("listings", queryParams = queryParams)
-        }
+        val primaryUrl = appConfig.buildApiUrl("poc", "listings", queryParams = queryParams)
 
         Timber.d("Search primary URL: $primaryUrl")
         val primaryResult = apiClient.get(primaryUrl, includeAuth = false)
@@ -223,9 +204,9 @@ class SearchViewModel @Inject constructor(
                         ?: itemObj["avgRating"]?.jsonPrimitive?.doubleOrNull
 
                     val type = when (tab) {
-                        SearchTab.SHARE -> "share"
-                        SearchTab.BORROW -> "gear"
-                        SearchTab.SPLIT -> "split-stay"
+                        SearchTab.SPACES -> "space"
+                        SearchTab.ITEMS -> "item"
+                        SearchTab.SERVICES -> "service"
                     }
 
                     SearchResultItem(
@@ -282,7 +263,8 @@ class SearchViewModel @Inject constructor(
         return try {
             obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
                 val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
-                priceValue?.let { formatPrice(it, "hr") }
+                val freq = price["frequency"]?.jsonPrimitive?.content
+                priceValue?.let { formatPrice(it, formatPriceUnit(freq ?: "hr")) }
             }
             ?: obj["pricing"]?.jsonObject?.let { pricing ->
                 val hourlyFrom = pricing["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
@@ -292,13 +274,14 @@ class SearchViewModel @Inject constructor(
                 val freq = pricing["frequencyLabel"]?.jsonPrimitive?.content
                     ?: pricing["frequency"]?.jsonPrimitive?.content
                 val amount = hourlyFrom ?: basePrice
-                amount?.let { formatPrice(it, freq?.lowercase() ?: "hr") }
+                amount?.let { formatPrice(it, formatPriceUnit(freq ?: "hr")) }
             }
             ?: obj["price"]?.let { price ->
                 when (price) {
                     is JsonObject -> {
                         val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
-                        amount?.let { formatPrice(it, "hr") }
+                        val freq = price["frequency"]?.jsonPrimitive?.content
+                        amount?.let { formatPrice(it, formatPriceUnit(freq ?: "hr")) }
                     }
                     else -> {
                         val priceValue = price.jsonPrimitive.doubleOrNull
@@ -309,6 +292,16 @@ class SearchViewModel @Inject constructor(
         } catch (_: Exception) { null }
     }
 
+    private fun formatPriceUnit(frequency: String): String {
+        return when (frequency.lowercase().trim()) {
+            "hourly", "hour", "hr" -> "hr"
+            "daily", "day" -> "day"
+            "weekly", "week" -> "wk"
+            "monthly", "month", "mo" -> "mo"
+            else -> frequency.lowercase()
+        }
+    }
+
     private fun formatPrice(amount: Double, unit: String): String {
         val formatted = if (amount == amount.toInt().toDouble()) amount.toInt().toString()
         else "%.2f".format(amount).trimEnd('0').trimEnd('.')
@@ -317,9 +310,9 @@ class SearchViewModel @Inject constructor(
 }
 
 enum class SearchTab(val label: String) {
-    SHARE("Share"),
-    BORROW("Book"),
-    SPLIT("Split")
+    SPACES("Spaces"),
+    ITEMS("Items"),
+    SERVICES("Services")
 }
 
 data class SearchResultItem(
@@ -334,7 +327,8 @@ data class SearchResultItem(
 
 data class SearchUiState(
     val query: String = "",
-    val selectedTab: SearchTab = SearchTab.SHARE,
+    val selectedTab: SearchTab = SearchTab.SPACES,
+
 
     val selectedCategory: String? = null,
     val results: List<SearchResultItem> = emptyList(),

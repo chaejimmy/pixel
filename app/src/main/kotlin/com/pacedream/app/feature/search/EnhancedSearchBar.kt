@@ -195,11 +195,7 @@ private fun SegmentedTabRow(
                     animationSpec = tween(200),
                     label = "tab_elevation"
                 )
-                val tabText = when (tab) {
-                    SearchTab.SHARE -> "Share"
-                    SearchTab.BORROW -> "Book"
-                    SearchTab.SPLIT -> "Split"
-                }
+                val tabText = tab.label
 
                 Surface(
                     modifier = Modifier

@@ -251,18 +251,35 @@ private fun WishlistItemCard(
                     .fillMaxWidth()
                     .aspectRatio(1.2f)
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(item.imageUrl)
-                        .crossfade(200)
-                        .size(coil.size.Size(400, 400))
-                        .build(),
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
-                )
+                if (!item.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(item.imageUrl)
+                            .crossfade(200)
+                            .size(coil.size.Size(400, 400))
+                            .build(),
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
+                            .background(PaceDreamColors.Surface),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Image,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
 
                 // Gradient overlay at bottom
                 Box(

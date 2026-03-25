@@ -68,12 +68,18 @@ class InboxRepository @Inject constructor(
             is ApiResult.Success -> {
                 try {
                     val threadsResult = parseThreadsResponse(result.data)
+                    Timber.d("InboxRepository: parsed ${threadsResult.threads.size} threads, hasMore=${threadsResult.hasMore}")
                     ApiResult.Success(threadsResult)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse threads response")
+                    Timber.e(e, "Failed to parse threads response, trying fallback")
                     // Try fallback parsing
                     try {
                         val fallbackResult = parseTolerantThreadsResponse(result.data)
+                        Timber.d("InboxRepository: fallback parsed ${fallbackResult.threads.size} threads")
+                        if (fallbackResult.threads.isEmpty()) {
+                            // If fallback also returns empty, it may be a parse failure
+                            Timber.w("InboxRepository: fallback returned empty list — raw response length=${result.data.length}")
+                        }
                         ApiResult.Success(fallbackResult)
                     } catch (e2: Exception) {
                         Timber.e(e2, "Fallback parsing also failed")
@@ -121,17 +127,22 @@ class InboxRepository @Inject constructor(
             )
         )
         
+        Timber.d("InboxRepository: getMessages — threadId=$threadId, limit=$limit, before=$before")
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
                     val messagesResult = parseMessagesResponse(result.data)
+                    Timber.d("InboxRepository: parsed ${messagesResult.messages.size} messages, hasMore=${messagesResult.hasMore}")
                     ApiResult.Success(messagesResult)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse messages response")
+                    Timber.e(e, "Failed to parse messages response — raw length=${result.data.length}")
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse messages", e))
                 }
             }
-            is ApiResult.Failure -> result
+            is ApiResult.Failure -> {
+                Timber.e("InboxRepository: getMessages FAILED — ${result.error.message}")
+                result
+            }
         }
     }
     
