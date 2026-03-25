@@ -222,7 +222,7 @@ fun MainNavHost(
                 composable(NavRoutes.BOOKINGS) {
                     if (authState != AuthState.Authenticated) {
                         LockedScreen(
-                            title = "Your Bookings",
+                            title = "Bookings",
                             message = "Sign in to view your bookings",
                             onSignInClick = {
                                 authSheetSubtitle = "Manage your upcoming bookings."
@@ -325,7 +325,7 @@ fun MainNavHost(
                                 launchSingleTop = true
                             }
                         },
-                        // iOS parity: "Create a listing" from profile.
+                        // iOS parity: "Create listing" from profile.
                         onCreateListingClick = {
                             if (authState == AuthState.Authenticated) {
                                 navController.navigate(NavRoutes.HOST_HOME)

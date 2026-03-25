@@ -37,8 +37,8 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
  *
  * Structure matches iOS ProfileView.swift:
  * 1. Profile card (avatar, name, email, stat pills, identity)
- * 2. Quick action chips (Edit profile, Bookings, Wishlist, Host Mode)
- * 3. Create a listing CTA
+ * 2. Quick action chips (Edit profile, Bookings, Favorites, Host Mode)
+ * 3. Create listing CTA
  * 4. Switch to Host Mode CTA
  * 5. Settings shortcuts section (Account settings, Notifications & preferences)
  */
@@ -211,7 +211,7 @@ private fun LoggedOutSection(
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         Text(
-            text = "Access your account settings, wishlist, and host mode.",
+            text = "Access your account settings, favorites, and host mode.",
             style = PaceDreamTypography.Body,
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
@@ -254,7 +254,7 @@ private fun LoggedOutSection(
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
             Text(
-                "Create a listing",
+                "Create listing",
                 style = PaceDreamTypography.Button.copy(
                     fontWeight = FontWeight.Bold,
                     color = PaceDreamColors.Primary
@@ -353,7 +353,7 @@ private fun UserProfileHeader(
             // Stats pills (iOS parity: bookings + wishlist count in capsule)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatPill(value = "$bookingsCount", label = "Bookings")
-                StatPill(value = "$wishlistCount", label = "Wishlist")
+                StatPill(value = "$wishlistCount", label = "Favorites")
             }
 
             // Identity badge (iOS parity)
@@ -410,7 +410,7 @@ private fun StatPill(value: String, label: String) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Actions Row (iOS parity: Edit profile, Bookings, Wishlist, Host Mode)
+// Quick Actions Row (iOS parity: Edit profile, Bookings, Favorites, Host Mode)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -428,7 +428,7 @@ private fun QuickActionsRow(
     ) {
         ActionChip(title = "Edit profile", icon = PaceDreamIcons.Edit, onClick = onEditProfile)
         ActionChip(title = "Bookings", icon = PaceDreamIcons.DateRange, onClick = onBookings)
-        ActionChip(title = "Wishlist", icon = PaceDreamIcons.FavoriteBorder, onClick = onWishlist)
+        ActionChip(title = "Favorites", icon = PaceDreamIcons.FavoriteBorder, onClick = onWishlist)
         ActionChip(title = "Host Mode", icon = PaceDreamIcons.Group, onClick = onHostMode)
     }
 }
@@ -508,7 +508,7 @@ private fun CreateListingCTA(onClick: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Create a listing",
+                    text = "Create listing",
                     style = PaceDreamTypography.Headline.copy(
                         fontWeight = FontWeight.Bold
                     ),

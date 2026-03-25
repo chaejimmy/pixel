@@ -4,7 +4,7 @@
     <string name="app_name">PaceDream</string>
     <string name="home">Home</string>
     <string name="search">Search</string>
-    <string name="favorites">Wishlist</string>
+    <string name="favorites">Favorites</string>
     <string name="wishlist_empty_title">No favorites yet</string>
     <string name="wishlist_empty_subtitle">Save listings you love and they\'ll appear here.</string>
     <string name="wishlist_explore_cta">Explore listings</string>
@@ -21,8 +21,8 @@
     <string name="host_earnings">Earnings</string>
     <string name="host_post">Post</string>
     <string name="host_inbox">Inbox</string>
-    <string name="host_profile">Host Profile</string>
-    <string name="host_earnings_title">Earnings &amp; Payments</string>
+    <string name="host_profile">Profile</string>
+    <string name="host_earnings_title">Earnings</string>
     <string name="host_create_listing">Create listing</string>
     <string name="host_view_listings">View listings</string>
     <string name="host_manage_payouts">Manage payouts</string>
@@ -35,7 +35,7 @@
     <string name="host_listings">Listings</string>
     <string name="host_account_settings">Account settings</string>
     <string name="host_personal_info">Personal information</string>
-    <string name="host_payment_payout">Payment &amp; payout</string>
+    <string name="host_payment_payout">Earnings &amp; payouts</string>
     <string name="host_settings">Settings</string>
     <string name="host_edit">Edit</string>
     <string name="host_edit_photo">Edit photo</string>

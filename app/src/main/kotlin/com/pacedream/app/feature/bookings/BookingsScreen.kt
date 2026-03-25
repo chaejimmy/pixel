@@ -164,7 +164,7 @@ fun BookingsScreen(
 }
 
 // ============================================================================
-// Header — matching iOS "Your Bookings" + count + filter tabs
+// Header — matching iOS "Bookings" + count + filter tabs
 // ============================================================================
 @Composable
 private fun BookingsHeader(
@@ -184,7 +184,7 @@ private fun BookingsHeader(
             )
     ) {
         Text(
-            text = "Your Bookings",
+            text = "Bookings",
             style = PaceDreamTypography.Title1,
             color = PaceDreamColors.TextPrimary
         )

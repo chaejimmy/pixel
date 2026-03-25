@@ -24,7 +24,7 @@ import javax.inject.Singleton
  * are never shown the "Start Hosting" CTA incorrectly.
  *
  * iOS parity: supports PendingHostRoute so that unauthenticated users
- * can tap "Create a listing" and be routed to Host → Post → Create Listing
+ * can tap "Create listing" and be routed to Host → Post → Create Listing
  * after login completes (see iOS AppModeStore.setPendingHostRoute).
  */
 @Singleton

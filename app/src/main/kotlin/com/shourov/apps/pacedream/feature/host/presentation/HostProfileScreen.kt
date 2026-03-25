@@ -32,7 +32,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.components.*
  * 1. Host identity card (avatar, name, email, "Edit photo")
  * 2. Stats section (Listings count, Booked This Month)
  * 3. Host tools section (Listings, Bookings, Inbox, Earnings)
- * 4. Settings section (Account settings, Personal information, Payment & payout)
+ * 4. Settings section (Account settings, Personal information, Earnings & payouts)
  * 5. Switch to Guest Mode
  * 6. Sign Out
  *
@@ -62,7 +62,7 @@ fun HostProfileScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Host Profile",
+                        "Profile",
                         style = PaceDreamTypography.Title1,
                         fontWeight = FontWeight.Bold
                     )
@@ -188,7 +188,7 @@ fun HostProfileScreen(
                         HostRowDivider()
                         HostProfileRow(
                             icon = PaceDreamIcons.CreditCard,
-                            title = "Payment & payout",
+                            title = "Earnings & payouts",
                             iconTint = PaceDreamColors.TextSecondary,
                             onClick = onPaymentPayoutClick
                         )

@@ -46,7 +46,7 @@ fun HostEarningsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Earnings & Payments",
+                        text = "Earnings",
                         style = PaceDreamTypography.Title1,
                         fontWeight = FontWeight.Bold
                     )
