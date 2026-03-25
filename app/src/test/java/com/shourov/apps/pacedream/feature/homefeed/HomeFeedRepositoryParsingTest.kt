@@ -123,7 +123,7 @@ class HomeFeedRepositoryParsingTest {
         assertEquals("Austin", card.location)
         assertEquals("https://img/room1.webp", card.imageUrl)
         assertNotNull(card.priceText)
-        assertEquals("$25", card.priceText)
+        assertEquals("$25/hr", card.priceText)
         assertEquals(4.5, card.rating)
         assertEquals("room", card.subCategory)
     }

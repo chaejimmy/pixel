@@ -137,9 +137,13 @@ class HomeFeedRepository @Inject constructor(
                 ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
             // Try to extract frequency from any available source on the listing object.
-            // The standalone frequency/pricing fields are checked when price is a plain number.
-            val standaloneFrequency = obj["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
-                ?: (obj["pricing"] as? JsonObject)?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
+            // pricingUnit is the top-level field the backend sends in list responses (iOS reads this).
+            val standaloneFrequency = obj["pricingUnit"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: obj["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: (obj["pricing"] as? JsonObject)?.let { p ->
+                    p["pricing_type"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                        ?: p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                }
                 ?: obj["dynamic_price"]?.let { dp ->
                     (dp as? JsonArray)?.firstOrNull()?.jsonObject?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
                 }
@@ -205,8 +209,9 @@ class HomeFeedRepository @Inject constructor(
         return when (frequency.lowercase().trim()) {
             "hourly", "hour", "hr" -> "hr"
             "daily", "day" -> "day"
-            "weekly", "week" -> "wk"
+            "weekly", "week", "wk" -> "wk"
             "monthly", "month", "mo" -> "mo"
+            "once" -> "total"
             else -> frequency.lowercase()
         }
     }
