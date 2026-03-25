@@ -51,12 +51,16 @@ class InboxRepository @Inject constructor(
         limit: Int = 20,
         cursor: String? = null
     ): ApiResult<ThreadsResult> {
+        // Guard: never send blank cursor — backend rejects it as "Invalid ID format"
+        val safeCursor = cursor?.takeIf { it.isNotBlank() }
+        Timber.d("InboxRepository: getThreads — mode=$mode, limit=$limit, cursor=${safeCursor ?: "(none)"}")
+
         val url = appConfig.buildApiUrlWithQuery(
             "inbox", "threads",
             queryParams = mapOf(
                 "limit" to limit.toString(),
                 "mode" to mode,
-                "cursor" to cursor
+                "cursor" to safeCursor
             )
         )
         
@@ -282,9 +286,11 @@ class InboxRepository @Inject constructor(
             }
         } ?: emptyList()
         
-        val nextCursor = data["nextCursor"]?.jsonPrimitive?.content
+        // Guard: treat blank cursor as null to prevent "Invalid ID format" errors
+        val rawCursor = data["nextCursor"]?.jsonPrimitive?.content
             ?: data["cursor"]?.jsonPrimitive?.content
-        
+        val nextCursor = rawCursor?.takeIf { it.isNotBlank() }
+
         val hasMore = data["hasMore"]?.jsonPrimitive?.boolean
             ?: (nextCursor != null)
         
@@ -312,9 +318,9 @@ class InboxRepository @Inject constructor(
     }
     
     private fun parseThread(obj: JsonObject): Thread {
-        val id = obj["_id"]?.jsonPrimitive?.content
+        val rawId = obj["_id"]?.jsonPrimitive?.content
             ?: obj["id"]?.jsonPrimitive?.content
-            ?: ""
+        val id = rawId?.takeIf { it.isNotBlank() } ?: ""
         
         val participants = extractStringArray(obj, "participants", "participantIds")
         
