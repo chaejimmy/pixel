@@ -12,7 +12,6 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostBookingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel
 import com.shourov.apps.pacedream.feature.host.presentation.HostEarningsScreen
-import com.shourov.apps.pacedream.feature.host.presentation.HostInboxScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostPostScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
@@ -89,15 +88,10 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // iOS parity: Inbox tab uses dedicated host inbox with Messages/Notifications segments
+    // Host Messages tab — delegates directly to the shared InboxScreen
     composable(HostScreen.Inbox.route) {
-        HostInboxScreen(
-            onThreadClick = { threadId -> },
-            messagesContent = {
-                InboxScreen(
-                    onThreadClick = { threadId -> }
-                )
-            }
+        InboxScreen(
+            onThreadClick = { threadId -> }
         )
     }
 
