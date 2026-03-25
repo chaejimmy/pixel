@@ -492,6 +492,13 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onSwitchToGuestMode = {
                                         hostModeManager.setHostMode(false)
                                     },
+                                    onCreateListingClick = {
+                                        hostModeManager.setHostMode(true)
+                                        // Navigate to host Post screen (create listing hub)
+                                        navController.navigate("host_post") {
+                                            launchSingleTop = true
+                                        }
+                                    },
                                     isHostMode = isHostMode,
                                     // iOS/Web parity: navigate to new feature screens
                                     onReviewsClick = { navController.navigate("reviews") },
