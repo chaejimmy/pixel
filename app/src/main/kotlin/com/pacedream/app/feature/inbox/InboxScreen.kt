@@ -32,6 +32,10 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
  * - Tolerant decoding for threads
  * - Guest/Host mode toggle (if needed)
  */
+/**
+ * Standalone Messages screen with its own TopAppBar.
+ * Used as the main tab in guest mode.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxScreen(
@@ -39,7 +43,7 @@ fun InboxScreen(
     onThreadClick: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -62,73 +66,108 @@ fun InboxScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-        PullToRefreshBox(
-            isRefreshing = uiState.isRefreshing,
+        InboxContent(
+            uiState = uiState,
+            onThreadClick = onThreadClick,
             onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+            onLoadMore = { viewModel.loadMore() },
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+/**
+ * Embeddable Messages content without its own TopAppBar.
+ * Used inside HostInboxScreen's Messages tab to avoid duplicate headers.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun InboxScreenEmbedded(
+    viewModel: InboxViewModel = hiltViewModel(),
+    onThreadClick: (String) -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    InboxContent(
+        uiState = uiState,
+        onThreadClick = onThreadClick,
+        onRefresh = { viewModel.refresh() },
+        onLoadMore = { viewModel.loadMore() }
+    )
+}
+
+/**
+ * Shared inbox content: pull-to-refresh thread list with loading/empty/error states.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InboxContent(
+    uiState: InboxUiState,
+    onThreadClick: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    PullToRefreshBox(
+        isRefreshing = uiState.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize()
+    ) {
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
+                }
+            }
+
+            uiState.error != null -> {
+                ErrorState(
+                    message = uiState.error,
+                    onRetryClick = onRefresh,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            uiState.threads.isEmpty() -> {
+                EmptyState(modifier = Modifier.fillMaxSize())
+            }
+
+            else -> {
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(
+                        items = uiState.threads,
+                        key = { it.id }
+                    ) { thread ->
+                        ThreadItem(
+                            thread = thread,
+                            onClick = { onThreadClick(thread.id) }
+                        )
                     }
-                }
-                
-                uiState.error != null -> {
-                    ErrorState(
-                        message = uiState.error!!,
-                        onRetryClick = { viewModel.refresh() },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                
-                uiState.threads.isEmpty() -> {
-                    EmptyState(modifier = Modifier.fillMaxSize())
-                }
-                
-                else -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(
-                            items = uiState.threads,
-                            key = { it.id }
-                        ) { thread ->
-                            ThreadItem(
-                                thread = thread,
-                                onClick = { onThreadClick(thread.id) }
-                            )
-                        }
-                        
-                        // Load more when reaching end
-                        if (uiState.hasMore && !uiState.isLoadingMore) {
-                            item {
-                                LaunchedEffect(Unit) {
-                                    viewModel.loadMore()
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                }
+
+                    // Load more when reaching end
+                    if (uiState.hasMore && !uiState.isLoadingMore) {
+                        item {
+                            LaunchedEffect(Unit) {
+                                onLoadMore()
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             }
                         }
                     }
                 }
             }
         }
-        } // end Column
     }
 }
 

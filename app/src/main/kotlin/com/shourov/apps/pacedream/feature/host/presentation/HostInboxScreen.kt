@@ -1,6 +1,8 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,83 +15,123 @@ import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.presentation.components.*
 
 /**
- * Host Inbox Screen — iOS HostInboxView parity.
+ * Host Inbox Screen — simplified messaging hub.
  *
- * Segmented control with Messages and Notifications tabs,
- * matching iOS HostInboxView.swift structure.
+ * Single "Messages" title with a segmented control for Messages vs Notifications.
+ * The Messages tab receives its content via [messagesContent] (typically the guest
+ * InboxScreen thread list). The Notifications tab shows host-specific notifications.
+ *
+ * Previous issues fixed:
+ * - "Inbox" / "Messages" title appeared twice (once from this screen, once from embedded InboxScreen)
+ * - HostSegmentedControl + embedded InboxScreen TopAppBar created triple-layered header
+ * - Now uses a single TopAppBar with the segmented control directly below it
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostInboxScreen(
     onThreadClick: (String) -> Unit = {},
-    messagesContent: @Composable () -> Unit = { DefaultMessagesPlaceholder() },
-    notificationsContent: @Composable () -> Unit = { DefaultNotificationsPlaceholder() }
+    messagesContent: @Composable () -> Unit = { MessagesEmptyPlaceholder() },
+    notificationsContent: @Composable () -> Unit = { NotificationsEmptyPlaceholder() }
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Messages", "Notifications")
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Messages",
-                        style = PaceDreamTypography.Title1.copy(fontWeight = FontWeight.Bold),
-                        color = PaceDreamColors.TextPrimary
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
-            )
-        },
-        containerColor = PaceDreamColors.Background
-    ) { paddingValues ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PaceDreamColors.Background)
+    ) {
+        // ── Single header: title + segmented control ──
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = PaceDreamSpacing.MD)
+                .padding(top = PaceDreamSpacing.MD)
         ) {
-            // Segmented Control — shared component
-            HostSegmentedControl(
-                tabs = tabs,
-                selectedIndex = selectedTab,
-                onTabSelected = { selectedTab = it }
+            Text(
+                text = "Messages",
+                style = PaceDreamTypography.Title1.copy(fontWeight = FontWeight.Bold),
+                color = PaceDreamColors.TextPrimary
             )
+        }
 
-            // Tab Content
-            when (selectedTab) {
-                0 -> messagesContent()
-                1 -> notificationsContent()
-            }
+        // Segmented control — Messages / Notifications
+        HostSegmentedControl(
+            tabs = listOf("Messages", "Notifications"),
+            selectedIndex = selectedTab,
+            onTabSelected = { selectedTab = it }
+        )
+
+        // ── Tab content ──
+        when (selectedTab) {
+            0 -> messagesContent()
+            1 -> notificationsContent()
         }
     }
 }
 
-// ── Default Placeholders — using shared HostEmptyState pattern ──
+// ── Empty state placeholders ──
 
 @Composable
-private fun DefaultMessagesPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+private fun MessagesEmptyPlaceholder() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = PaceDreamSpacing.XL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        HostEmptyState(
-            icon = PaceDreamIcons.Mail,
-            title = "No messages yet",
-            subtitle = "When guests reach out about your listings, their messages will show up here."
+        Icon(
+            imageVector = PaceDreamIcons.Mail,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary.copy(alpha = 0.4f)
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Text(
+            text = "No messages yet",
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "When guests reach out about your listings, their messages will appear here.",
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
-private fun DefaultNotificationsPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+private fun NotificationsEmptyPlaceholder() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = PaceDreamSpacing.XL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        HostEmptyState(
-            icon = PaceDreamIcons.Notifications,
-            title = "No notifications yet",
-            subtitle = "Booking requests, updates, and alerts will show up here."
+        Icon(
+            imageVector = PaceDreamIcons.Notifications,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary.copy(alpha = 0.4f)
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Text(
+            text = "No notifications yet",
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Booking requests, status updates, and alerts will appear here.",
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = TextAlign.Center
         )
     }
 }

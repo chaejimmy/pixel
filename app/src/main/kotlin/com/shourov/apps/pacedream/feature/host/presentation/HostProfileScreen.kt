@@ -154,7 +154,7 @@ fun HostProfileScreen(
                         HostRowDivider()
                         HostProfileRow(
                             icon = PaceDreamIcons.Mail,
-                            title = "Inbox",
+                            title = "Messages",
                             onClick = onInboxClick
                         )
                         HostRowDivider()

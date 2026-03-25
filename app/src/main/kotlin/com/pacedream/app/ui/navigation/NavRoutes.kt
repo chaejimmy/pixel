@@ -81,7 +81,7 @@ enum class BottomNavTab(
     HOME(NavRoutes.HOME, "Home", "home"),
     SEARCH(NavRoutes.SEARCH, "Search", "search"),
     FAVORITES(NavRoutes.FAVORITES, "Favorites", "favorite"),
-    INBOX(NavRoutes.INBOX, "Inbox", "mail"),
+    INBOX(NavRoutes.INBOX, "Messages", "mail"),
     PROFILE(NavRoutes.PROFILE, "Profile", "person")
 }
 

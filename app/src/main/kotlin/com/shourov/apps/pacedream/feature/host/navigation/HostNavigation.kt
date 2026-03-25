@@ -17,7 +17,7 @@ sealed class HostScreen(
     object PaymentSetup : HostScreen("host_payment_setup", "Payment Setup", PaceDreamIcons.CreditCard)
     // iOS parity tabs
     object Post : HostScreen("host_post", "Post", PaceDreamIcons.AddCircle)
-    object Inbox : HostScreen("host_inbox", "Inbox", PaceDreamIcons.Mail)
+    object Inbox : HostScreen("host_inbox", "Messages", PaceDreamIcons.Mail)
     object Profile : HostScreen("host_profile", "Profile", PaceDreamIcons.Person)
 }
 

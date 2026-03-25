@@ -18,7 +18,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostPostScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
-import com.pacedream.app.feature.inbox.InboxScreen
+import com.pacedream.app.feature.inbox.InboxScreenEmbedded
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -89,12 +89,13 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // iOS parity: Inbox tab uses dedicated host inbox with Messages/Notifications segments
+    // Messages tab: HostInboxScreen provides the segmented control header,
+    // InboxScreenEmbedded provides the thread list without its own TopAppBar
     composable(HostScreen.Inbox.route) {
         HostInboxScreen(
             onThreadClick = { threadId -> },
             messagesContent = {
-                InboxScreen(
+                InboxScreenEmbedded(
                     onThreadClick = { threadId -> }
                 )
             }
