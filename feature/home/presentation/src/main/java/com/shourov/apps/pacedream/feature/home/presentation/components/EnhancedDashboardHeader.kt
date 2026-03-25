@@ -96,20 +96,16 @@ fun EnhancedDashboardHeader(
             )
 
             // Background image overlay (if available)
-            try {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp)
-                        .paint(
-                            painterResource(id = R.drawable.bg_dashboard_header),
-                            contentScale = ContentScale.FillBounds,
-                            alpha = 0.3f,
-                        )
-                )
-            } catch (_: Exception) {
-                // Background image not available, gradient is sufficient
-            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp)
+                    .paint(
+                        painterResource(id = R.drawable.bg_dashboard_header),
+                        contentScale = ContentScale.FillBounds,
+                        alpha = 0.3f,
+                    )
+            )
 
             // Translucent overlay
             Box(
