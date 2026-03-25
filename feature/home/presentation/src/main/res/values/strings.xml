@@ -16,7 +16,7 @@
 
 <resources>
     <string name="feature_home_good_morning">Good Morning,</string>
-    <string name="feature_home_find_your_perfect_stay">Find spaces, items, and services.</string>
+    <string name="feature_home_find_your_perfect_stay">Rent spaces, borrow items, book services.</string>
     <string name="feature_home_categories">Categories</string>
     <string name="feature_home_rest_room">Restroom</string>
     <string name="feature_home_nap_pod">Nap Pod</string>

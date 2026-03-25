@@ -45,35 +45,12 @@ fun TrendingDestinationsSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Section header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Trending Destinations",
-                    style = PaceDreamTypography.Title2,
-                    color = PaceDreamTextPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Popular places our community loves",
-                    style = PaceDreamTypography.Footnote,
-                    color = PaceDreamTextSecondary,
-                )
-            }
-            androidx.compose.material3.TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "View All",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamPrimary,
-                )
-            }
-        }
+        // Section header — uses shared component for consistency
+        SectionHeader(
+            title = "Trending Destinations",
+            subtitle = "Popular places our community loves",
+            onViewAllClick = onViewAllClick,
+        )
 
         // 2-column grid
         val displayDestinations = destinations.take(6)
