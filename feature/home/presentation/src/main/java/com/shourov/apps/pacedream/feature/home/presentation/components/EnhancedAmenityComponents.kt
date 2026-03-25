@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.composables.buttons.OutlineProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -277,24 +278,10 @@ fun HostCard(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             
             // View Profile Button
-            OutlinedButton(
+            OutlineProcessButton(
                 onClick = onProfileClick,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PaceDreamColors.Primary
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                        colors = listOf(PaceDreamColors.Primary, PaceDreamColors.Primary)
-                    )
-                )
-            ) {
-                Text(
-                    text = "View Profile",
-                    style = PaceDreamTypography.Callout,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+                text = "View Profile",
+            )
         }
     }
 }

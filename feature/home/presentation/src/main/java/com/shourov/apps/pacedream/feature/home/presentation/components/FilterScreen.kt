@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import com.pacedream.common.composables.buttons.CompactProcessButton
+import com.pacedream.common.composables.buttons.OutlineProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -186,20 +188,17 @@ fun FilterScreen(
                         .padding(PaceDreamSpacing.LG),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
                 ) {
-                    OutlinedButton(
+                    OutlineProcessButton(
                         onClick = onBackClick,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Cancel")
-                    }
-                    
-                    Button(
+                        modifier = Modifier.weight(1f),
+                        text = "Cancel",
+                    )
+
+                    CompactProcessButton(
                         onClick = onApplyFilters,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
-                    ) {
-                        Text("Apply Filters")
-                    }
+                        text = "Apply Filters",
+                    )
                 }
             }
         }

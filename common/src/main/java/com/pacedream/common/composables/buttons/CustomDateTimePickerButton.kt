@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.stronglyDeemphasizedAlpha
 
 @Composable
@@ -59,7 +60,7 @@ fun CustomDateTimePickerButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 8.dp, horizontal = 12.dp),
+                .padding(vertical = PaceDreamSpacing.SM, horizontal = PaceDreamSpacing.SM2),
         )
         Icon(
             imageVector = PaceDreamIcons.ArrowForward,
