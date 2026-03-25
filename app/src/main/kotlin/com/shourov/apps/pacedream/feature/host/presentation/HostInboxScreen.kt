@@ -33,7 +33,7 @@ fun HostInboxScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Inbox",
+                        text = "Messages",
                         style = PaceDreamTypography.Title1.copy(fontWeight = FontWeight.Bold),
                         color = PaceDreamColors.TextPrimary
                     )

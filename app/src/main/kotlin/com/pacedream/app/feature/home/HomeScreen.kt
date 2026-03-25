@@ -106,14 +106,6 @@ fun HomeScreen(
                 }
             }
 
-            // ── Explore Categories (Quick chips) ──
-            item {
-                QuickCategoriesRow(
-                    onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(top = 32.dp)
-                )
-            }
-
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
@@ -418,21 +410,12 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Marketplace-aligned categories matching PaceDream's product structure
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-        Triple("Entire Home", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
-        Triple("Private Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-        Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
-        Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
-        Triple("Meeting Room", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business),
-        Triple("Workspace", PaceDreamIcons.LaptopOutlined, PaceDreamIcons.Laptop),
-        Triple("EV Parking", PaceDreamIcons.ElectricCarOutlined, PaceDreamIcons.ElectricCar),
-        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-        Triple("Short Stay", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
-        Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
-        Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
-        Triple("Luxury Room", PaceDreamIcons.StarOutlined, PaceDreamIcons.Star),
-        Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
+        Triple("Spaces", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
+        Triple("Items", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
+        Triple("Services", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business)
     )
 
     Column(modifier = modifier) {
@@ -611,18 +594,9 @@ private data class CategoryCardData(
 
 private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
-        CategoryCardData("Entire Home", PaceDreamIcons.Home, Color(0xFFEF4444)),
-        CategoryCardData("Private Room", PaceDreamIcons.MeetingRoom, Color(0xFFEC4899)),
-        CategoryCardData("Nap Pod", PaceDreamIcons.Bed, Color(0xFF8B5CF6)),
-        CategoryCardData("Meeting Room", PaceDreamIcons.Business, Color(0xFF3B82F6)),
-        CategoryCardData("Workspace", PaceDreamIcons.Laptop, Color(0xFF10B981)),
-        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, Color(0xFFA855F7)),
-        CategoryCardData("Study Room", PaceDreamIcons.School, Color(0xFF059669)),
-        CategoryCardData("Short Stay", PaceDreamIcons.Hotel, Color(0xFFF59E0B)),
-        CategoryCardData("Apartment", PaceDreamIcons.Apartment, Color(0xFFDC2626)),
-        CategoryCardData("Parking", PaceDreamIcons.LocalParking, Color(0xFF6366F1)),
-        CategoryCardData("Luxury Room", PaceDreamIcons.Star, Color(0xFFD97706)),
-        CategoryCardData("Storage Space", PaceDreamIcons.Storage, Color(0xFF0EA5E9))
+        CategoryCardData("Spaces", PaceDreamIcons.Home, Color(0xFF3B82F6)),
+        CategoryCardData("Items", PaceDreamIcons.Storage, Color(0xFF10B981)),
+        CategoryCardData("Services", PaceDreamIcons.Business, Color(0xFF8B5CF6))
     )
 }
 

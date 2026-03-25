@@ -71,9 +71,12 @@ fun HostDashboardScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            // Greeting header
+            // Greeting header with dynamic payout status
             item {
-                DashboardHeaderSection(userName = uiState.userName)
+                DashboardHeaderSection(
+                    userName = uiState.userName,
+                    payoutState = uiState.payoutState
+                )
             }
 
             // Error banner with retry
@@ -170,7 +173,10 @@ fun HostDashboardScreen(
 // ── Header ─────────────────────────────────────────────────────
 
 @Composable
-private fun DashboardHeaderSection(userName: String) {
+private fun DashboardHeaderSection(
+    userName: String,
+    payoutState: PayoutConnectionState
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -179,8 +185,14 @@ private fun DashboardHeaderSection(userName: String) {
             .padding(top = PaceDreamSpacing.MD, bottom = 6.dp)
     ) {
         val displayName = userName.ifBlank { "Host" }
+        // Only show personalized greeting if we have a real name
+        val greeting = if (displayName != "Host") {
+            "Good ${timeOfDayGreeting()}, $displayName"
+        } else {
+            "Good ${timeOfDayGreeting()}"
+        }
         Text(
-            text = "Good ${timeOfDayGreeting()}, $displayName",
+            text = greeting,
             style = PaceDreamTypography.Title1,
             color = PaceDreamColors.TextPrimary,
             fontWeight = FontWeight.Bold,
@@ -190,7 +202,13 @@ private fun DashboardHeaderSection(userName: String) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        HostPayoutBadge(text = "Payouts: Connected")
+        // Dynamic payout badge based on actual state
+        val (badgeText, badgeColor) = when (payoutState) {
+            PayoutConnectionState.CONNECTED -> "Payouts: Connected" to PaceDreamColors.HostAccent
+            PayoutConnectionState.PENDING -> "Payouts: Pending setup" to PaceDreamColors.Warning
+            PayoutConnectionState.NOT_CONNECTED -> "Payouts: Not connected" to PaceDreamColors.TextSecondary
+        }
+        HostPayoutBadge(text = badgeText)
     }
 }
 

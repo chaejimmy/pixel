@@ -267,7 +267,7 @@ fun MainNavHost(
                     if (authState != AuthState.Authenticated) {
                         // Show locked state, trigger auth modal
                         LockedScreen(
-                            title = "Inbox",
+                            title = "Messages",
                             message = "Sign in to view your messages",
                             onSignInClick = {
                                 authSheetSubtitle = "Connect with hosts and guests."
@@ -750,7 +750,7 @@ fun PaceDreamBottomBar(
         TabItem(NavRoutes.SEARCH, "Search", PaceDreamIcons.Search, PaceDreamIcons.SearchOutlined),
         TabItem(NavRoutes.FAVORITES, "Favorites", PaceDreamIcons.Favorite, PaceDreamIcons.FavoriteBorderOutlined),
         TabItem(NavRoutes.BOOKINGS, "Bookings", PaceDreamIcons.DateRange, PaceDreamIcons.DateRangeOutlined),
-        TabItem(NavRoutes.INBOX, "Inbox", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
+        TabItem(NavRoutes.INBOX, "Messages", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
         TabItem(NavRoutes.PROFILE, "Profile", PaceDreamIcons.Person, PaceDreamIcons.PersonOutlined)
     )
     

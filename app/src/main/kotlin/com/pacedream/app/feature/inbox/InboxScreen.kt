@@ -46,7 +46,7 @@ fun InboxScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "Inbox",
+                            "Messages",
                             style = PaceDreamTypography.Title1,
                             fontWeight = FontWeight.Bold
                         )
@@ -62,45 +62,11 @@ fun InboxScreen(
             )
         }
     ) { padding ->
-        // iOS PR #201 parity: Guest/Host mode toggle
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = uiState.selectedMode == "guest",
-                    onClick = { viewModel.switchMode("guest") },
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Guest")
-                            if (uiState.guestUnreadCount > 0) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Badge { Text(uiState.guestUnreadCount.toString()) }
-                            }
-                        }
-                    }
-                )
-                FilterChip(
-                    selected = uiState.selectedMode == "host",
-                    onClick = { viewModel.switchMode("host") },
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Host")
-                            if (uiState.hostUnreadCount > 0) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Badge { Text(uiState.hostUnreadCount.toString()) }
-                            }
-                        }
-                    }
-                )
-            }
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -194,7 +160,7 @@ private fun ThreadItem(
                 Icon(
                     imageVector = PaceDreamIcons.Circle,
                     contentDescription = "Unread",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = PaceDreamColors.Primary,
                     modifier = Modifier
                         .size(12.dp)
                         .align(Alignment.TopEnd)
@@ -211,41 +177,42 @@ private fun ThreadItem(
             ) {
                 Text(
                     text = thread.participantName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaceDreamTypography.Subheadline,
                     fontWeight = if (thread.isUnread) FontWeight.Bold else FontWeight.Normal,
+                    color = PaceDreamColors.TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 Text(
                     text = thread.formattedTime,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             // Listing name if available
             thread.listingName?.let { listingName ->
                 Text(
                     text = listingName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.Primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
             }
-            
+
             Text(
                 text = thread.lastMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (thread.isUnread) 
-                    MaterialTheme.colorScheme.onSurface 
-                else 
-                    MaterialTheme.colorScheme.onSurfaceVariant,
+                style = PaceDreamTypography.Footnote,
+                color = if (thread.isUnread)
+                    PaceDreamColors.TextPrimary
+                else
+                    PaceDreamColors.TextSecondary,
                 fontWeight = if (thread.isUnread) FontWeight.Medium else FontWeight.Normal,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -259,19 +226,29 @@ private fun ThreadItem(
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = PaceDreamIcons.Mail,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No messages yet",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Your conversations will appear here",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -283,23 +260,36 @@ private fun ErrorState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = PaceDreamIcons.ErrorOutline,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = PaceDreamColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Something went wrong",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetryClick) {
-            Text("Try Again")
+        Button(
+            onClick = onRetryClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+        ) {
+            Text("Try Again", style = PaceDreamTypography.Button)
         }
     }
 }
