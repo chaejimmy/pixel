@@ -114,8 +114,7 @@ fun FaqScreen(
                 title = {
                     Text(
                         text = "FAQ",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold,
+                        style = PaceDreamTypography.Headline,
                     )
                 },
                 navigationIcon = {

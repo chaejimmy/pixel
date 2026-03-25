@@ -281,7 +281,7 @@ fun EditListingScreen(
                                     color = PaceDreamColors.Primary, strokeWidth = 2.dp,
                                 )
                             } else {
-                                Text("Save", style = PaceDreamTypography.Button,
+                                Text("Save", style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
                                     color = if (uiState.hasChanges) PaceDreamColors.Primary
                                     else PaceDreamColors.TextTertiary)
                             }

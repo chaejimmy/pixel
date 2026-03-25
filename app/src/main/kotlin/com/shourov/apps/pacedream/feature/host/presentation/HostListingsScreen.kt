@@ -46,9 +46,8 @@ fun HostListingsScreen(
                     Column {
                         Text(
                             text = "My Listings",
-                            style = PaceDreamTypography.Title1,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.Bold
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary
                         )
                         Text(
                             text = "${uiState.listings.size} properties listed",

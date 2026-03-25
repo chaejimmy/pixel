@@ -211,13 +211,13 @@ fun BiddingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Bids", style = PaceDreamTypography.Title1, fontWeight = FontWeight.Bold) },
+                title = { Text("My Bids", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back") }
                 },
                 actions = {
                     TextButton(onClick = { viewModel.toggleCreateSheet() }) {
-                        Text("New Bid", color = PaceDreamColors.Primary, fontWeight = FontWeight.SemiBold)
+                        Text("New Bid", style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold), color = PaceDreamColors.Primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)

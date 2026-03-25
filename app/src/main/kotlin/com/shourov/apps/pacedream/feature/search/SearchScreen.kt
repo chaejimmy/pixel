@@ -244,8 +244,7 @@ fun SearchScreen(
                 title = {
                     Text(
                         "Explore",
-                        style = PaceDreamTypography.Title1,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 actions = {

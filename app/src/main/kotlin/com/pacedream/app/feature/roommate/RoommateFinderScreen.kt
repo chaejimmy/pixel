@@ -42,8 +42,7 @@ fun RoommateFinderScreen(
                 title = {
                     Text(
                         "Find Roommate",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

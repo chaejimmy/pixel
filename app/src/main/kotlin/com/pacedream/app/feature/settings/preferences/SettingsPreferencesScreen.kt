@@ -85,7 +85,7 @@ fun SettingsPreferencesScreen(
                 title = {
                     Text(
                         "Preferences",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

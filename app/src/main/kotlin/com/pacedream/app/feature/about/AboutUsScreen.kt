@@ -32,8 +32,7 @@ fun AboutUsScreen(
                 title = {
                     Text(
                         "About PaceDream",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

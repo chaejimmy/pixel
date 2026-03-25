@@ -81,7 +81,7 @@ fun SettingsLoginSecurityScreen(
                 title = {
                     Text(
                         "Login & Security",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {

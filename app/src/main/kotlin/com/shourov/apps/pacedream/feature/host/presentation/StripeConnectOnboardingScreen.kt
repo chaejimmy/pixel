@@ -56,7 +56,8 @@ fun StripeConnectOnboardingScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
-        }
+        },
+        containerColor = PaceDreamColors.Background
     ) { paddingValues ->
         Column(
             modifier = Modifier

@@ -54,8 +54,7 @@ fun SupportScreen(
                 title = {
                     Text(
                         text = "Help & Support",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold,
+                        style = PaceDreamTypography.Headline,
                     )
                 },
                 navigationIcon = {

@@ -37,9 +37,8 @@ fun HostInboxScreen(
                 title = {
                     Text(
                         text = "Inbox",
-                        style = PaceDreamTypography.Title1,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Title1.copy(fontWeight = FontWeight.Bold),
+                        color = PaceDreamColors.TextPrimary
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)

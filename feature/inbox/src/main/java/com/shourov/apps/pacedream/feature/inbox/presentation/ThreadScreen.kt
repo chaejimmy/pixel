@@ -94,8 +94,7 @@ fun ThreadScreen(
                     (uiState as? ThreadDetailUiState.Success)?.let { state ->
                         Text(
                             text = state.thread.displayName,
-                            style = PaceDreamTypography.Headline,
-                            fontWeight = FontWeight.SemiBold
+                            style = PaceDreamTypography.Headline
                         )
                     } ?: Text("Chat", style = PaceDreamTypography.Headline)
                 },

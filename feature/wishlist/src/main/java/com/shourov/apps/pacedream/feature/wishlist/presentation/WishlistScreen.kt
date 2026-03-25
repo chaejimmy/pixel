@@ -115,7 +115,8 @@ fun WishlistScreen(
                 title = {
                     Text(
                         text = "Wishlist",
-                        style = PaceDreamTypography.Title2
+                        style = PaceDreamTypography.Title1,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
