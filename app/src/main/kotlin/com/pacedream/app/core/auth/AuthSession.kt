@@ -146,6 +146,13 @@ class SessionManager @Inject constructor(
      */
     suspend fun loginWithAuth0(activity: Activity, connection: Auth0Connection): AuthActionResult =
         suspendCancellableCoroutine { continuation ->
+        // Guard: crash-proof when Auth0 credentials are not configured
+        if (appConfig.auth0Domain.isBlank() || appConfig.auth0ClientId.isBlank()) {
+            Timber.e("Auth0 credentials not configured — domain='${appConfig.auth0Domain}', clientId length=${appConfig.auth0ClientId.length}")
+            continuation.resume(AuthActionResult.Error("Auth0 is not configured. Please check app settings."))
+            return@suspendCancellableCoroutine
+        }
+
         val auth0 = Auth0(
             appConfig.auth0ClientId,
             appConfig.auth0Domain

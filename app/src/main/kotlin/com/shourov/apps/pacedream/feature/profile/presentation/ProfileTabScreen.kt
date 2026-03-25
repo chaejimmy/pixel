@@ -37,6 +37,7 @@ fun ProfileTabScreen(
     onLogoutClick: () -> Unit = {},
     onSwitchToHostMode: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
+    onCreateListingClick: () -> Unit = {},
     isHostMode: Boolean = false,
     onReviewsClick: () -> Unit = {},
     onTripPlannerClick: () -> Unit = {},
@@ -112,14 +113,22 @@ fun ProfileTabScreen(
                         )
                     }
 
-                    // Host mode entry
+                    // Host mode entry / Create a Listing
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        HostModeEntry(
-                            isHostMode = isHostMode,
-                            onSwitchToHostMode = onSwitchToHostMode,
-                            onSwitchToGuestMode = onSwitchToGuestMode
-                        )
+                        if (isHostMode) {
+                            HostModeEntry(
+                                isHostMode = true,
+                                onSwitchToHostMode = onSwitchToHostMode,
+                                onSwitchToGuestMode = onSwitchToGuestMode,
+                                onCreateListingClick = onCreateListingClick
+                            )
+                        } else {
+                            // Guest mode: show two separate actions
+                            CreateListingEntry(onClick = onCreateListingClick)
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                            SwitchToHostModeEntry(onClick = onSwitchToHostMode)
+                        }
                     }
 
                     // Menu Sections — iOS: grouped List rows with NavigationLinks
@@ -492,25 +501,17 @@ private fun PrimaryActionCard(
  * (not "Start Hosting") to match the iOS ProfileView hostCTA.
  * When the user is in host mode, show "Switch to Guest Mode".
  */
+/** Create a Listing CTA — shown in guest mode, prominent primary card */
 @Composable
-private fun HostModeEntry(
-    isHostMode: Boolean,
-    onSwitchToHostMode: () -> Unit,
-    onSwitchToGuestMode: () -> Unit
-) {
+private fun CreateListingEntry(onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD),
-        onClick = if (isHostMode) onSwitchToGuestMode else onSwitchToHostMode,
+        onClick = onClick,
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isHostMode)
-                PaceDreamColors.Primary.copy(alpha = 0.06f)
-            else
-                PaceDreamColors.Primary
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isHostMode) 0.dp else PaceDreamElevation.SM)
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
     ) {
         Row(
             modifier = Modifier
@@ -522,40 +523,153 @@ private fun HostModeEntry(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (isHostMode) PaceDreamColors.Primary.copy(alpha = 0.12f)
-                        else Color.White.copy(alpha = 0.2f)
-                    ),
+                    .background(Color.White.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isHostMode) PaceDreamIcons.Person else PaceDreamIcons.Add,
+                    imageVector = PaceDreamIcons.Add,
                     contentDescription = null,
-                    tint = if (isHostMode) PaceDreamColors.Primary else Color.White,
+                    tint = Color.White,
                     modifier = Modifier.size(PaceDreamIconSize.SM)
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isHostMode) "Switch to Guest Mode" else "Create a Listing",
+                    text = "Create a Listing",
                     style = PaceDreamTypography.Subheadline,
-                    color = if (isHostMode) PaceDreamColors.Primary else Color.White,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (isHostMode) "Browse and book spaces"
-                    else "Share your space, items, or services",
+                    text = "Share your space, items, or services",
                     style = PaceDreamTypography.Caption,
-                    color = if (isHostMode) PaceDreamColors.TextSecondary
-                    else Color.White.copy(alpha = 0.8f)
+                    color = Color.White.copy(alpha = 0.8f)
                 )
             }
             Icon(
                 imageVector = PaceDreamIcons.ChevronRight,
                 contentDescription = null,
-                tint = if (isHostMode) PaceDreamColors.TextTertiary
-                else Color.White.copy(alpha = 0.7f),
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(PaceDreamIconSize.SM)
+            )
+        }
+    }
+}
+
+/** Switch to Host Mode — shown in guest mode, secondary subtle card */
+@Composable
+private fun SwitchToHostModeEntry(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        onClick = onClick,
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Home,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Switch to Host Mode",
+                    style = PaceDreamTypography.Subheadline,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Manage your listings and bookings",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(PaceDreamIconSize.SM)
+            )
+        }
+    }
+}
+
+/** Host mode: switch back to guest — shown only in host mode */
+@Composable
+private fun HostModeEntry(
+    isHostMode: Boolean,
+    onSwitchToHostMode: () -> Unit,
+    onSwitchToGuestMode: () -> Unit,
+    onCreateListingClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        onClick = onSwitchToGuestMode,
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Person,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Switch to Guest Mode",
+                    style = PaceDreamTypography.Subheadline,
+                    color = PaceDreamColors.Primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Browse and book spaces",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
+            }
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
                 modifier = Modifier.size(PaceDreamIconSize.SM)
             )
         }
