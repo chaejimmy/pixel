@@ -37,10 +37,11 @@ import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
 
 /**
- * Browse by Type: Spaces / Items / Services — matching iOS ExploreByTypeSection.swift
+ * Explore by Category — the primary interactive browser for the marketplace.
  *
- * Segmented pill selector at top, subcategory chips below, inline listing preview.
- * Switches content in-place without navigation.
+ * Segmented pill selector (Spaces / Items / Services), subcategory chips,
+ * and inline listing preview cards.  This is the single, authoritative place
+ * users go to drill into a specific marketplace pillar.
  */
 
 enum class HomeBrowseType(
@@ -119,23 +120,11 @@ fun BrowseByTypeSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section header
-        Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = "Browse by Type",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamTextPrimary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "Explore spaces, items, and services near you",
-                style = PaceDreamTypography.Footnote,
-                color = PaceDreamTextSecondary,
-            )
-        }
+        // Section header — uses the shared SectionHeader component
+        SectionHeader(
+            title = "Explore by Category",
+            subtitle = "Browse spaces, items, and services near you",
+        )
 
         // Segmented pill selector
         Row(
@@ -170,7 +159,7 @@ fun BrowseByTypeSection(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             selectedType.subcategories.forEach { sub ->
                 SubcategoryChip(
@@ -196,7 +185,7 @@ fun BrowseByTypeSection(
 
         if (isLoading || hasContent) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // View All header
+                // View All sub-header
                 if (hasContent) {
                     Row(
                         modifier = Modifier
@@ -219,7 +208,8 @@ fun BrowseByTypeSection(
                                         HomeBrowseType.SERVICES -> "services"
                                     }
                                 )
-                            }
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -234,17 +224,17 @@ fun BrowseByTypeSection(
                                     imageVector = PaceDreamIcons.ChevronRight,
                                     contentDescription = null,
                                     tint = selectedType.gradientColors.first(),
-                                    modifier = Modifier.size(12.dp),
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         }
                     }
                 }
 
-                // Listing cards
+                // Listing cards — unified card width and structure
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (isLoading) {
                         items(3) {
@@ -254,8 +244,12 @@ fun BrowseByTypeSection(
                         when (selectedType) {
                             HomeBrowseType.SPACES -> {
                                 items(roomsState.rooms.take(6), key = { it.id }) { room ->
-                                    BrowseInlineRoomCard(
-                                        room = room,
+                                    UnifiedListingCard(
+                                        title = room.title,
+                                        subtitle = room.location.city,
+                                        price = "$${room.price?.firstOrNull()?.amount ?: 0}/hr",
+                                        rating = room.rating.toDouble(),
+                                        imageUrl = room.gallery.thumbnail,
                                         accentColor = selectedType.gradientColors.first(),
                                         onClick = { onPropertyClick(room.id) },
                                     )
@@ -263,8 +257,11 @@ fun BrowseByTypeSection(
                             }
                             HomeBrowseType.ITEMS -> {
                                 items(gearsState.rentedGears.take(6), key = { it.id }) { gear ->
-                                    BrowseInlineGearCard(
-                                        gear = gear,
+                                    UnifiedListingCard(
+                                        title = gear.name,
+                                        subtitle = gear.location,
+                                        price = "$${gear.hourlyRate}/hr",
+                                        imageUrl = gear.images?.firstOrNull(),
                                         accentColor = selectedType.gradientColors.first(),
                                         onClick = { onPropertyClick(gear.id) },
                                     )
@@ -275,8 +272,12 @@ fun BrowseByTypeSection(
                                     splitStaysState.splitStays.take(6),
                                     key = { it._id ?: it.hashCode() }
                                 ) { stay ->
-                                    BrowseInlineServiceCard(
-                                        stay = stay,
+                                    UnifiedListingCard(
+                                        title = stay.name ?: "Service",
+                                        subtitle = stay.location ?: stay.city ?: "Location",
+                                        price = "$${stay.price ?: "0"} total",
+                                        rating = stay.rating?.toDouble(),
+                                        imageUrl = stay.images?.firstOrNull(),
                                         accentColor = selectedType.gradientColors.first(),
                                         onClick = { onPropertyClick(stay._id ?: "") },
                                     )
@@ -290,7 +291,103 @@ fun BrowseByTypeSection(
     }
 }
 
-// ----- Browse Type Pill -----
+// ────────────────────────────────────────────────────────────────────────────
+// Unified Listing Card
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Consistent inline listing card used across all Browse by Type listings.
+ * Fixed width, fixed image height, consistent text layout, optional rating.
+ */
+@Composable
+private fun UnifiedListingCard(
+    title: String,
+    subtitle: String,
+    price: String,
+    rating: Double? = null,
+    imageUrl: String?,
+    accentColor: Color,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(172.dp)
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .clickable(onClick = onClick),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Image — fixed aspect ratio with rounded corners
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                .background(PaceDreamGray100),
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        // Text content — consistent spacing and line clamping
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
+                color = PaceDreamTextPrimary,
+                maxLines = 2,
+                minLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = subtitle,
+                style = PaceDreamTypography.Caption2,
+                color = PaceDreamTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = price,
+                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
+                    color = accentColor,
+                )
+                if (rating != null && rating > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Star,
+                            contentDescription = null,
+                            tint = PaceDreamColors.StarRating,
+                            modifier = Modifier.size(10.dp),
+                        )
+                        Text(
+                            text = String.format("%.1f", rating),
+                            style = PaceDreamTypography.Caption2,
+                            color = PaceDreamTextSecondary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Browse Type Pill
+// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun BrowseTypePill(
@@ -299,11 +396,6 @@ private fun BrowseTypePill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) type.gradientColors.first() else Color.Transparent,
-        animationSpec = tween(200),
-        label = "pillBg"
-    )
     val textColor by animateColorAsState(
         targetValue = if (isSelected) Color.White else PaceDreamTextSecondary,
         animationSpec = tween(200),
@@ -314,9 +406,8 @@ private fun BrowseTypePill(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .background(
-                if (isSelected) Brush.horizontalGradient(type.gradientColors) else Brush.horizontalGradient(
-                    listOf(Color.Transparent, Color.Transparent)
-                )
+                if (isSelected) Brush.horizontalGradient(type.gradientColors)
+                else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -345,7 +436,9 @@ private fun BrowseTypePill(
     }
 }
 
-// ----- Subcategory Chip -----
+// ────────────────────────────────────────────────────────────────────────────
+// Subcategory Chip
+// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun SubcategoryChip(
@@ -381,166 +474,9 @@ private fun SubcategoryChip(
     }
 }
 
-// ----- Inline Cards -----
-
-@Composable
-private fun BrowseInlineRoomCard(
-    room: RoomModel,
-    accentColor: Color,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .width(180.dp)
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        AsyncImage(
-            model = room.gallery.thumbnail,
-            contentDescription = room.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = room.title,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                color = PaceDreamTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = room.location.city,
-                style = PaceDreamTypography.Caption2,
-                color = PaceDreamTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "$${room.price?.firstOrNull()?.amount ?: 0}/hr",
-                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-                    color = accentColor,
-                )
-                if (room.rating > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Star,
-                            contentDescription = null,
-                            tint = PaceDreamColors.StarRating,
-                            modifier = Modifier.size(10.dp),
-                        )
-                        Text(
-                            text = String.format("%.1f", room.rating.toDouble()),
-                            style = PaceDreamTypography.Caption2,
-                            color = PaceDreamTextSecondary,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BrowseInlineGearCard(
-    gear: RentedGearModel,
-    accentColor: Color,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .width(180.dp)
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        AsyncImage(
-            model = gear.images?.firstOrNull(),
-            contentDescription = gear.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = gear.name,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                color = PaceDreamTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = gear.location,
-                style = PaceDreamTypography.Caption2,
-                color = PaceDreamTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "$${gear.hourlyRate}/hr",
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-                color = accentColor,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BrowseInlineServiceCard(
-    stay: SplitStayModel,
-    accentColor: Color,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .width(180.dp)
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        AsyncImage(
-            model = stay.images?.firstOrNull(),
-            contentDescription = stay.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = stay.name ?: "Service",
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
-                color = PaceDreamTextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = stay.location ?: stay.city ?: "Location",
-                style = PaceDreamTypography.Caption2,
-                color = PaceDreamTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "$${stay.price ?: "0"} total",
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-                color = accentColor,
-            )
-        }
-    }
-}
+// ────────────────────────────────────────────────────────────────────────────
+// Skeleton Card
+// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun BrowseInlineSkeletonCard() {
@@ -549,7 +485,7 @@ private fun BrowseInlineSkeletonCard() {
     ) {
         Box(
             modifier = Modifier
-                .width(180.dp)
+                .width(172.dp)
                 .height(120.dp)
                 .clip(RoundedCornerShape(PaceDreamRadius.MD))
                 .background(PaceDreamGray100)

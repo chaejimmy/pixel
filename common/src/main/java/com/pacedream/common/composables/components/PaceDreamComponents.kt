@@ -378,19 +378,23 @@ fun PaceDreamPropertyCard(
                     .height(PaceDreamPropertyCard.ImageHeight)
             )
 
-            // Property Details with iOS-style compact spacing
+            // Property Details — consistent spacing and alignment
             Column(
                 modifier = Modifier.padding(PaceDreamPropertyCard.ContentPadding)
             ) {
+                // Title — fixed 2-line height for consistent card alignment
                 Text(
                     text = title,
                     style = PaceDreamTypography.Headline,
                     color = PaceDreamTextPrimary,
-                    maxLines = 2
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
+                // Location
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -407,12 +411,14 @@ fun PaceDreamPropertyCard(
                         text = location,
                         style = PaceDreamTypography.Footnote,
                         color = PaceDreamTextSecondary,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
+                // Price + Rating row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -424,23 +430,25 @@ fun PaceDreamPropertyCard(
                         color = PaceDreamPrimary
                     )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Star,
-                            contentDescription = null,
-                            tint = PaceDreamColors.StarRating,
-                            modifier = Modifier.size(PaceDreamIconSize.XS)
-                        )
+                    if (rating > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = PaceDreamColors.StarRating,
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
+                            )
 
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
 
-                        Text(
-                            text = "$rating ($reviewCount)",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamTextSecondary
-                        )
+                            Text(
+                                text = if (reviewCount > 0) "$rating ($reviewCount)" else "$rating",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamTextSecondary
+                            )
+                        }
                     }
                 }
             }

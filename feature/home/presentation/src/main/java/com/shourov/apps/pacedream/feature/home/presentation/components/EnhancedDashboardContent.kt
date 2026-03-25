@@ -27,7 +27,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.components.*
@@ -35,11 +34,9 @@ import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRentedGearsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
-import com.shourov.apps.pacedream.feature.home.presentation.R
 
 /**
  * Inline warning banner component for section errors.
- * Matches iOS behavior of showing inline warnings instead of just toasts.
  */
 @Composable
 fun SectionWarningBanner(
@@ -87,22 +84,22 @@ fun SectionWarningBanner(
 }
 
 /**
- * Enhanced Dashboard Content — iOS-matched section order
+ * Enhanced Dashboard Content
  *
- * Section order (matching iOS HomeView.swift):
- * 1. Quick Chips (category filter)
- * 2. Spaces section (featured listings — hourly spaces)
- * 3. Items section (featured listings — rent gear)
- * 4. Services section
- * 5. Browse by Type (Spaces / Items / Services segmented selector)
- * 6. Trending Destinations
+ * Section order (unified hierarchy):
+ * 1. Category Rail — Spaces / Items / Services (taxonomy-aligned)
+ * 2. Featured Listings — one highlighted horizontal row from the first
+ *    data source that has content (gives immediate value on load)
+ * 3. Explore by Category — segmented Spaces / Items / Services browser
+ *    with subcategory chips and inline listing previews
+ * 4. Trending Destinations
+ * 5. Global empty / error state
  *
- * Removed (not in iOS):
- * - Metrics Cards (Available Rooms / Items / Services counts)
- * - Last-Minute Deals section
- * - Find Roommate section
- * - Browse by Category (replaced by Quick Chips + Browse by Type)
- * - Browse by Destination with hardcoded drawable resources
+ * The previous layout showed three near-identical sections (Spaces, Items,
+ * Services) each with their own LazyRow, and then a Browse by Type section
+ * that duplicated the same data.  This revision consolidates them into a
+ * single featured row + the interactive Browse by Type explorer, which
+ * eliminates redundancy and gives users a clearer mental model.
  */
 @Composable
 fun EnhancedDashboardContent(
@@ -122,126 +119,32 @@ fun EnhancedDashboardContent(
             .fillMaxSize()
             .background(PaceDreamBackground),
     ) {
-        // 1. Quick Chips — matches iOS QuickChips.swift
+        // ── 1. Category Rail ────────────────────────────────────────────
         item {
             QuickChipsSection(
                 onChipClick = { chip -> onCategoryClick(chip) }
             )
         }
 
-        // 2. Spaces Section (Hourly Spaces) — matches iOS FeaturedListingsSection for hourlySpaces
+        // ── 2. Featured Listings ────────────────────────────────────────
+        // Show one curated horizontal section from the first available data
+        // source.  This gives the user immediate visual content while loading.
         item {
-            FeaturedSection(
-                title = "Spaces",
-                subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
-                isLoading = roomsState.loading,
-                error = roomsState.error,
-                isEmpty = roomsState.rooms.isEmpty(),
-                onViewAllClick = { onViewAllClick("time-based") },
-                onRetry = { onTimeBasedRoomsChanged("room") },
-            ) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (roomsState.loading) {
-                        items(3) { PaceDreamShimmerCard() }
-                    } else {
-                        items(roomsState.rooms.take(10), key = { it.id }) { room ->
-                            PaceDreamPropertyCard(
-                                title = room.title,
-                                location = room.location.city,
-                                price = "$${room.price?.firstOrNull()?.amount ?: 0}/hr",
-                                rating = room.rating.toDouble(),
-                                reviewCount = 0,
-                                imageUrl = room.gallery.images.firstOrNull(),
-                                onClick = { onPropertyClick(room.id) }
-                            )
-                        }
-                    }
-                }
-            }
+            FeaturedListingsSection(
+                roomsState = roomsState,
+                gearsState = gearsState,
+                splitStaysState = splitStaysState,
+                onPropertyClick = onPropertyClick,
+                onViewAllClick = onViewAllClick,
+                onRetryRooms = { onTimeBasedRoomsChanged("room") },
+                onRetryGears = { onRentedGearsChanged("tech_gear") },
+                onRetrySplitStays = onSplitStaysRetry,
+            )
         }
 
-        // 3. Items Section (Rent Gear) — matches iOS FeaturedListingsSection for rentGear
+        // ── 3. Explore by Category ──────────────────────────────────────
         item {
-            FeaturedSection(
-                title = "Items",
-                subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
-                isLoading = gearsState.loading,
-                error = gearsState.error,
-                isEmpty = gearsState.rentedGears.isEmpty(),
-                onViewAllClick = { onViewAllClick("gear") },
-                onRetry = { onRentedGearsChanged("tech_gear") },
-            ) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (gearsState.loading) {
-                        items(3) { PaceDreamShimmerCard() }
-                    } else {
-                        items(gearsState.rentedGears.take(10), key = { it.id }) { gear ->
-                            PaceDreamPropertyCard(
-                                title = gear.name,
-                                location = gear.location,
-                                price = "$${gear.hourlyRate}/hr",
-                                rating = 0.0,
-                                reviewCount = 0,
-                                imageUrl = gear.images?.firstOrNull(),
-                                onClick = { onPropertyClick(gear.id) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Services Section — matches iOS ServicesGridSection
-        item {
-            val hasServices = splitStaysState.splitStays.isNotEmpty()
-            val isLoading = splitStaysState.loading
-
-            if (isLoading || hasServices) {
-                FeaturedSection(
-                    title = "Services",
-                    subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
-                    isLoading = isLoading,
-                    error = splitStaysState.error,
-                    isEmpty = splitStaysState.splitStays.isEmpty(),
-                    onViewAllClick = { onViewAllClick("services") },
-                    onRetry = onSplitStaysRetry,
-                ) {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        if (isLoading) {
-                            items(3) { PaceDreamShimmerCard() }
-                        } else {
-                            items(
-                                splitStaysState.splitStays.take(10),
-                                key = { it._id ?: it.hashCode() }
-                            ) { stay ->
-                                PaceDreamPropertyCard(
-                                    title = stay.name ?: "Service",
-                                    location = stay.location ?: stay.city ?: "Location",
-                                    price = "$${stay.price ?: "0"} total",
-                                    rating = stay.rating?.toDouble() ?: 0.0,
-                                    reviewCount = stay.reviewCount ?: 0,
-                                    imageUrl = stay.images?.firstOrNull(),
-                                    onClick = { onPropertyClick(stay._id ?: "") }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 5. Browse by Type — matches iOS ExploreByTypeSection.swift
-        item {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             BrowseByTypeSection(
                 roomsState = roomsState,
                 gearsState = gearsState,
@@ -252,9 +155,7 @@ fun EnhancedDashboardContent(
             )
         }
 
-        // 6. Trending Destinations — matches iOS TrendingDestinationsSection.swift
-        // Uses backend data from rooms/gear locations as proxy since iOS
-        // destinations endpoint returns real data.
+        // ── 4. Trending Destinations ────────────────────────────────────
         item {
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -268,7 +169,7 @@ fun EnhancedDashboardContent(
             }
         }
 
-        // 7. Full-width empty state when everything is empty (matches iOS)
+        // ── 5. Global empty / error state ───────────────────────────────
         item {
             if (!roomsState.loading && !gearsState.loading && !splitStaysState.loading &&
                 roomsState.rooms.isEmpty() && gearsState.rentedGears.isEmpty() &&
@@ -303,30 +204,161 @@ fun EnhancedDashboardContent(
 }
 
 /**
- * Reusable featured section wrapper — matches iOS FeaturedListingsSection pattern.
- * Shows title, subtitle, warning banner (if error), and content slot.
+ * Featured Listings — a single highlighted row showing the best available
+ * content across all three pillars.  Renders the first non-empty data source
+ * as the primary spotlight, giving users immediate visual value.
  */
 @Composable
-private fun FeaturedSection(
-    title: String,
-    subtitle: String,
-    isLoading: Boolean,
-    error: String?,
-    isEmpty: Boolean,
-    onViewAllClick: () -> Unit,
-    onRetry: () -> Unit,
-    content: @Composable () -> Unit,
+private fun FeaturedListingsSection(
+    roomsState: HomeScreenRoomsState,
+    gearsState: HomeScreenRentedGearsState,
+    splitStaysState: HomeScreenSplitStaysState,
+    onPropertyClick: (String) -> Unit,
+    onViewAllClick: (String) -> Unit,
+    onRetryRooms: () -> Unit,
+    onRetryGears: () -> Unit,
+    onRetrySplitStays: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 32.dp),
-    ) {
-        // Section header with View All
-        Row(
+    // Determine which section to feature — first one with data wins
+    val hasRooms = roomsState.rooms.isNotEmpty()
+    val hasGears = gearsState.rentedGears.isNotEmpty()
+    val hasServices = splitStaysState.splitStays.isNotEmpty()
+    val anyLoading = roomsState.loading || gearsState.loading || splitStaysState.loading
+
+    // Pick the primary section to highlight
+    data class FeaturedConfig(
+        val title: String,
+        val subtitle: String,
+        val sectionKey: String,
+        val error: String?,
+        val isLoading: Boolean,
+        val onRetry: () -> Unit,
+    )
+
+    val featured = when {
+        hasRooms || roomsState.loading -> FeaturedConfig(
+            title = "Featured Spaces",
+            subtitle = "Flexible spaces nearby — parking, rooms, pods & more",
+            sectionKey = "time-based",
+            error = roomsState.error,
+            isLoading = roomsState.loading,
+            onRetry = onRetryRooms,
+        )
+        hasGears || gearsState.loading -> FeaturedConfig(
+            title = "Featured Items",
+            subtitle = "Rent what you need — cameras, gear, tech & tools",
+            sectionKey = "gear",
+            error = gearsState.error,
+            isLoading = gearsState.loading,
+            onRetry = onRetryGears,
+        )
+        hasServices || splitStaysState.loading -> FeaturedConfig(
+            title = "Featured Services",
+            subtitle = "Book help when you need it — cleaning, moving & more",
+            sectionKey = "services",
+            error = splitStaysState.error,
+            isLoading = splitStaysState.loading,
+            onRetry = onRetrySplitStays,
+        )
+        else -> null
+    }
+
+    if (featured != null) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .padding(top = 24.dp),
+        ) {
+            // Section header
+            SectionHeader(
+                title = featured.title,
+                subtitle = featured.subtitle,
+                onViewAllClick = { onViewAllClick(featured.sectionKey) },
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Error banner
+            if (!featured.error.isNullOrEmpty() && !featured.isLoading) {
+                SectionWarningBanner(
+                    message = featured.error,
+                    onRetry = featured.onRetry,
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            // Content row
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (featured.isLoading) {
+                    items(3) { PaceDreamShimmerCard() }
+                } else {
+                    when {
+                        hasRooms -> items(
+                            roomsState.rooms.take(10),
+                            key = { it.id }
+                        ) { room ->
+                            PaceDreamPropertyCard(
+                                title = room.title,
+                                location = room.location.city,
+                                price = "$${room.price?.firstOrNull()?.amount ?: 0}/hr",
+                                rating = room.rating.toDouble(),
+                                reviewCount = 0,
+                                imageUrl = room.gallery.images.firstOrNull(),
+                                onClick = { onPropertyClick(room.id) }
+                            )
+                        }
+                        hasGears -> items(
+                            gearsState.rentedGears.take(10),
+                            key = { it.id }
+                        ) { gear ->
+                            PaceDreamPropertyCard(
+                                title = gear.name,
+                                location = gear.location,
+                                price = "$${gear.hourlyRate}/hr",
+                                rating = 0.0,
+                                reviewCount = 0,
+                                imageUrl = gear.images?.firstOrNull(),
+                                onClick = { onPropertyClick(gear.id) }
+                            )
+                        }
+                        hasServices -> items(
+                            splitStaysState.splitStays.take(10),
+                            key = { it._id ?: it.hashCode() }
+                        ) { stay ->
+                            PaceDreamPropertyCard(
+                                title = stay.name ?: "Service",
+                                location = stay.location ?: stay.city ?: "Location",
+                                price = "$${stay.price ?: "0"} total",
+                                rating = stay.rating?.toDouble() ?: 0.0,
+                                reviewCount = stay.reviewCount ?: 0,
+                                imageUrl = stay.images?.firstOrNull(),
+                                onClick = { onPropertyClick(stay._id ?: "") }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Reusable section header with title, subtitle, and View All action.
+ */
+@Composable
+fun SectionHeader(
+    title: String,
+    subtitle: String? = null,
+    onViewAllClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.padding(horizontal = 24.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -335,45 +367,45 @@ private fun FeaturedSection(
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamTextPrimary,
                 fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            TextButton(onClick = onViewAllClick) {
-                Text(
-                    text = "View All",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamPrimary,
-                )
+            if (onViewAllClick != null) {
+                TextButton(
+                    onClick = onViewAllClick,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "View All",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamPrimary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Icon(
+                            imageVector = PaceDreamIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = PaceDreamPrimary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
             }
         }
-
-        // Subtitle
-        Text(
-            text = subtitle,
-            style = PaceDreamTypography.Footnote,
-            color = PaceDreamTextSecondary,
-            modifier = Modifier.padding(horizontal = 24.dp),
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Warning banner if error
-        if (!error.isNullOrEmpty() && !isLoading) {
-            SectionWarningBanner(
-                message = error,
-                onRetry = onRetry,
-                modifier = Modifier.padding(horizontal = 24.dp),
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = PaceDreamTypography.Footnote,
+                color = PaceDreamTextSecondary,
             )
-            Spacer(modifier = Modifier.height(12.dp))
         }
-
-        // Content
-        content()
     }
 }
 
 /**
- * Build trending destinations from loaded data — extracts unique city names
- * from rooms and gear to create destination cards with fallback images.
- * This mirrors how iOS toDestinationData() maps backend DestinationSummary objects.
+ * Build trending destinations from loaded data — extracts unique city names.
  */
 private fun buildTrendingDestinations(
     roomsState: HomeScreenRoomsState,
@@ -382,7 +414,6 @@ private fun buildTrendingDestinations(
     val citySet = mutableSetOf<String>()
     val destinations = mutableListOf<TrendingDestination>()
 
-    // Extract cities from rooms
     roomsState.rooms.forEach { room ->
         val city = room.location.city.trim()
         if (city.isNotEmpty() && citySet.add(city.lowercase())) {
@@ -399,7 +430,6 @@ private fun buildTrendingDestinations(
         }
     }
 
-    // Extract cities from gear
     gearsState.rentedGears.forEach { gear ->
         val city = gear.location.trim()
         if (city.isNotEmpty() && citySet.add(city.lowercase())) {
@@ -415,7 +445,7 @@ private fun buildTrendingDestinations(
     return destinations.take(6)
 }
 
-/** City-specific fallback images matching iOS DestinationSummary fallback logic. */
+/** City-specific fallback images. */
 private fun destinationFallbackImage(name: String): String = when (name.lowercase().trim()) {
     "new york", "manhattan", "brooklyn" -> "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80"
     "los angeles" -> "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&q=80"
