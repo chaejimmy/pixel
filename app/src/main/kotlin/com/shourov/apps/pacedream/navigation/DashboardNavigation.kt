@@ -500,10 +500,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     },
                                     isHostMode = isHostMode,
-                                    // iOS/Web parity: navigate to new feature screens
                                     onReviewsClick = { navController.navigate("reviews") },
                                     onTripPlannerClick = { navController.navigate("trip_planner") },
-                                    onBidsClick = { navController.navigate("bids") },
                                     onDestinationsClick = { navController.navigate("destinations") }
                                 )
 

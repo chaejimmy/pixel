@@ -41,7 +41,6 @@ fun ProfileTabScreen(
     isHostMode: Boolean = false,
     onReviewsClick: () -> Unit = {},
     onTripPlannerClick: () -> Unit = {},
-    onBidsClick: () -> Unit = {},
     onDestinationsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
     onWishlistClick: () -> Unit = {},
@@ -107,7 +106,6 @@ fun ProfileTabScreen(
                         PrimaryActionsRow(
                             onBookings = onBookingsClick,
                             onWishlist = onWishlistClick,
-                            onBids = onBidsClick,
                             bookingsCount = bookingsCount,
                             wishlistCount = wishlistCount
                         )
@@ -131,60 +129,15 @@ fun ProfileTabScreen(
                         }
                     }
 
-                    // Menu Sections — iOS: grouped List rows with NavigationLinks
+                    // Settings shortcuts — iOS parity: just Account settings + Notifications
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                         ProfileMenuSection(
                             section = ProfileMenuSection(
-                                title = "Account",
+                                title = "Settings",
                                 items = listOf(
-                                    ProfileMenuItem("Edit Profile", PaceDreamIcons.Person, onEditProfileClick),
-                                    ProfileMenuItem("My Reviews", PaceDreamIcons.Star, onReviewsClick),
-                                    ProfileMenuItem("Notifications", PaceDreamIcons.Notifications, onNotificationsClick)
-                                )
-                            ),
-                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        ProfileMenuSection(
-                            section = ProfileMenuSection(
-                                title = "Explore",
-                                items = listOf(
-                                    ProfileMenuItem("Trip Planner", PaceDreamIcons.Map, onTripPlannerClick),
-                                    ProfileMenuItem("Destinations", PaceDreamIcons.LocationOn, onDestinationsClick)
-                                )
-                            ),
-                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        ProfileMenuSection(
-                            section = ProfileMenuSection(
-                                title = "Support",
-                                items = listOf(
-                                    ProfileMenuItem("Help Center", PaceDreamIcons.Help, onHelpClick),
-                                    ProfileMenuItem("FAQ", PaceDreamIcons.QuestionAnswer, onFaqClick)
-                                )
-                            ),
-                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-                        )
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                        ProfileMenuSection(
-                            section = ProfileMenuSection(
-                                title = "App",
-                                items = listOf(
-                                    ProfileMenuItem("Settings", PaceDreamIcons.Settings, onSettingsClick),
-                                    ProfileMenuItem("About", PaceDreamIcons.Info, onAboutClick),
-                                    ProfileMenuItem("Privacy Policy", PaceDreamIcons.PrivacyTip, onPrivacyPolicyClick),
-                                    ProfileMenuItem("Terms of Service", PaceDreamIcons.Description, onTermsOfServiceClick)
+                                    ProfileMenuItem("Account settings", PaceDreamIcons.Settings, onSettingsClick),
+                                    ProfileMenuItem("Notifications & preferences", PaceDreamIcons.Notifications, onNotificationsClick)
                                 )
                             ),
                             modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
@@ -409,12 +362,11 @@ private fun VerificationBadge(
     )
 }
 
-/** Primary action cards - bookings, wishlist, bids with counts */
+/** Primary action cards - bookings, wishlist with counts (iOS parity) */
 @Composable
 private fun PrimaryActionsRow(
     onBookings: () -> Unit,
     onWishlist: () -> Unit,
-    onBids: () -> Unit,
     bookingsCount: Int,
     wishlistCount: Int
 ) {
@@ -436,13 +388,6 @@ private fun PrimaryActionsRow(
             label = "Favorites",
             count = wishlistCount,
             onClick = onWishlist,
-            modifier = Modifier.weight(1f)
-        )
-        PrimaryActionCard(
-            icon = PaceDreamIcons.Gavel,
-            label = "Bids",
-            count = null,
-            onClick = onBids,
             modifier = Modifier.weight(1f)
         )
     }
