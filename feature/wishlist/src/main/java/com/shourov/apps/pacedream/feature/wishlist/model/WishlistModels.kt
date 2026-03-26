@@ -57,11 +57,15 @@ enum class WishlistItemType(val apiValue: String, val displayName: String) {
             if (value == null) return null
             val normalized = value.lowercase().trim()
             return when {
-                normalized.contains("time") || normalized == "use" || normalized == "share" -> TIME_BASED
-                normalized.contains("gear") || normalized == "borrow" || 
-                    normalized.contains("car") || normalized.contains("vehicle") -> HOURLY_GEAR
-                normalized.contains("split") || normalized.contains("room") ||
-                    normalized.contains("stay") || normalized.contains("roommate") -> SPLIT_STAY
+                normalized.contains("time") || normalized == "use" || normalized == "share" ||
+                    normalized.contains("short") || normalized.contains("hourly") -> TIME_BASED
+                normalized.contains("gear") || normalized == "borrow" ||
+                    normalized.contains("car") || normalized.contains("vehicle") ||
+                    normalized.contains("parking") -> HOURLY_GEAR
+                normalized.contains("split") || normalized.contains("roommate") -> SPLIT_STAY
+                // "room" alone is too generic for SPLIT_STAY — backends use room_type for
+                // many listing kinds. Only match "room-stay" or "room stay" specifically.
+                normalized == "room-stay" || normalized == "room stay" -> SPLIT_STAY
                 else -> null
             }
         }
