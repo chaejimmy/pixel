@@ -229,8 +229,16 @@ class InboxViewModel @Inject constructor(
             ?: obj["participantName"]?.jsonPrimitive?.content
             ?: "User"
 
-        // Backend uses "profilePic" for avatar URL
-        val participantAvatar = participant?.get("profilePic")?.jsonPrimitive?.content
+        // Backend uses "profilePic" for avatar URL (may be a string or array)
+        val participantAvatar = try {
+            participant?.get("profilePic")?.jsonPrimitive?.content
+        } catch (_: Exception) {
+            // profilePic can be an array of strings - take first element
+            try {
+                participant?.get("profilePic")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            } catch (_: Exception) { null }
+        }
+            ?: participant?.get("avatarUrl")?.jsonPrimitive?.content
             ?: participant?.get("avatar")?.jsonPrimitive?.content
             ?: participant?.get("profileImage")?.jsonPrimitive?.content
             ?: obj["participantAvatar"]?.jsonPrimitive?.content
