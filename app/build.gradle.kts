@@ -36,6 +36,8 @@ android {
         manifestPlaceholders["auth0Scheme"] = "pacedream"
 
         // BuildConfig fields – sourced from secrets.properties or gradle properties (CI)
+        // Synced with iOS xcconfig pattern: defaults in secrets.defaults.properties,
+        // overrides in secrets.properties or -P flags.
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY",
             "\"${(project.findProperty("stripePublishableKey") as? String)
                 ?: secretsProps.getProperty("STRIPE_PUBLISHABLE_KEY", "")}\"")
@@ -45,6 +47,20 @@ android {
         buildConfigField("String", "ONESIGNAL_APP_ID",
             "\"${(project.findProperty("onesignalAppId") as? String)
                 ?: secretsProps.getProperty("ONESIGNAL_APP_ID", "")}\"")
+
+        // Environment tag (iOS parity: PD_ENVIRONMENT in xcconfig)
+        buildConfigField("String", "PD_ENVIRONMENT",
+            "\"${secretsProps.getProperty("PD_ENVIRONMENT", "development")}\"")
+
+        // Frontend base URL (iOS parity: FRONTEND_BASE_URL in xcconfig)
+        buildConfigField("String", "FRONTEND_BASE_URL",
+            "\"${secretsProps.getProperty("FRONTEND_BASE_URL", "https://www.pacedream.com")}\"")
+
+        // Cloudinary config (iOS parity: CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET in xcconfig)
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME",
+            "\"${secretsProps.getProperty("CLOUDINARY_CLOUD_NAME", "")}\"")
+        buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET",
+            "\"${secretsProps.getProperty("CLOUDINARY_UPLOAD_PRESET", "")}\"")
 
         // Google Maps API key – injected as a resource value so the manifest
         // meta-data picks it up via @string/google_maps_key.  The static XML

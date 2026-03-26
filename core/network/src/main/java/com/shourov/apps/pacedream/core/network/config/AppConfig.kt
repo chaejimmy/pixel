@@ -90,20 +90,9 @@ class AppConfig @Inject constructor() {
      * Gets the frontend base URL from BuildConfig with fallback
      */
     private fun getFrontendBaseUrl(): String {
-        // Try FRONTEND_BASE_URL first, then default
         return try {
-            val configClass = BuildConfig::class.java
-            val field = try {
-                configClass.getField("FRONTEND_BASE_URL")
-            } catch (e: NoSuchFieldException) {
-                try {
-                    configClass.getField("PD_FRONTEND_BASE_URL")
-                } catch (e: NoSuchFieldException) {
-                    null
-                }
-            }
-            val url = field?.get(null) as? String
-            if (!url.isNullOrBlank()) url else DEFAULT_FRONTEND_URL
+            val url = BuildConfig.FRONTEND_BASE_URL
+            if (url.isNotBlank()) url else DEFAULT_FRONTEND_URL
         } catch (e: Exception) {
             timber.log.Timber.d(e, "Frontend URL not available in BuildConfig, using default")
             DEFAULT_FRONTEND_URL
@@ -218,9 +207,10 @@ class AppConfig @Inject constructor() {
         private const val DEFAULT_BACKEND_URL = "https://pacedream-backend.onrender.com"
         private const val DEFAULT_FRONTEND_URL = "https://www.pacedream.com"
         
-        // Auth0 defaults - set actual values via secrets.defaults.properties or local.properties
-        private const val DEFAULT_AUTH0_DOMAIN = ""
-        private const val DEFAULT_AUTH0_CLIENT_ID = ""
+        // Auth0 defaults synced from iOS xcconfig (dev-ygmeh25wmmszid8u.us.auth0.com)
+        // When secrets.defaults.properties is loaded these are overridden by BuildConfig fields.
+        private const val DEFAULT_AUTH0_DOMAIN = "dev-ygmeh25wmmszid8u.us.auth0.com"
+        private const val DEFAULT_AUTH0_CLIENT_ID = "3DCwI5MfeTuL0SETFnNEGoRmRyJGpEDp"
         
         // Timeout configurations (matching iOS)
         const val REQUEST_TIMEOUT_SECONDS = 30L
