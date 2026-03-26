@@ -140,7 +140,7 @@ fun WishlistScreen(
                                     ) { item ->
                                         WishlistItemCard(
                                             item = item,
-                                            onItemClick = { onItemClick(item.id, item.type) },
+                                            onItemClick = { onItemClick(item.listingId ?: item.id, item.type) },
                                             onRemoveClick = { viewModel.removeItem(item) }
                                         )
                                     }
