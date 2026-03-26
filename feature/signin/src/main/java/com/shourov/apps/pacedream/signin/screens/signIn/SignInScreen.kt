@@ -154,7 +154,7 @@ fun SignIn(
                 if (uiState.error != null) {
                     VerticalSpacer(height = 8)
                     Text(
-                        text = uiState.error!!,
+                        text = uiState.error.orEmpty(),
                         color = PaceDreamColors.Error,
                         modifier = Modifier.fillMaxWidth(),
                     )

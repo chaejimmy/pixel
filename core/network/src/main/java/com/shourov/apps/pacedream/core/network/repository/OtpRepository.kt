@@ -32,7 +32,8 @@ class OtpRepository @Inject constructor(
             val response = otpService.sendOTP(OtpSendRequest(phone))
             
             if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+                val body = response.body()
+                    ?: return@withContext Result.failure(OtpError.NetworkError("Empty response body"))
                 if (body.ok) {
                     Result.success(body)
                 } else {
@@ -59,7 +60,8 @@ class OtpRepository @Inject constructor(
             val response = otpService.verifyOTP(OtpCheckRequest(phone, code))
             
             if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+                val body = response.body()
+                    ?: return@withContext Result.failure(OtpError.NetworkError("Empty response body"))
                 if (body.ok) {
                     Result.success(body)
                 } else {
@@ -85,7 +87,8 @@ class OtpRepository @Inject constructor(
             val response = otpService.login(OtpLoginRequest(phone))
             
             if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+                val body = response.body()
+                    ?: return@withContext Result.failure(OtpError.NetworkError("Empty response body"))
                 if (body.ok && body.success == true) {
                     Result.success(body)
                 } else {

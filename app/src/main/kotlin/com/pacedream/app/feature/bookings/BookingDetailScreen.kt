@@ -107,7 +107,7 @@ fun BookingDetailScreen(
             // Error with no data
             uiState.error != null && uiState.booking == null -> {
                 DetailErrorState(
-                    message = uiState.error!!,
+                    message = uiState.error.orEmpty(),
                     onRetry = { viewModel.loadBookingDetail() },
                     onBack = onBack,
                     modifier = Modifier
@@ -118,7 +118,7 @@ fun BookingDetailScreen(
 
             // Content (either cached or fresh)
             uiState.booking != null -> {
-                val booking = uiState.booking!!
+                val booking = uiState.booking ?: return@Scaffold
 
                 Column(
                     modifier = Modifier

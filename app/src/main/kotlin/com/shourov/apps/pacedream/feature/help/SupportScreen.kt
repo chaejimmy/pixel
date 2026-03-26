@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.feature.help
 
 import android.content.Intent
 import android.net.Uri
+import timber.log.Timber
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -118,8 +119,8 @@ fun SupportScreen(
                         }
                         try {
                             context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // No email client available
+                        } catch (e: Exception) {
+                            Timber.w(e, "Failed to launch email client for support")
                         }
                     },
                 )
@@ -138,8 +139,8 @@ fun SupportScreen(
                         }
                         try {
                             context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // No email client available
+                        } catch (e: Exception) {
+                            Timber.w(e, "Failed to launch email client for bug report")
                         }
                     },
                 )
@@ -155,8 +156,8 @@ fun SupportScreen(
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/safety"))
                             context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // Could not open URL
+                        } catch (e: Exception) {
+                            Timber.w(e, "Failed to open safety information URL")
                         }
                     },
                 )

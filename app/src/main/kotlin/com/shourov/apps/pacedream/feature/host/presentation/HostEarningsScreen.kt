@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.feature.host.presentation
 
 import android.content.Intent
 import android.net.Uri
+import timber.log.Timber
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -1011,7 +1012,7 @@ private fun PayoutRequestBottomSheet(
 
 private fun formatDollarAmount(amount: Double, currency: String = "usd"): String {
     val formatter = NumberFormat.getCurrencyInstance(Locale.US)
-    try { formatter.currency = Currency.getInstance(currency.uppercase()) } catch (_: Exception) { }
+    try { formatter.currency = Currency.getInstance(currency.uppercase()) } catch (e: Exception) { Timber.w(e, "Failed to set currency format for: %s", currency) }
     return formatter.format(amount)
 }
 

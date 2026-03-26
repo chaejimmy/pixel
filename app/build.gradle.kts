@@ -34,6 +34,40 @@ android {
         buildConfigField("String", "ONESIGNAL_APP_ID", "\"${(project.findProperty("onesignalAppId") as? String) ?: ""}\"")
     }
 
+    // Release signing configuration.
+    // For CI/CD or production builds, set these Gradle properties (via gradle.properties,
+    // environment variables, or -P flags):
+    //   RELEASE_STORE_FILE      - absolute path to the keystore file
+    //   RELEASE_STORE_PASSWORD  - keystore password
+    //   RELEASE_KEY_ALIAS       - key alias within the keystore
+    //   RELEASE_KEY_PASSWORD    - key password
+    //
+    // Example (gradle.properties):
+    //   RELEASE_STORE_FILE=/path/to/release.keystore
+    //   RELEASE_STORE_PASSWORD=changeit
+    //   RELEASE_KEY_ALIAS=my-key
+    //   RELEASE_KEY_PASSWORD=changeit
+    //
+    // If these properties are not set the build falls back to the debug signing
+    // config so that local development builds still work out of the box.
+    val hasReleaseSigningProps = listOf(
+        "RELEASE_STORE_FILE",
+        "RELEASE_STORE_PASSWORD",
+        "RELEASE_KEY_ALIAS",
+        "RELEASE_KEY_PASSWORD",
+    ).all { project.hasProperty(it) }
+
+    if (hasReleaseSigningProps) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(project.property("RELEASE_STORE_FILE") as String)
+                storePassword = project.property("RELEASE_STORE_PASSWORD") as String
+                keyAlias = project.property("RELEASE_KEY_ALIAS") as String
+                keyPassword = project.property("RELEASE_KEY_PASSWORD") as String
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = PaceDreamBuildType.DEBUG.applicationIdSuffix
@@ -46,10 +80,12 @@ android {
                 "proguard-rules.pro",
             )
 
-            // To publish on the Play store a private signing key is required, but to allow anyone
-            // who clones the code to sign and run the release variant, use the debug signing key.
-            // TODO: Abstract the signing configuration to a separate file to avoid hardcoding this.
-            signingConfig = signingConfigs.named("debug").get()
+            signingConfig = if (hasReleaseSigningProps) {
+                signingConfigs.getByName("release")
+            } else {
+                // Fall back to debug signing so local/dev builds can still be installed.
+                signingConfigs.getByName("debug")
+            }
             // Ensure Baseline Profile is fresh for release builds.
             baselineProfile.automaticGenerationDuringBuild = true
         }

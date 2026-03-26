@@ -32,7 +32,8 @@ class VerificationRepository @Inject constructor(
             val response = api.sendPhoneVerificationCode("Bearer $token", request)
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()
+                    ?: return Result.failure(Exception("Empty response body")))
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to send phone verification code: ${response.code()} - $errorBody")
@@ -56,7 +57,8 @@ class VerificationRepository @Inject constructor(
             val response = api.confirmPhoneVerification("Bearer $token", request)
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()
+                    ?: return Result.failure(Exception("Empty response body")))
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to confirm phone verification: ${response.code()} - $errorBody")
@@ -79,7 +81,8 @@ class VerificationRepository @Inject constructor(
             val response = api.getVerificationStatus("Bearer $token")
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()
+                    ?: return Result.failure(Exception("Empty response body")))
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to get verification status: ${response.code()} - $errorBody")
@@ -103,7 +106,8 @@ class VerificationRepository @Inject constructor(
             val response = api.getUploadURLs("Bearer $token", request)
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()
+                    ?: return Result.failure(Exception("Empty response body")))
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to get upload URLs: ${response.code()} - $errorBody")
@@ -152,7 +156,8 @@ class VerificationRepository @Inject constructor(
             val response = api.submitVerification("Bearer $token", request)
             
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success(response.body()
+                    ?: return Result.failure(Exception("Empty response body")))
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to submit verification: ${response.code()} - $errorBody")

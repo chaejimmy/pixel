@@ -100,7 +100,7 @@ fun PhoneEntryScreen(
 
             if (uiState.phoneError != null && !uiState.isLoading) {
                 Text(
-                    text = uiState.phoneError!!,
+                    text = uiState.phoneError.orEmpty(),
                     color = PaceDreamColors.Error,
                     style = PaceDreamTypography.Caption,
                     modifier = Modifier

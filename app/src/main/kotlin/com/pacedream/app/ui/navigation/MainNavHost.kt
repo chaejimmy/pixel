@@ -480,9 +480,10 @@ fun MainNavHost(
                     arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val collectionId = backStackEntry.arguments?.getString("collectionId") ?: ""
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text("Collection: $collectionId", modifier = Modifier.padding(16.dp))
-                    }
+                    FeatureComingSoonScreen(
+                        title = "Collection",
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
 
                 // Collections / My Lists Screen
@@ -498,7 +499,7 @@ fun MainNavHost(
                     )
                 }
 
-                // Listing Detail (stub)
+                // Listing Detail
                 composable(
                     route = NavRoutes.LISTING_DETAIL,
                     arguments = listOf(navArgument("listingId") { type = NavType.StringType })
@@ -564,8 +565,7 @@ fun MainNavHost(
                         ?.get<String>("booking_draft_json_${listingId}")
                     val draft = raw?.let { runCatching { BookingDraftCodec.decode(it) }.getOrNull() }
                     if (draft == null) {
-                        BookingDetailPlaceholder(
-                            bookingId = "Missing BookingDraft",
+                        CheckoutErrorScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     } else {
@@ -796,14 +796,6 @@ data class TabItem(
     val unselectedIcon: ImageVector
 )
 
-// Placeholder screens
-@Composable
-fun SearchPlaceholderScreen() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Search - Coming Soon", modifier = Modifier.padding(16.dp))
-    }
-}
-
 @Composable
 fun LockedScreen(
     title: String,
@@ -889,17 +881,121 @@ fun LockedScreen(
     }
 }
 
+/**
+ * Displayed when checkout navigation data is missing (e.g. BookingDraft failed to decode).
+ */
 @Composable
-fun ListingDetailPlaceholder(listingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Listing Detail: $listingId", modifier = Modifier.padding(16.dp))
+fun CheckoutErrorScreen(onBackClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.pacedream.common.composables.theme.PaceDreamColors.Background)
+            .padding(com.pacedream.common.composables.theme.PaceDreamSpacing.MD),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XXXL))
+        Icon(
+            PaceDreamIcons.Warning,
+            contentDescription = null,
+            tint = com.pacedream.common.composables.theme.PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamIconSize.XXL)
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+        Text(
+            text = "Unable to load checkout",
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.SM))
+        Text(
+            text = "Booking details could not be found. Please go back and try again.",
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Body,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL)
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.LG))
+        Button(
+            onClick = onBackClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                com.pacedream.common.composables.theme.PaceDreamRadius.MD
+            ),
+            modifier = Modifier
+                .height(com.pacedream.common.composables.theme.PaceDreamButtonHeight.LG)
+                .padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL),
+            contentPadding = PaddingValues(
+                horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL,
+                vertical = com.pacedream.common.composables.theme.PaceDreamSpacing.SM2
+            )
+        ) {
+            Text(
+                "Go Back",
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Button,
+                color = androidx.compose.ui.graphics.Color.White
+            )
+        }
     }
 }
 
+/**
+ * Generic screen for features that are not yet implemented.
+ */
 @Composable
-fun BookingDetailPlaceholder(bookingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Booking Detail: $bookingId", modifier = Modifier.padding(16.dp))
+fun FeatureComingSoonScreen(title: String, onBackClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.pacedream.common.composables.theme.PaceDreamColors.Background)
+            .padding(com.pacedream.common.composables.theme.PaceDreamSpacing.MD),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XXXL))
+        Icon(
+            PaceDreamIcons.Build,
+            contentDescription = null,
+            tint = com.pacedream.common.composables.theme.PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamIconSize.XXL)
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+        Text(
+            text = title,
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.SM))
+        Text(
+            text = "This feature is currently under development.",
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Body,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL)
+        )
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.LG))
+        Button(
+            onClick = onBackClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                com.pacedream.common.composables.theme.PaceDreamRadius.MD
+            ),
+            modifier = Modifier
+                .height(com.pacedream.common.composables.theme.PaceDreamButtonHeight.LG)
+                .padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL),
+            contentPadding = PaddingValues(
+                horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL,
+                vertical = com.pacedream.common.composables.theme.PaceDreamSpacing.SM2
+            )
+        ) {
+            Text(
+                "Go Back",
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Button,
+                color = androidx.compose.ui.graphics.Color.White
+            )
+        }
     }
 }
 

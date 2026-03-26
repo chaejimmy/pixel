@@ -579,7 +579,7 @@ class BookingsViewModel @Inject constructor(
             for (fmt in isoFormatters) {
                 try {
                     return fmt.parse(trimmed)
-                } catch (_: Exception) { }
+                } catch (_: Exception) { /* expected: trying next date format */ }
             }
             // Try as timestamp
             val d = trimmed.toDoubleOrNull() ?: return null

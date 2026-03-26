@@ -35,7 +35,8 @@ class RulesWrapperAdapter : JsonDeserializer<RulesWrapper>, JsonSerializer<Rules
         } else {
             // If it's a JSON object, treat it as a Rules object
             val rulesObject = context?.deserialize<Rules>(json, Rules::class.java)
-            RulesWrapper.RulesObject(rulesObject!!)
+                ?: throw JsonParseException("Cannot deserialize Rules: null context")
+            RulesWrapper.RulesObject(rulesObject)
         }
     }
 
@@ -49,7 +50,7 @@ class RulesWrapperAdapter : JsonDeserializer<RulesWrapper>, JsonSerializer<Rules
             }
             is RulesWrapper.RulesObject -> {
                 // Serialize the Rules object
-                context!!.serialize(src.rules)
+                context?.serialize(src.rules) ?: JsonNull.INSTANCE
             }
             else -> JsonNull.INSTANCE
         }

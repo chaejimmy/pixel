@@ -104,7 +104,7 @@ fun SettingsPaymentMethodsScreen(
         if (isStripeConfigured) {
             PaymentConfiguration.init(
                 context = context,
-                publishableKey = publishableKey!!
+                publishableKey = publishableKey ?: return@LaunchedEffect
             )
         } else {
             Timber.w("Stripe publishable key is missing; disabling Add Card.")

@@ -785,7 +785,7 @@ private fun ReserveSheet(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        val timeRange = "${selectedSlotStart!!.format(DateTimeFormatter.ofPattern("h:mm a"))} – ${selectedEnd!!.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+                        val timeRange = "${selectedSlotStart?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: ""} – ${selectedEnd?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: ""}"
                         Text(timeRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
@@ -861,7 +861,7 @@ private fun ReserveSheet(
                     val dayLabel = selectedDate?.dayOfWeek?.name?.lowercase()
                         ?.replaceFirstChar { it.uppercase() } ?: ""
                     val monthDay = selectedDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: ""
-                    val timeRange = "${selectedSlotStart!!.format(DateTimeFormatter.ofPattern("h:mm a"))} – ${selectedEnd!!.format(DateTimeFormatter.ofPattern("h:mm a"))}"
+                    val timeRange = "${selectedSlotStart?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: ""} – ${selectedEnd?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: ""}"
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("$dayLabel, $monthDay", style = MaterialTheme.typography.bodyMedium)
                         Text(timeRange, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)

@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
 import android.net.Uri
+import timber.log.Timber
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -972,7 +973,7 @@ private fun CreateListingWizardScreen(
                                                     val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                                                     imageUrls.add("data:image/jpeg;base64,$b64")
                                                 }
-                                            } catch (_: Exception) { }
+                                            } catch (e: Exception) { Timber.w(e, "Failed to encode image as base64 fallback for uri: %s", uri) }
                                         }
                                     }
                                     uploadedCount++

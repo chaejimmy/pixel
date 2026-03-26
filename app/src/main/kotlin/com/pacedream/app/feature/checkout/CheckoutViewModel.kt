@@ -172,7 +172,8 @@ class CheckoutViewModel @Inject constructor(
             data["checkoutUrl"]?.jsonPrimitive?.content
                 ?: data["checkout_url"]?.jsonPrimitive?.content
                 ?: data["url"]?.jsonPrimitive?.content
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse checkout URL from response")
             null
         }
     }

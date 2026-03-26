@@ -123,7 +123,7 @@ fun HomeSectionListScreen(
                 uiState.error != null && uiState.items.isEmpty() -> {
                     ErrorState(
                         sectionTitle = title,
-                        message = uiState.error!!,
+                        message = uiState.error.orEmpty(),
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )
