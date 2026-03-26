@@ -132,9 +132,11 @@ class InboxViewModel @Inject constructor(
             // Handle threads result
             when (threadsResult) {
                 is ApiResult.Success -> {
-                    // Guard: only store non-blank cursor (empty string would cause 400)
-                    nextCursor = threadsResult.data.nextCursor?.takeIf { it.isNotBlank() }
-                    Timber.d("InboxViewModel: loaded ${threadsResult.data.threads.size} threads, nextCursor=${nextCursor ?: "(none)"}, hasMore=${threadsResult.data.hasMore}")
+                    // Guard: only store non-blank, non-"null" cursor (empty/null would cause 400)
+                    nextCursor = threadsResult.data.nextCursor?.takeIf { it.isNotBlank() && it != "null" }
+                    // Cannot paginate without a valid cursor
+                    val hasMore = threadsResult.data.hasMore && nextCursor != null
+                    Timber.d("InboxViewModel: loaded ${threadsResult.data.threads.size} threads, nextCursor=${nextCursor ?: "(none)"}, hasMore=$hasMore")
 
                     if (threadsResult.data.threads.isEmpty()) {
                         _uiState.value = InboxUiState.Empty
@@ -144,7 +146,7 @@ class InboxViewModel @Inject constructor(
                             mode = currentMode,
                             unreadCounts = unreadCounts,
                             isRefreshing = false,
-                            hasMore = threadsResult.data.hasMore
+                            hasMore = hasMore
                         )
                     }
                 }
@@ -173,7 +175,7 @@ class InboxViewModel @Inject constructor(
     }
     
     private fun loadMore() {
-        val cursor = nextCursor?.takeIf { it.isNotBlank() } ?: return
+        val cursor = nextCursor?.takeIf { it.isNotBlank() && it != "null" } ?: return
         if (_uiState.value !is InboxUiState.Success) return
 
         Timber.d("InboxViewModel: loadMore START — cursor=$cursor, mode=${currentMode.apiValue}")
@@ -188,14 +190,15 @@ class InboxViewModel @Inject constructor(
 
                 when (result) {
                     is ApiResult.Success -> {
-                        // Guard: only store non-blank cursor
-                        nextCursor = result.data.nextCursor?.takeIf { it.isNotBlank() }
+                        // Guard: only store non-blank, non-"null" cursor
+                        nextCursor = result.data.nextCursor?.takeIf { it.isNotBlank() && it != "null" }
+                        val hasMore = result.data.hasMore && nextCursor != null
                         Timber.d("InboxViewModel: loadMore loaded ${result.data.threads.size} more threads, nextCursor=${nextCursor ?: "(none)"}")
                         // Use latest state to avoid overwriting concurrent mutations
                         val latestState = _uiState.value as? InboxUiState.Success ?: return@launch
                         _uiState.value = latestState.copy(
                             threads = latestState.threads + result.data.threads,
-                            hasMore = result.data.hasMore
+                            hasMore = hasMore
                         )
                     }
                     is ApiResult.Failure -> {

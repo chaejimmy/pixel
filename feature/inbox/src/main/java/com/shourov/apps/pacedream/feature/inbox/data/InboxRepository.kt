@@ -297,14 +297,16 @@ class InboxRepository @Inject constructor(
             }
         } ?: emptyList()
         
-        // Guard: treat blank cursor as null to prevent "Invalid ID format" errors
+        // Guard: treat blank or literal "null" cursor as null to prevent "Invalid ID format" errors
+        // (JsonNull.content returns the string "null" in kotlinx.serialization)
         val rawCursor = data["nextCursor"]?.jsonPrimitive?.content
             ?: data["cursor"]?.jsonPrimitive?.content
-        val nextCursor = rawCursor?.takeIf { it.isNotBlank() }
+        val nextCursor = rawCursor?.takeIf { it.isNotBlank() && it != "null" }
 
-        val hasMore = data["hasMore"]?.jsonPrimitive?.boolean
-            ?: (nextCursor != null)
-        
+        val serverHasMore = data["hasMore"]?.jsonPrimitive?.boolean ?: false
+        // Cannot paginate without a valid cursor, regardless of what the server claims
+        val hasMore = serverHasMore && nextCursor != null
+
         return ThreadsResult(threads, nextCursor, hasMore)
     }
     
