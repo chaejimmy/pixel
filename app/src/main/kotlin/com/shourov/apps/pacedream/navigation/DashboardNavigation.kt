@@ -563,6 +563,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNavigateToInbox = {
                                         navigateToTab(navController, DashboardDestination.INBOX.name)
                                     },
+                                    onNavigateToThread = { threadId ->
+                                        navController.navigate("${InboxDestination.THREAD.name}/$threadId")
+                                    },
                                     onNavigateToCheckout = { draft ->
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
                                             "booking_draft_json_${draft.listingId}",
@@ -962,6 +965,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                 onNavigateToInbox = {
                                     selectedListingId = null
                                     navigateToTab(navController, DashboardDestination.INBOX.name)
+                                },
+                                onNavigateToThread = { threadId ->
+                                    selectedListingId = null
+                                    navController.navigate("${InboxDestination.THREAD.name}/$threadId")
                                 },
                                 onNavigateToCheckout = { draft ->
                                     selectedListingId = null
