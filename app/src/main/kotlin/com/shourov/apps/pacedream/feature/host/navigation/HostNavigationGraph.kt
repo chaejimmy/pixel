@@ -17,7 +17,11 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostPostScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
+import com.pacedream.app.feature.profile.EditProfileScreen
 import com.pacedream.app.feature.inbox.InboxScreen
+import com.pacedream.app.feature.inbox.ThreadScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -95,15 +99,36 @@ fun NavGraphBuilder.HostNavigationGraph(
     // Host Messages tab — delegates directly to the shared InboxScreen
     composable(HostScreen.Inbox.route) {
         InboxScreen(
-            onThreadClick = { threadId -> }
+            onThreadClick = { threadId ->
+                navController.navigate("host_thread/$threadId")
+            }
+        )
+    }
+
+    // Thread detail for host inbox
+    composable(
+        route = "host_thread/{threadId}",
+        arguments = listOf(navArgument("threadId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val threadId = backStackEntry.arguments?.getString("threadId") ?: ""
+        ThreadScreen(
+            threadId = threadId,
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    // Edit Profile (shared with guest mode)
+    composable("host_edit_profile") {
+        EditProfileScreen(
+            onBackClick = { navController.popBackStack() }
         )
     }
 
     // iOS parity: Dedicated Host Profile screen (no longer reuses guest ProfileScreen)
     composable(HostScreen.Profile.route) {
         HostProfileScreen(
-            onEditProfileClick = { /* TODO: open edit profile sheet */ },
-            onEditPhotoClick = { /* TODO: open photo picker */ },
+            onEditProfileClick = { navController.navigate("host_edit_profile") },
+            onEditPhotoClick = { navController.navigate("host_edit_profile") },
             onListingsClick = { navController.navigate(HostScreen.Listings.route) },
             onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
             onInboxClick = { navController.navigate(HostScreen.Inbox.route) },

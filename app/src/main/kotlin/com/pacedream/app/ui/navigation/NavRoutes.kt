@@ -43,8 +43,6 @@ object NavRoutes {
 
     // Collections / Lists
     const val COLLECTIONS = "collections"
-    const val COLLECTION_DETAIL = "collections/{collectionId}"
-
     // Webflow / Booking routes
     const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased/{sessionId}"
     const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear/{sessionId}"
@@ -67,7 +65,7 @@ object NavRoutes {
     fun wishlistItemDetail(itemId: String) = "wishlist/item/$itemId"
     fun confirmation(bookingId: String) = "confirmation/$bookingId"
     fun checkout(listingId: String) = "checkout/$listingId"
-    fun collectionDetail(collectionId: String) = "collections/$collectionId"
+
 }
 
 /**

@@ -474,23 +474,10 @@ fun MainNavHost(
                     )
                 }
 
-                // Collection Detail
-                composable(
-                    route = NavRoutes.COLLECTION_DETAIL,
-                    arguments = listOf(navArgument("collectionId") { type = NavType.StringType })
-                ) { backStackEntry ->
-                    val collectionId = backStackEntry.arguments?.getString("collectionId") ?: ""
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text("Collection: $collectionId", modifier = Modifier.padding(16.dp))
-                    }
-                }
-
                 // Collections / My Lists Screen
                 composable(NavRoutes.COLLECTIONS) {
                     CollectionsScreen(
-                        onCollectionClick = { collectionId ->
-                            navController.navigate(NavRoutes.collectionDetail(collectionId))
-                        },
+                        onCollectionClick = { /* Collection detail not yet implemented */ },
                         onLoginRequired = {
                             authSheetSubtitle = "Create and manage your lists."
                             showAuthSheet = true
@@ -564,10 +551,28 @@ fun MainNavHost(
                         ?.get<String>("booking_draft_json_${listingId}")
                     val draft = raw?.let { runCatching { BookingDraftCodec.decode(it) }.getOrNull() }
                     if (draft == null) {
-                        BookingDetailPlaceholder(
-                            bookingId = "Missing BookingDraft",
-                            onBackClick = { navController.popBackStack() }
-                        )
+                        // BookingDraft missing — show error and navigate back
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "Unable to load booking details",
+                                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+                                    color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+                                Button(
+                                    onClick = { navController.popBackStack() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+                                    )
+                                ) {
+                                    Text("Go Back", color = androidx.compose.ui.graphics.Color.White)
+                                }
+                            }
+                        }
                     } else {
                         CheckoutScreen(
                             draft = draft,
@@ -796,14 +801,6 @@ data class TabItem(
     val unselectedIcon: ImageVector
 )
 
-// Placeholder screens
-@Composable
-fun SearchPlaceholderScreen() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Search - Coming Soon", modifier = Modifier.padding(16.dp))
-    }
-}
-
 @Composable
 fun LockedScreen(
     title: String,
@@ -889,17 +886,4 @@ fun LockedScreen(
     }
 }
 
-@Composable
-fun ListingDetailPlaceholder(listingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Listing Detail: $listingId", modifier = Modifier.padding(16.dp))
-    }
-}
-
-@Composable
-fun BookingDetailPlaceholder(bookingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Booking Detail: $bookingId", modifier = Modifier.padding(16.dp))
-    }
-}
 
