@@ -3,8 +3,10 @@
     <!--
       Google Maps API key used by the Listing Detail screen map preview.
 
-      This value is injected at build time from root `secrets.properties` / `secrets.defaults.properties`
-      via `app/build.gradle.kts` as a generated `resValue`.
+      When a real key is provided in secrets.properties / secrets.defaults.properties,
+      the Gradle resValue override replaces this empty fallback at build time.
+      This empty default ensures the build succeeds even without a key configured.
     -->
+    <string name="google_maps_key" translatable="false"></string>
 </resources>
 
