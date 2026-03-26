@@ -43,6 +43,7 @@ class OneSignalService @Inject constructor(
 
     private var externalUserIdBound = false
     private var pendingExternalUserId: String? = null
+    private var initialized = false
 
     /**
      * Initialize OneSignal SDK. Call once from Application.onCreate().
@@ -119,6 +120,7 @@ class OneSignalService @Inject constructor(
             subscriptionId ?: "nil", token ?: "nil", optedIn
         )
 
+        initialized = true
         Timber.d("[OneSignalService] OneSignal service started successfully (AppId=$appId)")
     }
 
@@ -146,6 +148,10 @@ class OneSignalService @Inject constructor(
         if (!userId.isNullOrBlank()) {
             Timber.d("[OneSignalService] setExternalUserId requested: $userId")
             pendingExternalUserId = userId
+            if (!initialized) {
+                Timber.w("[OneSignalService] SDK not initialized, skipping login for $userId")
+                return
+            }
             scope.launch {
                 setExternalUserIdWithRetry(userId)
             }
@@ -153,7 +159,9 @@ class OneSignalService @Inject constructor(
             Timber.d("[OneSignalService] Removing external user ID")
             pendingExternalUserId = null
             externalUserIdBound = false
-            OneSignal.logout()
+            if (initialized) {
+                OneSignal.logout()
+            }
         }
     }
 
