@@ -32,7 +32,7 @@ android {
         }
 
         // Auth0 manifest placeholders (consumed by Auth0 SDK RedirectActivity)
-        manifestPlaceholders["auth0Domain"] = secretsProps.getProperty("AUTH0_DOMAIN", "")
+        manifestPlaceholders["auth0Domain"] = secretsProps.getProperty("AUTH0_DOMAIN", "pacedream.us.auth0.com")
         manifestPlaceholders["auth0Scheme"] = "pacedream"
 
         // BuildConfig fields – sourced from secrets.properties or gradle properties (CI)
