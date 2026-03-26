@@ -82,7 +82,13 @@ import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingFormScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
+import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.navigation.ImageUploadEntryPoint
+import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
+import com.shourov.apps.pacedream.feature.host.presentation.ListingMode
 import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.DashboardNavigation(
@@ -484,7 +490,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     },
                                     onLogoutClick = {
-                                        // Handle logout
+                                        hostModeManager.setHostMode(false)
+                                        navigateToTab(navController, DashboardDestination.HOME.name)
                                     },
                                     onSwitchToHostMode = {
                                         hostModeManager.setHostMode(true)
@@ -493,9 +500,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         hostModeManager.setHostMode(false)
                                     },
                                     onCreateListingClick = {
-                                        hostModeManager.setHostMode(true)
-                                        // Navigate to host Post screen (create listing hub)
-                                        navController.navigate("host_post") {
+                                        navController.navigate("create_listing") {
                                             launchSingleTop = true
                                         }
                                     },
@@ -909,6 +914,26 @@ fun NavGraphBuilder.DashboardNavigation(
                             composable("about") {
                                 com.pacedream.app.feature.about.AboutUsScreen(
                                     onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Create Listing Screen (accessible from guest profile tab)
+                            composable("create_listing") {
+                                val context = LocalContext.current
+                                val uploadService = try {
+                                    EntryPointAccessors.fromApplication(
+                                        context.applicationContext,
+                                        ImageUploadEntryPoint::class.java
+                                    ).imageUploadService()
+                                } catch (_: Exception) { null }
+
+                                CreateListingScreen(
+                                    listingMode = ListingMode.SHARE,
+                                    imageUploadService = uploadService,
+                                    onBackClick = { navController.popBackStack() },
+                                    onPublishSuccess = { listingId ->
+                                        navController.popBackStack()
+                                    }
                                 )
                             }
                         }
