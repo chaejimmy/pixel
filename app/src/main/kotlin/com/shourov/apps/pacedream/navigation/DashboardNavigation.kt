@@ -58,6 +58,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
 import com.pacedream.app.feature.listingdetail.ListingDetailRoute
+import com.pacedream.app.feature.profile.EditProfileScreen
 import com.pacedream.app.feature.checkout.BookingDraft
 import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.pacedream.app.feature.checkout.CheckoutScreen
@@ -450,7 +451,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
-                                        navController.navigate("settings_personal_info")
+                                        navController.navigate("edit_profile")
                                     },
                                     onSettingsClick = {
                                         navController.navigate("settings_root")
@@ -851,6 +852,13 @@ fun NavGraphBuilder.DashboardNavigation(
                                     viewModel = editListingViewModel,
                                     onBackClick = { navController.popBackStack() },
                                     onSaveSuccess = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Edit Profile Screen (with photo editing)
+                            composable("edit_profile") {
+                                EditProfileScreen(
+                                    onBackClick = { navController.popBackStack() }
                                 )
                             }
 
