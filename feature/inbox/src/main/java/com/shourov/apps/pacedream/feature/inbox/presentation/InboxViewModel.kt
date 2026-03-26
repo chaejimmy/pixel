@@ -17,6 +17,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -66,7 +67,15 @@ class InboxViewModel @Inject constructor(
     
     private fun checkAuthAndLoad() {
         viewModelScope.launch {
-            if (authSession.authState.value == AuthState.Unauthenticated) {
+            // Wait for auth to settle if it hasn't initialized yet (avoids race with Unknown state)
+            val state = authSession.authState.value
+            val resolvedState = if (state == AuthState.Unknown) {
+                authSession.authState.first { it != AuthState.Unknown }
+            } else {
+                state
+            }
+
+            if (resolvedState == AuthState.Unauthenticated) {
                 _uiState.value = InboxUiState.RequiresAuth
                 return@launch
             }
