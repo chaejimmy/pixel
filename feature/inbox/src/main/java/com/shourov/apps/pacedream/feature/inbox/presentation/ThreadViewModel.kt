@@ -61,14 +61,18 @@ class ThreadViewModel @Inject constructor(
      */
     private fun loadThreadDetails() {
         viewModelScope.launch {
-            val result = inboxRepository.getThread(threadId)
-            if (result is ApiResult.Success) {
-                val latestState = _uiState.value as? ThreadDetailUiState.Success
-                if (latestState != null) {
-                    _uiState.value = latestState.copy(thread = result.data)
+            try {
+                val result = inboxRepository.getThread(threadId)
+                if (result is ApiResult.Success) {
+                    val latestState = _uiState.value as? ThreadDetailUiState.Success
+                    if (latestState != null) {
+                        _uiState.value = latestState.copy(thread = result.data)
+                    }
+                    // If messages haven't loaded yet, stash the thread for later
+                    cachedThread = result.data
                 }
-                // If messages haven't loaded yet, stash the thread for later
-                cachedThread = result.data
+            } catch (e: Throwable) {
+                Timber.e(e, "ThreadViewModel: loadThreadDetails EXCEPTION")
             }
         }
     }
@@ -250,35 +254,47 @@ class ThreadViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            val result = inboxRepository.sendMessage(
-                threadId = threadId,
-                text = trimmedText
-            )
+            try {
+                val result = inboxRepository.sendMessage(
+                    threadId = threadId,
+                    text = trimmedText
+                )
 
-            val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
 
-            when (result) {
-                is ApiResult.Success -> {
-                    // Replace temp message with real server message
-                    val serverMessage = result.data
-                    _uiState.value = latestState.copy(
-                        messages = latestState.messages.map { msg ->
-                            if (msg.id == tempId) serverMessage else msg
-                        },
-                        isSending = false
-                    )
+                when (result) {
+                    is ApiResult.Success -> {
+                        // Replace temp message with real server message
+                        val serverMessage = result.data
+                        _uiState.value = latestState.copy(
+                            messages = latestState.messages.map { msg ->
+                                if (msg.id == tempId) serverMessage else msg
+                            },
+                            isSending = false
+                        )
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to send message: ${result.error.message}")
+                        // Mark temp message as FAILED (visible to user)
+                        _uiState.value = latestState.copy(
+                            messages = latestState.messages.map { msg ->
+                                if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                            },
+                            isSending = false,
+                            sendError = result.error.message ?: "Failed to send message"
+                        )
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to send message: ${result.error.message}")
-                    // Mark temp message as FAILED (visible to user)
-                    _uiState.value = latestState.copy(
-                        messages = latestState.messages.map { msg ->
-                            if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
-                        },
-                        isSending = false,
-                        sendError = result.error.message ?: "Failed to send message"
-                    )
-                }
+            } catch (e: Throwable) {
+                Timber.e(e, "ThreadViewModel: sendMessage EXCEPTION")
+                val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                _uiState.value = latestState.copy(
+                    messages = latestState.messages.map { msg ->
+                        if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                    },
+                    isSending = false,
+                    sendError = e.message ?: "Failed to send message"
+                )
             }
         }
     }
@@ -300,33 +316,45 @@ class ThreadViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            val result = inboxRepository.sendMessage(
-                threadId = threadId,
-                text = failedMessage.text
-            )
+            try {
+                val result = inboxRepository.sendMessage(
+                    threadId = threadId,
+                    text = failedMessage.text
+                )
 
-            val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
 
-            when (result) {
-                is ApiResult.Success -> {
-                    val serverMessage = result.data
-                    _uiState.value = latestState.copy(
-                        messages = latestState.messages.map { msg ->
-                            if (msg.id == tempId) serverMessage else msg
-                        },
-                        isSending = false
-                    )
+                when (result) {
+                    is ApiResult.Success -> {
+                        val serverMessage = result.data
+                        _uiState.value = latestState.copy(
+                            messages = latestState.messages.map { msg ->
+                                if (msg.id == tempId) serverMessage else msg
+                            },
+                            isSending = false
+                        )
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Retry failed for message: ${result.error.message}")
+                        _uiState.value = latestState.copy(
+                            messages = latestState.messages.map { msg ->
+                                if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                            },
+                            isSending = false,
+                            sendError = result.error.message ?: "Failed to send message"
+                        )
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Retry failed for message: ${result.error.message}")
-                    _uiState.value = latestState.copy(
-                        messages = latestState.messages.map { msg ->
-                            if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
-                        },
-                        isSending = false,
-                        sendError = result.error.message ?: "Failed to send message"
-                    )
-                }
+            } catch (e: Throwable) {
+                Timber.e(e, "ThreadViewModel: retryMessage EXCEPTION")
+                val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                _uiState.value = latestState.copy(
+                    messages = latestState.messages.map { msg ->
+                        if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                    },
+                    isSending = false,
+                    sendError = e.message ?: "Failed to send message"
+                )
             }
         }
     }
