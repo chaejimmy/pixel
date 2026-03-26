@@ -123,9 +123,10 @@ class HostEarningsViewModel @Inject constructor(
                     Timber.e(exception, "[Earnings] Dashboard load failed")
 
                     val rawMessage = exception.message ?: ""
-                    val isAuthError = rawMessage.contains("token", ignoreCase = true) ||
-                        rawMessage.contains("auth", ignoreCase = true) ||
-                        rawMessage.contains("unauthorized", ignoreCase = true) ||
+                    // Only treat explicit 401/unauthorized as auth errors.
+                    // Avoid false positives from words like "token" or "auth"
+                    // appearing in unrelated server messages.
+                    val isAuthError = rawMessage.contains("unauthorized", ignoreCase = true) ||
                         rawMessage.contains("401")
 
                     val screenState = if (isAuthError) {
@@ -133,8 +134,10 @@ class HostEarningsViewModel @Inject constructor(
                     } else {
                         val userMessage = when {
                             rawMessage.contains("network", ignoreCase = true) ||
-                            rawMessage.contains("connect", ignoreCase = true) ||
-                            rawMessage.contains("timeout", ignoreCase = true) ->
+                            rawMessage.contains("timeout", ignoreCase = true) ||
+                            exception is java.net.UnknownHostException ||
+                            exception is java.net.SocketTimeoutException ||
+                            exception is java.io.IOException ->
                                 "Network error. Check your connection and try again."
                             else ->
                                 "Couldn't load earnings data. Pull to refresh."

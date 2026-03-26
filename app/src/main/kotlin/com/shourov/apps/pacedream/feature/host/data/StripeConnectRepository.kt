@@ -63,8 +63,13 @@ class StripeConnectRepository @Inject constructor(
                     Result.success(EarningsDashboardResponse())
                 }
             } else {
-                val errorMsg = extractErrorMessage(response, "Failed to fetch earnings dashboard")
-                Timber.e("[Earnings] Dashboard failed: ${response.code()} - $errorMsg")
+                val code = response.code()
+                val errorMsg = if (code == 401) {
+                    "401 Unauthorized"
+                } else {
+                    extractErrorMessage(response, "Failed to fetch earnings dashboard")
+                }
+                Timber.e("[Earnings] Dashboard failed: $code - $errorMsg")
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
