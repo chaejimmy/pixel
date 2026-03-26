@@ -7,10 +7,12 @@ import android.provider.OpenableColumns
 
 @SuppressLint("Range")
 fun getFileNameFromUri(context: Context, uri: Uri): String? {
-    val fileName: String?
-    val cursor = context.contentResolver.query(uri, null, null, null, null)
-    cursor?.moveToFirst()
-    fileName = cursor?.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
-    cursor?.close()
-    return fileName
+    return context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index >= 0) cursor.getString(index) else null
+        } else {
+            null
+        }
+    }
 }

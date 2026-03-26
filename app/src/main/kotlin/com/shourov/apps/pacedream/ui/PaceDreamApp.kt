@@ -1,12 +1,12 @@
 package com.shourov.apps.pacedream.ui
 
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -34,10 +34,13 @@ fun PaceDreamApp(
     val isHostMode by appState.isHostMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
-    // Handle pending deep links from MainActivity
-    LaunchedEffect(Unit) {
-        val activity = context as? MainActivity
-        activity?.consumePendingDeepLink()?.let { deepLinkResult ->
+    // Handle pending deep links from MainActivity (reactive: handles onNewIntent too)
+    val activity = context as? MainActivity
+    val pendingDeepLink by activity?.pendingDeepLink?.collectAsStateWithLifecycle()
+        ?: remember { androidx.compose.runtime.mutableStateOf(null) }
+    LaunchedEffect(pendingDeepLink) {
+        pendingDeepLink?.let { deepLinkResult ->
+            activity?.consumePendingDeepLink()
             appState.handleDeepLink(deepLinkResult)
         }
     }
@@ -50,30 +53,35 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
             },
             onNavigateToProperty = { propertyId ->
-                // TODO: Navigate to property details
+                appState.navController.navigate("listing_details/$propertyId")
             },
             onNavigateToBooking = { bookingId ->
-                // TODO: Navigate to booking details
+                appState.navController.navigate("booking_details/$bookingId")
             },
             onNavigateToAddListing = {
-                // TODO: Navigate to add listing
+                appState.navController.navigate("add_listing")
             },
             onNavigateToEditListing = { listingId ->
-                // TODO: Navigate to edit listing
+                appState.navController.navigate("edit_listing/$listingId")
             },
             onNavigateToAnalytics = {
-                // TODO: Navigate to analytics
+                appState.navController.navigate("host_analytics")
             },
             onNavigateToWithdraw = {
-                // TODO: Navigate to withdraw earnings
+                appState.navController.navigate("withdraw_earnings")
             }
         )
     } else {
         // Show guest mode interface
+        // The Dashboard has its own inner Scaffold with a bottom bar that handles
+        // navigation bar insets. Set contentWindowInsets to zero here so the outer
+        // Scaffold does not double-count the bottom system bar insets, which would
+        // cause a visible gap below the bottom navigation bar.
         Scaffold(
             modifier = Modifier.semantics {
                 testTagsAsResourceId = true
             },
+            contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
             topBar = {
                 if (showTopBar) {
                     PaceDreamTopAppBar(
@@ -92,7 +100,6 @@ fun PaceDreamApp(
             },
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) { padding ->
             PaceDreamNavHost(
                 appState = appState,

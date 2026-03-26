@@ -140,6 +140,44 @@ class ApiClient @Inject constructor(
     }
     
     /**
+     * Perform a multipart POST request (for image uploads).
+     * iOS parity: CloudinaryUploader sends multipart/form-data to /api/upload.
+     */
+    suspend fun postMultipart(
+        url: HttpUrl,
+        fieldName: String,
+        fieldValue: String,
+        includeAuth: Boolean = true
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val multipartBody = okhttp3.MultipartBody.Builder()
+                .setType(okhttp3.MultipartBody.FORM)
+                .addFormDataPart(fieldName, fieldValue)
+                .build()
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .post(multipartBody)
+                .header("Accept", "application/json")
+
+            if (includeAuth) {
+                tokenProvider.getAccessToken()?.let { token ->
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+            }
+
+            val response = httpClient.newCall(requestBuilder.build()).execute()
+            processResponse(response)
+        } catch (e: SocketTimeoutException) {
+            ApiResult.Failure(ApiError.Timeout())
+        } catch (e: IOException) {
+            ApiResult.Failure(ApiError.NetworkError())
+        } catch (e: Exception) {
+            ApiResult.Failure(mapException(e))
+        }
+    }
+
+    /**
      * Execute GET request with retry logic
      */
     private suspend fun executeWithRetry(
@@ -236,6 +274,15 @@ class ApiClient @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Unexpected error for: ${redactUrl(url)}")
             ApiResult.Failure(mapException(e))
+        } catch (e: ExceptionInInitializerError) {
+            // Firebase Performance bytecode instrumentation wraps OkHttp calls
+            // through FirebasePerfOkHttpClient which triggers a static initializer
+            // that calls FirebaseApp.getInstance(). When Firebase is not configured
+            // (e.g. debug builds without matching google-services.json) this throws
+            // ExceptionInInitializerError (an Error, not Exception). Treat it as a
+            // transient network-layer failure rather than crashing the app.
+            Timber.e(e, "Static initializer error (likely Firebase perf) for: ${redactUrl(url)}")
+            ApiResult.Failure(ApiError.Unknown("Firebase initialization error", underlyingCause = e))
         }
     }
 

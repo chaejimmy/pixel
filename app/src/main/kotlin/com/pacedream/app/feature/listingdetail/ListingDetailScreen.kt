@@ -29,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,18 +57,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.android.gms.maps.model.CameraPosition
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.mutableDoubleStateOf
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
@@ -99,7 +106,7 @@ fun ListingDetailScreen(
     var showReviewsSheet by remember { mutableStateOf(false) }
     var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
-    var showProposalSheet by remember { mutableStateOf(false) }
+    var showReportSheet by remember { mutableStateOf(false) }
 
     val listing = uiState.listing
 
@@ -108,8 +115,8 @@ fun ListingDetailScreen(
         bottomBar = {
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
-                onReserveClick = { showReserveSheet = true },
-                onSendProposalClick = { showProposalSheet = true }
+                available = listing?.available,
+                onReserveClick = { showReserveSheet = true }
             )
         }
     ) { padding ->
@@ -158,7 +165,7 @@ fun ListingDetailScreen(
                                 onRetry = onRetry,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .padding(horizontal = 20.dp, vertical = 12.dp)
                             )
                         }
                     }
@@ -170,9 +177,12 @@ fun ListingDetailScreen(
                             reviewCount = listing?.reviewCount,
                             cityState = listing?.location?.cityState,
                             pricePill = listing?.pricing?.displayPrimary,
+                            propertyType = listing?.propertyType,
+                            instantBook = listing?.instantBook,
+                            available = listing?.available,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 16.dp)
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
                         )
                     }
 
@@ -187,10 +197,10 @@ fun ListingDetailScreen(
                                 bathrooms = listing.bathrooms,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .padding(horizontal = 20.dp, vertical = 4.dp)
                             )
                         }
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                     }
 
                     item {
@@ -199,35 +209,42 @@ fun ListingDetailScreen(
                             onContact = onContactHost,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                                .padding(horizontal = PaceDreamSpacing.MD)
                         )
                     }
 
-                    item {
-                        SectionAbout(
-                            description = listing?.description,
-                            onReadMore = { showAboutSheet = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
-                        )
+                    // About section — only show when description is available
+                    if (!listing?.description.isNullOrBlank()) {
+                        item {
+                            SectionAbout(
+                                description = listing?.description,
+                                category = listing?.category,
+                                onReadMore = { showAboutSheet = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
-
-                    item {
-                        SectionAmenities(
-                            amenities = listing?.amenities.orEmpty(),
-                            onSeeAll = { showAmenitiesSheet = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
-                        )
+                    // Amenities section — only show when amenities exist
+                    if (listing?.amenities.orEmpty().isNotEmpty()) {
+                        item {
+                            SectionAmenities(
+                                amenities = listing?.amenities.orEmpty(),
+                                onSeeAll = { showAmenitiesSheet = true },
+                                category = listing?.category,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
                     }
 
                     // House Rules Section
                     if (listing != null && (listing.houseRules.isNotEmpty() || listing.checkInTime != null || listing.checkOutTime != null)) {
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                         item {
                             SectionHouseRules(
                                 houseRules = listing.houseRules,
@@ -235,25 +252,25 @@ fun ListingDetailScreen(
                                 checkOutTime = listing.checkOutTime,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
                             )
                         }
                     }
 
                     // Safety Features Section
                     if (listing != null && listing.safetyFeatures.isNotEmpty()) {
-                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                         item {
                             SectionSafetyFeatures(
                                 features = listing.safetyFeatures,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
                             )
                         }
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
                         SectionReviews(
@@ -266,11 +283,11 @@ fun ListingDetailScreen(
                             onWriteReview = { showWriteReviewSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     // Cancellation Policy Section (Web parity)
                     item {
@@ -278,11 +295,11 @@ fun ListingDetailScreen(
                             cancellationPolicy = listing?.cancellationPolicy,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     // Pricing Breakdown Section (Web parity: cleaning fee, weekly discount)
                     item {
@@ -290,11 +307,28 @@ fun ListingDetailScreen(
                             pricing = listing?.pricing,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp)) }
+                    // Split Listing Info (website parity: shows cost splitting, slots, deadline)
+                    if (listing?.shareType?.uppercase() == "SPLIT" && listing.totalCost != null) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
+                        item {
+                            SectionSplitInfo(
+                                totalCost = listing.totalCost,
+                                slotsTotal = listing.slotsTotal,
+                                slotsFilled = listing.slotsFilled,
+                                splitStatus = listing.splitStatus,
+                                deadlineAt = listing.deadlineAt,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
                     item {
                         SectionLocation(
@@ -304,24 +338,51 @@ fun ListingDetailScreen(
                             onOpenInMaps = onOpenInMaps,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp)
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                        )
+                    }
+
+                    // Report Listing (iOS/Web parity)
+                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
+                    item {
+                        SectionReportListing(
+                            onReportClick = { showReportSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         )
                     }
                 }
             }
         }
 
+        // Report Listing Bottom Sheet (iOS/Web parity)
+        if (showReportSheet) {
+            ReportListingSheet(
+                listingId = listing?.id ?: "",
+                listingTitle = listing?.title ?: "Listing",
+                onDismiss = { showReportSheet = false },
+                onReportSubmitted = { showReportSheet = false }
+            )
+        }
+
         if (showAboutSheet) {
+            val aboutTitle = when (listing?.category?.lowercase()) {
+                "gear", "item", "items" -> "About this item"
+                "service", "services", "split-stay" -> "About this service"
+                else -> "About this space"
+            }
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showAboutSheet = false },
                 sheetState = sheetState
             ) {
-                BottomSheetHeader(title = "About", onClose = { showAboutSheet = false })
+                BottomSheetHeader(title = aboutTitle, onClose = { showAboutSheet = false })
                 Text(
-                    text = listing?.description?.trim().orEmpty().ifBlank { "No description available." },
+                    text = listing?.description?.trim().orEmpty(),
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(20.dp)
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -333,15 +394,27 @@ fun ListingDetailScreen(
                 onDismissRequest = { showAmenitiesSheet = false },
                 sheetState = sheetState
             ) {
-                BottomSheetHeader(title = "Highlights", onClose = { showAmenitiesSheet = false })
-                Column(modifier = Modifier.padding(16.dp)) {
-                    val all = listing?.amenities.orEmpty()
-                    if (all.isEmpty()) {
-                        Text("No highlights listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        all.forEach { amenity ->
-                            Text(text = "• $amenity", style = MaterialTheme.typography.bodyLarge)
-                            Spacer(modifier = Modifier.height(8.dp))
+                val highlightsTitle = when (listing?.category?.lowercase()) {
+                    "car", "vehicle" -> "Vehicle Features"
+                    "gear", "equipment" -> "Included Items"
+                    "studio", "office" -> "Workspace Features"
+                    else -> "Highlights"
+                }
+                BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
+                Column(modifier = Modifier.padding(20.dp)) {
+                    listing?.amenities.orEmpty().forEach { amenity ->
+                        Row(
+                            modifier = Modifier.padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(text = amenity, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
                 }
@@ -389,10 +462,31 @@ fun ListingDetailScreen(
 
                     if (reviews.isEmpty() && !uiState.isLoadingReviews) {
                         item {
-                            Text(
-                                "No reviews yet. Be the first to share your experience!",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB400),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "No reviews yet",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Be the first to share your experience!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
@@ -446,7 +540,7 @@ fun ListingDetailScreen(
             ) {
                 ReserveSheet(
                     listingId = listing?.id.orEmpty(),
-                    hourlyFrom = listing?.pricing?.hourlyFrom,
+                    hourlyFrom = listing?.pricing?.hourlyFrom ?: listing?.pricing?.basePrice,
                     currency = listing?.pricing?.currency,
                     onClose = { showReserveSheet = false },
                     onConfirm = { draft ->
@@ -458,21 +552,7 @@ fun ListingDetailScreen(
             }
         }
 
-        if (showProposalSheet) {
-            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ModalBottomSheet(
-                onDismissRequest = { showProposalSheet = false },
-                sheetState = sheetState
-            ) {
-                ProposalSheet(
-                    listingTitle = listing?.title.orEmpty(),
-                    hostName = listing?.host?.name,
-                    onClose = { showProposalSheet = false },
-                    onSend = { showProposalSheet = false }
-                )
-                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
-            }
-        }
+
     }
 }
 
@@ -485,94 +565,340 @@ private fun ReserveSheet(
     onClose: () -> Unit,
     onConfirm: (BookingDraft) -> Unit
 ) {
-    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
-    var startTime by remember { mutableStateOf<LocalTime?>(null) }
-    var endTime by remember { mutableStateOf<LocalTime?>(null) }
+    val durationOptions = listOf(30, 60, 90, 120) // iOS parity: 4 duration options
+    var selectedDuration by remember { mutableStateOf(60) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    var selectedSlotStart by remember { mutableStateOf<LocalTime?>(null) }
     var guests by remember { mutableStateOf(1) }
-    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val today = remember { LocalDate.now() }
+    val next7Days = remember { (0L..6L).map { today.plusDays(it) } }
+
+    // Generate 30-min time slots from 8 AM to 10 PM
+    val timeSlots = remember(selectedDate, selectedDuration) {
+        if (selectedDate == null) emptyList()
+        else {
+            val now = LocalTime.now()
+            val isToday = selectedDate == LocalDate.now()
+            val slots = mutableListOf<LocalTime>()
+            var slot = LocalTime.of(8, 0)
+            val lastSlotEnd = LocalTime.of(22, 0)
+            while (true) {
+                val slotEnd = slot.plusMinutes(selectedDuration.toLong())
+                if (slotEnd.isAfter(lastSlotEnd) || slotEnd.isBefore(slot)) break
+                if (!isToday || slot.isAfter(now)) {
+                    slots.add(slot)
+                }
+                slot = slot.plusMinutes(30)
+            }
+            slots
+        }
+    }
+
+    val selectedEnd = selectedSlotStart?.plusMinutes(selectedDuration.toLong())
+    val currencySymbol = when ((currency ?: "USD").uppercase()) {
+        "USD" -> "$"; "EUR" -> "€"; "GBP" -> "£"; "INR" -> "₹"
+        "AED" -> "د.إ"; "CAD" -> "CA$"; "AUD" -> "A$"; else -> "$"
+    }
+
+    val subtotal = if (selectedSlotStart != null && hourlyFrom != null) {
+        hourlyFrom * selectedDuration / 60.0
+    } else null
+    val taxes = subtotal?.let { it * 0.20 }
+    val total = if (subtotal != null && taxes != null) subtotal + taxes else null
+
+    val canConfirm = selectedDate != null && selectedSlotStart != null
 
     BottomSheetHeader(title = "Reserve", onClose = onClose)
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Select date", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-
-        val datePickerState = androidx.compose.material3.rememberDatePickerState()
-        androidx.compose.material3.DatePicker(state = datePickerState)
-        selectedDateMillis = datePickerState.selectedDateMillis
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            FilledTonalButton(
-                onClick = {
-                    val now = startTime ?: LocalTime.of(9, 0)
-                    val picker = android.app.TimePickerDialog(
-                        /* context = */ context,
-                        /* listener = */ { _, h, m -> startTime = LocalTime.of(h, m) },
-                        /* hourOfDay = */ now.hour,
-                        /* minute = */ now.minute,
-                        /* is24HourView = */ false
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        // Duration selection chips
+        Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(durationOptions) { duration ->
+                val isSelected = duration == selectedDuration
+                val label = when {
+                    duration < 60 -> "${duration} min"
+                    duration % 60 == 0 -> "${duration / 60} hr"
+                    else -> "${duration / 60}h ${duration % 60}m"
+                }
+                Surface(
+                    onClick = {
+                        selectedDuration = duration
+                        selectedSlotStart = null // reset slot on duration change
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                     )
-                    picker.show()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(startTime?.let { "Start: ${it.format(DateTimeFormatter.ofPattern("h:mm a"))}" } ?: "Start time")
-            }
-            FilledTonalButton(
-                onClick = {
-                    val now = endTime ?: LocalTime.of(10, 0)
-                    val picker = android.app.TimePickerDialog(
-                        /* context = */ context,
-                        /* listener = */ { _, h, m -> endTime = LocalTime.of(h, m) },
-                        /* hourOfDay = */ now.hour,
-                        /* minute = */ now.minute,
-                        /* is24HourView = */ false
-                    )
-                    picker.show()
-                },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(endTime?.let { "End: ${it.format(DateTimeFormatter.ofPattern("h:mm a"))}" } ?: "End time")
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Guests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedButton(onClick = { guests = (guests - 1).coerceAtLeast(1) }) { Text("−") }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("$guests", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.width(12.dp))
-            OutlinedButton(onClick = { guests = (guests + 1).coerceAtMost(20) }) { Text("+") }
+        // 7-day date strip
+        Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(next7Days) { date ->
+                val isSelected = date == selectedDate
+                val isToday = date == today
+                val dayLabel = date.dayOfWeek.name.take(3).lowercase()
+                    .replaceFirstChar { it.uppercase() }
+                val dateNum = date.dayOfMonth.toString()
+                Surface(
+                    onClick = {
+                        selectedDate = date
+                        selectedSlotStart = null // reset slot on date change
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    border = when {
+                        isSelected -> null
+                        isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = dayLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = dateNum,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        val date = selectedDateMillis?.toLocalDate()
-        val valid = !listingId.isBlank() && date != null && startTime != null && endTime != null && endTime!!.isAfter(startTime)
-        val totalEstimate = if (valid && hourlyFrom != null) {
-            val minutes = java.time.Duration.between(startTime, endTime).toMinutes().toDouble()
-            val hours = minutes / 60.0
-            hourlyFrom * hours
-        } else null
+        // Time slots grid
+        Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
 
-        if (!valid) {
+        if (selectedDate == null) {
             Text(
-                "Pick a date and valid start/end time to continue.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                "Select a date to see available times",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
             )
-            Spacer(modifier = Modifier.height(10.dp))
+        } else if (timeSlots.isEmpty()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 12.dp)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "No available times for this day",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        } else {
+            // 2-column grid of time slot buttons (iOS parity)
+            val rows = timeSlots.chunked(2)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                rows.forEach { rowSlots ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowSlots.forEach { slot ->
+                            val isSelected = slot == selectedSlotStart
+                            val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
+                            Surface(
+                                onClick = { selectedSlotStart = slot },
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.padding(vertical = 12.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                        // Fill remaining columns if row is incomplete
+                        repeat(2 - rowSlots.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
         }
 
+        // Price breakdown card (shows when a time slot is selected)
+        if (subtotal != null && taxes != null && total != null && selectedSlotStart != null && selectedEnd != null) {
+            Spacer(modifier = Modifier.height(18.dp))
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    val durationLabel = when {
+                        selectedDuration < 60 -> "$selectedDuration min"
+                        selectedDuration % 60 == 0 -> "${selectedDuration / 60} hr"
+                        else -> "${selectedDuration / 60}h ${selectedDuration % 60}m"
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$durationLabel × ${currencySymbol}${hourlyFrom?.let { trimTrailingZeros(it) } ?: ""}/hr", style = MaterialTheme.typography.bodyMedium)
+                        Text("${currencySymbol}${trimTrailingZeros(subtotal)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        val startLabel = selectedSlotStart?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"
+                        val endLabel = selectedEnd?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"
+                        val timeRange = "$startLabel – $endLabel"
+                        Text(timeRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Taxes & fees", style = MaterialTheme.typography.bodyMedium)
+                        Text("${currencySymbol}${trimTrailingZeros(taxes)}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Guests
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Guests", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                onClick = { guests = (guests - 1).coerceAtLeast(1) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                }
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            Text(
+                "$guests",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            Surface(
+                onClick = { guests = (guests + 1).coerceAtMost(20) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        // Booking summary card
+        if (canConfirm && selectedSlotStart != null && selectedEnd != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Booking summary",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    val dayLabel = selectedDate?.dayOfWeek?.name?.lowercase()
+                        ?.replaceFirstChar { it.uppercase() } ?: ""
+                    val monthDay = selectedDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: ""
+                    val timeRange = "${selectedSlotStart?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"} – ${selectedEnd?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"}"
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$dayLabel, $monthDay", style = MaterialTheme.typography.bodyMedium)
+                        Text(timeRange, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("$guests guest${if (guests != 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val durationLabel = when {
+                            selectedDuration < 60 -> "$selectedDuration min"
+                            selectedDuration % 60 == 0 -> "${selectedDuration / 60} hr"
+                            else -> "${selectedDuration / 60}h ${selectedDuration % 60}m"
+                        }
+                        Text(durationLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (total != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Confirm button
         Button(
             onClick = {
-                val d = requireNotNull(date)
-                val start = requireNotNull(startTime)
-                val end = requireNotNull(endTime)
+                val d = requireNotNull(selectedDate)
+                val start = requireNotNull(selectedSlotStart)
+                val end = requireNotNull(selectedEnd)
                 val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
                 val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
@@ -583,72 +909,90 @@ private fun ReserveSheet(
                         startTimeISO = startIso,
                         endTimeISO = endIso,
                         guests = guests,
-                        totalAmountEstimate = totalEstimate
+                        totalAmountEstimate = total
                     )
                 )
             },
-            enabled = valid,
-            modifier = Modifier.fillMaxWidth()
+            enabled = canConfirm,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            val prefix = when ((currency ?: "USD").uppercase()) {
-                "USD" -> "$"
-                else -> "$"
-            }
             Text(
-                text = when {
-                    totalEstimate != null -> "Continue ($prefix${String.format("%.0f", totalEstimate)})"
-                    else -> "Continue"
-                }
+                text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
+                       else "Select a time slot",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
             )
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "You won't be charged yet",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
-private fun Long.toLocalDate(): LocalDate {
-    return Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
+private fun trimTrailingZeros(value: Double): String {
+    val asLong = value.toLong()
+    return if (value == asLong.toDouble()) asLong.toString()
+    else "%.2f".format(value).trimEnd('0').trimEnd('.')
 }
 
 @Composable
 private fun BookingBar(
     pricingLabel: String?,
-    onReserveClick: () -> Unit,
-    onSendProposalClick: () -> Unit
+    available: Boolean? = null,
+    onReserveClick: () -> Unit
 ) {
-    Surface(shadowElevation = 8.dp) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .padding(WindowInsets.navigationBars.asPaddingValues()),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pricingLabel ?: "Select time",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Taxes shown at checkout",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            OutlinedButton(
-                onClick = onSendProposalClick,
-                modifier = Modifier.padding(end = 8.dp)
+    val isAvailable = available != false
+    Surface(
+        shadowElevation = 12.dp,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column {
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                    .padding(WindowInsets.navigationBars.asPaddingValues()),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Send,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Propose")
-            }
-            Button(onClick = onReserveClick) {
-                Text(if (pricingLabel != null) "Reserve" else "Select time")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = pricingLabel ?: "Select time",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "You won't be charged yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Button(
+                    onClick = onReserveClick,
+                    enabled = isAvailable,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                ) {
+                    Text(
+                        "Reserve",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
@@ -682,7 +1026,11 @@ private fun HeroGallery(
                 )
             } else {
                 AsyncImage(
-                    model = url,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(url)
+                        .crossfade(200)
+                        .size(coil.size.Size(800, 600))
+                        .build(),
                     contentDescription = title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -757,6 +1105,9 @@ private fun TitleMetaBlock(
     reviewCount: Int?,
     cityState: String?,
     pricePill: String?,
+    propertyType: String? = null,
+    instantBook: Boolean? = null,
+    available: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -768,31 +1119,47 @@ private fun TitleMetaBlock(
         Spacer(modifier = Modifier.height(10.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = PaceDreamIcons.Star,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = rating?.let { String.format("%.1f", it) } ?: "—",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = when {
-                    reviewCount != null -> "(${reviewCount})"
-                    else -> "(No reviews yet)"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            cityState?.let {
+            val hasRealRating = rating != null && rating > 0.0 && reviewCount != null && reviewCount > 0
+            if (hasRealRating) {
+                Icon(
+                    imageVector = PaceDreamIcons.Star,
+                    contentDescription = null,
+                    tint = Color(0xFFFFB400),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = String.format("%.1f", rating),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "($reviewCount ${if (reviewCount == 1) "review" else "reviews"})",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                // "New" badge instead of awkward "0.0 (0)" or empty star
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "New",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+            // Format cityState properly — ensure space after comma
+            cityState?.let { raw ->
+                val formatted = raw.replace(Regex(",(?!\\s)"), ", ")
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "· $it",
+                    text = "· $formatted",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -813,6 +1180,90 @@ private fun TitleMetaBlock(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
+        }
+
+        // Property type badge + Instant Book badge (iOS parity)
+        if (propertyType != null || instantBook == true || available != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                propertyType?.takeIf { it.isNotBlank() }?.let { type ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Home,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = type.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                if (instantBook == true) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = Color(0xFFFFF3E0)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Bolt,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Instant Book",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+                }
+
+                available?.let { isAvailable ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = if (isAvailable) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isAvailable) "Available" else "Unavailable",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -852,7 +1303,11 @@ private fun HostCard(
                 Box {
                     if (!host?.avatarUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = host?.avatarUrl,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(host?.avatarUrl)
+                                .crossfade(200)
+                                .size(coil.size.Size(96, 96))
+                                .build(),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -1030,19 +1485,27 @@ private fun HostCard(
 private fun SectionAbout(
     description: String?,
     onReadMore: () -> Unit,
+    category: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val sectionTitle = when (category?.lowercase()) {
+        "car", "vehicle" -> "About this vehicle"
+        "gear", "equipment", "item", "items" -> "About this item"
+        "studio", "office" -> "About this workspace"
+        "service", "services", "split-stay" -> "About this service"
+        else -> "About this space"
+    }
+
     Column(modifier = modifier) {
-        Text("About", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(10.dp))
-        if (description.isNullOrBlank()) {
-            Text("No description available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
+        if (!description.isNullOrBlank()) {
             Text(
                 text = description.trim(),
                 maxLines = 5,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(onClick = onReadMore) {
@@ -1057,24 +1520,32 @@ private fun SectionAbout(
 private fun SectionAmenities(
     amenities: List<String>,
     onSeeAll: () -> Unit,
+    category: String? = null,
     modifier: Modifier = Modifier
 ) {
+    val sectionTitle = when (category?.lowercase()) {
+        "car", "vehicle" -> "What this vehicle offers"
+        "gear", "equipment" -> "What's included"
+        "studio", "office" -> "Workspace features"
+        else -> "What this place offers"
+    }
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Highlights", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onSeeAll, enabled = amenities.isNotEmpty()) {
-                Text("See all")
+            if (amenities.isNotEmpty()) {
+                TextButton(onClick = onSeeAll) {
+                    Text("See all")
+                }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (amenities.isEmpty()) {
-            Text("No highlights listed.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
+        if (amenities.isNotEmpty()) {
             val shown = amenities.take(8)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1124,13 +1595,43 @@ private fun SectionReviews(
         val displayRating = rating ?: reviewSummary?.averageRating
         val displayCount = reviewCount ?: reviewSummary?.totalCount
 
-        if (displayRating == null || displayCount == null || displayCount == 0) {
-            Text("No reviews yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(onClick = onWriteReview) {
-                Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Write a Review")
+        if (displayRating == null || displayCount == null || displayCount == 0 || displayRating == 0.0) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        PaceDreamIcons.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB400),
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "No reviews yet",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Be the first to share your experience",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onWriteReview) {
+                        Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Write a Review")
+                    }
+                }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1615,6 +2116,110 @@ private fun formatReviewDate(dateString: String): String {
 }
 
 @Composable
+private fun SectionSplitInfo(
+    totalCost: Double?,
+    slotsTotal: Int?,
+    slotsFilled: Int?,
+    splitStatus: String?,
+    deadlineAt: String?,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            "Split Details",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                if (totalCost != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Cost", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("$${String.format("%,.0f", totalCost)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (slotsTotal != null && slotsTotal > 0) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Per Person", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("$${String.format("%,.0f", totalCost / slotsTotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                if (slotsTotal != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Slots", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${slotsFilled ?: 0} / $slotsTotal filled", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+                if (splitStatus != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = when (splitStatus.uppercase()) {
+                                "OPEN" -> Color(0xFF10B981).copy(alpha = 0.1f)
+                                "MATCHED" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                "CLOSED" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ) {
+                            Text(
+                                splitStatus.replaceFirstChar { it.uppercase() },
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = when (splitStatus.uppercase()) {
+                                    "OPEN" -> Color(0xFF10B981)
+                                    "MATCHED" -> MaterialTheme.colorScheme.primary
+                                    "CLOSED" -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
+                    }
+                }
+                if (deadlineAt != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Deadline", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(deadlineAt.take(10), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SectionLocation(
     location: ListingLocation?,
     mapCoordinate: LatLng?,
@@ -1627,7 +2232,7 @@ private fun SectionLocation(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Location", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text("Where you'll be", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onOpenInMaps, enabled = location?.fullAddress != null || location?.cityState != null) {
                 Text("Open in Maps")
@@ -1676,25 +2281,72 @@ private fun MapPreviewCard(
                     title = "Location"
                 )
             }
+        } else if (mapCoordinate != null && !mapsEnabled) {
+            // Static map fallback using OpenStreetMap tile image when no Google Maps key
+            Box(modifier = Modifier.fillMaxSize()) {
+                val staticMapUrl = "https://staticmap.openstreetmap.de/staticmap.php" +
+                    "?center=${mapCoordinate.latitude},${mapCoordinate.longitude}" +
+                    "&zoom=15&size=600x400&maptype=mapnik" +
+                    "&markers=${mapCoordinate.latitude},${mapCoordinate.longitude},red-pushpin"
+                AsyncImage(
+                    model = staticMapUrl,
+                    contentDescription = "Map location",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                // Location pin overlay in center
+                Icon(
+                    PaceDreamIcons.LocationOn,
+                    contentDescription = null,
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier
+                        .size(36.dp)
+                        .align(Alignment.Center)
+                )
+            }
         } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(16.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(PaceDreamIcons.LocationOn, contentDescription = "Location", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                PaceDreamIcons.LocationOn,
+                                contentDescription = "Location",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = when {
-                            isGeocoding -> "Finding location…"
-                            !mapsEnabled -> "Map preview unavailable"
-                            else -> "Location not found"
-                        },
+                        text = if (isGeocoding) "Finding location…" else "Exact location shared after booking",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (!isGeocoding) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "General area shown on map",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
@@ -1758,7 +2410,7 @@ private fun ListingDetailSkeleton(modifier: Modifier = Modifier) {
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         Spacer(modifier = Modifier.height(18.dp))
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
             SkeletonLine(widthFraction = 0.75f, height = 28.dp)
             Spacer(modifier = Modifier.height(12.dp))
             SkeletonLine(widthFraction = 0.55f, height = 18.dp)
@@ -1956,103 +2608,6 @@ private fun PricingRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProposalSheet(
-    listingTitle: String,
-    hostName: String?,
-    onClose: () -> Unit,
-    onSend: () -> Unit
-) {
-    var message by remember { mutableStateOf("") }
-    var proposedPrice by remember { mutableStateOf("") }
-    var proposedDuration by remember { mutableStateOf("") }
-
-    BottomSheetHeader(title = "Send Proposal", onClose = onClose)
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = "Send a proposal to ${hostName ?: "the host"} for \"$listingTitle\"",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text("Your offer", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = proposedPrice,
-            onValueChange = { proposedPrice = it },
-            label = { Text("Proposed price (e.g. \$25/hr)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = proposedDuration,
-            onValueChange = { proposedDuration = it },
-            label = { Text("Duration (e.g. 3 hours, 1 week)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text("Message", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Describe your needs, special requests...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
-            maxLines = 5
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    PaceDreamIcons.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "The host will review your proposal and respond through the messaging system.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onSend,
-            enabled = message.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(PaceDreamIcons.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Send Proposal")
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Property Details Row (bedrooms, beds, bathrooms, guests)
@@ -2272,7 +2827,7 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -2283,3 +2838,136 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
     }
 }
 
+// ── Report Listing (iOS/Web parity) ─────────────────────────────
+
+@Composable
+private fun SectionReportListing(
+    onReportClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                PaceDreamIcons.Flag,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Report this listing",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { onReportClick() }
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "If something looks wrong with this listing, let us know.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReportListingSheet(
+    listingId: String,
+    listingTitle: String,
+    onDismiss: () -> Unit,
+    onReportSubmitted: () -> Unit
+) {
+    val reportReasons = listOf(
+        "Spam or scam",
+        "Offensive or inappropriate content",
+        "Harassment or bullying",
+        "Misleading or fraudulent listing",
+        "Safety concern",
+        "Impersonation",
+        "Other"
+    )
+
+    var selectedReason by remember { mutableStateOf<String?>(null) }
+    var details by remember { mutableStateOf("") }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                "Report Listing",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Why are you reporting \"$listingTitle\"?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+
+            reportReasons.forEach { reason ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedReason = reason }
+                        .padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedReason == reason,
+                        onClick = { selectedReason = reason }
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(reason, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            OutlinedTextField(
+                value = details,
+                onValueChange = { if (it.length <= 5000) details = it },
+                label = { Text("Additional details (optional)") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                shape = RoundedCornerShape(12.dp),
+                maxLines = 5
+            )
+
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = {
+                    isSubmitting = true
+                    onReportSubmitted()
+                },
+                enabled = selectedReason != null && !isSubmitting,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                shape = RoundedCornerShape(24.dp)
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.White
+                    )
+                } else {
+                    Text("Submit Report", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}

@@ -18,10 +18,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
@@ -469,6 +474,29 @@ class AuthSession @Inject constructor(
     }
     
     /**
+     * Extract user ID from JWT claims (iOS parity).
+     * iOS uses: JWT.decodePayloadClaims → claims["userId"] ?? claims["user_id"] ?? "me"
+     * This is the authoritative source for the authenticated user ID.
+     */
+    private fun extractUserIdFromJwt(): String? {
+        val token = tokenStorage.accessToken ?: return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size != 3) return null
+            // Decode the payload (second part) from Base64
+            val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            val payloadJson = json.parseToJsonElement(String(payload)).jsonObject
+            val id = payloadJson["userId"]?.jsonPrimitive?.content
+                ?: payloadJson["user_id"]?.jsonPrimitive?.content
+                ?: payloadJson["sub"]?.jsonPrimitive?.content
+            if (!id.isNullOrBlank()) id else null
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to extract user ID from JWT")
+            null
+        }
+    }
+
+    /**
      * Parse user from JSON response
      * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
@@ -478,14 +506,46 @@ class AuthSession @Inject constructor(
             val jsonObject = jsonElement.jsonObject
 
             // Try to find user data in common locations
-            val userData = jsonObject["data"]?.jsonObject
+            // /account/me returns { data: { profile: { firstName, ... } } }
+            // /auth/login returns { data: { user: { id, email, ... } } }
+            val dataObject = jsonObject["data"]?.jsonObject
+            val userData = dataObject?.get("profile")?.jsonObject
+                ?: dataObject?.get("user")?.jsonObject
                 ?: jsonObject["user"]?.jsonObject
+                ?: dataObject
                 ?: jsonObject
 
+            // ── Host-related fields (iOS parity) ──────────────────────
+            val superHost = userData["superHost"]?.jsonPrimitive?.booleanOrNull ?: false
+            val isHostFlag = userData["isHost"]?.jsonPrimitive?.booleanOrNull ?: false
+
+            // Properties may be in the user object or at the data root level
+            val propertiesElement = userData["properties"]
+                ?: dataObject?.get("properties")
+            val propertiesCount = when (propertiesElement) {
+                is JsonArray -> propertiesElement.jsonArray.size
+                else -> propertiesElement?.jsonPrimitive?.intOrNull ?: 0
+            }
+
+            Timber.d("[HostMode] Parsing user profile — superHost=$superHost, isHostFlag=$isHostFlag, propertiesCount=$propertiesCount")
+
+            // iOS parity: user ID comes from JWT claims first, then response body fields.
+            // The /account/me profile sub-object often does NOT contain _id/id,
+            // so relying on it alone leaves the user ID empty.
+            val responseId = userData["_id"]?.jsonPrimitive?.content
+                ?: userData["id"]?.jsonPrimitive?.content
+                ?: dataObject?.get("_id")?.jsonPrimitive?.content
+                ?: dataObject?.get("id")?.jsonPrimitive?.content
+                ?: jsonObject["_id"]?.jsonPrimitive?.content
+                ?: jsonObject["id"]?.jsonPrimitive?.content
+            val jwtId = extractUserIdFromJwt()
+            val resolvedId = responseId?.takeIf { it.isNotBlank() }
+                ?: jwtId
+                ?: tokenStorage.userId?.takeIf { it.isNotBlank() }
+                ?: ""
+
             val user = User(
-                id = userData["_id"]?.jsonPrimitive?.content
-                    ?: userData["id"]?.jsonPrimitive?.content
-                    ?: "",
+                id = resolvedId,
                 email = userData["email"]?.jsonPrimitive?.content,
                 firstName = userData["firstName"]?.jsonPrimitive?.content
                     ?: userData["first_name"]?.jsonPrimitive?.content,
@@ -493,15 +553,29 @@ class AuthSession @Inject constructor(
                     ?: userData["last_name"]?.jsonPrimitive?.content,
                 profileImage = userData["profileImage"]?.jsonPrimitive?.content
                     ?: userData["profile_image"]?.jsonPrimitive?.content
-                    ?: userData["avatar"]?.jsonPrimitive?.content,
+                    ?: userData["avatarUrl"]?.jsonPrimitive?.content
+                    ?: userData["avatar"]?.jsonPrimitive?.content
+                    ?: try { userData["profilePic"]?.jsonPrimitive?.content } catch (_: Exception) {
+                        try { userData["profilePic"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content } catch (_: Exception) { null }
+                    },
                 phone = userData["phone"]?.jsonPrimitive?.content
+                    ?: userData["phoneNumber"]?.jsonPrimitive?.content,
+                superHost = superHost,
+                propertiesCount = propertiesCount,
+                isHostFlag = isHostFlag
             )
 
+            if (user.id.isBlank()) {
+                Timber.e("User ID is blank after parsing — JWT and response both missing ID")
+            }
+
             _currentUser.value = user
-            tokenStorage.userId = user.id
+            if (user.id.isNotBlank()) {
+                tokenStorage.userId = user.id
+            }
             tokenStorage.cachedUserSummary = responseBody
 
-            Timber.d("User set: ${user.displayName}")
+            Timber.d("[HostMode] User set: id=${user.id}, isHost=${user.isHost} (superHost=$superHost, properties=$propertiesCount, flag=$isHostFlag)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
             if (!fromCache) {
@@ -524,6 +598,12 @@ class AuthSession @Inject constructor(
     }
     
     /**
+     * Convenience accessor for the current user's ID.
+     */
+    val currentUserId: String?
+        get() = _currentUser.value?.id
+
+    /**
      * Check if user is currently authenticated
      */
     val isAuthenticated: Boolean
@@ -542,6 +622,10 @@ sealed class AuthState {
 
 /**
  * User model
+ *
+ * iOS parity: includes host-related fields from /account/me so the app
+ * can determine whether the user is already a host without relying solely
+ * on client-side SharedPreferences.
  */
 data class User(
     val id: String,
@@ -549,7 +633,13 @@ data class User(
     val firstName: String? = null,
     val lastName: String? = null,
     val profileImage: String? = null,
-    val phone: String? = null
+    val phone: String? = null,
+    /** True when the backend marks this user as a super-host. */
+    val superHost: Boolean = false,
+    /** Number of properties/listings owned by this user. */
+    val propertiesCount: Int = 0,
+    /** True when the backend response contains an explicit isHost flag. */
+    val isHostFlag: Boolean = false
 ) {
     val displayName: String
         get() = when {
@@ -558,6 +648,19 @@ data class User(
             !email.isNullOrBlank() -> email.substringBefore("@")
             else -> "User"
         }
+
+    /**
+     * Derived host status: the user is considered a host when any of
+     * the following is true:
+     *  - backend returned isHost = true
+     *  - user has superHost status
+     *  - user owns at least one property/listing
+     *
+     * iOS parity: matches the logic used by iOS AppModeStore to decide
+     * whether to auto-switch into host mode on login.
+     */
+    val isHost: Boolean
+        get() = isHostFlag || superHost || propertiesCount > 0
 }
 
 /**
@@ -565,7 +668,7 @@ data class User(
  */
 @Serializable
 data class RefreshTokenRequest(
-    val refresh_token: String
+    val refreshToken: String
 )
 
 @Serializable
@@ -584,8 +687,8 @@ data class EmailLoginRequest(
 data class EmailRegisterRequest(
     val email: String,
     val password: String,
-    val firstName: String,
-    val lastName: String
+    @SerialName("first_name") val firstName: String,
+    @SerialName("last_name") val lastName: String
 )
 
 @Serializable

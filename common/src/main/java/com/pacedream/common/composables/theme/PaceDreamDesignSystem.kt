@@ -21,6 +21,7 @@ object PaceDreamDesignSystem {
     val Radius get() = com.pacedream.common.composables.theme.PaceDreamRadius
     val IconSize get() = com.pacedream.common.composables.theme.PaceDreamIconSize
     val Elevation get() = com.pacedream.common.composables.theme.PaceDreamElevation
+    val Shadow get() = com.pacedream.common.composables.theme.PaceDreamShadow
     val Typography get() = com.pacedream.common.composables.theme.PaceDreamTypography
     val Colors get() = com.pacedream.common.composables.theme.PaceDreamColors
     val Glass get() = com.pacedream.common.composables.theme.PaceDreamGlass
@@ -68,14 +69,15 @@ object PaceDreamDesignSystemColors {
 // ============================================================================
 object PaceDreamSpacing {
     val XXS = 2.dp     // Hairline spacing
-    val XS = 4.dp      // Minimal spacing (icon gaps, tight elements)
-    val SM = 8.dp      // Small spacing (related elements, list item internal)
-    val MD = 16.dp     // Medium spacing (standard content padding, iOS default margin)
-    val LG = 20.dp     // Large spacing (section headers, grouped content)
-    val XL = 24.dp     // Extra large (between sections)
-    val XXL = 32.dp    // Section separation
-    val XXXL = 40.dp   // Major section breaks
-    val Page = 48.dp   // Page-level vertical spacing
+    val XS = 4.dp      // Minimal spacing (icon gaps, tight elements) — iOS xs
+    val SM = 8.dp      // Small spacing (related elements) — iOS sm
+    val SM2 = 12.dp    // Medium-small spacing (list item internal, iOS DesignTokens.Spacing.sm)
+    val MD = 16.dp     // Medium spacing (standard content padding) — iOS md
+    val LG = 24.dp     // Large spacing (section headers, grouped content) — iOS lg
+    val XL = 32.dp     // Extra large (between sections) — iOS xl
+    val XXL = 48.dp    // Section separation — iOS xxl
+    val XXXL = 64.dp   // Major section breaks — iOS xxxl
+    val Page = 48.dp   // Page-level vertical spacing (alias for XXL)
 }
 
 // ============================================================================
@@ -83,12 +85,12 @@ object PaceDreamSpacing {
 // Uses continuous corner curves (squircle) matching iOS
 // ============================================================================
 object PaceDreamRadius {
-    val XS = 6.dp      // Small elements (badges, tags)
-    val SM = 8.dp      // Buttons, chips, small cards
-    val MD = 12.dp     // Standard cards, search bars, inputs
-    val LG = 16.dp     // Large cards, sheets, popovers
-    val XL = 20.dp     // Modals, bottom sheets
-    val XXL = 24.dp    // Hero cards, large containers
+    val XS = 4.dp      // Small elements (badges, tags) — iOS xs
+    val SM = 8.dp      // Buttons, chips, small cards — iOS sm
+    val MD = 12.dp     // Standard cards, search bars, inputs — iOS md
+    val LG = 16.dp     // Large cards, sheets, popovers — iOS lg
+    val XL = 20.dp     // Modals, bottom sheets — iOS xl
+    val XXL = 24.dp    // Hero cards, large containers — iOS xxl
     val Round = 9999.dp // Pills, capsules, avatars (effectively full-round)
 }
 
@@ -143,11 +145,11 @@ object PaceDreamGlass {
 // Component Dimensions - iOS 26 HIG aligned
 // ============================================================================
 object PaceDreamSearchBar {
-    val Height = 36.dp  // iOS search bar compact height
-    val ExpandedHeight = 44.dp // Expanded search bar
-    val CornerRadius = PaceDreamRadius.SM // 8dp (iOS uses rounded rect 8 for search)
-    val Padding = PaceDreamSpacing.SM
-    val HorizontalPadding = PaceDreamSpacing.SM
+    val Height = 44.dp  // iOS search bar compact height
+    val ExpandedHeight = 48.dp // iOS DesignTokens.Sizes.searchBarHeight
+    val CornerRadius = PaceDreamRadius.MD // 12dp (iOS uses 12pt for search bar)
+    val Padding = PaceDreamSpacing.MD
+    val HorizontalPadding = PaceDreamSpacing.MD
     val IconSize = PaceDreamIconSize.SM
 }
 
@@ -195,13 +197,13 @@ object PaceDreamRecentSearchItem {
 }
 
 object PaceDreamEmptyState {
-    val Padding = PaceDreamSpacing.Page
-    val IconSize = PaceDreamIconSize.XXXL
+    val Padding = PaceDreamSpacing.XL
+    val IconSize = PaceDreamIconSize.XXL
 }
 
 object PaceDreamErrorState {
-    val Padding = PaceDreamSpacing.Page
-    val IconSize = PaceDreamIconSize.XXXL
+    val Padding = PaceDreamSpacing.XL
+    val IconSize = PaceDreamIconSize.XXL
 }
 
 object PaceDreamLoadingState {
@@ -238,10 +240,10 @@ object PaceDreamTypography {
         letterSpacing = 0.35.sp
     )
 
-    // Title 3: 20sp Regular
+    // Title 3: 20sp SemiBold (iOS PaceDreamDesignSystem.Typography.title3)
     val Title3 = TextStyle(
         fontSize = 20.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.SemiBold,
         lineHeight = 25.sp,
         letterSpacing = 0.38.sp
     )
@@ -302,6 +304,9 @@ object PaceDreamTypography {
         letterSpacing = 0.sp
     )
 
+    // Caption 1 alias (same as Caption)
+    val Caption1 = Caption
+
     // Caption 2: 11sp Regular
     val Caption2 = TextStyle(
         fontSize = 11.sp,
@@ -320,16 +325,42 @@ object PaceDreamTypography {
 }
 
 // ============================================================================
-// Elevation System - iOS 26 Liquid Glass: minimal shadows, use material instead
+// Elevation System - Matched to iOS PaceDreamDesignSystem.Shadows
 // ============================================================================
 object PaceDreamElevation {
     val None = 0.dp
-    val XS = 0.5.dp   // Subtle, barely visible
-    val SM = 1.dp      // Cards resting on surface
-    val MD = 2.dp      // Raised elements (floating action buttons)
-    val LG = 4.dp      // Popovers, dropdowns
-    val XL = 8.dp      // Modals, dialogs
-    val XXL = 12.dp    // Reserved for maximum emphasis
+    val XS = 1.dp      // Subtle (iOS Shadows.small: radius 2, y 1)
+    val SM = 2.dp      // Cards resting on surface (iOS Shadows.small)
+    val MD = 4.dp      // Raised elements (iOS Shadows.medium: radius 4, y 2)
+    val LG = 8.dp      // Popovers, dropdowns (iOS Shadows.large: radius 8, y 4)
+    val XL = 16.dp     // Modals, dialogs (iOS Shadows.xlarge: radius 16, y 8)
+    val XXL = 24.dp    // Reserved for maximum emphasis
+}
+
+// ============================================================================
+// Shadow System - iOS PaceDreamDesignSystem.Shadows equivalent
+// Use with Modifier.shadow() for fine-grained control
+// ============================================================================
+object PaceDreamShadow {
+    // Small: subtle card shadow
+    val SmallAlpha = 0.05f
+    val SmallRadius = 2.dp
+    val SmallOffsetY = 1.dp
+
+    // Medium: standard card shadow
+    val MediumAlpha = 0.10f
+    val MediumRadius = 4.dp
+    val MediumOffsetY = 2.dp
+
+    // Large: elevated card/sheet shadow
+    val LargeAlpha = 0.15f
+    val LargeRadius = 8.dp
+    val LargeOffsetY = 4.dp
+
+    // XLarge: prominent overlay shadow
+    val XLargeAlpha = 0.20f
+    val XLargeRadius = 16.dp
+    val XLargeOffsetY = 8.dp
 }
 
 // ============================================================================
@@ -337,9 +368,9 @@ object PaceDreamElevation {
 // Minimum 44dp for accessibility (Apple standard)
 // ============================================================================
 object PaceDreamButtonHeight {
-    val SM = 34.dp   // Compact buttons (toolbar actions)
+    val SM = 36.dp   // Compact buttons (toolbar actions)
     val MD = 44.dp   // Standard iOS tap target (recommended minimum)
-    val LG = 50.dp   // Large / primary actions
+    val LG = 54.dp   // Large / primary actions (iOS primary button effective height)
     val XL = 56.dp   // Hero buttons (full-width CTA)
 }
 

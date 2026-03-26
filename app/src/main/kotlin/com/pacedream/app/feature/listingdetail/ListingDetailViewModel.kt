@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.auth.SessionManager
+import com.pacedream.app.core.auth.TokenStorage
+import com.pacedream.app.core.config.AppConfig
+import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,6 +22,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
@@ -29,6 +35,10 @@ class ListingDetailViewModel @Inject constructor(
     private val wishlistRepository: ListingWishlistRepository,
     private val reviewRepository: ReviewRepository,
     private val sessionManager: SessionManager,
+    private val apiClient: ApiClient,
+    private val appConfig: AppConfig,
+    private val tokenStorage: TokenStorage,
+    private val json: Json,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -37,6 +47,7 @@ class ListingDetailViewModel @Inject constructor(
         data class ShowToast(val message: String) : Effect()
         data class OpenMaps(val uri: String) : Effect()
         data class Share(val text: String) : Effect()
+        data class NavigateToThread(val threadId: String) : Effect()
     }
 
     private val _uiState = MutableStateFlow(ListingDetailUiState(isLoading = true))
@@ -46,12 +57,16 @@ class ListingDetailViewModel @Inject constructor(
     val effects = _effects.receiveAsFlow()
 
     private var currentListingId: String? = null
+    private var currentListingType: String = ""
 
     fun isAuthenticated(): Boolean = sessionManager.authState.value == AuthState.Authenticated
 
-    fun load(listingId: String, initialListing: ListingCardModel?) {
+    fun getListingType(): String = currentListingType
+
+    fun load(listingId: String, listingType: String = "", initialListing: ListingCardModel?) {
         if (currentListingId == listingId && _uiState.value.listing != null) return
         currentListingId = listingId
+        currentListingType = listingType
 
         // Seed cached/partial content immediately.
         if (initialListing != null) {
@@ -77,7 +92,7 @@ class ListingDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, inlineErrorMessage = null) }
 
-            when (val result = repository.fetchListingDetail(listingId)) {
+            when (val result = repository.fetchListingDetail(listingId, currentListingType)) {
                 is ApiResult.Success -> {
                     val listing = result.data
                     _uiState.update {
@@ -222,6 +237,57 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isSubmittingReview = false) }
+                    _effects.send(Effect.ShowToast(result.error.message))
+                }
+            }
+        }
+    }
+
+    /**
+     * Contact host: create or find an inbox thread with the host, then navigate to it.
+     * Web parity: POST /v1/inbox/thread { otherUserId, listingId, mode: "guest" }
+     */
+    fun contactHost() {
+        val hostId = _uiState.value.listing?.host?.id
+        if (hostId == null) {
+            viewModelScope.launch {
+                _effects.send(Effect.ShowToast("Host information not available"))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            val url = appConfig.buildApiUrl("inbox", "thread")
+            val body = buildString {
+                append("{")
+                append("\"otherUserId\":\"$hostId\"")
+                currentListingId?.let { append(",\"listingId\":\"$it\"") }
+                append(",\"mode\":\"guest\"")
+                append("}")
+            }
+
+            when (val result = apiClient.post(url, body, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    try {
+                        val element = json.parseToJsonElement(result.data)
+                        val obj = element.jsonObject
+                        val threadId = obj["data"]?.jsonObject?.get("_id")?.jsonPrimitive?.content
+                            ?: obj["_id"]?.jsonPrimitive?.content
+                            ?: obj["data"]?.jsonObject?.get("id")?.jsonPrimitive?.content
+
+                        if (threadId != null) {
+                            _effects.send(Effect.NavigateToThread(threadId))
+                        } else {
+                            Timber.e("Thread ID not found in response: ${result.data}")
+                            _effects.send(Effect.ShowToast("Could not start conversation"))
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to parse thread response")
+                        _effects.send(Effect.ShowToast("Could not start conversation"))
+                    }
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Failed to create thread: ${result.error.message}")
                     _effects.send(Effect.ShowToast(result.error.message))
                 }
             }

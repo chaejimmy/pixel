@@ -17,6 +17,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -66,11 +67,22 @@ class InboxViewModel @Inject constructor(
     
     private fun checkAuthAndLoad() {
         viewModelScope.launch {
-            if (authSession.authState.value == AuthState.Unauthenticated) {
+            // Wait for auth to settle if it hasn't initialized yet (avoids race with Unknown state)
+            val state = authSession.authState.value
+            val resolvedState = if (state == AuthState.Unknown) {
+                authSession.authState.first { it != AuthState.Unknown }
+            } else {
+                state
+            }
+
+            if (resolvedState == AuthState.Unauthenticated) {
                 _uiState.value = InboxUiState.RequiresAuth
                 return@launch
             }
-            
+
+            val userId = authSession.currentUser.value?.id
+            Timber.d("InboxViewModel: checkAuthAndLoad — userId=${userId ?: "(null)"}, mode=${currentMode.apiValue}")
+
             loadThreadsAndCounts()
         }
     }
@@ -93,83 +105,109 @@ class InboxViewModel @Inject constructor(
     }
     
     private suspend fun loadThreadsAndCounts() {
-        // Load threads and unread counts in parallel
-        val threadsDeferred = viewModelScope.async {
-            inboxRepository.getThreads(
-                mode = currentMode.apiValue,
-                limit = 20,
-                cursor = null
-            )
-        }
-        
-        val unreadDeferred = viewModelScope.async {
-            inboxRepository.getUnreadCounts()
-        }
-        
-        val threadsResult = threadsDeferred.await()
-        val unreadResult = unreadDeferred.await()
-        
-        // Get unread counts (default to zero on error)
-        val unreadCounts = when (unreadResult) {
-            is ApiResult.Success -> unreadResult.data
-            is ApiResult.Failure -> UnreadCounts(0, 0)
-        }
-        
-        // Handle threads result
-        when (threadsResult) {
-            is ApiResult.Success -> {
-                nextCursor = threadsResult.data.nextCursor
-                
-                if (threadsResult.data.threads.isEmpty()) {
-                    _uiState.value = InboxUiState.Empty
-                } else {
-                    _uiState.value = InboxUiState.Success(
-                        threads = threadsResult.data.threads,
-                        mode = currentMode,
-                        unreadCounts = unreadCounts,
-                        isRefreshing = false,
-                        hasMore = threadsResult.data.hasMore
-                    )
-                }
+        Timber.d("InboxViewModel: loadThreadsAndCounts START — mode=${currentMode.apiValue}")
+        try {
+            // Load threads and unread counts in parallel
+            val threadsDeferred = viewModelScope.async {
+                inboxRepository.getThreads(
+                    mode = currentMode.apiValue,
+                    limit = 20,
+                    cursor = null
+                )
             }
-            is ApiResult.Failure -> {
-                when (threadsResult.error) {
-                    is ApiError.Unauthorized -> {
-                        _uiState.value = InboxUiState.RequiresAuth
-                    }
-                    else -> {
-                        _uiState.value = InboxUiState.Error(
-                            threadsResult.error.message ?: "Failed to load messages"
+
+            val unreadDeferred = viewModelScope.async {
+                inboxRepository.getUnreadCounts()
+            }
+
+            val threadsResult = threadsDeferred.await()
+            val unreadResult = unreadDeferred.await()
+
+            // Get unread counts (default to zero on error)
+            val unreadCounts = when (unreadResult) {
+                is ApiResult.Success -> unreadResult.data
+                is ApiResult.Failure -> UnreadCounts(0, 0)
+            }
+
+            // Handle threads result
+            when (threadsResult) {
+                is ApiResult.Success -> {
+                    // Guard: only store non-blank, non-"null" cursor (empty/null would cause 400)
+                    nextCursor = threadsResult.data.nextCursor?.takeIf { it.isNotBlank() && it != "null" }
+                    // Cannot paginate without a valid cursor
+                    val hasMore = threadsResult.data.hasMore && nextCursor != null
+                    Timber.d("InboxViewModel: loaded ${threadsResult.data.threads.size} threads, nextCursor=${nextCursor ?: "(none)"}, hasMore=$hasMore")
+
+                    if (threadsResult.data.threads.isEmpty()) {
+                        _uiState.value = InboxUiState.Empty
+                    } else {
+                        _uiState.value = InboxUiState.Success(
+                            threads = threadsResult.data.threads,
+                            mode = currentMode,
+                            unreadCounts = unreadCounts,
+                            isRefreshing = false,
+                            hasMore = hasMore
                         )
                     }
                 }
+                is ApiResult.Failure -> {
+                    Timber.e("InboxViewModel: loadThreadsAndCounts FAILED — ${threadsResult.error.message}")
+                    when (threadsResult.error) {
+                        is ApiError.Unauthorized -> {
+                            _uiState.value = InboxUiState.RequiresAuth
+                        }
+                        else -> {
+                            _uiState.value = InboxUiState.Error(
+                                threadsResult.error.message ?: "Failed to load messages"
+                            )
+                        }
+                    }
+                }
             }
+        } catch (e: Exception) {
+            // Catch any unexpected exception to guarantee we leave Loading state
+            Timber.e(e, "InboxViewModel: loadThreadsAndCounts EXCEPTION")
+            _uiState.value = InboxUiState.Error(
+                e.message ?: "An unexpected error occurred"
+            )
         }
+        Timber.d("InboxViewModel: loadThreadsAndCounts END — state=${_uiState.value::class.simpleName}")
     }
     
     private fun loadMore() {
-        val cursor = nextCursor ?: return
-        val currentState = _uiState.value as? InboxUiState.Success ?: return
-        
+        val cursor = nextCursor?.takeIf { it.isNotBlank() && it != "null" } ?: return
+        if (_uiState.value !is InboxUiState.Success) return
+
+        Timber.d("InboxViewModel: loadMore START — cursor=$cursor, mode=${currentMode.apiValue}")
+
         viewModelScope.launch {
-            val result = inboxRepository.getThreads(
-                mode = currentMode.apiValue,
-                limit = 20,
-                cursor = cursor
-            )
-            
-            when (result) {
-                is ApiResult.Success -> {
-                    nextCursor = result.data.nextCursor
-                    _uiState.value = currentState.copy(
-                        threads = currentState.threads + result.data.threads,
-                        hasMore = result.data.hasMore
-                    )
+            try {
+                val result = inboxRepository.getThreads(
+                    mode = currentMode.apiValue,
+                    limit = 20,
+                    cursor = cursor
+                )
+
+                when (result) {
+                    is ApiResult.Success -> {
+                        // Guard: only store non-blank, non-"null" cursor
+                        nextCursor = result.data.nextCursor?.takeIf { it.isNotBlank() && it != "null" }
+                        val hasMore = result.data.hasMore && nextCursor != null
+                        Timber.d("InboxViewModel: loadMore loaded ${result.data.threads.size} more threads, nextCursor=${nextCursor ?: "(none)"}")
+                        // Use latest state to avoid overwriting concurrent mutations
+                        val latestState = _uiState.value as? InboxUiState.Success ?: return@launch
+                        _uiState.value = latestState.copy(
+                            threads = latestState.threads + result.data.threads,
+                            hasMore = hasMore
+                        )
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("InboxViewModel: loadMore FAILED — ${result.error.message}")
+                        // Keep current state on pagination failure (don't break existing view)
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to load more threads: ${result.error.message}")
-                    // Keep current state, just log error
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "InboxViewModel: loadMore EXCEPTION")
             }
         }
     }
@@ -215,6 +253,36 @@ class InboxViewModel @Inject constructor(
      */
     fun onAuthCompleted() {
         checkAuthAndLoad()
+    }
+
+    /**
+     * Silently refresh threads in the background (e.g., when returning from a thread).
+     * Does not show loading state -- only updates data on success.
+     */
+    fun refreshIfNeeded() {
+        val current = _uiState.value
+        if (current is InboxUiState.Success || current is InboxUiState.Empty) {
+            viewModelScope.launch {
+                nextCursor = null
+                loadThreadsAndCounts()
+            }
+        }
+    }
+
+    /**
+     * Mark thread as locally read when entering a thread (matches iOS markThreadReadLocally).
+     * Optimistically reduces unread count in the UI without waiting for a server round-trip.
+     */
+    fun markThreadReadLocally(threadId: String) {
+        val currentState = _uiState.value as? InboxUiState.Success ?: return
+        val updated = currentState.threads.map { thread ->
+            if (thread.id == threadId && thread.hasUnread) {
+                thread.copy(unreadCount = 0)
+            } else {
+                thread
+            }
+        }
+        _uiState.value = currentState.copy(threads = updated)
     }
 }
 

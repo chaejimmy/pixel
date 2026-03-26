@@ -87,6 +87,42 @@ class InboxModelTest {
         assertEquals("", msg.formattedTime)
     }
 
+    // ── MessageStatus ──────────────────────────────────────────────
+
+    @Test
+    fun `Message isFailed returns true for FAILED status`() {
+        val msg = Message("temp-123", "hi", "u1", null, status = MessageStatus.FAILED)
+        assertTrue(msg.isFailed)
+        assertFalse(msg.isSending)
+    }
+
+    @Test
+    fun `Message isSending returns true for SENDING status`() {
+        val msg = Message("temp-123", "hi", "u1", null, status = MessageStatus.SENDING)
+        assertTrue(msg.isSending)
+        assertFalse(msg.isFailed)
+    }
+
+    @Test
+    fun `Message isTemp returns true for temp- prefixed id`() {
+        val msg = Message("temp-abc", "hi", "u1", null)
+        assertTrue(msg.isTemp)
+    }
+
+    @Test
+    fun `Message isTemp returns false for normal id`() {
+        val msg = Message("6507a1b2c3d4", "hi", "u1", null)
+        assertFalse(msg.isTemp)
+    }
+
+    @Test
+    fun `Message default status is SENT`() {
+        val msg = Message("m1", "hi", "u1", null)
+        assertEquals(MessageStatus.SENT, msg.status)
+        assertFalse(msg.isFailed)
+        assertFalse(msg.isSending)
+    }
+
     // ── UnreadCounts ────────────────────────────────────────────────
 
     @Test

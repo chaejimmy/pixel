@@ -1,7 +1,10 @@
 package com.pacedream.app.feature.wishlist
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -19,6 +22,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -60,7 +65,14 @@ fun WishlistScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Favorites") }
+                title = {
+                    Text(
+                        "Favorites",
+                        style = PaceDreamTypography.Title1,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -89,7 +101,7 @@ fun WishlistScreen(
                 
                 uiState.error != null -> {
                     ErrorState(
-                        message = uiState.error!!,
+                        message = uiState.error ?: "An unexpected error occurred",
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -175,46 +187,65 @@ private fun WishlistItemCard(
     ) {
         Box {
             Column {
-                AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1.2f)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                )
+                if (!item.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1.2f)
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1.2f)
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .background(PaceDreamColors.SurfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "No image",
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
                 
                 Column(
                     modifier = Modifier.padding(12.dp)
                 ) {
                     Text(
                         text = item.title,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = PaceDreamTypography.Subheadline,
                         fontWeight = FontWeight.SemiBold,
+                        color = PaceDreamColors.TextPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    
+
                     item.location?.let { location ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = location,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     item.price?.let { price ->
                         Text(
                             text = price,
-                            style = MaterialTheme.typography.titleSmall,
+                            style = PaceDreamTypography.Subheadline,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = PaceDreamColors.Primary
                         )
                     }
                 }
@@ -243,30 +274,37 @@ private fun LockedState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = PaceDreamIcons.Lock,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Sign in to view your favorites",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Save your favorite spaces and gear",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Save your favorite spaces, items, and services",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onSignInClick) {
-            Text("Sign In")
+        Button(
+            onClick = onSignInClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Sign In", style = PaceDreamTypography.Button)
         }
     }
 }
@@ -274,26 +312,29 @@ private fun LockedState(
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = PaceDreamIcons.Favorite,
             contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
+            modifier = Modifier.size(56.dp),
+            tint = PaceDreamColors.TextSecondary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No favorites yet",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.Bold,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Start exploring and save your favorite items",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "Start exploring and save your favorite spaces, items, and services",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -305,23 +346,36 @@ private fun ErrorState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = PaceDreamIcons.ErrorOutline,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = PaceDreamColors.TextSecondary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Something went wrong",
-            style = MaterialTheme.typography.titleMedium
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetryClick) {
-            Text("Try Again")
+        Button(
+            onClick = onRetryClick,
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Try Again", style = PaceDreamTypography.Button)
         }
     }
 }

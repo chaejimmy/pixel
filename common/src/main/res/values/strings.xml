@@ -33,6 +33,7 @@
     <string name="core_ui_privacy_policy">By continuing, you acknowledge that you have read, understood and agree to PaceDream\'s Terms of Service and Privacy Policy.</string>
     <string name="core_ui_create_account">Create an account</string>
     <string name="core_ui_continue_with_phone">Continue with Phone</string>
+    <string name="core_ui_continue_with_apple">Continue with Apple</string>
     <string name="core_ui_help_text">help?</string>
     <string name="core_ui_password_setup_subtitle">At least 8 digits</string>
     <string name="core_ui_confirm_password_label">Confirm password</string>

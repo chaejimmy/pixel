@@ -25,11 +25,8 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.*
-import com.pacedream.common.util.showToast
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRentedGearsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenRoomsState
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenSplitStaysState
@@ -51,6 +48,7 @@ fun EnhancedDashboardScreen(
     splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
     isRefreshing: Boolean = false,
     userName: String = "",
+    profileImageUrl: String? = null,
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
     onSplitStaysRetry: () -> Unit = {},
@@ -63,8 +61,6 @@ fun EnhancedDashboardScreen(
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-
     // Pull-to-refresh state
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
@@ -84,6 +80,7 @@ fun EnhancedDashboardScreen(
             // Enhanced Header
             EnhancedDashboardHeader(
                 userName = userName,
+                profileImageUrl = profileImageUrl,
                 onSearchClick = onSearchClick,
                 onFilterClick = onFilterClick,
                 onNotificationClick = onNotificationClick
@@ -139,8 +136,6 @@ fun CompactDashboardScreen(
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = onRefresh
@@ -207,8 +202,6 @@ fun MinimalDashboardScreen(
     onActionClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = onRefresh

@@ -13,9 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.composables.buttons.CompactProcessButton
+import com.pacedream.common.composables.buttons.OutlineProcessButton
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -63,7 +64,7 @@ fun BookingConfirmationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Booking") },
+                title = { Text("Booking", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(PaceDreamIcons.Close, contentDescription = "Close")
@@ -245,24 +246,17 @@ private fun SuccessState(
         Spacer(modifier = Modifier.weight(1f))
         
         // Action buttons
-        Button(
+        ProcessButton(
             onClick = onViewBooking,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
-        ) {
-            Text("View Booking", style = PaceDreamTypography.Headline)
-        }
-        
+            text = "View Booking",
+        )
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        OutlinedButton(
+
+        OutlineProcessButton(
             onClick = onGoHome,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
-        ) {
-            Text("Go Home", style = PaceDreamTypography.Headline)
-        }
+            text = "Go Home",
+        )
         
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
     }
@@ -312,22 +306,17 @@ private fun ErrorState(
         
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
         
-        Button(
+        CompactProcessButton(
             onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
-        ) {
-            Text("Try Again")
-        }
-        
+            text = "Try Again",
+        )
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        OutlinedButton(
+
+        OutlineProcessButton(
             onClick = onGoHome,
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
-        ) {
-            Text("Go Home")
-        }
+            text = "Go Home",
+        )
     }
 }
 
@@ -339,7 +328,7 @@ fun BookingCancelledScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Booking Cancelled") },
+                title = { Text("Booking Cancelled", style = PaceDreamTypography.Headline) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PaceDreamColors.Background
                 )
@@ -389,14 +378,11 @@ fun BookingCancelledScreen(
             
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
             
-            Button(
+            ProcessButton(
                 onClick = onGoHome,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                modifier = Modifier.fillMaxWidth(0.6f)
-            ) {
-                Text("Go Home", style = PaceDreamTypography.Headline)
-            }
+                text = "Go Home",
+                modifier = Modifier.fillMaxWidth(0.6f),
+            )
         }
     }
 }

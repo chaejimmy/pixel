@@ -27,6 +27,18 @@ class HomeFeedViewModel @Inject constructor(
     private val _state = MutableStateFlow(HomeFeedState())
     val state: StateFlow<HomeFeedState> = _state.asStateFlow()
 
+    /** Currently selected category filter (e.g. "All", "Restroom", "Nap Pod"). */
+    private val _selectedCategory = MutableStateFlow("All")
+    val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
+
+    /**
+     * Derived view of sections, filtered by the selected category chip.
+     * Matches iOS/web behaviour: "All" shows everything; any other chip filters
+     * items whose subCategory (or title, as fallback) contains the category keyword.
+     */
+    private val _filteredState = MutableStateFlow(HomeFeedState())
+    val filteredState: StateFlow<HomeFeedState> = _filteredState.asStateFlow()
+
     val authState: StateFlow<AuthState> = authSession.authState
 
     private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
@@ -34,6 +46,15 @@ class HomeFeedViewModel @Inject constructor(
 
     init {
         loadAll()
+
+        // Keep filteredState in sync whenever raw state or selected category changes
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
+                applyFilter(raw, cat)
+            }.collectLatest { filtered ->
+                _filteredState.value = filtered
+            }
+        }
 
         viewModelScope.launch {
             authSession.authState.collectLatest { st ->
@@ -52,6 +73,55 @@ class HomeFeedViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun selectCategory(category: String) {
+        _selectedCategory.value = category
+    }
+
+    /**
+     * Filter sections by the selected category chip.
+     * "All" returns unfiltered data; other chips match against subCategory or title.
+     */
+    private fun applyFilter(raw: HomeFeedState, category: String): HomeFeedState {
+        if (category == "All") return raw
+        val keyword = CATEGORY_TO_KEYWORD[category] ?: category.lowercase().replace(" ", "_")
+        return raw.copy(
+            sections = raw.sections.map { section ->
+                section.copy(
+                    items = section.items.filter { card ->
+                        val sub = card.subCategory?.lowercase() ?: ""
+                        val title = card.title.lowercase()
+                        sub.contains(keyword) || title.contains(keyword)
+                    }
+                )
+            }
+        )
+    }
+
+    companion object {
+        /** Subcategory IDs that identify service listings. */
+        private val SERVICE_SUBCATEGORY_IDS = setOf(
+            "home_help", "moving_help", "cleaning_organizing", "everyday_help",
+            "fitness", "learning", "creative",
+        )
+
+        /** Map UI category chip names to backend subCategory keywords (iOS/web parity). */
+        private val CATEGORY_TO_KEYWORD = mapOf(
+            "Entire Home" to "entire_home",
+            "Private Room" to "private_room",
+            "Restroom" to "restroom",
+            "Nap Pod" to "nap_pod",
+            "Meeting Room" to "meeting_room",
+            "Workspace" to "workspace",
+            "EV Parking" to "ev_parking",
+            "Study Room" to "study_room",
+            "Short Stay" to "short_stay",
+            "Apartment" to "apartment",
+            "Parking" to "parking",
+            "Luxury Room" to "luxury_room",
+            "Storage" to "storage",
+        )
     }
 
     fun refresh() {
@@ -93,8 +163,11 @@ class HomeFeedViewModel @Inject constructor(
         }
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     private fun loadAll(refresh: Boolean = false) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
 
             // Set all sections to loading if initial load
@@ -108,12 +181,12 @@ class HomeFeedViewModel @Inject constructor(
             }
 
             val hourlyDeferred = async { loadHourly() }
-            val gearDeferred = async { loadSection(HomeSectionKey.GEAR) }
-            val splitDeferred = async { loadSection(HomeSectionKey.SPLIT) }
+            val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
+            val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
 
             hourlyDeferred.await()
             gearDeferred.await()
-            splitDeferred.await()
+            servicesDeferred.await()
 
             _state.update { it.copy(isRefreshing = false) }
         }
@@ -124,9 +197,15 @@ class HomeFeedViewModel @Inject constructor(
         _state.update { s ->
             s.copy(
                 sections = s.sections.map { section ->
-                    if (section.key != HomeSectionKey.HOURLY) section
+                    if (section.key != HomeSectionKey.SPACES) section
                     else when (res) {
-                        is ApiResult.Success -> section.copy(items = res.data, isLoading = false, errorMessage = null)
+                        is ApiResult.Success -> {
+                            // Exclude service listings from Spaces section
+                            val spacesOnly = res.data.filter {
+                                it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                            }
+                            section.copy(items = spacesOnly, isLoading = false, errorMessage = null)
+                        }
                         is ApiResult.Failure -> {
                             // Keep last good state if present
                             val keep = section.items.isNotEmpty()
@@ -149,7 +228,20 @@ class HomeFeedViewModel @Inject constructor(
                 sections = s.sections.map { section ->
                     if (section.key != key) section
                     else when (res) {
-                        is ApiResult.Success -> section.copy(items = res.data, isLoading = false, errorMessage = null)
+                        is ApiResult.Success -> {
+                            // Client-side resource type filtering: services and spaces both
+                            // use shareType=SHARE, so we separate them by subcategory.
+                            val filtered = when (key) {
+                                HomeSectionKey.SERVICES -> res.data.filter {
+                                    it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                                }
+                                HomeSectionKey.SPACES -> res.data.filter {
+                                    it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                }
+                                else -> res.data
+                            }
+                            section.copy(items = filtered, isLoading = false, errorMessage = null)
+                        }
                         is ApiResult.Failure -> section.copy(
                             isLoading = false,
                             errorMessage = res.error.message ?: "Failed to load ${key.displayTitle.lowercase()}"

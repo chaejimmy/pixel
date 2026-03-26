@@ -2,25 +2,15 @@ package com.shourov.apps.pacedream.signin.screens.otp
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,17 +21,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.buttons.PrimaryTextButton
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.core.ui.otp.OtpInputField
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -60,6 +50,8 @@ fun OtpVerificationScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var resendCountdown by remember { mutableStateOf(60) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     
     // Countdown timer
     LaunchedEffect(resendCountdown) {
@@ -109,26 +101,36 @@ fun OtpVerificationScreen(
                 modifier = Modifier.padding(bottom = PaceDreamSpacing.MD)
             )
 
-            // OTP Input (single field with formatting)
-            OutlinedTextField(
-                value = uiState.otpCode,
-                onValueChange = { viewModel.updateOtpCode(it) },
-                label = { Text("Code") },
-                placeholder = { Text("123456") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                isError = uiState.otpError != null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                textStyle = PaceDreamTypography.Title2.copy(
-                    textAlign = TextAlign.Center
-                )
+            // OTP Input (6 individual digit boxes with auto-advance)
+            OtpInputField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+                otpText = uiState.otpCode,
+                shouldShowCursor = true,
+                shouldCursorBlink = true,
+                onOtpModified = { text, isComplete ->
+                    viewModel.updateOtpCode(text)
+                    if (isComplete) {
+                        viewModel.verifyAndLogin(
+                            phoneNumber = phoneNumber,
+                            onSuccess = { userData -> onLoginSuccess(userData) },
+                            onError = { /* shown via snackbar */ }
+                        )
+                    }
+                },
             )
+
+            // Auto-focus the OTP input
+            LaunchedEffect(Unit) {
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-            // Verify Button - iOS 26 style
-            Button(
+            // Verify Button — iOS primary action pattern
+            ProcessButton(
                 onClick = {
                     viewModel.verifyAndLogin(
                         phoneNumber = phoneNumber,
@@ -140,27 +142,10 @@ fun OtpVerificationScreen(
                         }
                     )
                 },
-                enabled = uiState.otpCode.length == 6 && !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary
-                ),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = PaceDreamColors.OnPrimary
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text("Verifying...", style = PaceDreamTypography.Button)
-                } else {
-                    Text("Verify", style = PaceDreamTypography.Button)
-                }
-            }
+                isEnabled = uiState.otpCode.length == 6,
+                isProcessing = uiState.isLoading,
+                text = if (uiState.isLoading) "Verifying..." else "Verify",
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
@@ -172,7 +157,12 @@ fun OtpVerificationScreen(
             )
 
             // Resend Button
-            TextButton(
+            PrimaryTextButton(
+                text = if (resendCountdown > 0) {
+                    "Resend code in ${resendCountdown}s"
+                } else {
+                    "Resend code"
+                },
                 onClick = {
                     if (resendCountdown == 0) {
                         viewModel.resendOTP(
@@ -189,29 +179,15 @@ fun OtpVerificationScreen(
                         )
                     }
                 },
-                enabled = resendCountdown == 0 && !uiState.isLoading
-            ) {
-                Text(
-                    text = if (resendCountdown > 0) {
-                        "Resend code in ${resendCountdown}s"
-                    } else {
-                        "Resend code"
-                    },
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary
-                )
-            }
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             // Change phone number link
-            TextButton(onClick = onBackToPhone) {
-                Text(
-                    "← Change phone number",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary
-                )
-            }
+            PrimaryTextButton(
+                text = "← Change phone number",
+                onClick = onBackToPhone,
+            )
         }
     }
 }

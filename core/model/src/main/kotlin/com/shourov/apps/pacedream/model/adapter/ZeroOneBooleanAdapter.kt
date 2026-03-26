@@ -11,12 +11,12 @@ annotation class ZeroOneBoolean
 class ZeroOneBooleanAdapter {
     @ToJson
     fun toJson(@ZeroOneBoolean value: Boolean): String {
-        return if (value) "0" else "1"
+        return if (value) "1" else "0"
     }
 
     @FromJson
     @ZeroOneBoolean
     fun fromJson(value: String): Boolean {
-        return value != "0"
+        return value == "1"
     }
 }

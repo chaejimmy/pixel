@@ -40,47 +40,55 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.pacedream.common.R
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 
 @Composable
 fun BaseScreen(
     modifier: Modifier = Modifier,
-    title : String,
-    navIcon : ImageVector,
-    navIconFunction : () -> Unit = {},
-    content : @Composable () -> Unit = {}
+    title: String,
+    navIcon: ImageVector,
+    navIconFunction: () -> Unit = {},
+    content: @Composable () -> Unit = {}
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) {
-        Column (modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)){
+        Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { navIconFunction() },
+                    onClick = navIconFunction,
                 ) {
                     Icon(
                         modifier = Modifier
-                            .padding(2.dp)
-                            .height(35.dp)
-                            .width(35.dp)
+                            .padding(PaceDreamSpacing.XXS)
+                            .height(PaceDreamIconSize.XL)
+                            .width(PaceDreamIconSize.XL)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainer),
-                        imageVector = navIcon, contentDescription = "Navigate back")
+                        imageVector = navIcon,
+                        contentDescription = "Navigate back"
+                    )
                 }
 
-                Text(text = title, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = title,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium
+                )
 
-                // Balance the row with invisible spacer matching IconButton size
-                Spacer(modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(PaceDreamButtonHeight.MD))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             content()
         }
     }

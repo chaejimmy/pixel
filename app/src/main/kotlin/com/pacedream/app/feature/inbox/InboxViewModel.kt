@@ -48,12 +48,25 @@ class InboxViewModel @Inject constructor(
     
     private var cursor: String? = null
     private var mode: String = "guest"
-    
+
     init {
         loadThreads()
         loadUnreadCounts()
     }
-    
+
+    /**
+     * iOS PR #201 parity: switch between guest and host mode
+     */
+    fun switchMode(newMode: String) {
+        if (mode != newMode) {
+            mode = newMode
+            cursor = null
+            _uiState.update { it.copy(selectedMode = newMode) }
+            loadThreads()
+            loadUnreadCounts()
+        }
+    }
+
     fun refresh() {
         cursor = null
         loadThreads()
@@ -160,9 +173,12 @@ class InboxViewModel @Inject constructor(
             val obj = element.jsonObject
             
             // Find threads array in common locations
-            val threadsArray = obj["data"]?.jsonArray
+            // Backend returns { items: [...], nextCursor } from GET /v1/inbox/threads
+            val threadsArray = obj["items"]?.jsonArray
+                ?: obj["data"]?.jsonArray
                 ?: obj["threads"]?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("threads")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
                 ?: return Pair(emptyList(), null)
             
             val threads = threadsArray.mapNotNull { thread ->
@@ -195,20 +211,35 @@ class InboxViewModel @Inject constructor(
             ?: return null
         
         // Get participant info (may be nested)
-        val participant = obj["participant"]?.jsonObject
+        // Backend returns "opponent" for the other user in the thread
+        val participant = obj["opponent"]?.jsonObject
+            ?: obj["participant"]?.jsonObject
             ?: obj["otherUser"]?.jsonObject
             ?: obj["user"]?.jsonObject
-        
+
         val participantName = participant?.get("name")?.jsonPrimitive?.content
             ?: participant?.let {
-                val firstName = it["firstName"]?.jsonPrimitive?.content ?: ""
-                val lastName = it["lastName"]?.jsonPrimitive?.content ?: ""
+                // Backend uses snake_case: first_name, last_name
+                val firstName = it["first_name"]?.jsonPrimitive?.content
+                    ?: it["firstName"]?.jsonPrimitive?.content ?: ""
+                val lastName = it["last_name"]?.jsonPrimitive?.content
+                    ?: it["lastName"]?.jsonPrimitive?.content ?: ""
                 "$firstName $lastName".trim().ifEmpty { "User" }
             }
             ?: obj["participantName"]?.jsonPrimitive?.content
             ?: "User"
-        
-        val participantAvatar = participant?.get("avatar")?.jsonPrimitive?.content
+
+        // Backend uses "profilePic" for avatar URL (may be a string or array)
+        val participantAvatar = try {
+            participant?.get("profilePic")?.jsonPrimitive?.content
+        } catch (_: Exception) {
+            // profilePic can be an array of strings - take first element
+            try {
+                participant?.get("profilePic")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            } catch (_: Exception) { null }
+        }
+            ?: participant?.get("avatarUrl")?.jsonPrimitive?.content
+            ?: participant?.get("avatar")?.jsonPrimitive?.content
             ?: participant?.get("profileImage")?.jsonPrimitive?.content
             ?: obj["participantAvatar"]?.jsonPrimitive?.content
         
@@ -225,7 +256,10 @@ class InboxViewModel @Inject constructor(
             ?: listing?.get("title")?.jsonPrimitive?.content
         
         // Get unread status
-        val unreadCount = obj["unreadCount"]?.jsonPrimitive?.intOrNull ?: 0
+        // Backend stores unread as Map<userId, count> or as a single int
+        val unreadCount = obj["unreadCount"]?.jsonPrimitive?.intOrNull
+            ?: obj["unread"]?.jsonPrimitive?.intOrNull
+            ?: 0
         val isUnread: Boolean = obj["unread"]?.jsonPrimitive?.booleanOrNull
             ?: obj["isUnread"]?.jsonPrimitive?.booleanOrNull
             ?: (unreadCount > 0)
@@ -246,15 +280,27 @@ class InboxViewModel @Inject constructor(
         )
     }
     
+    /**
+     * iOS PR #201 parity: parse unread counts with guest/host breakdown
+     */
     private fun parseUnreadCountResponse(responseBody: String): Int {
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
+
+            // Try to extract guest/host specific counts
+            val guestUnread = obj["guestUnread"]?.jsonPrimitive?.intOrNull
+                ?: obj["guest"]?.jsonPrimitive?.intOrNull ?: 0
+            val hostUnread = obj["hostUnread"]?.jsonPrimitive?.intOrNull
+                ?: obj["host"]?.jsonPrimitive?.intOrNull ?: 0
+
+            _uiState.update { it.copy(guestUnreadCount = guestUnread, hostUnreadCount = hostUnread) }
+
+            // Return total or mode-specific count
             obj["count"]?.jsonPrimitive?.intOrNull
                 ?: obj["unreadCount"]?.jsonPrimitive?.intOrNull
                 ?: (obj["data"] as? JsonObject)?.get("count")?.jsonPrimitive?.intOrNull
-                ?: 0
+                ?: (guestUnread + hostUnread)
         } catch (e: Exception) {
             0
         }
@@ -311,7 +357,11 @@ data class InboxUiState(
     val threads: List<InboxThread> = emptyList(),
     val unreadCount: Int = 0,
     val hasMore: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // iOS PR #201 parity: guest/host mode toggle
+    val selectedMode: String = "guest",
+    val guestUnreadCount: Int = 0,
+    val hostUnreadCount: Int = 0
 )
 
 /**

@@ -1,12 +1,17 @@
 package com.pacedream.app.feature.inbox
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.settings.AccountSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +24,9 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -38,7 +46,9 @@ class ThreadViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val tokenStorage: TokenStorage,
-    private val json: Json
+    private val json: Json,
+    val accountSettingsRepository: AccountSettingsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ThreadUiState())
@@ -47,12 +57,16 @@ class ThreadViewModel @Inject constructor(
     private var threadId: String = ""
     private var beforeCursor: String? = null
     private val currentUserId: String? get() = tokenStorage.userId
+    // Track temp message IDs for deduplication (iOS PR #205 parity)
+    private val pendingTempIds = mutableSetOf<String>()
+    private val idempotencyKeyByTempId = mutableMapOf<String, String>()
     
     fun loadThread(threadId: String) {
         this.threadId = threadId
         beforeCursor = null
         loadMessages()
         loadThreadInfo()
+        checkAttachmentStatus()
     }
     
     fun refresh() {
@@ -62,10 +76,12 @@ class ThreadViewModel @Inject constructor(
     
     fun loadMore() {
         if (_uiState.value.isLoadingMore || beforeCursor == null) return
-        
+        // iOS PR #201 parity: skip temp-* IDs as pagination cursor
+        if (beforeCursor?.startsWith("temp-") == true) return
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMore = true) }
-            
+
             val url = appConfig.buildApiUrl(
                 "inbox", "threads", threadId, "messages",
                 queryParams = mapOf(
@@ -73,7 +89,7 @@ class ThreadViewModel @Inject constructor(
                     "before" to beforeCursor
                 )
             )
-            
+
             when (val result = apiClient.get(url, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val (messages, nextCursor) = parseMessagesResponse(result.data)
@@ -95,17 +111,33 @@ class ThreadViewModel @Inject constructor(
     
     fun sendMessage(text: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true) }
-            
+            // iOS PR #205 parity: optimistic temp bubble + idempotency key
+            val tempId = "temp-${UUID.randomUUID()}"
+            val idempotencyKey = UUID.randomUUID().toString()
+            pendingTempIds.add(tempId)
+            idempotencyKeyByTempId[tempId] = idempotencyKey
+
+            val tempMessage = ThreadMessage(
+                id = tempId,
+                text = text,
+                senderId = currentUserId,
+                isFromCurrentUser = true,
+                formattedTime = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()),
+                attachments = emptyList()
+            )
+            _uiState.update { it.copy(isSending = true, messages = it.messages + tempMessage) }
+
             val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
             val body = json.encodeToString(
                 SendMessageRequest.serializer(),
-                SendMessageRequest(text = text)
+                SendMessageRequest(text = text, idempotencyKey = idempotencyKey)
             )
-            
+
             when (val result = apiClient.post(url, body, includeAuth = true)) {
                 is ApiResult.Success -> {
-                    // Refetch messages after sending (iOS parity)
+                    // Replace temp bubble with real message or just refresh
+                    pendingTempIds.remove(tempId)
+                    idempotencyKeyByTempId.remove(tempId)
                     refresh()
                     _uiState.update { it.copy(isSending = false) }
                 }
@@ -113,6 +145,85 @@ class ThreadViewModel @Inject constructor(
                     Timber.e("Failed to send message: ${result.error.message}")
                     _uiState.update { it.copy(isSending = false, sendError = result.error.message) }
                 }
+            }
+        }
+    }
+
+    /**
+     * Send media attachments (iOS PR #207 parity: photo/video sharing in chat).
+     * Uses multipart/form-data upload to /inbox/threads/:id/messages
+     */
+    fun sendMedia(fileData: ByteArray, fileName: String, mimeType: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSending = true) }
+
+            val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
+            val fileBody = fileData.toRequestBody(mimeType.toMediaType())
+            val filePart = MultipartBody.Part.createFormData("file", fileName, fileBody)
+
+            when (val result = apiClient.postMultipart(url, listOf(filePart), includeAuth = true)) {
+                is ApiResult.Success -> {
+                    refresh()
+                    _uiState.update { it.copy(isSending = false) }
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Failed to send media: ${result.error.message}")
+                    _uiState.update { it.copy(isSending = false, sendError = result.error.message) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if attachments are enabled for this thread (iOS PR #207 parity).
+     * Calls GET /inbox/threads/:id/attachment-status
+     */
+    fun checkAttachmentStatus() {
+        viewModelScope.launch {
+            val url = appConfig.buildApiUrl("inbox", "threads", threadId, "attachment-status")
+            when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    try {
+                        val element = json.parseToJsonElement(result.data)
+                        val obj = element.jsonObject
+                        val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: false
+                        val reason = obj["reason"]?.jsonPrimitive?.content
+                        _uiState.update { it.copy(attachmentsEnabled = enabled, attachmentDisabledReason = reason) }
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to parse attachment status")
+                    }
+                }
+                is ApiResult.Failure -> {
+                    _uiState.update { it.copy(attachmentsEnabled = false) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Send media from a content URI (iOS PR #207 parity).
+     * Reads file data from ContentResolver and calls sendMedia.
+     */
+    fun sendMediaFromUri(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val contentResolver = context.contentResolver
+                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
+                val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    cursor.moveToFirst()
+                    if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                } ?: "attachment"
+
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null) {
+                    sendMedia(bytes, fileName, mimeType)
+                } else {
+                    _uiState.update { it.copy(sendError = "Could not read selected file") }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to read media URI")
+                _uiState.update { it.copy(sendError = "Failed to read selected file") }
             }
         }
     }
@@ -130,12 +241,15 @@ class ThreadViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val (messages, nextCursor) = parseMessagesResponse(result.data)
                     beforeCursor = nextCursor
+                    // Derive opponent ID from messages if not set from thread info
+                    val opponentId = messages.firstOrNull { it.senderId != null && it.senderId != currentUserId }?.senderId
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             messages = messages,
                             hasMore = nextCursor != null,
-                            error = null
+                            error = null,
+                            participantId = it.participantId ?: opponentId
                         )
                     }
                 }
@@ -167,18 +281,22 @@ class ThreadViewModel @Inject constructor(
     }
     
     /**
-     * Parse messages response with tolerant decoding
+     * Parse messages response with tolerant decoding.
+     * iOS PR #205 parity: handle { items: [...] } wrapper in addition to
+     * existing { data: [...] } and { messages: [...] } formats.
      */
     private fun parseMessagesResponse(responseBody: String): Pair<List<ThreadMessage>, String?> {
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
-            val messagesArray = obj["data"]?.jsonArray
+
+            val messagesArray = obj["items"]?.jsonArray
+                ?: obj["data"]?.jsonArray
                 ?: obj["messages"]?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("messages")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
                 ?: return Pair(emptyList(), null)
-            
+
             val messages = messagesArray.mapNotNull { message ->
                 try {
                     parseMessage(message.jsonObject)
@@ -187,10 +305,10 @@ class ThreadViewModel @Inject constructor(
                     null
                 }
             }
-            
+
             val nextCursor = obj["before"]?.jsonPrimitive?.content
                 ?: obj["nextCursor"]?.jsonPrimitive?.content
-            
+
             Pair(messages, nextCursor)
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse messages response")
@@ -202,30 +320,54 @@ class ThreadViewModel @Inject constructor(
         val id = obj["_id"]?.jsonPrimitive?.content
             ?: obj["id"]?.jsonPrimitive?.content
             ?: return null
-        
+
         val text = obj["text"]?.jsonPrimitive?.content
             ?: obj["content"]?.jsonPrimitive?.content
             ?: obj["body"]?.jsonPrimitive?.content
             ?: ""
-        
-        // Get sender info
-        val sender = obj["sender"]?.jsonObject
-            ?: obj["from"]?.jsonObject
-            ?: obj["user"]?.jsonObject
-        
-        val senderId = sender?.get("_id")?.jsonPrimitive?.content
-            ?: sender?.get("id")?.jsonPrimitive?.content
-            ?: obj["senderId"]?.jsonPrimitive?.content
-        
+
+        // iOS PR #201 parity: senderId can be a populated Member object OR a plain string
+        val senderId = try {
+            val senderElement = obj["sender"] ?: obj["senderId"] ?: obj["from"]
+            when {
+                senderElement == null -> null
+                // Try as object first (populated Member)
+                senderElement is kotlinx.serialization.json.JsonObject -> {
+                    senderElement.jsonObject["_id"]?.jsonPrimitive?.content
+                        ?: senderElement.jsonObject["id"]?.jsonPrimitive?.content
+                }
+                // Then as plain string
+                else -> try { senderElement.jsonPrimitive.content } catch (_: Exception) { null }
+            }
+        } catch (_: Exception) {
+            obj["senderId"]?.jsonPrimitive?.content
+        }
+
         val timestamp = obj["createdAt"]?.jsonPrimitive?.content
             ?: obj["timestamp"]?.jsonPrimitive?.content
-        
+
+        // iOS PR #207 parity: parse attachments array
+        val attachments = try {
+            obj["attachments"]?.jsonArray?.mapNotNull { att ->
+                try {
+                    val attObj = att.jsonObject
+                    MessageAttachment(
+                        url = attObj["url"]?.jsonPrimitive?.content ?: return@mapNotNull null,
+                        type = attObj["type"]?.jsonPrimitive?.content ?: "image",
+                        fileName = attObj["fileName"]?.jsonPrimitive?.content
+                            ?: attObj["filename"]?.jsonPrimitive?.content
+                    )
+                } catch (_: Exception) { null }
+            } ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+
         return ThreadMessage(
             id = id,
             text = text,
             senderId = senderId,
             isFromCurrentUser = senderId == currentUserId,
-            formattedTime = formatTimestamp(timestamp)
+            formattedTime = formatTimestamp(timestamp),
+            attachments = attachments
         )
     }
     
@@ -236,28 +378,43 @@ class ThreadViewModel @Inject constructor(
             
             val data = obj["data"]?.jsonObject ?: obj
             
-            val participant = data["participant"]?.jsonObject
+            val participant = data["opponent"]?.jsonObject
+                ?: data["participant"]?.jsonObject
                 ?: data["otherUser"]?.jsonObject
-            
+
             val participantName = participant?.get("name")?.jsonPrimitive?.content
                 ?: participant?.let {
-                    val firstName = it["firstName"]?.jsonPrimitive?.content ?: ""
-                    val lastName = it["lastName"]?.jsonPrimitive?.content ?: ""
+                    val firstName = it["first_name"]?.jsonPrimitive?.content
+                        ?: it["firstName"]?.jsonPrimitive?.content ?: ""
+                    val lastName = it["last_name"]?.jsonPrimitive?.content
+                        ?: it["lastName"]?.jsonPrimitive?.content ?: ""
                     "$firstName $lastName".trim().ifEmpty { "User" }
                 }
                 ?: "User"
-            
-            val participantAvatar = participant?.get("avatar")?.jsonPrimitive?.content
+
+            val participantAvatar = try {
+                participant?.get("profilePic")?.jsonPrimitive?.content
+            } catch (_: Exception) {
+                try {
+                    participant?.get("profilePic")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                } catch (_: Exception) { null }
+            }
+                ?: participant?.get("avatarUrl")?.jsonPrimitive?.content
+                ?: participant?.get("avatar")?.jsonPrimitive?.content
                 ?: participant?.get("profileImage")?.jsonPrimitive?.content
-            
+
+            val participantId = participant?.get("_id")?.jsonPrimitive?.content
+                ?: participant?.get("id")?.jsonPrimitive?.content
+
             val listing = data["listing"]?.jsonObject
             val listingName = listing?.get("name")?.jsonPrimitive?.content
                 ?: listing?.get("title")?.jsonPrimitive?.content
-            
+
             _uiState.update {
                 it.copy(
                     participantName = participantName,
                     participantAvatar = participantAvatar,
+                    participantId = participantId,
                     listingName = listingName
                 )
             }
@@ -306,21 +463,35 @@ data class ThreadUiState(
     val messages: List<ThreadMessage> = emptyList(),
     val participantName: String = "",
     val participantAvatar: String? = null,
+    val participantId: String? = null,
     val listingName: String? = null,
     val hasMore: Boolean = false,
     val error: String? = null,
-    val sendError: String? = null
+    val sendError: String? = null,
+    // iOS PR #207 parity: attachment support
+    val attachmentsEnabled: Boolean = false,
+    val attachmentDisabledReason: String? = null
 )
 
 /**
- * Thread message model
+ * Thread message model (iOS PR #207 parity: attachments)
  */
 data class ThreadMessage(
     val id: String,
     val text: String,
     val senderId: String?,
     val isFromCurrentUser: Boolean,
-    val formattedTime: String
+    val formattedTime: String,
+    val attachments: List<MessageAttachment> = emptyList()
+)
+
+/**
+ * Attachment model for media messages (iOS PR #207 parity)
+ */
+data class MessageAttachment(
+    val url: String,
+    val type: String = "image", // "image" or "video"
+    val fileName: String? = null
 )
 
 /**
@@ -329,7 +500,8 @@ data class ThreadMessage(
 @Serializable
 data class SendMessageRequest(
     val text: String,
-    val attachments: List<String> = emptyList()
+    val attachments: List<String> = emptyList(),
+    val idempotencyKey: String? = null
 )
 
 

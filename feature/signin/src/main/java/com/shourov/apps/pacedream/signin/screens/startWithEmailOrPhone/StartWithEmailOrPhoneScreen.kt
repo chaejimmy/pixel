@@ -21,12 +21,9 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -120,18 +117,6 @@ fun StartWithEmailOrPhoneScreen(
             contentAlignment = Alignment.BottomCenter,
         ) {
             Column {
-                // Toggle email/phone
-                SignInButton(
-                    logo = if (startWithPhone) R.drawable.google_gmail else null,
-                    icon = if (!startWithPhone) PaceDreamIcons.PhoneAndroid else null,
-                    text = if (startWithPhone) R.string.core_ui_continue_with_email else R.string.core_ui_continue_with_phone,
-                    onClick = { startWithPhone = !startWithPhone },
-                    modifier = Modifier.fillMaxWidth(),
-                    isLoading = false,
-                )
-
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
                 // Continue with Google (Auth0 social connection)
                 SignInButton(
                     logo = R.drawable.google_logo,
@@ -149,27 +134,16 @@ fun StartWithEmailOrPhoneScreen(
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-                // Continue with Apple (Auth0 social connection) - iOS parity
+                // Toggle email/phone
                 SignInButton(
-                    logo = null,
-                    icon = PaceDreamIcons.PhoneAndroid,
-                    text = R.string.core_ui_continue_with_google,
-                    onClick = {
-                        authViewModel.loginWithApple(
-                            activity = activity,
-                            onSuccess = { onAuthSuccess() },
-                            onError = { /* Error shown via uiState */ }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            bottom = WindowInsets.systemBars
-                                .asPaddingValues()
-                                .calculateBottomPadding(),
-                        ),
-                    isLoading = uiState.isAppleLoading,
+                    logo = if (startWithPhone) R.drawable.google_gmail else null,
+                    icon = if (!startWithPhone) PaceDreamIcons.PhoneAndroid else null,
+                    text = if (startWithPhone) R.string.core_ui_continue_with_email else R.string.core_ui_continue_with_phone,
+                    onClick = { startWithPhone = !startWithPhone },
+                    modifier = Modifier.fillMaxWidth(),
+                    isLoading = false,
                 )
+
             }
         }
     }

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.buttons.OutlineProcessButton
 import com.pacedream.common.composables.buttons.ProcessButton
 import com.shourov.apps.pacedream.core.data.AccountCreationProcess
 import com.shourov.apps.pacedream.core.data.AccountSetupScreenData
@@ -181,13 +181,12 @@ fun SetupContent(
                     ),
             ) {
                 if (shouldShowPreviousButton) {
-                    OutlinedButton(
+                    OutlineProcessButton(
                         modifier = Modifier
                             .weight(1f),
                         onClick = onPreviousPressed,
-                    ) {
-                        Text(text = stringResource(id = R.string.feature_signin_ui_previous))
-                    }
+                        text = stringResource(id = R.string.feature_signin_ui_previous),
+                    )
                     Spacer(modifier = Modifier.width(16.dp))
                 }
                 val buttonText =

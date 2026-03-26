@@ -6,13 +6,15 @@ data class HomeCard(
     val location: String?,
     val imageUrl: String?,
     val priceText: String?,
-    val rating: Double?
+    val rating: Double?,
+    /** Subcategory / room_type / item_type — used for client-side resource type filtering. */
+    val subCategory: String? = null,
 )
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
-    HOURLY("Hourly spaces", "USE"),
-    GEAR("Rent gear", "BORROW"),
-    SPLIT("Split stays", "SPLIT")
+    SPACES("Spaces", "SHARE"),
+    ITEMS("Items", "BORROW"),
+    SERVICES("Services", "SHARE"),
 }
 
 data class HomeSection(
@@ -24,12 +26,12 @@ data class HomeSection(
 
 data class HomeFeedState(
     val isRefreshing: Boolean = false,
-    val headerTitle: String = "One place to share it all",
-    val headerSubtitle: String = "Book, share, or split stays, time, and spaces—on one platform.",
+    val headerTitle: String = "Discover",
+    val headerSubtitle: String = "Find spaces, items, and services — only for the time you need.",
     val sections: List<HomeSection> = listOf(
-        HomeSection(HomeSectionKey.HOURLY, emptyList(), isLoading = true),
-        HomeSection(HomeSectionKey.GEAR, emptyList(), isLoading = true),
-        HomeSection(HomeSectionKey.SPLIT, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.SPACES, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.ITEMS, emptyList(), isLoading = true),
+        HomeSection(HomeSectionKey.SERVICES, emptyList(), isLoading = true),
     ),
     val globalErrorMessage: String? = null
 )

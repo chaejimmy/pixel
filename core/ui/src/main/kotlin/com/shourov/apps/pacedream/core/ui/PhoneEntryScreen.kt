@@ -20,8 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -107,7 +107,7 @@ fun PhoneEntryScreen(
             },
         )
         Spacer(modifier = Modifier.height(14.dp))
-        Button(
+        ProcessButton(
             onClick = {
                 phoneNumberState.enableShowErrors()
 //                if (phoneNumberState.isValid) {
@@ -116,12 +116,9 @@ fun PhoneEntryScreen(
                 onNavigateToAccountSetup()
             },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding())
-            ,
-        ) {
-            Text(text = stringResource(id = CoreUiR.string.core_ui_continue_button))
-        }
+                .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
+            text = stringResource(id = CoreUiR.string.core_ui_continue_button),
+        )
     }
 }
 

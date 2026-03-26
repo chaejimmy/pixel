@@ -3,191 +3,289 @@ package com.shourov.apps.pacedream.feature.booking.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
-import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.feature.booking.model.BookingItem
+import com.shourov.apps.pacedream.feature.booking.model.BookingRole
+import com.shourov.apps.pacedream.feature.booking.model.BookingStatusFilter
+import com.shourov.apps.pacedream.feature.booking.model.BookingTabEvent
+import com.shourov.apps.pacedream.feature.booking.model.BookingTabUiState
 import com.shourov.apps.pacedream.model.BookingStatus
-import java.text.SimpleDateFormat
-import java.util.*
 
+/**
+ * Bookings tab screen with Trips / Hosting role tabs.
+ *
+ * Mirrors the web platform which uses:
+ *   GET /account/bookings?role=renter   (Trips)
+ *   GET /account/bookings?role=host     (Hosting)
+ *
+ * The authenticated user and the selected role (user/host) are sent with
+ * every fetch so the backend returns the correct scoped data.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingTabScreen(
     onBookingClick: (String) -> Unit = {},
-    onNewBookingClick: () -> Unit = {}
+    onNewBookingClick: () -> Unit = {},
+    onShowAuthSheet: () -> Unit = {}
 ) {
-    val bookingTabs = listOf("Upcoming", "Past", "Cancelled")
-    var selectedTab by remember { mutableStateOf(0) }
-    
-    // Sample data - replace with actual data from ViewModel
-    val upcomingBookings = remember {
-        listOf(
-            BookingModel(
-                id = "1",
-                propertyId = "prop1",
-                userId = "user1",
-                hostId = "host1",
-                startDate = "2024-02-15",
-                endDate = "2024-02-18",
-                totalPrice = 450.0,
-                status = BookingStatus.CONFIRMED,
-                guestCount = 2,
-                createdAt = "2024-01-15T10:00:00Z",
-                updatedAt = "2024-01-15T10:00:00Z"
-            ),
-            BookingModel(
-                id = "2",
-                propertyId = "prop2",
-                userId = "user1",
-                hostId = "host2",
-                startDate = "2024-03-01",
-                endDate = "2024-03-05",
-                totalPrice = 320.0,
-                status = BookingStatus.CONFIRMED,
-                guestCount = 1,
-                createdAt = "2024-01-20T14:30:00Z",
-                updatedAt = "2024-01-20T14:30:00Z"
-            )
-        )
+    val viewModel: BookingTabViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Role tabs: Trips (renter) and Hosting (host) — matching the web
+    val roleTabs = BookingRole.entries
+    var selectedRoleIndex by remember { mutableIntStateOf(0) }
+
+    // Listen for navigation events
+    LaunchedEffect(Unit) {
+        viewModel.navigation.collect { nav ->
+            when (nav) {
+                is BookingTabNavigation.ToBookingDetail -> onBookingClick(nav.bookingId)
+            }
+        }
     }
-    
-    val pastBookings = remember {
-        listOf(
-            BookingModel(
-                id = "3",
-                propertyId = "prop3",
-                userId = "user1",
-                hostId = "host3",
-                startDate = "2023-12-10",
-                endDate = "2023-12-15",
-                totalPrice = 280.0,
-                status = BookingStatus.COMPLETED,
-                guestCount = 2,
-                createdAt = "2023-11-15T09:00:00Z",
-                updatedAt = "2023-12-15T12:00:00Z"
-            )
-        )
-    }
-    
-    val cancelledBookings = remember {
-        listOf(
-            BookingModel(
-                id = "4",
-                propertyId = "prop4",
-                userId = "user1",
-                hostId = "host4",
-                startDate = "2024-01-05",
-                endDate = "2024-01-08",
-                totalPrice = 180.0,
-                status = BookingStatus.CANCELLED,
-                guestCount = 1,
-                createdAt = "2023-12-20T16:45:00Z",
-                updatedAt = "2024-01-02T10:30:00Z"
-            )
-        )
-    }
-    
-    val currentBookings = when (selectedTab) {
-        0 -> upcomingBookings
-        1 -> pastBookings
-        2 -> cancelledBookings
-        else -> emptyList()
-    }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
-        // Header
+        // Header — compact, no extra outer padding
         PaceDreamHeroHeader(
-            title = "My Bookings",
-            subtitle = "Manage your reservations",
-            modifier = Modifier.padding(PaceDreamSpacing.LG)
+            title = "Bookings",
+            subtitle = "Manage your reservations"
         )
-        
-        // Tab Row
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+
+        // Role Tab Row: Trips | Hosting (matches web's Trips / Hosting tabs)
         TabRow(
-            selectedTabIndex = selectedTab,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
+            selectedTabIndex = selectedRoleIndex,
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
             containerColor = PaceDreamColors.Card,
             contentColor = PaceDreamColors.Primary,
             indicator = { tabPositions ->
                 TabRowDefaults.Indicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedRoleIndex]),
                     color = PaceDreamColors.Primary,
                     height = 3.dp
                 )
             }
         ) {
-            bookingTabs.forEachIndexed { index, title ->
+            roleTabs.forEachIndexed { index, role ->
                 Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
+                    selected = selectedRoleIndex == index,
+                    onClick = {
+                        selectedRoleIndex = index
+                        viewModel.onEvent(BookingTabEvent.RoleChanged(role))
+                    },
                     text = {
                         Text(
-                            text = title,
+                            text = role.displayName,
                             style = PaceDreamTypography.Callout.copy(
-                                fontWeight = if (selectedTab == index) 
-                                    FontWeight.SemiBold 
-                                else 
+                                fontWeight = if (selectedRoleIndex == index)
+                                    FontWeight.SemiBold
+                                else
                                     FontWeight.Normal
                             ),
-                            color = if (selectedTab == index) 
-                                PaceDreamColors.Primary 
-                            else 
+                            color = if (selectedRoleIndex == index)
+                                PaceDreamColors.Primary
+                            else
                                 PaceDreamColors.TextSecondary
                         )
                     }
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        
-        // Content
-        if (currentBookings.isEmpty()) {
-            PaceDreamEmptyState(
-                icon = PaceDreamIcons.CalendarToday,
-                title = when (selectedTab) {
-                    0 -> "No upcoming bookings"
-                    1 -> "No past bookings"
-                    2 -> "No cancelled bookings"
-                    else -> "No bookings found"
-                },
-                description = when (selectedTab) {
-                    0 -> "Start exploring and book your next stay"
-                    1 -> "Your completed trips will appear here"
-                    2 -> "Cancelled bookings will appear here"
-                    else -> "No bookings to show"
-                },
-                actionText = if (selectedTab == 0) "Explore Properties" else null,
-                onActionClick = if (selectedTab == 0) onNewBookingClick else null
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(PaceDreamSpacing.LG),
-                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
-            ) {
-                items(currentBookings) { booking ->
-                    BookingCard(
-                        booking = booking,
-                        onClick = { onBookingClick(booking.id) }
+
+        // Content based on UI state
+        when (val state = uiState) {
+            is BookingTabUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
+                }
+            }
+
+            is BookingTabUiState.RequiresAuth -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = PaceDreamSpacing.LG),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
+
+                    Icon(
+                        imageVector = PaceDreamIcons.Lock,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextTertiary,
+                        modifier = Modifier.size(PaceDreamIconSize.XXL)
                     )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    Text(
+                        text = "Sign in to view bookings",
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Your trips and hosting bookings will appear here",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                    Button(
+                        onClick = onShowAuthSheet,
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        modifier = Modifier.height(PaceDreamButtonHeight.LG),
+                        contentPadding = PaddingValues(
+                            horizontal = PaceDreamSpacing.XL,
+                            vertical = PaceDreamSpacing.SM2
+                        )
+                    ) {
+                        Text(
+                            "Sign In",
+                            style = PaceDreamTypography.Button,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            is BookingTabUiState.Error -> {
+                PaceDreamEmptyState(
+                    icon = PaceDreamIcons.Error,
+                    title = "Something went wrong",
+                    description = state.message,
+                    actionText = "Try Again",
+                    onActionClick = { viewModel.onEvent(BookingTabEvent.Refresh) }
+                )
+            }
+
+            is BookingTabUiState.Empty -> {
+                val currentRole = roleTabs[selectedRoleIndex]
+                PaceDreamEmptyState(
+                    icon = PaceDreamIcons.CalendarToday,
+                    title = if (currentRole == BookingRole.RENTER)
+                        "No trips yet"
+                    else
+                        "No hosting bookings yet",
+                    description = if (currentRole == BookingRole.RENTER)
+                        "Start exploring and book your next stay"
+                    else
+                        "Bookings from your guests will appear here",
+                    actionText = if (currentRole == BookingRole.RENTER) "Explore Properties" else null,
+                    onActionClick = if (currentRole == BookingRole.RENTER) onNewBookingClick else null
+                )
+            }
+
+            is BookingTabUiState.Success -> {
+                // iOS-parity: Status filter chips (All / Upcoming / Past / Cancelled)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = PaceDreamSpacing.LG),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    BookingStatusFilter.entries.forEach { filter ->
+                        FilterChip(
+                            selected = state.statusFilter == filter,
+                            onClick = { viewModel.onEvent(BookingTabEvent.StatusFilterChanged(filter)) },
+                            label = {
+                                Text(
+                                    text = filter.displayName,
+                                    style = PaceDreamTypography.Caption,
+                                    fontWeight = if (state.statusFilter == filter) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PaceDreamColors.Primary,
+                                selectedLabelColor = PaceDreamColors.OnPrimary,
+                                containerColor = PaceDreamColors.Card,
+                                labelColor = PaceDreamColors.TextSecondary
+                            ),
+                            shape = RoundedCornerShape(PaceDreamRadius.Round)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = { viewModel.onEvent(BookingTabEvent.Refresh) },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (state.filteredBookings.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No ${state.statusFilter.displayName.lowercase()} bookings",
+                                style = PaceDreamTypography.Body,
+                                color = PaceDreamColors.TextSecondary
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(PaceDreamSpacing.LG),
+                            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+                        ) {
+                            items(state.filteredBookings, key = { it.id }) { booking ->
+                                BookingItemCard(
+                                    booking = booking,
+                                    role = state.role,
+                                    onClick = { viewModel.onEvent(BookingTabEvent.BookingClicked(booking.id)) }
+                                )
+                            }
+
+                            // Load more trigger
+                            if (state.hasMore && state.statusFilter == BookingStatusFilter.ALL) {
+                                item {
+                                    LaunchedEffect(Unit) {
+                                        viewModel.onEvent(BookingTabEvent.LoadMore)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(PaceDreamSpacing.MD),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = PaceDreamColors.Primary,
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -195,8 +293,9 @@ fun BookingTabScreen(
 }
 
 @Composable
-fun BookingCard(
-    booking: BookingModel,
+private fun BookingItemCard(
+    booking: BookingItem,
+    role: BookingRole,
     onClick: () -> Unit
 ) {
     Card(
@@ -204,7 +303,8 @@ fun BookingCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.LG)),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM)
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.LG)
@@ -216,24 +316,26 @@ fun BookingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Booking #${booking.id.takeLast(6)}",
+                    text = booking.propertyName.ifBlank { "Booking #${booking.id.takeLast(6)}" },
                     style = PaceDreamTypography.Headline,
-                    color = PaceDreamColors.TextPrimary
+                    color = PaceDreamColors.TextPrimary,
+                    modifier = Modifier.weight(1f)
                 )
-                
+
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
                 PaceDreamStatusChip(
                     status = booking.status.name,
                     isActive = booking.status == BookingStatus.CONFIRMED
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            // Property info
+
+            // Property info row
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Property image placeholder
                 Box(
                     modifier = Modifier
                         .size(60.dp)
@@ -248,27 +350,39 @@ fun BookingCard(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                
+
                 Column {
-                    Text(
-                        text = "Beautiful Apartment",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Downtown Location",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
+                    // Show host or guest name depending on role
+                    val personLabel = if (role == BookingRole.RENTER) {
+                        if (booking.hostName.isNotBlank()) "Host: ${booking.hostName}" else null
+                    } else {
+                        if (booking.guestName.isNotBlank()) "Guest: ${booking.guestName}" else null
+                    }
+
+                    personLabel?.let {
+                        Text(
+                            text = it,
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    booking.location?.let { loc ->
+                        Text(
+                            text = loc,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
-            // Booking details
+
+            // Booking details: dates and price
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -280,13 +394,13 @@ fun BookingCard(
                         color = PaceDreamColors.TextSecondary
                     )
                     Text(
-                        text = formatDate(booking.startDate),
+                        text = booking.formattedStartDate.ifBlank { "-" },
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                
+
                 Column {
                     Text(
                         text = "Check-out",
@@ -294,13 +408,13 @@ fun BookingCard(
                         color = PaceDreamColors.TextSecondary
                     )
                     Text(
-                        text = formatDate(booking.endDate),
+                        text = booking.formattedEndDate.ifBlank { "-" },
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                
+
                 Column {
                     Text(
                         text = "Total",
@@ -308,16 +422,16 @@ fun BookingCard(
                         color = PaceDreamColors.TextSecondary
                     )
                     Text(
-                        text = "$${String.format("%.0f", booking.totalPrice)}",
+                        text = booking.formattedPrice,
                         style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            
+
             // Guest count
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -330,22 +444,11 @@ fun BookingCard(
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                 Text(
-                    text = "${booking.guestCount} guest${if (booking.guestCount > 1) "s" else ""}",
+                    text = booking.guestLabel,
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary
                 )
             }
         }
-    }
-}
-
-private fun formatDate(dateString: String): String {
-    return try {
-        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val outputFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
-        val date = inputFormat.parse(dateString)
-        outputFormat.format(date ?: Date())
-    } catch (e: Exception) {
-        dateString
     }
 }

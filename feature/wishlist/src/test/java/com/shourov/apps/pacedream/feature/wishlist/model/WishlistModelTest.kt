@@ -24,8 +24,18 @@ class WishlistModelTest {
     }
 
     @Test
-    fun `fromString returns TIME_BASED for USE uppercase`() {
-        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("USE"))
+    fun `fromString returns TIME_BASED for SHARE uppercase`() {
+        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("SHARE"))
+    }
+
+    @Test
+    fun `fromString returns TIME_BASED for short`() {
+        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("short"))
+    }
+
+    @Test
+    fun `fromString returns TIME_BASED for hourly`() {
+        assertEquals(WishlistItemType.TIME_BASED, WishlistItemType.fromString("hourly"))
     }
 
     @Test
@@ -49,6 +59,11 @@ class WishlistModelTest {
     }
 
     @Test
+    fun `fromString returns HOURLY_GEAR for parking`() {
+        assertEquals(WishlistItemType.HOURLY_GEAR, WishlistItemType.fromString("parking"))
+    }
+
+    @Test
     fun `fromString returns SPLIT_STAY for split`() {
         assertEquals(WishlistItemType.SPLIT_STAY, WishlistItemType.fromString("split"))
     }
@@ -61,6 +76,12 @@ class WishlistModelTest {
     @Test
     fun `fromString returns SPLIT_STAY for roommate`() {
         assertEquals(WishlistItemType.SPLIT_STAY, WishlistItemType.fromString("roommate"))
+    }
+
+    @Test
+    fun `fromString returns null for plain room`() {
+        // "room" alone is too generic; only "room-stay" should match SPLIT_STAY
+        assertNull(WishlistItemType.fromString("room"))
     }
 
     @Test
@@ -90,19 +111,19 @@ class WishlistModelTest {
     @Test
     fun `TIME_BASED has correct apiValue and displayName`() {
         assertEquals("time-based", WishlistItemType.TIME_BASED.apiValue)
-        assertEquals("Hourly Spaces", WishlistItemType.TIME_BASED.displayName)
+        assertEquals("Spaces", WishlistItemType.TIME_BASED.displayName)
     }
 
     @Test
     fun `HOURLY_GEAR has correct apiValue and displayName`() {
         assertEquals("hourly-gear", WishlistItemType.HOURLY_GEAR.apiValue)
-        assertEquals("Rent Gear", WishlistItemType.HOURLY_GEAR.displayName)
+        assertEquals("Items", WishlistItemType.HOURLY_GEAR.displayName)
     }
 
     @Test
     fun `SPLIT_STAY has correct apiValue and displayName`() {
         assertEquals("room-stay", WishlistItemType.SPLIT_STAY.apiValue)
-        assertEquals("Split Stays", WishlistItemType.SPLIT_STAY.displayName)
+        assertEquals("Services", WishlistItemType.SPLIT_STAY.displayName)
     }
 
     // ── WishlistItem ────────────────────────────────────────────────
@@ -117,6 +138,12 @@ class WishlistModelTest {
     fun `WishlistItem formattedPrice with null price`() {
         val item = createItem(price = null)
         assertEquals("", item.formattedPrice)
+    }
+
+    @Test
+    fun `WishlistItem formattedPrice with priceUnit`() {
+        val item = createItem(price = 25.0, priceUnit = "hourly")
+        assertEquals("$25/hr", item.formattedPrice)
     }
 
     @Test
@@ -151,30 +178,30 @@ class WishlistModelTest {
     }
 
     @Test
-    fun `WishlistFilter HOURLY matches only TIME_BASED`() {
+    fun `WishlistFilter SPACES matches only TIME_BASED`() {
         val timeBased = createItem(itemType = WishlistItemType.TIME_BASED)
         val gear = createItem(itemType = WishlistItemType.HOURLY_GEAR)
 
-        assertTrue(WishlistFilter.HOURLY.matches(timeBased))
-        assertFalse(WishlistFilter.HOURLY.matches(gear))
+        assertTrue(WishlistFilter.SPACES.matches(timeBased))
+        assertFalse(WishlistFilter.SPACES.matches(gear))
     }
 
     @Test
-    fun `WishlistFilter GEAR matches only HOURLY_GEAR`() {
+    fun `WishlistFilter ITEMS matches only HOURLY_GEAR`() {
         val gear = createItem(itemType = WishlistItemType.HOURLY_GEAR)
         val timeBased = createItem(itemType = WishlistItemType.TIME_BASED)
 
-        assertTrue(WishlistFilter.GEAR.matches(gear))
-        assertFalse(WishlistFilter.GEAR.matches(timeBased))
+        assertTrue(WishlistFilter.ITEMS.matches(gear))
+        assertFalse(WishlistFilter.ITEMS.matches(timeBased))
     }
 
     @Test
-    fun `WishlistFilter SPLIT matches only SPLIT_STAY`() {
+    fun `WishlistFilter SERVICES matches only SPLIT_STAY`() {
         val split = createItem(itemType = WishlistItemType.SPLIT_STAY)
         val gear = createItem(itemType = WishlistItemType.HOURLY_GEAR)
 
-        assertTrue(WishlistFilter.SPLIT.matches(split))
-        assertFalse(WishlistFilter.SPLIT.matches(gear))
+        assertTrue(WishlistFilter.SERVICES.matches(split))
+        assertFalse(WishlistFilter.SERVICES.matches(gear))
     }
 
     // ── WishlistUiState ─────────────────────────────────────────────
@@ -186,7 +213,7 @@ class WishlistModelTest {
             createItem(id = "2", itemType = WishlistItemType.HOURLY_GEAR),
             createItem(id = "3", itemType = WishlistItemType.SPLIT_STAY)
         )
-        val state = WishlistUiState.Success(items, WishlistFilter.GEAR)
+        val state = WishlistUiState.Success(items, WishlistFilter.ITEMS)
         assertEquals(1, state.filteredItems.size)
         assertEquals("2", state.filteredItems[0].id)
     }
@@ -194,7 +221,7 @@ class WishlistModelTest {
     @Test
     fun `WishlistUiState Success isEmpty true for filtered empty`() {
         val items = listOf(createItem(itemType = WishlistItemType.TIME_BASED))
-        val state = WishlistUiState.Success(items, WishlistFilter.GEAR)
+        val state = WishlistUiState.Success(items, WishlistFilter.ITEMS)
         assertTrue(state.isEmpty)
     }
 
@@ -216,9 +243,9 @@ class WishlistModelTest {
     @Test
     fun `WishlistFilter has correct display names`() {
         assertEquals("All", WishlistFilter.ALL.displayName)
-        assertEquals("Hourly", WishlistFilter.HOURLY.displayName)
-        assertEquals("Gear", WishlistFilter.GEAR.displayName)
-        assertEquals("Split", WishlistFilter.SPLIT.displayName)
+        assertEquals("Spaces", WishlistFilter.SPACES.displayName)
+        assertEquals("Items", WishlistFilter.ITEMS.displayName)
+        assertEquals("Services", WishlistFilter.SERVICES.displayName)
     }
 
     // ── Helpers ─────────────────────────────────────────────────────
@@ -227,6 +254,7 @@ class WishlistModelTest {
         id: String = "item1",
         itemType: WishlistItemType = WishlistItemType.TIME_BASED,
         price: Double? = null,
+        priceUnit: String? = null,
         rating: Double? = null
     ) = WishlistItem(
         id = id,
@@ -235,6 +263,7 @@ class WishlistModelTest {
         description = null,
         imageUrl = null,
         price = price,
+        priceUnit = priceUnit,
         itemType = itemType,
         location = null,
         rating = rating

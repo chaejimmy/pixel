@@ -5,482 +5,268 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
-import com.shourov.apps.pacedream.feature.host.data.HostBookingsData
-import com.shourov.apps.pacedream.model.BookingModel
-import com.shourov.apps.pacedream.model.BookingStatus
+import com.shourov.apps.pacedream.feature.host.data.HostBookingDTO
+import com.shourov.apps.pacedream.feature.host.presentation.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostBookingsScreen(
     onBookingClick: (String) -> Unit = {},
-    onAcceptBookingClick: (String) -> Unit = {},
-    onRejectBookingClick: (String) -> Unit = {},
-    onCancelBookingClick: (String) -> Unit = {},
     viewModel: HostBookingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LazyColumn(
+
+    PullToRefreshBox(
+        isRefreshing = uiState.isLoading,
+        onRefresh = { viewModel.refreshData() },
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
     ) {
-        // Bookings Header
-        item {
-            HostBookingsHeader(
-                totalBookings = uiState.totalBookings,
-                pendingBookings = uiState.pendingBookings
-            )
-        }
-        
-        // Booking Status Tabs
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            BookingStatusTabs(
-                selectedStatus = uiState.selectedStatus,
-                onStatusChanged = { viewModel.updateStatus(it) }
-            )
-        }
-        
-        // Bookings Content
-        item {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            if (uiState.bookings.isEmpty()) {
-                EmptyBookingsState()
-            } else {
-                BookingsContent(
-                    bookings = uiState.bookings,
-                    onBookingClick = onBookingClick,
-                    onAcceptBookingClick = onAcceptBookingClick,
-                    onRejectBookingClick = onRejectBookingClick,
-                    onCancelBookingClick = onCancelBookingClick
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun HostBookingsHeader(
-    totalBookings: Int,
-    pendingBookings: Int
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(
-                        PaceDreamColors.Info,
-                        PaceDreamColors.Info.copy(alpha = 0.9f)
-                    )
-                )
-            )
-            .padding(PaceDreamSpacing.LG)
-    ) {
-        Column {
-            Text(
-                text = "Booking Management",
-                style = PaceDreamTypography.Title1,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Text(
-                text = "Manage your property bookings",
-                style = PaceDreamTypography.Body,
-                color = Color.White.copy(alpha = 0.9f)
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Total Bookings",
-                        style = PaceDreamTypography.Caption,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                    
-                    Text(
-                        text = totalBookings.toString(),
-                        style = PaceDreamTypography.Title1,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXL)
+        ) {
+            // Title
+            item {
                 Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "Pending Review",
-                        style = PaceDreamTypography.Caption,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                    
-                    Text(
-                        text = pendingBookings.toString(),
-                        style = PaceDreamTypography.Title2,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun BookingStatusTabs(
-    selectedStatus: String,
-    onStatusChanged: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-    ) {
-        Text(
-            text = "Filter by Status",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        val statuses = listOf("All", "Pending", "Confirmed", "Completed", "Cancelled")
-        
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-        ) {
-            items(statuses) { status ->
-                FilterChip(
-                    selected = selectedStatus == status,
-                    onClick = { onStatusChanged(status) },
-                    label = {
-                        Text(
-                            text = status,
-                            style = PaceDreamTypography.Callout,
-                            fontWeight = if (selectedStatus == status) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaceDreamColors.Primary,
-                        selectedLabelColor = Color.White,
-                        containerColor = PaceDreamColors.Card,
-                        labelColor = PaceDreamColors.TextPrimary
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyBookingsState() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.LG)
-            .clip(RoundedCornerShape(PaceDreamRadius.LG)),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(PaceDreamSpacing.XXXL),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.CalendarToday,
-                contentDescription = "No bookings",
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(80.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-            
-            Text(
-                text = "No bookings yet",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            Text(
-                text = "When guests book your properties, they'll appear here for you to manage.",
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-fun BookingsContent(
-    bookings: List<BookingModel>,
-    onBookingClick: (String) -> Unit,
-    onAcceptBookingClick: (String) -> Unit,
-    onRejectBookingClick: (String) -> Unit,
-    onCancelBookingClick: (String) -> Unit
-) {
-    Column(
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-    ) {
-        Text(
-            text = "Recent Bookings",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.SemiBold
-        )
-        
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        
-        bookings.forEach { booking ->
-            HostBookingCard(
-                booking = booking,
-                onBookingClick = onBookingClick,
-                onAcceptClick = onAcceptBookingClick,
-                onRejectClick = onRejectBookingClick,
-                onCancelClick = onCancelBookingClick
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-        }
-    }
-}
-
-@Composable
-fun HostBookingCard(
-    booking: BookingModel,
-    onBookingClick: (String) -> Unit,
-    onAcceptClick: (String) -> Unit,
-    onRejectClick: (String) -> Unit,
-    onCancelClick: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(PaceDreamRadius.LG)),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(PaceDreamSpacing.MD)
-        ) {
-            // Header Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Booking #${booking.id.takeLast(6)}",
-                    style = PaceDreamTypography.Headline,
-                    color = PaceDreamColors.TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                PaceDreamStatusChip(status = booking.status.name, isActive = booking.status == BookingStatus.CONFIRMED)
-            }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            // Guest Info
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
+                        .statusBarsPadding()
+                        .padding(horizontal = PaceDreamSpacing.MD)
+                        .padding(top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.SM)
                 ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Person,
-                        contentDescription = "Guest",
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                
-                Column {
                     Text(
-                        text = "Guest Booking",
-                        style = PaceDreamTypography.Body,
+                        text = "Bookings",
+                        style = PaceDreamTypography.Title1,
                         color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Bold
                     )
-                    
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
-                        text = "${booking.guestCount} guests",
-                        style = PaceDreamTypography.Caption,
+                        text = "Manage your guest reservations",
+                        style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextSecondary
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            // Property Info
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Home,
-                    contentDescription = "Property",
-                    tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(16.dp)
-                )
-                
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                
-                Text(
-                    text = booking.propertyName.ifEmpty { "Property" },
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary
-                )
+
+            // Error banner — shared component
+            uiState.error?.let { error ->
+                item {
+                    HostAlertBanner(
+                        text = error,
+                        color = PaceDreamColors.Error,
+                        icon = PaceDreamIcons.Warning
+                    )
+                }
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            // Dates and Price
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Check-in",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                    
-                    Text(
-                        text = booking.startDate,
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
+
+            // Segmented filter tabs — shared chips
+            item {
+                val segments = listOf("Pending", "Confirmed", "Past", "Cancelled")
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                    modifier = Modifier.padding(bottom = PaceDreamSpacing.MD)
+                ) {
+                    items(segments) { segment ->
+                        HostFilterChip(
+                            label = segment,
+                            selected = uiState.selectedStatus == segment,
+                            onClick = { viewModel.updateStatus(segment) }
+                        )
+                    }
+                }
+            }
+
+            // Bookings list
+            if (uiState.bookings.isEmpty() && !uiState.isLoading) {
+                item {
+                    HostEmptyState(
+                        icon = PaceDreamIcons.CalendarToday,
+                        title = "No ${uiState.selectedStatus.lowercase()} bookings",
+                        subtitle = when (uiState.selectedStatus.lowercase()) {
+                            "pending" -> "New booking requests from guests will appear here."
+                            "confirmed" -> "Confirmed upcoming stays will appear here."
+                            "past" -> "Completed bookings will appear here after checkout."
+                            "cancelled" -> "Cancelled or declined bookings will show up here."
+                            else -> "Bookings will appear here once guests make reservations."
+                        }
                     )
                 }
-                
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Check-out",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                    
-                    Text(
-                        text = booking.endDate,
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold
+            } else {
+                items(uiState.bookings) { booking ->
+                    HostBookingCard(
+                        booking = booking,
+                        selectedSegment = uiState.selectedStatus,
+                        onBookingClick = { onBookingClick(booking.id) },
+                        onAcceptClick = { viewModel.acceptBooking(booking.id) },
+                        onDeclineClick = { viewModel.declineBooking(booking.id) },
+                        onCancelClick = { viewModel.cancelBooking(booking.id) }
                     )
                 }
-                
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
+            }
+        }
+    }
+}
+
+@Composable
+private fun HostBookingCard(
+    booking: HostBookingDTO,
+    selectedSegment: String,
+    onBookingClick: () -> Unit,
+    onAcceptClick: () -> Unit,
+    onDeclineClick: () -> Unit,
+    onCancelClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        onClick = onBookingClick,
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            // Guest info row
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HostInitialsAvatar(
+                    name = booking.resolvedGuestName,
+                    size = 44,
+                    color = PaceDreamColors.HostAccent
+                )
+
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Total",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
+                        text = booking.resolvedListingTitle,
+                        style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                        color = PaceDreamColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Person,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = booking.resolvedGuestName,
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.CalendarToday,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text(
+                            text = "${booking.resolvedStart ?: ""} - ${booking.resolvedEnd ?: ""}",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "$${String.format("%.2f", booking.totalPrice)}",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.Primary,
+                        text = "$${String.format("%.0f", booking.resolvedTotal)}",
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.HostAccent,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
-            
-            // Action Buttons
-            if (booking.status == BookingStatus.PENDING) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                
+
+            // Action buttons for Pending segment
+            if (selectedSegment == "Pending") {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     Button(
-                        onClick = { onAcceptClick(booking.id) },
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Success),
-                        modifier = Modifier.weight(1f)
+                        onClick = onAcceptClick,
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                     ) {
-                        Text(
-                            text = "Accept",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
+                        Icon(
+                            imageVector = PaceDreamIcons.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                     }
-                    
                     OutlinedButton(
-                        onClick = { onRejectClick(booking.id) },
+                        onClick = onDeclineClick,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Error),
-                        modifier = Modifier.weight(1f)
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
+                        ),
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
                     ) {
-                        Text(
-                            text = "Reject",
-                            fontWeight = FontWeight.SemiBold
+                        Icon(
+                            imageVector = PaceDreamIcons.Close,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Error,
+                            modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                        Text("Decline", fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                     }
-                }
-            } else if (booking.status == BookingStatus.CONFIRMED) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                
-                OutlinedButton(
-                    onClick = { onCancelClick(booking.id) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Error),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Cancel Booking",
-                        fontWeight = FontWeight.SemiBold
-                    )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            
-            // View Details Button
-            TextButton(
-                onClick = { onBookingClick(booking.id) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "View Details",
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+
+            // Cancel button for Confirmed segment
+            if (selectedSegment == "Confirmed") {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                OutlinedButton(
+                    onClick = onCancelClick,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Error),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(PaceDreamColors.Error.copy(alpha = 0.5f))
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM)
+                ) {
+                    Text("Cancel Booking", fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
+                }
             }
         }
     }

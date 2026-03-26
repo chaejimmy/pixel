@@ -36,6 +36,10 @@ class SearchViewModel @Inject constructor(
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
     init {
+        // iOS/web parity: auto-load initial results when search opens
+        // (browse by default mode without requiring a query)
+        submitSearch()
+
         viewModelScope.launch {
             authSession.authState.collectLatest { st ->
                 if (st == AuthState.Unauthenticated) {
@@ -100,7 +104,9 @@ class SearchViewModel @Inject constructor(
         whatQuery: String? = null,
         city: String? = null,
         startDate: String? = null,
-        endDate: String? = null
+        endDate: String? = null,
+        category: String? = null,
+        sort: String? = null
     ) {
         _uiState.update { current ->
             current.copy(
@@ -109,13 +115,16 @@ class SearchViewModel @Inject constructor(
                 city = city ?: current.city,
                 startDate = startDate ?: current.startDate,
                 endDate = endDate ?: current.endDate,
+                category = category ?: current.category,
+                sort = sort ?: current.sort,
                 errorMessage = null
             )
         }
     }
 
+    private var searchJob: Job? = null
+
     fun submitSearch() {
-        val q = uiState.value.query.trim()
         _uiState.update {
             it.copy(
                 phase = SearchPhase.Loading,
@@ -140,11 +149,18 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun loadPage(reset: Boolean) {
-        viewModelScope.launch {
+        if (reset) searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             val current = uiState.value
-            val q = current.query.trim()
+            val whereQuery = current.query.trim()
+            val whatQ = current.whatQuery?.trim().orEmpty()
 
-            if (q.isBlank()) {
+            // Allow search if either WHERE or WHAT has content, or if shareType is set
+            // (browsing by category without a query is valid)
+            val hasQuery = whereQuery.isNotBlank() || whatQ.isNotBlank()
+            val hasShareType = !current.shareType.isNullOrBlank()
+
+            if (!hasQuery && !hasShareType) {
                 _uiState.update { it.copy(phase = SearchPhase.Idle, items = emptyList(), hasMore = false) }
                 return@launch
             }
@@ -159,8 +175,9 @@ class SearchViewModel @Inject constructor(
             }
 
             val res = repo.search(
-                q = q,
-                city = current.city?.takeIf { it.isNotBlank() },
+                q = whereQuery,
+                city = current.city?.takeIf { it.isNotBlank() }
+                    ?: whereQuery.takeIf { it.isNotBlank() },
                 category = current.category?.takeIf { it.isNotBlank() },
                 page0 = page,
                 perPage = current.perPage,
@@ -231,7 +248,7 @@ data class SearchUiState(
     val suggestions: List<AutocompleteSuggestion> = emptyList(),
     val phase: SearchPhase = SearchPhase.Idle,
     val errorMessage: String? = null,
-    val shareType: String? = null, // USE, BORROW, or SPLIT
+    val shareType: String? = "SHARE", // Default to SHARE (Spaces) matching iOS/web
     val whatQuery: String? = null, // Keywords search
     val startDate: String? = null, // ISO date string
     val endDate: String? = null // ISO date string

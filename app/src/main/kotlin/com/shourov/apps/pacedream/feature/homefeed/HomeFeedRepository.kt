@@ -46,15 +46,10 @@ class HomeFeedRepository @Inject constructor(
             }
         }
 
-        // Backend attempts (param-name + value normalization + optional status)
+        // Backend attempts: primary + fallback with status filter (avoid excessive retries)
         val attempts = listOf(
             mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType.lowercase()),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType.lowercase()),
-            // Some backends require status=published
             mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType, "status" to "published"),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "share_type" to shareType, "status" to "published"),
         )
 
         var lastFailure: ApiResult.Failure? = null
@@ -65,49 +60,33 @@ class HomeFeedRepository @Inject constructor(
             }
         }
 
-        // Last backend attempt: no filters (at least show something)
-        when (val unfiltered = tryBackend(mapOf("page" to page1.toString(), "limit" to limit.toString()))) {
-            is ApiResult.Success -> if (unfiltered.data.isNotEmpty()) return unfiltered
-            is ApiResult.Failure -> lastFailure = unfiltered
-        }
-
-        // Fallback only if backend fails
-        val fallbackUrl = appConfig.buildFrontendUrl("api", "proxy", "listings")
-            .newBuilder()
-            .addQueryParameter("shareType", shareType)
-            .addQueryParameter("status", "published")
-            .addQueryParameter("limit", limit.toString())
-            .addQueryParameter("skip_pagination", "true")
-            .build()
-
-        Timber.w("HomeFeed listings backend empty/failing, trying frontend proxy fallback: ${fallbackUrl}")
-        val fallback = apiClient.get(fallbackUrl, includeAuth = false)
-        return when (fallback) {
-            is ApiResult.Success -> {
-                val cards = parseListingsToCards(fallback.data)
-                if (cards.isNotEmpty()) ApiResult.Success(cards)
-                else ApiResult.Failure(ApiError.DecodingError("No listings returned for $shareType (backend + proxy empty)."))
-            }
-            is ApiResult.Failure -> lastFailure ?: fallback
-        }
+        // Return whatever the backend gave us (even empty) rather than spamming fallbacks
+        return lastFailure ?: ApiResult.Success(emptyList())
     }
 
     /**
-     * Curated hourly payload: /v1/properties/filter-rentable-items-by-group/time_based?item_type=room
-     * Fallback: /v1/rooms/search if time_based is empty.
+     * Curated hourly payload: /v1/poc/listings?shareType=USE&status=published&limit=24&skip_pagination=true
+     * Matches website endpoint for spaces data.
+     * Fallback: standard /v1/listings?shareType=USE if poc endpoint is empty.
      */
     suspend fun getCuratedHourly(limit: Int = 24): ApiResult<List<HomeCard>> {
         val curatedUrl = appConfig.buildApiUrlWithQuery(
-            "properties", "filter-rentable-items-by-group", "time_based",
-            queryParams = mapOf("item_type" to "room")
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "USE",
+                "status" to "published",
+                "limit" to limit.toString(),
+                "skip_pagination" to "true"
+            )
         )
+        Timber.d("HomeFeed spaces: $curatedUrl")
         val curated = apiClient.get(curatedUrl, includeAuth = false)
         if (curated is ApiResult.Success) {
             val cards = parseListingsToCards(curated.data)
             if (cards.isNotEmpty()) return ApiResult.Success(cards)
         }
 
-        // Backend mismatch safety: if time_based isn't supported, fall back to standard listings for USE.
+        // Fallback: standard listings endpoint with shareType=USE
         return getListingsShareTypePage(
             shareType = "USE",
             page1 = 1,
@@ -131,43 +110,91 @@ class HomeFeedRepository @Inject constructor(
     }
 
     private fun parseCard(el: JsonElement): HomeCard? {
-        val obj = el as? JsonObject ?: return null
-        val id = obj["_id"].stringOrNull()
-            ?: obj["id"].stringOrNull()
-            ?: return null
+        return try {
+            val obj = el as? JsonObject ?: return null
+            val id = obj["_id"].stringOrNull()
+                ?: obj["id"].stringOrNull()
+                ?: return null
 
-        val title = obj["title"].stringOrNull()
-            ?: obj["name"].stringOrNull()
-            ?: "Listing"
+            val title = obj["title"].stringOrNull()
+                ?: obj["name"].stringOrNull()
+                ?: "Listing"
 
-        val location = obj["city"].stringOrNull()
-            ?: obj["location"]?.jsonObject?.get("city").stringOrNull()
-            ?: obj["location"].stringOrNull()
-            ?: obj["address"]?.jsonObject?.get("city").stringOrNull()
+            val location = obj["city"].stringOrNull()
+                ?: (obj["location"] as? JsonObject)?.get("city").stringOrNull()
+                ?: obj["location"].stringOrNull()
+                ?: (obj["address"] as? JsonObject)?.get("city").stringOrNull()
 
-        val imageUrl = obj["image"].stringOrNull()
-            ?: obj["imageUrl"].stringOrNull()
-            ?: obj["thumbnail"].stringOrNull()
-            ?: obj["images"]?.jsonArray?.firstOrNull().stringOrNull()
-            ?: obj["gallery"]?.jsonObject?.get("images")?.jsonArray?.firstOrNull().stringOrNull()
-            ?: obj["galleryImages"]?.jsonArray?.firstOrNull().stringOrNull()
+            val imageUrl = obj["image"].stringOrNull()
+                ?: obj["imageUrl"].stringOrNull()
+                ?: obj["thumbnail"].stringOrNull()
+                ?: (obj["images"] as? JsonArray)?.firstOrNull().stringOrNull()
+                ?: (obj["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull().stringOrNull()
+                ?: (obj["gallery"] as? JsonObject)?.get("thumbnail").stringOrNull()
+                ?: (obj["galleryImages"] as? JsonArray)?.firstOrNull().stringOrNull()
 
-        val rating = obj["rating"]?.jsonPrimitive?.doubleOrNull
-            ?: obj["avgRating"]?.jsonPrimitive?.doubleOrNull
+            val rating = (obj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
+                ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
-        val priceText = obj["priceText"].stringOrNull()
-            ?: obj["price"].stringOrNull()?.let { normalizePriceText(it) }
-            ?: obj["price"]?.jsonObject?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
-            ?: obj["pricing"]?.jsonObject?.get("price")?.stringOrNull()?.let { normalizePriceText(it) }
+            // Try to extract frequency from any available source on the listing object.
+            // pricingUnit is the top-level field the backend sends in list responses (iOS reads this).
+            val standaloneFrequency = obj["pricingUnit"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: obj["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                ?: (obj["pricing"] as? JsonObject)?.let { p ->
+                    p["pricing_type"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                        ?: p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
+                }
+                ?: obj["dynamic_price"]?.let { dp ->
+                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
+                }
 
-        return HomeCard(
-            id = id,
-            title = title,
-            location = location,
-            imageUrl = imageUrl,
-            priceText = priceText,
-            rating = rating
-        )
+            val priceText = obj["priceText"].stringOrNull()
+                ?: (obj["price"] as? JsonObject)?.let { p ->
+                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
+                ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
+                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
+                ?: obj["price"].stringOrNull()?.let { raw ->
+                    val amount = normalizePriceText(raw)
+                    if (amount.isNotBlank() && standaloneFrequency != null) "$amount/$standaloneFrequency" else amount
+                }
+                ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
+                    val amount = (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
+                    val frequency = pricing["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
+                    if (amount != null && frequency != null) "$amount/$frequency" else amount
+                }
+                ?: obj["dynamic_price"]?.let { dp ->
+                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
+                        val amount = p["price"]?.stringOrNull()?.let { normalizePriceText(it) }
+                        val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
+                        if (amount != null && frequency != null) "$amount/$frequency" else amount
+                    }
+                }
+
+            // Extract subcategory from multiple possible fields for resource type filtering.
+            val subCategory = obj["subCategory"].stringOrNull()
+                ?: obj["item_type"].stringOrNull()
+                ?: (obj["details"] as? JsonObject)?.get("room_type").stringOrNull()
+                ?: obj["roomType"].stringOrNull()
+
+            HomeCard(
+                id = id,
+                title = title,
+                location = location,
+                imageUrl = imageUrl,
+                priceText = priceText,
+                rating = rating,
+                subCategory = subCategory,
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse single card")
+            null
+        }
     }
 
     private fun normalizePriceText(raw: String): String {
@@ -178,8 +205,20 @@ class HomeFeedRepository @Inject constructor(
         return if (numeric != null) "$${s}" else s
     }
 
+    private fun formatPriceUnit(frequency: String): String {
+        return when (frequency.lowercase().trim()) {
+            "hourly", "hour", "hr" -> "hr"
+            "daily", "day" -> "day"
+            "weekly", "week", "wk" -> "wk"
+            "monthly", "month", "mo" -> "mo"
+            "once" -> "total"
+            else -> frequency.lowercase()
+        }
+    }
+
     private fun JsonElement?.stringOrNull(): String? {
-        val s = this?.jsonPrimitive?.contentOrNull?.trim()
+        if (this == null || this !is kotlinx.serialization.json.JsonPrimitive) return null
+        val s = this.contentOrNull?.trim()
         return s?.takeIf { it.isNotBlank() }
     }
 

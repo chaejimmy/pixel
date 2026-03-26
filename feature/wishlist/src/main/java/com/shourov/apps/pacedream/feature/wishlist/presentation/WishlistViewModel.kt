@@ -46,8 +46,8 @@ class WishlistViewModel @Inject constructor(
     private val _toastMessage = Channel<String>(Channel.BUFFERED)
     val toastMessage = _toastMessage.receiveAsFlow()
     
-    // Store full items list for optimistic updates
-    private var fullItemsList = mutableListOf<WishlistItem>()
+    // Store full items list for optimistic updates (immutable snapshots for thread safety)
+    private var fullItemsList: List<WishlistItem> = emptyList()
     private var currentFilter = WishlistFilter.ALL
     
     init {
@@ -103,7 +103,7 @@ class WishlistViewModel @Inject constructor(
         
         when (val result = wishlistRepository.getWishlist()) {
             is ApiResult.Success -> {
-                fullItemsList = result.data.toMutableList()
+                fullItemsList = result.data.toList()
                 updateUiWithCurrentFilter()
             }
             is ApiResult.Failure -> {
@@ -125,11 +125,12 @@ class WishlistViewModel @Inject constructor(
      * Update UI state with current filter
      */
     private fun updateUiWithCurrentFilter() {
-        if (fullItemsList.isEmpty()) {
+        val filteredItems = fullItemsList.filter { currentFilter.matches(it) }
+        if (filteredItems.isEmpty() && fullItemsList.isEmpty()) {
             _uiState.value = WishlistUiState.Empty
         } else {
             _uiState.value = WishlistUiState.Success(
-                items = fullItemsList.toList(),
+                items = filteredItems,
                 selectedFilter = currentFilter
             )
         }
@@ -163,7 +164,7 @@ class WishlistViewModel @Inject constructor(
             }
             
             // Step 1: Optimistically remove item from UI
-            fullItemsList.removeAt(itemIndex)
+            fullItemsList = fullItemsList.toMutableList().apply { removeAt(itemIndex) }
             updateUiWithCurrentFilter()
             
             // Step 2: Call API to toggle (remove) the item
@@ -188,9 +189,8 @@ class WishlistViewModel @Inject constructor(
      * Restore item to list after failed removal
      */
     private fun restoreItem(originalList: List<WishlistItem>, index: Int, item: WishlistItem) {
-        // Restore the full list to original state
-        fullItemsList.clear()
-        fullItemsList.addAll(originalList)
+        // Restore the full list to original state (atomic assignment)
+        fullItemsList = originalList
         updateUiWithCurrentFilter()
     }
     

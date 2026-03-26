@@ -44,10 +44,20 @@ data class ListingDetailModel(
     val safetyFeatures: List<String> = emptyList(),
     // Web parity: status
     val available: Boolean? = null,
-    val instantBook: Boolean? = null
+    val instantBook: Boolean? = null,
+    // Web parity: split listing fields
+    val shareType: String? = null,
+    val totalCost: Double? = null,
+    val slotsTotal: Int? = null,
+    val slotsFilled: Int? = null,
+    val splitStatus: String? = null,
+    val deadlineAt: String? = null
 ) {
     val hasPropertyDetails: Boolean
         get() = propertyType != null || maxGuests != null || bedrooms != null || beds != null || bathrooms != null
+
+    val isSplitListing: Boolean
+        get() = shareType?.uppercase() == "SPLIT"
 }
 
 data class ListingLocation(
@@ -61,7 +71,7 @@ data class ListingLocation(
     val neighborhood: String? = null
 ) {
     val cityState: String?
-        get() = listOfNotNull(city?.takeIf { it.isNotBlank() }, state?.takeIf { it.isNotBlank() })
+        get() = listOfNotNull(city?.trim()?.takeIf { it.isNotBlank() }, state?.trim()?.takeIf { it.isNotBlank() })
             .joinToString(", ")
             .takeIf { it.isNotBlank() }
 
@@ -105,9 +115,17 @@ data class ListingPricing(
             val amount = hourlyFrom ?: basePrice ?: return null
             val symbol = when ((currency ?: "USD").uppercase()) {
                 "USD" -> "$"
+                "EUR" -> "€"
+                "GBP" -> "£"
+                "AED" -> "د.إ"
+                "BDT" -> "৳"
+                "INR" -> "₹"
+                "JPY" -> "¥"
+                "CAD" -> "CA$"
+                "AUD" -> "A$"
                 else -> "$"
             }
-            val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.lowercase()
+            val freq = frequencyLabel?.takeIf { it.isNotBlank() }?.let { normalizeUnit(it) }
                 ?: if (hourlyFrom != null) "hr" else null
             val formattedAmount = trimTrailingZeros(amount)
             return if (freq != null) "$symbol$formattedAmount/$freq" else "$symbol$formattedAmount"
@@ -116,6 +134,16 @@ data class ListingPricing(
     private fun trimTrailingZeros(value: Double): String {
         val asLong = value.toLong()
         return if (value == asLong.toDouble()) asLong.toString() else value.toString()
+    }
+
+    /** Normalize backend frequency strings to short display labels matching iOS. */
+    private fun normalizeUnit(raw: String): String = when (raw.lowercase().trim()) {
+        "hourly", "hour", "hr" -> "hr"
+        "daily", "day" -> "day"
+        "weekly", "week", "wk" -> "wk"
+        "monthly", "month", "mo" -> "mo"
+        "once" -> "total"
+        else -> raw.lowercase()
     }
 }
 

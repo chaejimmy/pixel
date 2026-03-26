@@ -31,8 +31,14 @@ class VerificationRepository @Inject constructor(
             val request = PhoneVerificationRequest(phoneNumber)
             val response = api.sendPhoneVerificationCode("Bearer $token", request)
             
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Timber.w("sendPhoneVerificationCode: response body was null despite successful status")
+                    Result.failure(Exception("Empty response from server"))
+                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to send phone verification code: ${response.code()} - $errorBody")
@@ -43,7 +49,7 @@ class VerificationRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Confirm phone verification with OTP code
      */
@@ -51,12 +57,18 @@ class VerificationRepository @Inject constructor(
         return try {
             val token = tokenStorage.accessToken
                 ?: return Result.failure(Exception("No auth token"))
-            
+
             val request = PhoneConfirmRequest(phoneNumber, code)
             val response = api.confirmPhoneVerification("Bearer $token", request)
-            
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Timber.w("confirmPhoneVerification: response body was null despite successful status")
+                    Result.failure(Exception("Empty response from server"))
+                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to confirm phone verification: ${response.code()} - $errorBody")
@@ -67,7 +79,7 @@ class VerificationRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Get verification status
      */
@@ -75,11 +87,17 @@ class VerificationRepository @Inject constructor(
         return try {
             val token = tokenStorage.accessToken
                 ?: return Result.failure(Exception("No auth token"))
-            
+
             val response = api.getVerificationStatus("Bearer $token")
-            
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Timber.w("getVerificationStatus: response body was null despite successful status")
+                    Result.failure(Exception("Empty response from server"))
+                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to get verification status: ${response.code()} - $errorBody")
@@ -90,7 +108,7 @@ class VerificationRepository @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     /**
      * Get pre-signed S3 upload URLs
      */
@@ -98,12 +116,18 @@ class VerificationRepository @Inject constructor(
         return try {
             val token = tokenStorage.accessToken
                 ?: return Result.failure(Exception("No auth token"))
-            
+
             val request = UploadURLsRequest(files)
             val response = api.getUploadURLs("Bearer $token", request)
-            
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Timber.w("getUploadURLs: response body was null despite successful status")
+                    Result.failure(Exception("Empty response from server"))
+                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to get upload URLs: ${response.code()} - $errorBody")
@@ -151,8 +175,14 @@ class VerificationRepository @Inject constructor(
             val request = SubmitVerificationRequest(idType, frontStorageKey, backStorageKey)
             val response = api.submitVerification("Bearer $token", request)
             
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null) {
+                    Result.success(body)
+                } else {
+                    Timber.w("submitVerification: response body was null despite successful status")
+                    Result.failure(Exception("Empty response from server"))
+                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.e("Failed to submit verification: ${response.code()} - $errorBody")

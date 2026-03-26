@@ -3,12 +3,16 @@ package com.pacedream.app.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.icon.PaceDreamIcons
@@ -32,6 +36,7 @@ import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.pacedream.app.feature.checkout.ConfirmationScreen
+import com.pacedream.app.feature.bookings.BookingListItem
 import com.pacedream.app.feature.bookings.BookingsScreen
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
@@ -50,7 +55,7 @@ import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
 import com.pacedream.app.feature.collections.CollectionsScreen
 import com.pacedream.app.feature.roommate.RoommateFinderScreen
-import com.pacedream.app.feature.search.SearchScreen
+import com.shourov.apps.pacedream.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
 import com.pacedream.app.feature.wishlist.WishlistScreen
@@ -79,8 +84,7 @@ fun MainNavHost(
     
     // Auth modal state
     var showAuthSheet by remember { mutableStateOf(false) }
-    var authSheetTitle by remember { mutableStateOf("Sign in") }
-    var authSheetSubtitle by remember { mutableStateOf("Sign in to continue.") }
+    var authSheetSubtitle by remember { mutableStateOf("") }
     
     // Determine if bottom bar should be shown (always for main tabs)
     val showBottomBar = remember(currentRoute) {
@@ -185,17 +189,15 @@ fun MainNavHost(
                 // Search Tab
                 composable(NavRoutes.SEARCH) {
                     SearchScreen(
-                        onListingClick = { item ->
-                            navController.currentBackStackEntry?.savedStateHandle?.apply {
-                                set("listing_initial_id", item.id)
-                                set("listing_initial_title", item.title)
-                                set("listing_initial_imageUrl", item.imageUrl)
-                                set("listing_initial_location", item.location)
-                                set("listing_initial_price", item.price)
-                                set("listing_initial_rating", item.rating)
-                                set("listing_initial_type", item.type)
-                            }
-                            navController.navigate(NavRoutes.listingDetail(item.id))
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        },
+                        onShowAuthSheet = {
+                            authSheetSubtitle = "Save your favorites and book spaces."
+                            showAuthSheet = true
                         }
                     )
                 }
@@ -204,11 +206,13 @@ fun MainNavHost(
                 composable(NavRoutes.FAVORITES) {
                     WishlistScreen(
                         onItemClick = { itemId, itemType ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_type", itemType)
+                            }
                             navController.navigate(NavRoutes.listingDetail(itemId))
                         },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to access your favorites."
+                            authSheetSubtitle = "Save your favorites and book spaces."
                             showAuthSheet = true
                         }
                     )
@@ -221,8 +225,7 @@ fun MainNavHost(
                             title = "Bookings",
                             message = "Sign in to view your bookings",
                             onSignInClick = {
-                                authSheetTitle = "Sign in"
-                                authSheetSubtitle = "Sign in to view your bookings."
+                                authSheetSubtitle = "Manage your upcoming bookings."
                                 showAuthSheet = true
                             }
                         )
@@ -230,21 +233,44 @@ fun MainNavHost(
                         BookingsScreen(
                             onBookingClick = { bookingId ->
                                 navController.navigate(NavRoutes.bookingDetail(bookingId))
+                            },
+                            onBookingClickWithData = { item ->
+                                // Pass cached booking data to detail screen via savedStateHandle
+                                // This matches iOS pattern: pass existing BookingSummary for immediate display
+                                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                    set("cached_title", item.title)
+                                    set("cached_imageUrl", item.imageUrl)
+                                    set("cached_location", item.propertyLocation)
+                                    set("cached_status", item.status)
+                                    set("cached_amount", item.amount?.toString())
+                                    set("cached_checkInDate", item.checkInDate)
+                                    set("cached_checkInTime", item.checkInTime)
+                                    set("cached_checkOutDate", item.checkOutDate)
+                                    set("cached_checkOutTime", item.checkOutTime)
+                                    set("cached_guestCount", item.guestCount.toString())
+                                    set("cached_nightsCount", item.nightsCount.toString())
+                                    set("cached_referenceId", item.referenceId)
+                                    set("cached_hostName", item.hostName)
+                                    set("cached_hostAvatarUrl", item.hostAvatarUrl)
+                                    set("cached_hostId", item.hostId)
+                                    set("cached_verificationPin", item.verificationPin)
+                                    set("cached_pinStatus", item.pinStatus)
+                                }
+                                navController.navigate(NavRoutes.bookingDetail(item.id))
                             }
                         )
                     }
                 }
                 
-                // Inbox Tab
+                // Messages Tab
                 composable(NavRoutes.INBOX) {
                     if (authState != AuthState.Authenticated) {
                         // Show locked state, trigger auth modal
                         LockedScreen(
-                            title = "Inbox",
+                            title = "Messages",
                             message = "Sign in to view your messages",
                             onSignInClick = {
-                                authSheetTitle = "Sign in"
-                                authSheetSubtitle = "Sign in to view your messages."
+                                authSheetSubtitle = "Connect with hosts and guests."
                                 showAuthSheet = true
                             }
                         )
@@ -273,8 +299,7 @@ fun MainNavHost(
                 composable(NavRoutes.PROFILE) {
                     ProfileScreen(
                         onLoginClick = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to manage your profile."
+                            authSheetSubtitle = "Access your profile and settings."
                             showAuthSheet = true
                         },
                         onHostModeClick = {
@@ -286,18 +311,32 @@ fun MainNavHost(
                         onSettingsClick = {
                             navController.navigate(NavRoutes.SETTINGS)
                         },
-                        onIdentityVerificationClick = {
-                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        onBookingsClick = {
+                            navController.navigate(NavRoutes.BOOKINGS) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                        onFavoritesClick = {
+                            navController.navigate(NavRoutes.FAVORITES) {
+                                popUpTo(NavRoutes.HOME) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                        onCreateListingClick = {
+                            if (authState == AuthState.Authenticated) {
+                                navController.navigate(NavRoutes.HOST_HOME)
+                            } else {
+                                authSheetSubtitle = "Sign in to create a listing."
+                                showAuthSheet = true
+                            }
+                        },
+                        onNotificationsClick = {
+                            navController.navigate(NavRoutes.SETTINGS_NOTIFICATIONS)
                         },
                         onHelpClick = {
-                            navController.navigate(NavRoutes.FAQ)
+                            navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
                         },
-                        onAboutClick = {
-                            navController.navigate(NavRoutes.ABOUT_US)
-                        },
-                        onMyListsClick = {
-                            navController.navigate(NavRoutes.COLLECTIONS)
-                        }
                     )
                 }
 
@@ -322,6 +361,13 @@ fun MainNavHost(
                         },
                         onHelpSupportClick = {
                             navController.navigate(NavRoutes.SETTINGS_HELP_SUPPORT)
+                        },
+                        onIdentityVerificationClick = {
+                            navController.navigate(NavRoutes.IDENTITY_VERIFICATION)
+                        },
+                        onLogoutClick = {
+                            sessionManager.signOut()
+                            navController.popBackStack(NavRoutes.PROFILE, inclusive = false)
                         }
                     )
                 }
@@ -391,6 +437,9 @@ fun MainNavHost(
                     RoommateFinderScreen(
                         onBackClick = { navController.popBackStack() },
                         onListingClick = { listingId ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listing_initial_type", "split-stay")
+                            }
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         }
                     )
@@ -403,15 +452,34 @@ fun MainNavHost(
                     )
                 }
 
+                // Host Home - uses real backend-driven dashboard
+                composable(NavRoutes.HOST_HOME) {
+                    com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel(
+                        onAddListingClick = {},
+                        onListingClick = { listingId ->
+                            navController.navigate(NavRoutes.listingDetail(listingId))
+                        },
+                        onBookingClick = { bookingId ->
+                            navController.navigate(NavRoutes.bookingDetail(bookingId))
+                        },
+                        onEarningsClick = {},
+                        onAnalyticsClick = {}
+                    )
+                }
+
+                // Edit Profile
+                composable(NavRoutes.EDIT_PROFILE) {
+                    com.pacedream.app.feature.profile.EditProfileScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+
                 // Collections / My Lists Screen
                 composable(NavRoutes.COLLECTIONS) {
                     CollectionsScreen(
-                        onCollectionClick = { collectionId ->
-                            navController.navigate(NavRoutes.collectionDetail(collectionId))
-                        },
+                        onCollectionClick = { /* Collection detail not yet implemented */ },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to create and manage your lists."
+                            authSheetSubtitle = "Create and manage your lists."
                             showAuthSheet = true
                         }
                     )
@@ -439,13 +507,16 @@ fun MainNavHost(
                         } else null
                     }
 
+                    val listingType = navController.previousBackStackEntry?.savedStateHandle
+                        ?.get<String>("listing_initial_type") ?: ""
+
                     ListingDetailRoute(
                         listingId = listingId,
+                        listingType = listingType,
                         initialListing = initialListing,
                         onBackClick = { navController.popBackStack() },
                         onLoginRequired = {
-                            authSheetTitle = "Sign in"
-                            authSheetSubtitle = "Sign in to continue."
+                            authSheetSubtitle = ""
                             showAuthSheet = true
                         },
                         onNavigateToInbox = {
@@ -456,6 +527,9 @@ fun MainNavHost(
                                 launchSingleTop = true
                                 restoreState = true
                             }
+                        },
+                        onNavigateToThread = { threadId ->
+                            navController.navigate(NavRoutes.threadDetail(threadId))
                         },
                         onNavigateToCheckout = { draft ->
                             navController.currentBackStackEntry?.savedStateHandle?.set(
@@ -477,16 +551,38 @@ fun MainNavHost(
                         ?.get<String>("booking_draft_json_${listingId}")
                     val draft = raw?.let { runCatching { BookingDraftCodec.decode(it) }.getOrNull() }
                     if (draft == null) {
-                        BookingDetailPlaceholder(
-                            bookingId = "Missing BookingDraft",
-                            onBackClick = { navController.popBackStack() }
-                        )
+                        // BookingDraft missing — show error and navigate back
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "Unable to load booking details",
+                                    style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+                                    color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+                                Button(
+                                    onClick = { navController.popBackStack() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+                                    )
+                                ) {
+                                    Text("Go Back", color = androidx.compose.ui.graphics.Color.White)
+                                }
+                            }
+                        }
                     } else {
                         CheckoutScreen(
                             draft = draft,
                             onBackClick = { navController.popBackStack() },
                             onConfirmSuccess = { bookingId ->
-                                navController.navigate(NavRoutes.confirmation(bookingId))
+                                // Pop checkout off back stack so back button
+                                // doesn't return to an actionable pay screen
+                                navController.navigate(NavRoutes.confirmation(bookingId)) {
+                                    popUpTo(NavRoutes.checkout(listingId)) { inclusive = true }
+                                }
                             }
                         )
                     }
@@ -500,7 +596,17 @@ fun MainNavHost(
                     val bookingId = entry.arguments?.getString("bookingId") ?: ""
                     ConfirmationScreen(
                         bookingId = bookingId,
-                        onBackClick = { navController.popBackStack() },
+                        onBackClick = {
+                            // After payment success, back should go Home,
+                            // not return to checkout
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
                         onViewBooking = {
                             navController.navigate(NavRoutes.BOOKINGS) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -526,6 +632,7 @@ fun MainNavHost(
                 // Booking Confirmation - Timebased (with deep link)
                 composable(
                     route = NavRoutes.BOOKING_CONFIRMATION_TIMEBASED,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
                     deepLinks = listOf(
                         navDeepLink {
                             uriPattern = "https://www.pacedream.com/booking-success?session_id={sessionId}&type=timebased"
@@ -554,6 +661,7 @@ fun MainNavHost(
                 // Booking Confirmation - Gear (with deep link)
                 composable(
                     route = NavRoutes.BOOKING_CONFIRMATION_GEAR,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
                     deepLinks = listOf(
                         navDeepLink {
                             uriPattern = "https://www.pacedream.com/booking-success?session_id={sessionId}&type=gear"
@@ -599,15 +707,31 @@ fun MainNavHost(
                     )
                 }
                 
-                // Booking Detail (stub)
+                // Booking Detail
                 composable(
                     route = NavRoutes.BOOKING_DETAIL,
                     arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
                 ) { backStackEntry ->
-                    val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
-                    BookingDetailPlaceholder(
-                        bookingId = bookingId,
-                        onBackClick = { navController.popBackStack() }
+                    // Transfer cached booking data from previous screen's savedStateHandle
+                    // to the current entry's savedStateHandle so BookingDetailViewModel can access it.
+                    val prevHandle = navController.previousBackStackEntry?.savedStateHandle
+                    val currHandle = backStackEntry.savedStateHandle
+                    listOf(
+                        "cached_title", "cached_imageUrl", "cached_location",
+                        "cached_status", "cached_amount", "cached_checkInDate",
+                        "cached_checkInTime", "cached_checkOutDate", "cached_checkOutTime",
+                        "cached_guestCount", "cached_nightsCount", "cached_referenceId",
+                        "cached_hostName", "cached_hostAvatarUrl", "cached_hostId",
+                        "cached_verificationPin", "cached_pinStatus"
+                    ).forEach { key ->
+                        prevHandle?.get<String>(key)?.let { currHandle[key] = it }
+                    }
+
+                    com.pacedream.app.feature.bookings.BookingDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onContactHost = { hostId ->
+                            navController.navigate(NavRoutes.threadDetail(hostId))
+                        }
                     )
                 }
             }
@@ -617,12 +741,9 @@ fun MainNavHost(
 
     if (showAuthSheet) {
         AuthFlowSheet(
-            title = authSheetTitle,
             subtitle = authSheetSubtitle,
             onDismiss = { showAuthSheet = false },
-            onSuccess = {
-                // session bootstrap happens inside session manager
-            }
+            onSuccess = { showAuthSheet = false }
         )
     }
 }
@@ -640,7 +761,7 @@ fun PaceDreamBottomBar(
         TabItem(NavRoutes.SEARCH, "Search", PaceDreamIcons.Search, PaceDreamIcons.SearchOutlined),
         TabItem(NavRoutes.FAVORITES, "Favorites", PaceDreamIcons.Favorite, PaceDreamIcons.FavoriteBorderOutlined),
         TabItem(NavRoutes.BOOKINGS, "Bookings", PaceDreamIcons.DateRange, PaceDreamIcons.DateRangeOutlined),
-        TabItem(NavRoutes.INBOX, "Inbox", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
+        TabItem(NavRoutes.INBOX, "Messages", PaceDreamIcons.Mail, PaceDreamIcons.MailOutline),
         TabItem(NavRoutes.PROFILE, "Profile", PaceDreamIcons.Person, PaceDreamIcons.PersonOutlined)
     )
     
@@ -680,49 +801,89 @@ data class TabItem(
     val unselectedIcon: ImageVector
 )
 
-// Placeholder screens
-@Composable
-fun SearchPlaceholderScreen() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Search - Coming Soon", modifier = Modifier.padding(16.dp))
-    }
-}
-
 @Composable
 fun LockedScreen(
     title: String,
     message: String,
     onSignInClick: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(com.pacedream.common.composables.theme.PaceDreamColors.Background),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Clean header matching iOS (no purple hero)
         Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    end = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    top = com.pacedream.common.composables.theme.PaceDreamSpacing.MD,
+                    bottom = com.pacedream.common.composables.theme.PaceDreamSpacing.SM
+                )
         ) {
-            Icon(PaceDreamIcons.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(title, style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onSignInClick) {
-                Text("Sign In")
-            }
+            Text(
+                text = title,
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Title1,
+                color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+            )
+        }
+
+        // Centered locked state
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.XXXL))
+
+        Icon(
+            PaceDreamIcons.Lock,
+            contentDescription = null,
+            tint = com.pacedream.common.composables.theme.PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(com.pacedream.common.composables.theme.PaceDreamIconSize.XXL)
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.MD))
+
+        Text(
+            text = "Sign in to continue",
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Title3,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextPrimary
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.SM))
+
+        Text(
+            text = message,
+            style = com.pacedream.common.composables.theme.PaceDreamTypography.Body,
+            color = com.pacedream.common.composables.theme.PaceDreamColors.TextSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL)
+        )
+
+        Spacer(modifier = Modifier.height(com.pacedream.common.composables.theme.PaceDreamSpacing.LG))
+
+        Button(
+            onClick = onSignInClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = com.pacedream.common.composables.theme.PaceDreamColors.Primary
+            ),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                com.pacedream.common.composables.theme.PaceDreamRadius.MD
+            ),
+            modifier = Modifier
+                .height(com.pacedream.common.composables.theme.PaceDreamButtonHeight.LG)
+                .padding(horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL),
+            contentPadding = PaddingValues(
+                horizontal = com.pacedream.common.composables.theme.PaceDreamSpacing.XL,
+                vertical = com.pacedream.common.composables.theme.PaceDreamSpacing.SM2
+            )
+        ) {
+            Text(
+                "Sign In",
+                style = com.pacedream.common.composables.theme.PaceDreamTypography.Button,
+                color = androidx.compose.ui.graphics.Color.White
+            )
         }
     }
 }
 
-@Composable
-fun ListingDetailPlaceholder(listingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Listing Detail: $listingId", modifier = Modifier.padding(16.dp))
-    }
-}
-
-@Composable
-fun BookingDetailPlaceholder(bookingId: String, onBackClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text("Booking Detail: $bookingId", modifier = Modifier.padding(16.dp))
-    }
-}
 

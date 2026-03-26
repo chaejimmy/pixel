@@ -9,17 +9,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -52,26 +58,38 @@ import androidx.browser.customtabs.CustomTabsIntent
 import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
 import com.pacedream.app.feature.listingdetail.ListingDetailRoute
+import com.pacedream.app.feature.profile.EditProfileScreen
+import com.pacedream.app.feature.checkout.BookingDraft
 import com.pacedream.app.feature.checkout.BookingDraftCodec
+import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
 import com.shourov.apps.pacedream.feature.search.SearchScreen
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.shourov.apps.pacedream.feature.home.presentation.components.FilterScreen
 import com.shourov.apps.pacedream.feature.search.CategoryResultsScreen
 import com.shourov.apps.pacedream.feature.home.presentation.components.DestinationListScreen
+import com.shourov.apps.pacedream.feature.destinations.DestinationsViewModel
 import com.shourov.apps.pacedream.feature.home.presentation.components.RecentSearchesScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingTabScreen
-import com.shourov.apps.pacedream.feature.host.presentation.PostTabScreen
 import com.shourov.apps.pacedream.feature.inbox.presentation.InboxScreen
 import com.shourov.apps.pacedream.feature.inbox.presentation.ThreadScreen
 import com.shourov.apps.pacedream.feature.profile.presentation.ProfileTabScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmationScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
+import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.feature.booking.presentation.BookingFormScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
+import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.navigation.ImageUploadEntryPoint
+import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
+import com.shourov.apps.pacedream.feature.host.presentation.ListingMode
 import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
 
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.DashboardNavigation(
@@ -91,6 +109,13 @@ fun NavGraphBuilder.DashboardNavigation(
                 LaunchedEffect(navController) {
                     TabRouter.events.collectLatest { destination ->
                         navigateToTab(navController, destination.name)
+                    }
+                }
+
+                // iOS-parity: handle push notification in-tab navigation.
+                LaunchedEffect(navController) {
+                    NavigationRouter.events.collectLatest { route ->
+                        navController.navigate(route)
                     }
                 }
 
@@ -121,26 +146,24 @@ fun NavGraphBuilder.DashboardNavigation(
                 )
                     }
 
-                    val backStackState = navController.currentBackStackEntryAsState().value
-                    var selectedItem by rememberSaveable {
-                        mutableIntStateOf(0)
+                    val backStackState by navController.currentBackStackEntryAsState()
+                    val mainTabRoutes = remember {
+                        setOf(
+                            DashboardDestination.HOME.name,
+                            DashboardDestination.FAVORITES.name,
+                            DashboardDestination.BOOKINGS.name,
+                            DashboardDestination.INBOX.name,
+                            DashboardDestination.PROFILE.name
+                        )
                     }
 
                     // Bottom bar visibility - always show for main tabs
-                    val isBottomBarShow = remember(key1 = backStackState) {
+                    val isBottomBarShow = remember(backStackState) {
                         val destination = backStackState?.destination ?: return@remember false
-                        destination.hierarchy.any { d ->
-                            d.route == DashboardDestination.HOME.name ||
-                                d.route == DashboardDestination.FAVORITES.name ||
-                                d.route == DashboardDestination.BOOKINGS.name ||
-                                d.route == DashboardDestination.INBOX.name ||
-                                d.route == DashboardDestination.PROFILE.name ||
-                                // Keep the bottom bar visible for Search even though it's not a tab.
-                                d.route == DashboardDestination.SEARCH.name
-                        }
+                        destination.hierarchy.any { it.route in mainTabRoutes }
                     }
 
-                    selectedItem = remember(backStackState) {
+                    val selectedItem = remember(backStackState) {
                         val destination = backStackState?.destination
                         when {
                             destination?.hierarchy?.any { it.route == DashboardDestination.HOME.name } == true -> 0
@@ -153,6 +176,11 @@ fun NavGraphBuilder.DashboardNavigation(
                             else -> 0
                         }
                     }
+
+                    // iOS parity: listing detail presented as a modal bottom sheet
+                    var selectedListingId by rememberSaveable { mutableStateOf<String?>(null) }
+                    // iOS parity: search presented as full-screen cover
+                    var showSearchDialog by rememberSaveable { mutableStateOf(false) }
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -207,7 +235,7 @@ fun NavGraphBuilder.DashboardNavigation(
                     ) {
                         val bottomPadding = it.calculateBottomPadding()
 
-                        // iOS 26 parity: 200ms easeInOut for all transitions
+                        // iOS parity: fast crossfade for tab switches, slide for push/pop
                         val iOSEaseInOut = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
 
                         NavHost(
@@ -215,36 +243,26 @@ fun NavGraphBuilder.DashboardNavigation(
                             startDestination = DashboardDestination.HOME.name,
                             modifier = Modifier.padding(bottom = bottomPadding),
                             enterTransition = {
-                                fadeIn(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideIntoContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                )
+                                fadeIn(animationSpec = tween(200, easing = iOSEaseInOut)) +
+                                    slideIntoContainer(
+                                        animationSpec = tween(200, easing = iOSEaseInOut),
+                                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                                        initialOffset = { it / 4 }
+                                    )
                             },
                             exitTransition = {
-                                fadeOut(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                )
+                                fadeOut(animationSpec = tween(150, easing = iOSEaseInOut))
                             },
                             popEnterTransition = {
-                                fadeIn(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideIntoContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.End,
-                                )
+                                fadeIn(animationSpec = tween(200, easing = iOSEaseInOut)) +
+                                    slideIntoContainer(
+                                        animationSpec = tween(200, easing = iOSEaseInOut),
+                                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                                        initialOffset = { it / 4 }
+                                    )
                             },
                             popExitTransition = {
-                                fadeOut(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                ) + slideOutOfContainer(
-                                    animationSpec = tween(200, easing = iOSEaseInOut),
-                                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
-                                )
+                                fadeOut(animationSpec = tween(150, easing = iOSEaseInOut))
                             },
                         ) {
                             navigation(
@@ -255,8 +273,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     var showAuthSheet by remember { mutableStateOf(false) }
                                     HomeFeedScreen(
                                         onListingClick = { listingId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$listingId")
+                                            selectedListingId = listingId
                                         },
+                                        onSearchClick = { showSearchDialog = true },
                                         onSeeAll = { section ->
                                             navController.navigate("home_section/${section.name}")
                                         },
@@ -265,8 +284,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to save favorites.",
+                                            subtitle = "Save your favorites and book spaces.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -281,12 +299,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ) { backStackEntry ->
                                     val raw = backStackEntry.arguments?.getString("sectionKey")
                                     val section = runCatching { HomeSectionKey.valueOf(raw ?: "") }
-                                        .getOrDefault(HomeSectionKey.HOURLY)
+                                        .getOrDefault(HomeSectionKey.SPACES)
                                     HomeSectionListScreen(
                                         section = section,
                                         onBack = { navController.popBackStack() },
                                         onListingClick = { listingId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$listingId")
+                                            selectedListingId = listingId
                                         }
                                     )
                                 }
@@ -302,15 +320,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                     SearchScreen(
                                         onBackClick = { navController.popBackStack() },
                                         onListingClick = { propertyId ->
-                                            navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
+                                            selectedListingId = propertyId
                                         },
                                         onShowAuthSheet = { showAuthSheet = true }
                                     )
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to save favorites.",
+                                            subtitle = "Save your favorites and book spaces.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -318,48 +335,24 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
                             }
 
-                            // Bookings Tab (3rd)
+                            // Bookings Tab (3rd) — fetches with role=renter|host like web
                             navigation(
                                 startDestination = "bookings_root",
                                 route = DashboardDestination.BOOKINGS.name
                             ) {
                                 composable("bookings_root") {
-                                val authGate = hiltViewModel<AuthGateViewModel>()
-                                val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
 
-                                if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(
-                                                text = "Sign in to view your bookings",
-                                                style = PaceDreamTypography.Title3,
-                                                color = PaceDreamColors.TextPrimary
-                                            )
-                                            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                                            androidx.compose.material3.Button(
-                                                onClick = { showAuthSheet = true },
-                                                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary)
-                                            ) {
-                                                Text("Sign in")
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    BookingTabScreen(
-                                        onBookingClick = { bookingId ->
-                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
-                                        }
-                                    )
-                                }
+                                BookingTabScreen(
+                                    onBookingClick = { bookingId ->
+                                        navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                                    },
+                                    onShowAuthSheet = { showAuthSheet = true }
+                                )
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to view your bookings.",
+                                        subtitle = "Manage your upcoming bookings.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -377,30 +370,31 @@ fun NavGraphBuilder.DashboardNavigation(
                                 
                                 WishlistScreen(
                                     onNavigateToTimeBasedDetail = { itemId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$itemId")
+                                        selectedListingId = itemId
                                     },
                                     onNavigateToGearDetail = { gearId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$gearId")
+                                        selectedListingId = gearId
                                     },
                                     onShowAuthSheet = {
                                         showAuthSheet = true
+                                    },
+                                    onExploreListings = {
+                                        // iOS parity: switch to Home tab (same as iOS "Explore listings" → PD_SwitchToHomeTab)
+                                        TabRouter.switchTo(DashboardDestination.HOME)
                                     }
                                 )
                                 
                                 // Auth Modal - shows over tabs (tabs remain visible)
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to access your favorites.",
+                                        subtitle = "Save your favorites and book spaces.",
                                         onDismiss = { showAuthSheet = false },
-                                        onSuccess = {
-                                            // Session bootstrap happens in session manager
-                                        }
+                                        onSuccess = { showAuthSheet = false }
                                     )
                                     }
                                 }
                             }
-                            
+
                             // Inbox Tab - Connected to real ViewModel
                             navigation(
                                 startDestination = "inbox_root",
@@ -421,10 +415,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                 // Auth Modal
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to view your messages.",
+                                        subtitle = "Connect with hosts and guests.",
                                         onDismiss = { showAuthSheet = false },
-                                        onSuccess = { }
+                                        onSuccess = { showAuthSheet = false }
                                     )
                                 }
                             }
@@ -458,19 +451,28 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
-                                        // Navigate to edit profile
+                                        navController.navigate("edit_profile")
                                     },
                                     onSettingsClick = {
-                                        // Navigate to settings
+                                        navController.navigate("settings_root")
+                                    },
+                                    onNotificationsClick = {
+                                        navController.navigate("settings_notifications")
+                                    },
+                                    onBookingsClick = {
+                                        navigateToTab(navController, DashboardDestination.BOOKINGS.name)
+                                    },
+                                    onWishlistClick = {
+                                        navigateToTab(navController, DashboardDestination.FAVORITES.name)
                                     },
                                     onHelpClick = {
-                                        // Navigate to help
+                                        navController.navigate("support")
                                     },
                                     onFaqClick = {
                                         navController.navigate("faq")
                                     },
                                     onAboutClick = {
-                                        // Navigate to about
+                                        navController.navigate("about")
                                     },
                                     onPrivacyPolicyClick = {
                                         try {
@@ -489,7 +491,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     },
                                     onLogoutClick = {
-                                        // Handle logout
+                                        hostModeManager.setHostMode(false)
+                                        navigateToTab(navController, DashboardDestination.HOME.name)
                                     },
                                     onSwitchToHostMode = {
                                         hostModeManager.setHostMode(true)
@@ -497,13 +500,20 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onSwitchToGuestMode = {
                                         hostModeManager.setHostMode(false)
                                     },
-                                    isHostMode = isHostMode
+                                    onCreateListingClick = {
+                                        navController.navigate("create_listing") {
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    isHostMode = isHostMode,
+                                    onReviewsClick = { navController.navigate("reviews") },
+                                    onTripPlannerClick = { navController.navigate("trip_planner") },
+                                    onDestinationsClick = { navController.navigate("destinations") }
                                 )
 
                                     if (showAuthSheet) {
                                         com.pacedream.app.ui.components.AuthFlowSheet(
-                                            title = "Sign in",
-                                            subtitle = "Sign in to view your profile.",
+                                            subtitle = "Access your profile and settings.",
                                             onDismiss = { showAuthSheet = false },
                                             onSuccess = { showAuthSheet = false }
                                         )
@@ -514,6 +524,21 @@ fun NavGraphBuilder.DashboardNavigation(
                             // FAQ Screen
                             composable("faq") {
                                 com.shourov.apps.pacedream.feature.help.FaqScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Help & Support Screen
+                            composable("support") {
+                                com.shourov.apps.pacedream.feature.help.SupportScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onFaqClick = { navController.navigate("faq") }
+                                )
+                            }
+
+                            // Notification Center Screen (iOS parity)
+                            composable("notifications") {
+                                NotificationCenterScreen(
                                     onBackClick = { navController.popBackStack() }
                                 )
                             }
@@ -539,6 +564,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNavigateToInbox = {
                                         navigateToTab(navController, DashboardDestination.INBOX.name)
                                     },
+                                    onNavigateToThread = { threadId ->
+                                        navController.navigate("${InboxDestination.THREAD.name}/$threadId")
+                                    },
                                     onNavigateToCheckout = { draft ->
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
                                             "booking_draft_json_${draft.listingId}",
@@ -550,14 +578,14 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to book and save favorites.",
+                                        subtitle = "Book spaces and save your favorites.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
                                 }
                             }
 
+                            // Checkout Screen – receives BookingDraft via savedStateHandle (iOS parity)
                             composable(
                                 route = "${BookingDestination.BOOKING_FORM.name}/{propertyId}",
                                 arguments = listOf(
@@ -568,9 +596,17 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val authGate = hiltViewModel<AuthGateViewModel>()
                                 val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
+
+                                // Decode the BookingDraft that was saved by the detail page
+                                val draftJson = navController.previousBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.get<String>("booking_draft_json_$propertyId")
+                                val draft = draftJson?.let {
+                                    runCatching { BookingDraftCodec.decode(it) }.getOrNull()
+                                }
+
                                 // Booking is a protected action; keep parity with iOS by gating with AuthFlowSheet.
-                                if (authState == com.shourov.apps.pacedream.core.network.auth.AuthState.Unauthenticated) {
-                                    // Don't force login globally, but booking is protected.
+                                if (authState == com.pacedream.app.core.auth.AuthState.Unauthenticated) {
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
@@ -584,7 +620,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                             ) { Text("Sign in") }
                                         }
                                     }
+                                } else if (draft != null) {
+                                    // Use CheckoutScreen with the real BookingDraft and backend API
+                                    CheckoutScreen(
+                                        draft = draft,
+                                        onBackClick = { navController.popBackStack() },
+                                        onConfirmSuccess = { bookingId ->
+                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId") {
+                                                // Pop checkout off the stack so back goes to detail
+                                                popUpTo("${BookingDestination.BOOKING_FORM.name}/$propertyId") {
+                                                    inclusive = true
+                                                }
+                                            }
+                                        }
+                                    )
                                 } else {
+                                    // Fallback: if draft is somehow missing, show BookingFormScreen
                                     BookingFormScreen(
                                         propertyId = propertyId,
                                         onBookingCreated = { bookingId ->
@@ -593,12 +644,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     )
                                 }
 
-                                // If user is logged out mid-flow, the BookingFormViewModel will surface an error;
-                                // keep an escape hatch to sign in.
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to complete your booking.",
+                                        subtitle = "Complete your booking.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -629,7 +677,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 SearchScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onListingClick = { propertyId ->
-                                        navController.navigate("${PropertyDestination.DETAIL.name}/$propertyId")
+                                        selectedListingId = propertyId
                                     },
                                     initialQuery = initialQuery,
                                     onShowAuthSheet = { showAuthSheet = true }
@@ -637,8 +685,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
-                                        title = "Sign in",
-                                        subtitle = "Sign in to save favorites.",
+                                        subtitle = "Save your favorites and book spaces.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -674,11 +721,18 @@ fun NavGraphBuilder.DashboardNavigation(
                             
                             // Destination List Screen
                             composable(PropertyDestination.DESTINATION_LIST.name) {
+                                val destinationsViewModel: DestinationsViewModel = hiltViewModel()
+                                val destState by destinationsViewModel.state.collectAsStateWithLifecycle()
                                 DestinationListScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onDestinationClick = { destination ->
                                         navController.navigate("${PropertyDestination.SEARCH.name}?destination=$destination")
-                                    }
+                                    },
+                                    popularDestinations = destState.popularDestinations,
+                                    allDestinations = destState.allDestinations,
+                                    isLoading = destState.isLoading,
+                                    errorMessage = destState.errorMessage,
+                                    onRetry = { destinationsViewModel.retry() }
                                 )
                             }
                             
@@ -738,6 +792,245 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onBack = { navController.popBackStack() }
                                 )
                             }
+
+                            // ── New Feature Screens (iOS/Web parity) ─────────────
+
+                            // Reviews Screen
+                            composable("reviews") {
+                                com.pacedream.app.feature.reviews.ReviewsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Trip Planner Screen
+                            composable("trip_planner") {
+                                com.pacedream.app.feature.tripplanner.TripPlannerScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Bidding Screen
+                            composable("bids") {
+                                com.pacedream.app.feature.bidding.BiddingScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Destination Screens
+                            composable("destinations") {
+                                com.pacedream.app.feature.destination.DestinationListingsScreen(
+                                    destinationId = "",
+                                    onBackClick = { navController.popBackStack() },
+                                    onListingClick = { listingId ->
+                                        selectedListingId = listingId
+                                    }
+                                )
+                            }
+                            composable(
+                                route = "destination_listings/{destinationId}",
+                                arguments = listOf(navArgument("destinationId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val destId = backStackEntry.arguments?.getString("destinationId") ?: ""
+                                com.pacedream.app.feature.destination.DestinationListingsScreen(
+                                    destinationId = destId,
+                                    onBackClick = { navController.popBackStack() },
+                                    onListingClick = { listingId ->
+                                        selectedListingId = listingId
+                                    }
+                                )
+                            }
+
+                            // Edit Listing (Host)
+                            composable(
+                                route = "edit_listing/{listingId}",
+                                arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
+                                val editListingViewModel: com.shourov.apps.pacedream.feature.host.presentation.EditListingViewModel = hiltViewModel()
+                                com.shourov.apps.pacedream.feature.host.presentation.EditListingScreen(
+                                    listingId = listingId,
+                                    viewModel = editListingViewModel,
+                                    onBackClick = { navController.popBackStack() },
+                                    onSaveSuccess = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Edit Profile Screen (with photo editing)
+                            composable("edit_profile") {
+                                EditProfileScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // ── Settings & Account Screens (iOS parity) ──────────
+
+                            // Settings Root Screen
+                            composable("settings_root") {
+                                com.pacedream.app.feature.settings.SettingsRootScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onPersonalInfoClick = { navController.navigate("settings_personal_info") },
+                                    onLoginSecurityClick = { navController.navigate("settings_login_security") },
+                                    onNotificationsClick = { navController.navigate("settings_notifications") },
+                                    onPreferencesClick = { navController.navigate("settings_preferences") },
+                                    onPaymentMethodsClick = { navController.navigate("settings_payment_methods") },
+                                    onHelpSupportClick = { navController.navigate("support") },
+                                    onIdentityVerificationClick = { navController.navigate("settings_identity_verification") }
+                                )
+                            }
+
+                            // Personal Info Screen
+                            composable("settings_personal_info") {
+                                com.pacedream.app.feature.settings.personal.SettingsPersonalInfoScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Login & Security Screen
+                            composable("settings_login_security") {
+                                com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen(
+                                    onBackClick = { navController.popBackStack() },
+                                    onAccountDeactivated = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Notifications Settings Screen
+                            composable("settings_notifications") {
+                                com.pacedream.app.feature.settings.notifications.SettingsNotificationsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Preferences Screen (Language & Region)
+                            composable("settings_preferences") {
+                                com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Payment Methods Screen
+                            composable("settings_payment_methods") {
+                                com.pacedream.app.feature.settings.payment.SettingsPaymentMethodsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Identity Verification Screen
+                            composable("settings_identity_verification") {
+                                com.pacedream.app.feature.verification.IdentityVerificationScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // About Us Screen
+                            composable("about") {
+                                com.pacedream.app.feature.about.AboutUsScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
+                            // Create Listing Screen (accessible from guest profile tab)
+                            composable("create_listing") {
+                                val context = LocalContext.current
+                                val uploadService = try {
+                                    EntryPointAccessors.fromApplication(
+                                        context.applicationContext,
+                                        ImageUploadEntryPoint::class.java
+                                    ).imageUploadService()
+                                } catch (_: Exception) { null }
+
+                                CreateListingScreen(
+                                    listingMode = ListingMode.SHARE,
+                                    imageUploadService = uploadService,
+                                    onBackClick = { navController.popBackStack() },
+                                    onPublishSuccess = { listingId ->
+                                        navController.popBackStack()
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // iOS parity: listing detail as modal bottom sheet (like iOS .sheet(item:))
+                    if (selectedListingId != null) {
+                        var showAuthSheetForDetail by remember { mutableStateOf(false) }
+
+                        ModalBottomSheet(
+                            onDismissRequest = { selectedListingId = null },
+                            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                            containerColor = PaceDreamColors.Background,
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                            dragHandle = { BottomSheetDefaults.DragHandle() },
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.93f)
+                            ) {
+                            ListingDetailRoute(
+                                listingId = selectedListingId ?: return@ModalBottomSheet,
+                                onBackClick = { selectedListingId = null },
+                                onLoginRequired = { showAuthSheetForDetail = true },
+                                onNavigateToInbox = {
+                                    selectedListingId = null
+                                    navigateToTab(navController, DashboardDestination.INBOX.name)
+                                },
+                                onNavigateToThread = { threadId ->
+                                    selectedListingId = null
+                                    navController.navigate("${InboxDestination.THREAD.name}/$threadId")
+                                },
+                                onNavigateToCheckout = { draft ->
+                                    selectedListingId = null
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        "booking_draft_json_${draft.listingId}",
+                                        BookingDraftCodec.encode(draft)
+                                    )
+                                    navController.navigate("${BookingDestination.BOOKING_FORM.name}/${draft.listingId}")
+                                }
+                            )
+                            } // end Box
+                        }
+
+                        if (showAuthSheetForDetail) {
+                            com.pacedream.app.ui.components.AuthFlowSheet(
+                                subtitle = "Book spaces and save your favorites.",
+                                onDismiss = { showAuthSheetForDetail = false },
+                                onSuccess = { showAuthSheetForDetail = false }
+                            )
+                        }
+                    }
+
+                    // iOS parity: search as full-screen cover (like iOS .fullScreenCover)
+                    if (showSearchDialog) {
+                        var showAuthSheetForSearch by remember { mutableStateOf(false) }
+
+                        Dialog(
+                            onDismissRequest = { showSearchDialog = false },
+                            properties = DialogProperties(
+                                usePlatformDefaultWidth = false,
+                                decorFitsSystemWindows = false
+                            )
+                        ) {
+                            Surface(
+                                modifier = Modifier.fillMaxSize(),
+                                color = PaceDreamColors.Background
+                            ) {
+                                SearchScreen(
+                                    onBackClick = { showSearchDialog = false },
+                                    onListingClick = { propertyId ->
+                                        showSearchDialog = false
+                                        selectedListingId = propertyId
+                                    },
+                                    onShowAuthSheet = { showAuthSheetForSearch = true }
+                                )
+                            }
+                        }
+
+                        if (showAuthSheetForSearch) {
+                            com.pacedream.app.ui.components.AuthFlowSheet(
+                                subtitle = "Save your favorites and book spaces.",
+                                onDismiss = { showAuthSheetForSearch = false },
+                                onSuccess = { showAuthSheetForSearch = false }
+                            )
                         }
                     }
                 }

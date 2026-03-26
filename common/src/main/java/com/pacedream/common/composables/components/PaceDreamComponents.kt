@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pacedream.common.composables.shimmerEffect
@@ -83,63 +85,64 @@ fun PaceDreamHeroHeader(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         PaceDreamPrimary,
-                        PaceDreamPrimary.copy(alpha = 0.85f)
+                        PaceDreamPrimary.copy(alpha = 0.88f)
                     )
                 ),
                 shape = RoundedCornerShape(
-                    bottomStart = PaceDreamRadius.XL,
-                    bottomEnd = PaceDreamRadius.XL
+                    bottomStart = PaceDreamRadius.LG,
+                    bottomEnd = PaceDreamRadius.LG
                 )
             )
             .padding(
-                horizontal = PaceDreamSpacing.MD,
-                vertical = PaceDreamSpacing.XL
+                start = PaceDreamSpacing.MD,
+                end = PaceDreamSpacing.MD,
+                top = PaceDreamSpacing.LG,
+                bottom = PaceDreamSpacing.MD
             )
     ) {
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Title2,
+                    color = Color.White
+                )
+                subtitle?.let {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
-                        text = title,
-                        style = PaceDreamTypography.Title1,
-                        color = Color.White
+                        text = it,
+                        style = PaceDreamTypography.Subheadline,
+                        color = Color.White.copy(alpha = 0.80f)
                     )
-                    subtitle?.let {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                        Text(
-                            text = it,
-                            style = PaceDreamTypography.Body,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
                 }
+            }
 
-                // Floating glass notification button
-                IconButton(
-                    onClick = onNotificationClick,
-                    modifier = Modifier
-                        .size(PaceDreamButtonHeight.MD)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.20f))
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Notifications,
-                        contentDescription = "Notifications",
-                        tint = Color.White,
-                        modifier = Modifier.size(PaceDreamIconSize.MD)
-                    )
-                }
+            // Floating glass notification button
+            IconButton(
+                onClick = onNotificationClick,
+                modifier = Modifier
+                    .size(PaceDreamButtonHeight.SM)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f))
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Notifications,
+                    contentDescription = "Notifications",
+                    tint = Color.White,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
             }
         }
     }
 }
 
 // ============================================================================
-// Search Bar - iOS 26 compact floating search field
+// Search Bar - Matched to iOS DesignTokens.Sizes.searchBarHeight (48dp)
+// iOS uses systemBackground with 1pt shadow, 12pt corner radius
 // ============================================================================
 @Composable
 fun PaceDreamSearchBar(
@@ -147,7 +150,7 @@ fun PaceDreamSearchBar(
     onQueryChange: (String) -> Unit,
     onSearchClick: () -> Unit = {},
     onFilterClick: () -> Unit = {},
-    placeholder: String = "Search properties...",
+    placeholder: String = "Where to? Anywhere \u2022 Any week \u2022 Add guests",
     modifier: Modifier = Modifier
 ) {
     val searchShape = RoundedCornerShape(PaceDreamSearchBar.CornerRadius)
@@ -156,8 +159,14 @@ fun PaceDreamSearchBar(
         modifier = modifier
             .fillMaxWidth()
             .height(PaceDreamSearchBar.ExpandedHeight)
-            .glassSurface(shape = searchShape)
-            .padding(horizontal = PaceDreamSpacing.SM),
+            .clip(searchShape)
+            .background(PaceDreamColors.Background)
+            .border(
+                width = 0.5.dp,
+                color = PaceDreamColors.Border.copy(alpha = 0.5f),
+                shape = searchShape
+            )
+            .padding(horizontal = PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -176,7 +185,7 @@ fun PaceDreamSearchBar(
                 Text(
                     text = placeholder,
                     color = PaceDreamTextTertiary,
-                    style = PaceDreamTypography.Body
+                    style = PaceDreamTypography.Callout
                 )
             },
             modifier = Modifier.weight(1f),
@@ -188,7 +197,7 @@ fun PaceDreamSearchBar(
                 focusedTextColor = PaceDreamTextPrimary,
                 unfocusedTextColor = PaceDreamTextPrimary
             ),
-            textStyle = PaceDreamTypography.Body,
+            textStyle = PaceDreamTypography.Callout,
             singleLine = true
         )
 
@@ -295,7 +304,7 @@ fun PaceDreamCategoryPill(
 
             Text(
                 text = title,
-                style = PaceDreamTypography.Footnote,
+                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                 color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }
@@ -356,7 +365,7 @@ fun PaceDreamPropertyCard(
             .width(200.dp)
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamPropertyCard.Elevation),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
         shape = cardShape
     ) {
         Column {
@@ -369,19 +378,23 @@ fun PaceDreamPropertyCard(
                     .height(PaceDreamPropertyCard.ImageHeight)
             )
 
-            // Property Details with iOS-style compact spacing
+            // Property Details — consistent spacing and alignment
             Column(
                 modifier = Modifier.padding(PaceDreamPropertyCard.ContentPadding)
             ) {
+                // Title — fixed 2-line height for consistent card alignment
                 Text(
                     text = title,
                     style = PaceDreamTypography.Headline,
                     color = PaceDreamTextPrimary,
-                    maxLines = 2
+                    maxLines = 2,
+                    minLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
+                // Location
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -398,12 +411,14 @@ fun PaceDreamPropertyCard(
                         text = location,
                         style = PaceDreamTypography.Footnote,
                         color = PaceDreamTextSecondary,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
+                // Price + Rating row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -415,28 +430,55 @@ fun PaceDreamPropertyCard(
                         color = PaceDreamPrimary
                     )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Star,
-                            contentDescription = null,
-                            tint = PaceDreamWarning,
-                            modifier = Modifier.size(PaceDreamIconSize.XS)
-                        )
+                    if (rating > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Star,
+                                contentDescription = null,
+                                tint = PaceDreamColors.StarRating,
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
+                            )
 
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
 
-                        Text(
-                            text = "$rating ($reviewCount)",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamTextSecondary
-                        )
+                            Text(
+                                text = if (reviewCount > 0) "$rating ($reviewCount)" else "$rating",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamTextSecondary
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+// ============================================================================
+// ============================================================================
+// City Fallback Images - Maps city names to relevant Unsplash images
+// ============================================================================
+private fun destinationFallbackImage(name: String): String = when (name.lowercase().trim()) {
+    "new york", "manhattan", "brooklyn" -> "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&q=80"
+    "los angeles" -> "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&q=80"
+    "san francisco" -> "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&q=80"
+    "chicago" -> "https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=400&q=80"
+    "miami" -> "https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&q=80"
+    "seattle" -> "https://images.unsplash.com/photo-1502175353174-a7a70e73b4c3?w=400&q=80"
+    "austin" -> "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=400&q=80"
+    "denver" -> "https://images.unsplash.com/photo-1619856699906-09e1f4ef478b?w=400&q=80"
+    "boston" -> "https://images.unsplash.com/photo-1501979376754-1d3b25f22a4e?w=400&q=80"
+    "honolulu" -> "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=400&q=80"
+    "maui" -> "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=400&q=80"
+    "grand canyon" -> "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=400&q=80"
+    "nashville" -> "https://images.unsplash.com/photo-1545419913-775e2e168cd0?w=400&q=80"
+    "portland" -> "https://images.unsplash.com/photo-1507245338956-79a3a4b41583?w=400&q=80"
+    "san diego" -> "https://images.unsplash.com/photo-1538097304804-2a1b932466a9?w=400&q=80"
+    "atlanta" -> "https://images.unsplash.com/photo-1575917649705-5b59aaa12e6b?w=400&q=80"
+    "washington", "washington dc" -> "https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=400&q=80"
+    else -> "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=400&q=80"
 }
 
 // ============================================================================
@@ -469,17 +511,14 @@ fun PaceDreamDestinationCard(
                     .height(PaceDreamDestinationCard.ImageHeight)
                     .background(PaceDreamGray100)
             ) {
-                Box(
+                val resolvedUrl = imageUrl?.takeIf { it.isNotBlank() }
+                    ?: destinationFallbackImage(name)
+                AsyncImage(
+                    model = resolvedUrl,
+                    contentDescription = name,
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (imageUrl != null) PaceDreamIcons.Image else PaceDreamIcons.LocationOn,
-                        contentDescription = null,
-                        tint = PaceDreamTextTertiary,
-                        modifier = Modifier.size(PaceDreamIconSize.LG)
-                    )
-                }
+                    contentScale = ContentScale.Crop
+                )
             }
 
             // Destination Name
@@ -638,22 +677,23 @@ fun PaceDreamEmptyState(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(PaceDreamEmptyState.Padding),
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.XL),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = PaceDreamTextTertiary,
-                modifier = Modifier.size(PaceDreamEmptyState.IconSize)
+                modifier = Modifier.size(PaceDreamIconSize.XXL)
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             Text(
                 text = title,
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamTextPrimary
+                color = PaceDreamTextPrimary,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -662,23 +702,28 @@ fun PaceDreamEmptyState(
                 text = description,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamTextSecondary,
-                lineHeight = PaceDreamTypography.Body.lineHeight
+                textAlign = TextAlign.Center
             )
 
             actionText?.let { text ->
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
                 Button(
                     onClick = { onActionClick?.invoke() },
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
                     modifier = Modifier.height(PaceDreamButtonHeight.MD),
                     shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    contentPadding = PaddingValues(
+                        horizontal = PaceDreamSpacing.LG,
+                        vertical = PaceDreamSpacing.SM2
+                    )
                 ) {
                     Text(
                         text = text,
                         style = PaceDreamTypography.Button,
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1
                     )
                 }
             }
@@ -820,7 +865,7 @@ fun PaceDreamCategoryPillSimple(
 
             Text(
                 text = title,
-                style = PaceDreamTypography.Footnote,
+                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                 color = if (isSelected) Color.White else PaceDreamTextPrimary
             )
         }

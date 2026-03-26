@@ -15,6 +15,7 @@ import androidx.navigation.navOptions
 import androidx.tracing.trace
 import com.shourov.apps.pacedream.core.ui.TrackDisposableJank
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
+import timber.log.Timber
 import com.shourov.apps.pacedream.navigation.BookingDestination
 import com.shourov.apps.pacedream.navigation.InboxDestination
 import com.shourov.apps.pacedream.navigation.PropertyDestination
@@ -108,7 +109,7 @@ class PaceDreamAppState(
                     destinationOptions,
                 )
 
-                UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToHomeScreen(
+                UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToCreateAccountScreen(
                     destinationOptions,
                 )
             }
@@ -135,6 +136,14 @@ class PaceDreamAppState(
             }
             is DeepLinkResult.GearDetail -> {
                 navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
+            }
+            // iOS PR #200 parity: navigate to earnings after Stripe Connect return
+            is DeepLinkResult.StripeConnectReturn -> {
+                Timber.d("Stripe Connect return deep link received, refreshing earnings")
+                // Navigate to host earnings/payouts tab to refresh status
+                navController.navigate("host_earnings") {
+                    launchSingleTop = true
+                }
             }
         }
     }

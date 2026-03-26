@@ -25,6 +25,9 @@ interface BookingDao {
     @Query("SELECT * FROM bookings WHERE id = :bookingId")
     fun getBookingById(bookingId: String): Flow<BookingEntity?>
 
+    @Query("SELECT * FROM bookings WHERE id = :bookingId LIMIT 1")
+    suspend fun getBookingByIdOnce(bookingId: String): BookingEntity?
+
     @Query("SELECT * FROM bookings WHERE userName = :userName ORDER BY checkInTime DESC")
     fun getBookingsByUserName(userName: String): Flow<List<BookingEntity>>
 
@@ -48,6 +51,9 @@ interface BookingDao {
 
     @Query("DELETE FROM bookings WHERE id = :bookingId")
     suspend fun deleteBookingById(bookingId: String)
+
+    @Query("UPDATE bookings SET bookingStatus = :status, status = :status WHERE id = :bookingId")
+    suspend fun updateBookingStatus(bookingId: String, status: String)
 
     @Query("DELETE FROM bookings")
     suspend fun deleteAllBookings()

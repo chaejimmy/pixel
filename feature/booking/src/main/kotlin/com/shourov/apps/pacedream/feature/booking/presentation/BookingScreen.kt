@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.pacedream.common.composables.buttons.CompactProcessButton
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.components.PaceDreamUserAvatar
@@ -56,9 +57,10 @@ fun BookingScreen(
         modifier = modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .statusBarsPadding()
     ) {
         PaceDreamHeroHeader(
-            title = "My Bookings",
+            title = "Bookings",
             subtitle = "Manage your reservations",
             onNotificationClick = { /* Handle notification */ }
         )
@@ -229,20 +231,17 @@ private fun BookingCard(
             ) {
                 StatusChip(status = booking.status.name)
                 
-                Row {
+                Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                     if (booking.status == BookingStatus.PENDING) {
-                        TextButton(onClick = onCancel) {
-                            Text("Cancel", style = PaceDreamTypography.Callout, color = PaceDreamColors.Error)
-                        }
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Button(
+                        CompactProcessButton(
+                            onClick = onCancel,
+                            text = "Cancel",
+                            containerColor = PaceDreamColors.Error,
+                        )
+                        CompactProcessButton(
                             onClick = onConfirm,
-                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                            shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-                        ) {
-                            Text("Confirm", style = PaceDreamTypography.Callout)
-                        }
+                            text = "Confirm",
+                        )
                     }
                 }
             }

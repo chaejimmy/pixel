@@ -30,18 +30,24 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val authSession: com.shourov.apps.pacedream.core.network.auth.AuthSession
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ChatListUiState())
     val uiState: StateFlow<ChatListUiState> = _uiState.asStateFlow()
-    
+
     fun loadChats() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            // For now, using a mock user ID - this should come from user session
-            val userId = "current_user_id"
+
+            val userId = authSession.currentUserId ?: run {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Not signed in"
+                )
+                return@launch
+            }
             
             messageRepository.getUserMessages(userId).collect { result ->
                 when (result) {
@@ -66,10 +72,13 @@ class ChatListViewModel @Inject constructor(
     
     private fun groupMessagesIntoChats(messages: List<MessageModel>, currentUserId: String): List<ChatItem> {
         val chatMap = mutableMapOf<String, MutableList<MessageModel>>()
-        
-        // Group messages by chat ID
+
+        // Group messages by chat ID, skipping messages without a valid chatId
         messages.forEach { message ->
-            chatMap.getOrPut(message.chatId) { mutableListOf() }.add(message)
+            val chatId = message.chatId
+            if (!chatId.isNullOrBlank()) {
+                chatMap.getOrPut(chatId) { mutableListOf() }.add(message)
+            }
         }
         
         // Convert to ChatItem list
@@ -77,17 +86,17 @@ class ChatListViewModel @Inject constructor(
             val sortedMessages = messageList.sortedBy { it.timestamp }
             val lastMessage = sortedMessages.lastOrNull()
             val otherUserId = if (lastMessage?.senderId == currentUserId) {
-                lastMessage.receiverId
+                lastMessage.receiverId ?: ""
             } else {
                 lastMessage?.senderId ?: ""
             }
-            
+
             ChatItem(
                 chatId = chatId,
                 otherUserId = otherUserId,
-                otherUserName = "User $otherUserId", // This should come from user data
-                otherUserAvatar = null, // This should come from user data
-                lastMessage = lastMessage?.content ?: "",
+                otherUserName = "User $otherUserId",
+                otherUserAvatar = null,
+                lastMessage = lastMessage?.displayText ?: "",
                 lastMessageTime = lastMessage?.timestamp ?: "",
                 unreadCount = messageList.count { !it.isRead && it.receiverId == currentUserId }
             )

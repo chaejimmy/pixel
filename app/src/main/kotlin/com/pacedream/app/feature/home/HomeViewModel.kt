@@ -56,6 +56,10 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         loadAllSections()
     }
+
+    fun selectCategory(category: String) {
+        _uiState.update { it.copy(selectedCategory = category) }
+    }
     
     private fun loadAllSections() {
         viewModelScope.launch {
@@ -89,17 +93,22 @@ class HomeViewModel @Inject constructor(
     }
     
     /**
-     * Fetch hourly spaces (time-based listings)
-     * GET /v1/properties/filter-rentable-items-by-group/time_based?item_type=room
+     * Fetch hourly spaces (USE share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=USE&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchHourlySpaces(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingHourlySpaces = true) }
-        
+
         val url = appConfig.buildApiUrl(
-            "properties", "filter-rentable-items-by-group", "time_based",
-            queryParams = mapOf("item_type" to "room")
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "USE",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
         )
-        
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "time-based")
@@ -111,16 +120,24 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
-     * Fetch rent gear
-     * GET /v1/gear-rentals/get/hourly-rental-gear/tech_gear
+     * Fetch rent gear (BORROW share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=BORROW&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchRentGear(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingRentGear = true) }
-        
-        val url = appConfig.buildApiUrl("gear-rentals", "get", "hourly-rental-gear", "tech_gear")
-        
+
+        val url = appConfig.buildApiUrl(
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "BORROW",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
+        )
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "gear")
@@ -132,16 +149,24 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
-     * Fetch split stays
-     * GET /v1/roommate/get/room-stay
+     * Fetch split stays (SPLIT share type - matches website endpoint)
+     * GET /v1/poc/listings?shareType=SPLIT&status=published&limit=24&skip_pagination=true
      */
     private suspend fun fetchSplitStays(): Pair<List<HomeListingItem>, String?> {
         _uiState.update { it.copy(isLoadingSplitStays = true) }
-        
-        val url = appConfig.buildApiUrl("roommate", "get", "room-stay")
-        
+
+        val url = appConfig.buildApiUrl(
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "SPLIT",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
+        )
+
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> {
                 val items = parseListingsFromResponse(result.data, "split-stay")
@@ -162,33 +187,44 @@ class HomeViewModel @Inject constructor(
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
-            // Find data array in common locations
-            val dataArray = obj["data"]?.jsonArray
-                ?: obj["items"]?.jsonArray
+
+            // Find data array in common locations (tolerate multiple response shapes)
+            val dataArray = (obj["data"] as? JsonArray)
+                ?: (obj["results"] as? JsonArray)
+                ?: (obj["items"] as? JsonArray)
                 ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("results")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("listings")?.jsonArray
                 ?: return emptyList()
-            
+
             dataArray.mapNotNull { item ->
                 try {
                     val itemObj = item.jsonObject
                     HomeListingItem(
-                        id = itemObj["_id"]?.jsonPrimitive?.content
-                            ?: itemObj["id"]?.jsonPrimitive?.content
+                        id = (itemObj["_id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: return@mapNotNull null,
-                        title = itemObj["name"]?.jsonPrimitive?.content
-                            ?: itemObj["title"]?.jsonPrimitive?.content
+                        title = (itemObj["name"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["title"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: "Listing",
-                        imageUrl = itemObj["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
-                            ?: itemObj["image"]?.jsonPrimitive?.content,
+                        imageUrl = (itemObj["images"] as? JsonArray)?.firstOrNull()?.jsonPrimitive?.content
+                            ?: (itemObj["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                            ?: (itemObj["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
+                            ?: (itemObj["primaryImage"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["image"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
                         location = itemObj["location"]?.let { loc ->
                             when (loc) {
-                                is JsonObject -> loc["city"]?.jsonPrimitive?.content
-                                else -> loc.jsonPrimitive.content
+                                is JsonObject -> {
+                                    val city = (loc["city"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                                    val state = (loc["state"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                                    listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+                                }
+                                is kotlinx.serialization.json.JsonPrimitive -> loc.content
+                                else -> null
                             }
                         },
                         price = parsePrice(itemObj),
-                        rating = itemObj["rating"]?.jsonPrimitive?.doubleOrNull,
+                        rating = (itemObj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull,
                         type = type
                     )
                 } catch (e: Exception) {
@@ -201,61 +237,96 @@ class HomeViewModel @Inject constructor(
             emptyList()
         }
     }
-    
+
     private fun parsePrice(obj: JsonObject): String? {
         return try {
+            // Extract standalone frequency from top-level pricingUnit (backend list endpoint)
+            // or pricing object fields. iOS reads pricingUnit for list views.
+            val standaloneFrequency = obj["pricingUnit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                ?: obj["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                ?: (obj["pricing"] as? JsonObject)?.let { p ->
+                    p["pricing_type"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["frequencyLabel"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                        ?: p["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                }
+
             // Try dynamic_price first (for hourly spaces)
-            obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
+            (obj["dynamic_price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { price ->
                 val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
                     ?: price["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                priceValue?.let { formatPrice(it, "hr") }
+                val freq = price["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+                priceValue?.let { formatPrice(it, freq) }
             }
             // Try pricing object
-            ?: obj["pricing"]?.jsonObject?.let { pricing ->
+            ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
                 val hourlyFrom = pricing["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
                     ?: pricing["hourly_from"]?.jsonPrimitive?.doubleOrNull
                 val basePrice = pricing["basePrice"]?.jsonPrimitive?.doubleOrNull
                     ?: pricing["base_price"]?.jsonPrimitive?.doubleOrNull
-                val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content
-                    ?: pricing["frequency"]?.jsonPrimitive?.content
-                    ?: pricing["unit"]?.jsonPrimitive?.content
-                
+                val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["pricing_type"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: pricing["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+
                 val amount = hourlyFrom ?: basePrice
-                val unit = frequency?.lowercase()?.takeIf { it.isNotBlank() } ?: "hr"
-                amount?.let { formatPrice(it, unit) }
+                amount?.let { formatPrice(it, frequency) }
             }
-            // Try price object
-            ?: obj["price"]?.let { price ->
-                when (price) {
-                    is JsonObject -> {
-                        val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
-                            ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                        val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
-                        amount?.let { formatPrice(it, unit) }
-                    }
-                    else -> {
-                        val priceValue = price.jsonPrimitive.doubleOrNull
-                            ?: price.jsonPrimitive.content.toDoubleOrNull()
-                        priceValue?.let { formatPrice(it, "hr") }
-                    }
-                }
+            // Try price as array of pricing objects (RentableItem format)
+            ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { price ->
+                val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
+                val frequency = price["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+                amount?.let { formatPrice(it, frequency) }
+            }
+            // Try price as object
+            ?: (obj["price"] as? JsonObject)?.let { price ->
+                val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
+                    ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                val freq = price["frequency"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: price["unit"]?.jsonPrimitive?.content?.let { formatPriceUnit(it) }
+                    ?: standaloneFrequency
+                amount?.let { formatPrice(it, freq) }
+            }
+            // Try price as primitive value
+            ?: (obj["price"] as? kotlinx.serialization.json.JsonPrimitive)?.let { price ->
+                val priceValue = price.doubleOrNull
+                    ?: price.content.toDoubleOrNull()
+                priceValue?.let { formatPrice(it, standaloneFrequency) }
             }
         } catch (e: Exception) {
             null
         }
     }
-    
+
+    /**
+     * Normalize backend frequency strings to short display labels matching iOS.
+     * Maps backend values like "HOUR", "hourly", "daily", "MONTH" etc.
+     */
+    private fun formatPriceUnit(frequency: String): String {
+        return when (frequency.lowercase().trim()) {
+            "hourly", "hour", "hr" -> "hr"
+            "daily", "day" -> "day"
+            "weekly", "week", "wk" -> "wk"
+            "monthly", "month", "mo" -> "mo"
+            "once" -> "total"
+            else -> frequency.lowercase()
+        }
+    }
+
     /**
      * Format price to match iOS format: "$12/hr" (no spaces, lowercase unit)
+     * When unit is null, displays price without suffix (e.g. "$12")
      */
-    private fun formatPrice(amount: Double, unit: String): String {
+    private fun formatPrice(amount: Double, unit: String?): String {
         val formattedAmount = if (amount == amount.toInt().toDouble()) {
             amount.toInt().toString()
         } else {
             "%.2f".format(amount).trimEnd('0').trimEnd('.')
         }
-        val normalizedUnit = unit.lowercase().trim()
-        return "$$formattedAmount/$normalizedUnit"
+        return if (unit != null) "$$formattedAmount/$unit" else "$$formattedAmount"
     }
 }
 
@@ -273,16 +344,33 @@ data class HomeUiState(
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
     val splitStaysError: String? = null,
-    val heroImageUrl: String? = null // Hero background image URL
+    val heroImageUrl: String? = null,
+    val selectedCategory: String = "All"
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays
-    
+
     val hasErrors: Boolean
         get() = hourlySpacesError != null || rentGearError != null || splitStaysError != null
-    
+
     val isEmpty: Boolean
-        get() = hourlySpaces.isEmpty() && rentGear.isEmpty() && splitStays.isEmpty()
+        get() = filteredHourlySpaces.isEmpty() && filteredRentGear.isEmpty() && filteredSplitStays.isEmpty()
+
+    /** Filter listings by selected category (case-insensitive title match) */
+    val filteredHourlySpaces: List<HomeListingItem>
+        get() = if (selectedCategory == "All") hourlySpaces
+                else hourlySpaces.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
+
+    val filteredRentGear: List<HomeListingItem>
+        get() = if (selectedCategory == "All") rentGear
+                else rentGear.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
+
+    val filteredSplitStays: List<HomeListingItem>
+        get() = if (selectedCategory == "All") splitStays
+                else splitStays.filter { it.title.contains(selectedCategory, ignoreCase = true) ||
+                    it.location?.contains(selectedCategory, ignoreCase = true) == true }
 }
 
 

@@ -14,11 +14,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun ListingDetailRoute(
     listingId: String,
+    listingType: String = "",
     initialListing: ListingCardModel? = null,
     viewModel: ListingDetailViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onLoginRequired: () -> Unit,
     onNavigateToInbox: () -> Unit,
+    onNavigateToThread: (String) -> Unit,
     onNavigateToCheckout: (com.pacedream.app.feature.checkout.BookingDraft) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -26,7 +28,7 @@ fun ListingDetailRoute(
     val context = LocalContext.current
 
     LaunchedEffect(listingId) {
-        viewModel.load(listingId, initialListing)
+        viewModel.load(listingId, listingType, initialListing)
     }
 
     LaunchedEffect(Unit) {
@@ -47,6 +49,9 @@ fun ListingDetailRoute(
                     }
                     context.startActivity(Intent.createChooser(shareIntent, "Share"))
                 }
+                is ListingDetailViewModel.Effect.NavigateToThread -> {
+                    onNavigateToThread(effect.threadId)
+                }
             }
         }
     }
@@ -60,15 +65,14 @@ fun ListingDetailRoute(
         onShare = { viewModel.share() },
         onContactHost = {
             if (!viewModel.isAuthenticated()) {
-                onNavigateToInbox()
                 onLoginRequired()
             } else {
-                onNavigateToInbox()
+                viewModel.contactHost()
             }
         },
         onOpenInMaps = { viewModel.openInMaps() },
         onConfirmReserve = { draft ->
-            onNavigateToCheckout(draft)
+            onNavigateToCheckout(draft.copy(listingType = viewModel.getListingType()))
         },
         onSubmitReview = { rating, comment, catRatings ->
             viewModel.submitReview(rating, comment, catRatings)

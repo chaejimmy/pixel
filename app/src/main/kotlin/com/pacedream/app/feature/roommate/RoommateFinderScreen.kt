@@ -42,8 +42,7 @@ fun RoommateFinderScreen(
                 title = {
                     Text(
                         "Find Roommate",
-                        style = PaceDreamTypography.Title2,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Headline
                     )
                 },
                 navigationIcon = {
@@ -190,12 +189,43 @@ fun RoommateFinderScreen(
                 )
             }
 
-            // Placeholder listings - will connect to API when available
-            items(5) { index ->
-                RoommateListingCard(
-                    index = index,
-                    onClick = { onListingClick("roommate-$index") }
-                )
+            // Empty state - will connect to roommate API when available
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    colors = CardDefaults.cardColors(
+                        containerColor = PaceDreamColors.Card
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(PaceDreamSpacing.XL),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.People,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        Text(
+                            text = "No roommate listings yet",
+                            style = PaceDreamTypography.Headline,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PaceDreamColors.TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                        Text(
+                            text = "Be the first to post a roommate listing in your area",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
             }
 
             // Post a listing CTA
@@ -241,117 +271,5 @@ private fun RoommatePreferenceChip(
     }
 }
 
-@Composable
-private fun RoommateListingCard(
-    index: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val locations = listOf("New York, NY", "San Francisco, CA", "Los Angeles, CA", "Chicago, IL", "Austin, TX")
-    val budgets = listOf("$800/mo", "$1,200/mo", "$950/mo", "$700/mo", "$1,100/mo")
-    val moveInDates = listOf("Immediately", "March 2026", "April 2026", "Flexible", "May 2026")
-    val lifestyles = listOf("Quiet & Clean", "Social", "Pet-Friendly", "Early Riser", "Night Owl")
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(PaceDreamSpacing.MD),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar placeholder
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.People,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Looking for a roommate",
-                    style = PaceDreamTypography.Headline,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PaceDreamColors.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        PaceDreamIcons.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = PaceDreamColors.TextSecondary
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = locations[index % locations.size],
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = PaceDreamColors.Primary.copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = budgets[index % budgets.size],
-                            style = PaceDreamTypography.Caption,
-                            fontWeight = FontWeight.Medium,
-                            color = PaceDreamColors.Primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = PaceDreamColors.TextSecondary.copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = moveInDates[index % moveInDates.size],
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = PaceDreamColors.TextSecondary.copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            text = lifestyles[index % lifestyles.size],
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
+// RoommateListingCard removed - was showing hardcoded sample data.
+// Will be replaced with real API-driven listing cards when the roommate API is available.

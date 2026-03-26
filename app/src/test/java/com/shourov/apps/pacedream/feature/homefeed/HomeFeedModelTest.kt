@@ -16,7 +16,7 @@ class HomeFeedModelTest {
     @Test
     fun `HomeSection loading state`() {
         val section = HomeSection(
-            key = HomeSectionKey.HOURLY,
+            key = HomeSectionKey.SPACES,
             items = emptyList(),
             isLoading = true,
             errorMessage = null
@@ -33,19 +33,19 @@ class HomeFeedModelTest {
             HomeCard("2", "Space B", "LA", null, "$20", 3.5)
         )
         val section = HomeSection(
-            key = HomeSectionKey.GEAR,
+            key = HomeSectionKey.ITEMS,
             items = cards,
             isLoading = false
         )
         assertFalse(section.isLoading)
         assertEquals(2, section.items.size)
-        assertEquals(HomeSectionKey.GEAR, section.key)
+        assertEquals(HomeSectionKey.ITEMS, section.key)
     }
 
     @Test
     fun `HomeSection error state`() {
         val section = HomeSection(
-            key = HomeSectionKey.SPLIT,
+            key = HomeSectionKey.SERVICES,
             items = emptyList(),
             isLoading = false,
             errorMessage = "Failed to load"
@@ -87,17 +87,17 @@ class HomeFeedModelTest {
     }
 
     @Test
-    fun `HomeSectionKey HOURLY shareType is USE`() {
-        assertEquals("USE", HomeSectionKey.HOURLY.shareType)
+    fun `HomeSectionKey SPACES shareType is SHARE`() {
+        assertEquals("SHARE", HomeSectionKey.SPACES.shareType)
     }
 
     @Test
-    fun `HomeSectionKey GEAR shareType is BORROW`() {
-        assertEquals("BORROW", HomeSectionKey.GEAR.shareType)
+    fun `HomeSectionKey ITEMS shareType is BORROW`() {
+        assertEquals("BORROW", HomeSectionKey.ITEMS.shareType)
     }
 
     @Test
-    fun `HomeSectionKey SPLIT shareType is SPLIT`() {
-        assertEquals("SPLIT", HomeSectionKey.SPLIT.shareType)
+    fun `HomeSectionKey SERVICES shareType is SHARE`() {
+        assertEquals("SHARE", HomeSectionKey.SERVICES.shareType)
     }
 }

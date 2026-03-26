@@ -7,14 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -31,7 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
+import com.pacedream.common.composables.buttons.OutlineProcessButton
+import com.pacedream.common.composables.buttons.ProcessButton
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -46,6 +42,7 @@ fun PhoneEntryScreen(
     viewModel: PhoneEntryViewModel = hiltViewModel(),
     onOTPSent: (String) -> Unit,
     onNavigateToEmail: () -> Unit = {},
+    onNavigateToApple: () -> Unit = {},
     onNavigateToGoogle: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -103,7 +100,7 @@ fun PhoneEntryScreen(
 
             if (uiState.phoneError != null && !uiState.isLoading) {
                 Text(
-                    text = uiState.phoneError!!,
+                    text = uiState.phoneError ?: "",
                     color = PaceDreamColors.Error,
                     style = PaceDreamTypography.Caption,
                     modifier = Modifier
@@ -115,7 +112,7 @@ fun PhoneEntryScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
             // Continue Button - iOS 26 style
-            Button(
+            ProcessButton(
                 onClick = {
                     viewModel.sendOTP(
                         onSuccess = { phone ->
@@ -126,25 +123,10 @@ fun PhoneEntryScreen(
                         }
                     )
                 },
-                enabled = uiState.isValidPhone && !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = PaceDreamColors.OnPrimary
-                    )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Text("Sending OTP...", style = PaceDreamTypography.Button)
-                } else {
-                    Text("Continue", style = PaceDreamTypography.Button)
-                }
-            }
+                isEnabled = uiState.isValidPhone,
+                isProcessing = uiState.isLoading,
+                text = if (uiState.isLoading) "Sending OTP..." else "Continue",
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
@@ -154,33 +136,17 @@ fun PhoneEntryScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             // Social login buttons - iOS style
-            OutlinedButton(
+            OutlineProcessButton(
                 onClick = onNavigateToEmail,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PaceDreamColors.TextPrimary,
-                ),
-            ) {
-                Text("Continue with Email", style = PaceDreamTypography.Button)
-            }
+                text = "Continue with Email",
+            )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-            OutlinedButton(
+            OutlineProcessButton(
                 onClick = onNavigateToGoogle,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PaceDreamColors.TextPrimary,
-                ),
-            ) {
-                Text("Continue with Google", style = PaceDreamTypography.Button)
-            }
+                text = "Continue with Google",
+            )
         }
     }
 }

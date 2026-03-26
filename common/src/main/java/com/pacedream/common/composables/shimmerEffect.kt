@@ -24,19 +24,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.pacedream.common.composables.theme.BorderColor
+import com.pacedream.common.composables.theme.PaceDreamAnimationDuration
+import com.pacedream.common.composables.theme.PaceDreamColors
 
 @Composable
 fun Modifier.shimmerEffect(): Modifier {
-    val transition = rememberInfiniteTransition(label = "")
+    val transition = rememberInfiniteTransition(label = "shimmer")
     val alpha = transition.animateFloat(
         initialValue = 0.2f,
         targetValue = 0.9f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 500),
+            animation = tween(durationMillis = PaceDreamAnimationDuration.MEDIUM),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "",
+        label = "shimmerAlpha",
     ).value
-    return this then Modifier.background(color = BorderColor.copy(alpha))
+    return this then Modifier.background(color = PaceDreamColors.Border.copy(alpha))
 }

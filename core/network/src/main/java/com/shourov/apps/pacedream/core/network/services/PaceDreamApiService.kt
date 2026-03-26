@@ -15,8 +15,12 @@ import com.shourov.apps.pacedream.core.network.model.DestinationResponse
 import com.shourov.apps.pacedream.core.network.model.HostAnalyticsResponse
 import com.shourov.apps.pacedream.core.network.model.HostEarningsResponse
 import com.shourov.apps.pacedream.core.network.model.HostListingResponse
+import com.shourov.apps.pacedream.core.network.model.AttachmentStatusResponse
+import com.shourov.apps.pacedream.core.network.model.MediaUploadResponse
 import com.shourov.apps.pacedream.core.network.model.MessageResponse
+import com.shourov.apps.pacedream.core.network.model.NotificationListData
 import com.shourov.apps.pacedream.core.network.model.NotificationResponse
+import com.shourov.apps.pacedream.core.network.model.UnreadCountData
 import com.shourov.apps.pacedream.core.network.model.PaymentHistoryResponse
 import com.shourov.apps.pacedream.core.network.model.PaymentIntentResponse
 import com.shourov.apps.pacedream.core.network.model.PaymentMethodResponse
@@ -247,6 +251,22 @@ interface PaceDreamApiService {
     @POST(ApiEndPoints.CONFIRM_BOOKING)
     suspend fun confirmBooking(@Path("bookingId") bookingId: String): Response<ApiResponse<BookingResponse>>
 
+    // iOS parity: /bookings/mine as primary endpoint for user's bookings
+    @GET(ApiEndPoints.GET_MY_BOOKINGS)
+    suspend fun getMyBookings(
+        @Header("Authorization") token: String,
+        @Query("status") status: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<ApiListResponse<BookingResponse>>
+
+    // iOS parity: confirm booking after Stripe payment succeeds
+    @POST(ApiEndPoints.CONFIRM_BOOKING_POST_PAYMENT)
+    suspend fun confirmBookingPostPayment(
+        @Header("Authorization") token: String,
+        @Path("bookingId") bookingId: String
+    ): Response<ApiResponse<BookingResponse>>
+
     @GET(ApiEndPoints.GET_BOOKING_AVAILABILITY)
     suspend fun getBookingAvailability(@Path("propertyId") propertyId: String): Response<ApiResponse<BookingAvailabilityResponse>>
 
@@ -276,15 +296,35 @@ interface PaceDreamApiService {
         @Path("messageId") messageId: String
     ): Response<ApiResponse<MessageResponse>>
 
-    // ── Notification APIs ──────────────────────────────────────
-    @GET(ApiEndPoints.GET_USER_NOTIFICATIONS)
-    suspend fun getUserNotifications(@Path("userId") userId: String): Response<ApiListResponse<NotificationResponse>>
+    @GET(ApiEndPoints.CHAT_ATTACHMENT_STATUS)
+    suspend fun getAttachmentStatus(
+        @Path("threadId") threadId: String
+    ): Response<ApiResponse<AttachmentStatusResponse>>
 
-    @PUT(ApiEndPoints.MARK_NOTIFICATION_READ)
+    @Multipart
+    @POST(ApiEndPoints.CHAT_SEND_MEDIA)
+    suspend fun uploadChatMedia(
+        @Path("threadId") threadId: String,
+        @Part images: List<okhttp3.MultipartBody.Part>,
+        @Part("text") text: okhttp3.RequestBody? = null
+    ): Response<MediaUploadResponse>
+
+    // ── Notification APIs ──────────────────────────────────────
+    @GET(ApiEndPoints.GET_NOTIFICATIONS)
+    suspend fun getNotifications(
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 20,
+        @Query("unreadOnly") unreadOnly: Boolean = false
+    ): Response<ApiResponse<NotificationListData>>
+
+    @GET(ApiEndPoints.GET_UNREAD_COUNT)
+    suspend fun getUnreadNotificationCount(): Response<ApiResponse<UnreadCountData>>
+
+    @POST(ApiEndPoints.MARK_NOTIFICATION_READ)
     suspend fun markNotificationAsRead(@Path("notificationId") notificationId: String): Response<ApiResponse<NotificationResponse>>
 
-    @PUT(ApiEndPoints.MARK_ALL_NOTIFICATIONS_READ)
-    suspend fun markAllNotificationsAsRead(@Path("userId") userId: String): Response<ApiResponse<Unit>>
+    @POST(ApiEndPoints.MARK_ALL_NOTIFICATIONS_READ)
+    suspend fun markAllNotificationsAsRead(): Response<ApiResponse<Unit>>
 
     @POST(ApiEndPoints.REGISTER_PUSH_TOKEN)
     suspend fun registerPushToken(@Body tokenData: Map<String, String>): Response<ApiResponse<Unit>>

@@ -72,6 +72,15 @@ data class Thread(
 }
 
 /**
+ * Message send status - matches iOS behavior for optimistic sends
+ */
+enum class MessageStatus {
+    SENT,
+    SENDING,
+    FAILED
+}
+
+/**
  * Message model
  */
 data class Message(
@@ -80,7 +89,8 @@ data class Message(
     val senderId: String,
     val timestamp: String?,
     val attachments: List<String> = emptyList(),
-    val isRead: Boolean = false
+    val isRead: Boolean = false,
+    val status: MessageStatus = MessageStatus.SENT
 ) {
     val formattedTime: String
         get() {
@@ -104,9 +114,18 @@ data class Message(
                 ts
             }
         }
-    
+
     val hasAttachments: Boolean
         get() = attachments.isNotEmpty()
+
+    val isFailed: Boolean
+        get() = status == MessageStatus.FAILED
+
+    val isSending: Boolean
+        get() = status == MessageStatus.SENDING
+
+    val isTemp: Boolean
+        get() = id.startsWith("temp-")
 }
 
 /**
@@ -159,7 +178,9 @@ sealed class ThreadDetailUiState {
         val currentUserId: String,
         val isRefreshing: Boolean = false,
         val hasMore: Boolean = false,
-        val isSending: Boolean = false
+        val isLoadingMore: Boolean = false,
+        val isSending: Boolean = false,
+        val sendError: String? = null
     ) : ThreadDetailUiState()
     data class Error(val message: String) : ThreadDetailUiState()
 }
@@ -181,6 +202,8 @@ sealed class InboxEvent {
 sealed class ThreadDetailEvent {
     object Refresh : ThreadDetailEvent()
     data class SendMessage(val text: String) : ThreadDetailEvent()
+    data class RetryMessage(val tempId: String) : ThreadDetailEvent()
+    object DismissSendError : ThreadDetailEvent()
     object LoadMore : ThreadDetailEvent()
 }
 

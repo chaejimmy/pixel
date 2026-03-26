@@ -39,12 +39,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -61,6 +58,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion
 import androidx.compose.ui.graphics.SolidColor
+import com.pacedream.common.composables.buttons.CompactProcessButton
+import com.pacedream.common.composables.buttons.OutlineProcessButton
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -528,7 +529,7 @@ fun ShowEachCard(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    color = if (status == "Completed") Color(0xFF15813C) else Color(0xFFFF4A4A),
+                    color = if (status == "Completed") PaceDreamColors.BookingConfirmed else PaceDreamColors.BookingCancelled,
                 )
             }
         }
@@ -661,38 +662,20 @@ fun ShowEachCard(
 
 
         if (status == "Completed") {
-            OutlinedButton(
-                onClick = {
-
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "Submit your review",
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                    ),
-                    color = Companion.Gray,
-                )
-            }
-        }
-
-        Button(
-            onClick = {
-
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xff5527D7),
-            ),
-        ) {
-            Text(
-                text = "Manage booking",
-                style = TextStyle(
-                    fontSize = 14.sp,
-                ),
+            OutlineProcessButton(
+                onClick = { },
+                text = "Submit your review",
             )
         }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        CompactProcessButton(
+            onClick = { },
+            text = "Manage booking",
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = Color(0xff5527D7),
+        )
     }
 }
 
@@ -709,137 +692,7 @@ data class dummyData(
     val date: String,
 )
 
-val dummyList = listOf(
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Cancelled",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Completed",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Cancelled",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Cancelled",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-    dummyData(
-        image = R.drawable.image,
-        id = 3232223445,
-        status = "Cancelled",
-        hotelName = "Best Wester",
-        location = "1 Anzinger Court",
-        checkInDate = "01 Apr 24",
-        checkoutDate = "03 Apr 24",
-        mainCity = "London",
-        date = "Fri,01 Apr",
-        price = 250,
-    ),
-)
+// Empty list: bookings are loaded from the real API via BookingRepository
+// in the main app module's BookingTabScreen. This legacy screen is no longer
+// the primary booking display path.
+val dummyList = emptyList<dummyData>()

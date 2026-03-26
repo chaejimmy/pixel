@@ -6,22 +6,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -36,6 +35,7 @@ import com.pacedream.common.composables.texts.ClickableText
 import com.pacedream.common.composables.texts.TitleText
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.signin.navigation.SignInRoutes
 
@@ -46,18 +46,16 @@ fun SignIn(
 ) {
     val viewModel: SignInViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(error)
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { },
+                title = {
+                    Text(
+                        text = "",
+                        style = PaceDreamTypography.Headline
+                    )
+                },
                 navigationIcon = {
                     RoundIconButton(
                         icon = PaceDreamIcons.ArrowBack,
@@ -71,7 +69,6 @@ fun SignIn(
                 ),
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background,
     ) {
         Surface(
@@ -157,11 +154,32 @@ fun SignIn(
                 if (uiState.error != null) {
                     VerticalSpacer(height = 8)
                     Text(
-                        text = uiState.error!!,
+                        text = uiState.error ?: "",
                         color = PaceDreamColors.Error,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+
+                VerticalSpacer(height = 12)
+
+                Text(
+                    text = buildAnnotatedString {
+                        append("By continuing, you agree to PaceDream's ")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Terms of Service")
+                        }
+                        append(" and ")
+                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                            append("Privacy Policy")
+                        }
+                        append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
+                    },
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                )
             }
         }
     }

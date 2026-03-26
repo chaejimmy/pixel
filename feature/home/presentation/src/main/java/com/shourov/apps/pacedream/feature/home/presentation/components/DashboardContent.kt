@@ -29,13 +29,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.pacedream.common.composables.tabs.GeneralTab
-import com.pacedream.common.composables.theme.LargePadding
-import com.pacedream.common.composables.theme.SmallText
-import com.pacedream.common.composables.theme.SubHeadingColor
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.Consts
 import com.pacedream.common.util.Consts.FASHION_TYPE
 import com.pacedream.common.util.Consts.MUSIC_GEAR_TYPE
@@ -68,47 +67,47 @@ fun DashboardContent(
     }
 
 
-    Column(modifier = Modifier.padding(LargePadding)) {
+    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
         val categories = mutableListOf(
             CategoryModel(
                 stringResource(R.string.feature_home_rest_room),
                 R.drawable.ic_rest_room,
-                Color(0xFF21BDF2),
+                PaceDreamColors.CategoryRestRoom,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_nap_pod),
                 R.drawable.ic_nap_pod,
-                Color(0xFF8B5CF6),
+                PaceDreamColors.CategoryMeetingRoom,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_meeting_room),
                 R.drawable.ic_meeting_room,
-                Color(0xFF3B82F6),
+                PaceDreamColors.Secondary,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_study_room),
                 R.drawable.ic_study_room,
-                Color(0xFF10B981),
+                PaceDreamColors.CategoryRentalGear,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_short_stay),
                 R.drawable.ic_short_stay,
-                Color(0xFFF59E0B),
+                PaceDreamColors.CategoryParking,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_apartment),
                 R.drawable.ic_apartment,
-                Color(0xFFEF4444),
+                PaceDreamColors.Error,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_parking),
                 R.drawable.ic_ev_parking,
-                Color(0xCCB452DA),
+                PaceDreamColors.CategoryEVParking,
             ),
             CategoryModel(
                 stringResource(R.string.feature_home_storage_space),
                 R.drawable.ic_storage_room,
-                Color(0xCC5753FA),
+                PaceDreamColors.CategoryTimeBased,
             ),
         )
 
@@ -133,8 +132,8 @@ fun DashboardContent(
         TitleViewAll(stringResource(R.string.browse_by_destination), true)
         Text(
             stringResource(R.string.feature_home_explore_perfect_places_by_destination),
-            fontSize = SmallText,
-            color = SubHeadingColor,
+            style = PaceDreamTypography.Caption2,
+            color = PaceDreamColors.TextSecondary,
         )
         LazyRow {
             items(destinations) {
@@ -220,8 +219,8 @@ fun DashboardContent(
 fun HelpYouFindText() {
     Text(
         stringResource(R.string.help_you_what_needed),
-        fontSize = SmallText,
-        color = SubHeadingColor,
+        style = PaceDreamTypography.Caption2,
+        color = PaceDreamColors.TextSecondary,
     )
 }
 

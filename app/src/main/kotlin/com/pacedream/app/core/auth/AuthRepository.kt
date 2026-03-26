@@ -3,6 +3,7 @@ package com.pacedream.app.core.auth
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
@@ -40,9 +41,7 @@ class AuthRepository @Inject constructor(
                 email = email,
                 firstName = firstName,
                 lastName = lastName,
-                password = password,
-                dob = "1990-01-01",
-                gender = "unspecified"
+                password = password
             )
         )
         return apiClient.post(url, body, includeAuth = false)
@@ -60,7 +59,7 @@ class AuthRepository @Inject constructor(
     suspend fun refresh(refreshToken: String): ApiResult<String> {
         val body = json.encodeToString(
             RefreshTokenRequest.serializer(),
-            RefreshTokenRequest(refresh_token = refreshToken)
+            RefreshTokenRequest(refreshToken = refreshToken)
         )
 
         val primaryUrl = appConfig.buildApiUrl("auth", "refresh-token")
@@ -99,7 +98,7 @@ class AuthRepository @Inject constructor(
 }
 
 @Serializable
-data class RefreshTokenRequest(val refresh_token: String)
+data class RefreshTokenRequest(val refreshToken: String)
 
 @Serializable
 data class Auth0CallbackRequest(val accessToken: String, val idToken: String)
@@ -110,10 +109,10 @@ data class EmailLoginRequest(val method: String = "email", val email: String, va
 @Serializable
 data class EmailSignupRequest(
     val email: String,
-    val firstName: String,
-    val lastName: String,
+    @SerialName("first_name") val firstName: String,
+    @SerialName("last_name") val lastName: String,
     val password: String,
-    val dob: String,
-    val gender: String
+    val dob: String? = null,
+    val gender: String? = null
 )
 

@@ -146,6 +146,13 @@ class SessionManager @Inject constructor(
      */
     suspend fun loginWithAuth0(activity: Activity, connection: Auth0Connection): AuthActionResult =
         suspendCancellableCoroutine { continuation ->
+        // Guard: crash-proof when Auth0 credentials are not configured
+        if (appConfig.auth0Domain.isBlank() || appConfig.auth0ClientId.isBlank()) {
+            Timber.e("Auth0 credentials not configured — domain='${appConfig.auth0Domain}', clientId length=${appConfig.auth0ClientId.length}")
+            continuation.resume(AuthActionResult.Error("Auth0 is not configured. Please check app settings."))
+            return@suspendCancellableCoroutine
+        }
+
         val auth0 = Auth0(
             appConfig.auth0ClientId,
             appConfig.auth0Domain
@@ -384,6 +391,27 @@ class SessionManager @Inject constructor(
     }
     
     /**
+     * Extract user ID from JWT claims (iOS parity).
+     * iOS: JWT.decodePayloadClaims → claims["userId"] ?? claims["user_id"] ?? "me"
+     */
+    private fun extractUserIdFromJwt(): String? {
+        val token = tokenStorage.accessToken ?: return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size != 3) return null
+            val payload = android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            val payloadJson = json.parseToJsonElement(String(payload)).jsonObject
+            val id = payloadJson["userId"]?.jsonPrimitive?.content
+                ?: payloadJson["user_id"]?.jsonPrimitive?.content
+                ?: payloadJson["sub"]?.jsonPrimitive?.content
+            if (!id.isNullOrBlank()) id else null
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to extract user ID from JWT")
+            null
+        }
+    }
+
+    /**
      * Parse user from JSON response (tolerant parsing)
      * @param fromCache true when parsing cached data, to prevent infinite recursion
      */
@@ -393,14 +421,29 @@ class SessionManager @Inject constructor(
             val obj = element.jsonObject
 
             // Find user data in common locations
-            val userData = obj["data"]?.jsonObject
+            // /account/me returns { data: { profile: { firstName, ... } } }
+            val dataObject = obj["data"]?.jsonObject
+            val userData = dataObject?.get("profile")?.jsonObject
+                ?: dataObject?.get("user")?.jsonObject
                 ?: obj["user"]?.jsonObject
+                ?: dataObject
                 ?: obj
 
+            // iOS parity: user ID from JWT claims first, then response body, then cached
+            val responseId = userData["_id"]?.jsonPrimitive?.content
+                ?: userData["id"]?.jsonPrimitive?.content
+                ?: dataObject?.get("_id")?.jsonPrimitive?.content
+                ?: dataObject?.get("id")?.jsonPrimitive?.content
+                ?: obj["_id"]?.jsonPrimitive?.content
+                ?: obj["id"]?.jsonPrimitive?.content
+            val jwtId = extractUserIdFromJwt()
+            val resolvedId = responseId?.takeIf { it.isNotBlank() }
+                ?: jwtId
+                ?: tokenStorage.userId?.takeIf { it.isNotBlank() }
+                ?: ""
+
             val user = User(
-                id = userData["_id"]?.jsonPrimitive?.content
-                    ?: userData["id"]?.jsonPrimitive?.content
-                    ?: "",
+                id = resolvedId,
                 email = userData["email"]?.jsonPrimitive?.content,
                 firstName = userData["firstName"]?.jsonPrimitive?.content
                     ?: userData["first_name"]?.jsonPrimitive?.content,
@@ -408,19 +451,61 @@ class SessionManager @Inject constructor(
                     ?: userData["last_name"]?.jsonPrimitive?.content,
                 profileImage = userData["profileImage"]?.jsonPrimitive?.content
                     ?: userData["profile_image"]?.jsonPrimitive?.content
+                    ?: userData["avatarUrl"]?.jsonPrimitive?.content
                     ?: userData["avatar"]?.jsonPrimitive?.content,
                 phone = userData["phone"]?.jsonPrimitive?.content
             )
 
+            if (user.id.isBlank()) {
+                Timber.e("SessionManager: User ID is blank after parsing — JWT and response both missing ID")
+            }
+
             _currentUser.value = user
-            tokenStorage.userId = user.id
+            if (user.id.isNotBlank()) {
+                tokenStorage.userId = user.id
+            }
             tokenStorage.cachedUserSummary = responseBody
 
-            Timber.d("User set: ${user.displayName}")
+            Timber.d("SessionManager: User set: id=${user.id}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse user")
             if (!fromCache) {
                 loadCachedUser()
+            }
+        }
+    }
+
+    /**
+     * Update the current user's profile image URL after a successful upload.
+     * This updates both the in-memory user and the cached summary.
+     */
+    fun updateUserProfileImage(imageUrl: String) {
+        val current = _currentUser.value ?: return
+        _currentUser.value = current.copy(profileImage = imageUrl)
+        // Update cached summary so the new avatar persists across app restarts
+        tokenStorage.cachedUserSummary?.let { cached ->
+            try {
+                val element = json.parseToJsonElement(cached)
+                val mutableMap = element.jsonObject.toMutableMap()
+                val dataObj = mutableMap["data"]?.jsonObject?.toMutableMap()
+                if (dataObj != null) {
+                    val profileObj = dataObj["profile"]?.jsonObject?.toMutableMap()
+                    if (profileObj != null) {
+                        profileObj["profileImage"] = JsonPrimitive(imageUrl)
+                        profileObj["avatarUrl"] = JsonPrimitive(imageUrl)
+                        dataObj["profile"] = JsonObject(profileObj)
+                    } else {
+                        dataObj["profileImage"] = JsonPrimitive(imageUrl)
+                        dataObj["avatarUrl"] = JsonPrimitive(imageUrl)
+                    }
+                    mutableMap["data"] = JsonObject(dataObj)
+                } else {
+                    mutableMap["profileImage"] = JsonPrimitive(imageUrl)
+                    mutableMap["avatarUrl"] = JsonPrimitive(imageUrl)
+                }
+                tokenStorage.cachedUserSummary = JsonObject(mutableMap).toString()
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to update cached user summary with new avatar")
             }
         }
     }

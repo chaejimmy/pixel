@@ -51,12 +51,16 @@ class InboxRepository @Inject constructor(
         limit: Int = 20,
         cursor: String? = null
     ): ApiResult<ThreadsResult> {
+        // Guard: never send blank cursor — backend rejects it as "Invalid ID format"
+        val safeCursor = cursor?.takeIf { it.isNotBlank() }
+        Timber.d("InboxRepository: getThreads — mode=$mode, limit=$limit, cursor=${safeCursor ?: "(none)"}")
+
         val url = appConfig.buildApiUrlWithQuery(
             "inbox", "threads",
             queryParams = mapOf(
                 "limit" to limit.toString(),
                 "mode" to mode,
-                "cursor" to cursor
+                "cursor" to safeCursor
             )
         )
         
@@ -64,12 +68,18 @@ class InboxRepository @Inject constructor(
             is ApiResult.Success -> {
                 try {
                     val threadsResult = parseThreadsResponse(result.data)
+                    Timber.d("InboxRepository: parsed ${threadsResult.threads.size} threads, hasMore=${threadsResult.hasMore}")
                     ApiResult.Success(threadsResult)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse threads response")
+                    Timber.e(e, "Failed to parse threads response, trying fallback")
                     // Try fallback parsing
                     try {
                         val fallbackResult = parseTolerantThreadsResponse(result.data)
+                        Timber.d("InboxRepository: fallback parsed ${fallbackResult.threads.size} threads")
+                        if (fallbackResult.threads.isEmpty()) {
+                            // If fallback also returns empty, it may be a parse failure
+                            Timber.w("InboxRepository: fallback returned empty list — raw response length=${result.data.length}")
+                        }
                         ApiResult.Success(fallbackResult)
                     } catch (e2: Exception) {
                         Timber.e(e2, "Fallback parsing also failed")
@@ -117,17 +127,22 @@ class InboxRepository @Inject constructor(
             )
         )
         
+        Timber.d("InboxRepository: getMessages — threadId=$threadId, limit=$limit, before=$before")
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
                     val messagesResult = parseMessagesResponse(result.data)
+                    Timber.d("InboxRepository: parsed ${messagesResult.messages.size} messages, hasMore=${messagesResult.hasMore}")
                     ApiResult.Success(messagesResult)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse messages response")
+                    Timber.e(e, "Failed to parse messages response — raw length=${result.data.length}")
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse messages", e))
                 }
             }
-            is ApiResult.Failure -> result
+            is ApiResult.Failure -> {
+                Timber.e("InboxRepository: getMessages FAILED — ${result.error.message}")
+                result
+            }
         }
     }
     
@@ -140,17 +155,17 @@ class InboxRepository @Inject constructor(
         attachments: List<String> = emptyList()
     ): ApiResult<Message> {
         val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
-        
-        val body = buildString {
-            append("{")
-            append("\"text\":\"${text.escapeJson()}\"")
+
+        // Use kotlinx.serialization for safe JSON construction
+        val bodyObj = kotlinx.serialization.json.buildJsonObject {
+            put("text", kotlinx.serialization.json.JsonPrimitive(text))
             if (attachments.isNotEmpty()) {
-                append(",\"attachments\":[")
-                append(attachments.joinToString(",") { "\"$it\"" })
-                append("]")
+                put("attachments", kotlinx.serialization.json.JsonArray(
+                    attachments.map { kotlinx.serialization.json.JsonPrimitive(it) }
+                ))
             }
-            append("}")
         }
+        val body = bodyObj.toString()
         
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
@@ -166,6 +181,29 @@ class InboxRepository @Inject constructor(
         }
     }
     
+    /**
+     * Get a single thread's details (opponent, listing, unread count, etc.)
+     * GET /v1/inbox/threads/:id
+     */
+    suspend fun getThread(threadId: String): ApiResult<Thread> {
+        val url = appConfig.buildApiUrl("inbox", "threads", threadId)
+
+        return when (val result = apiClient.get(url, includeAuth = true)) {
+            is ApiResult.Success -> {
+                try {
+                    val jsonElement = json.parseToJsonElement(result.data)
+                    val data = jsonElement.jsonObject["data"]?.jsonObject ?: jsonElement.jsonObject
+                    val thread = parseThread(data)
+                    ApiResult.Success(thread)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to parse thread details")
+                    ApiResult.Failure(ApiError.DecodingError("Failed to parse thread details", e))
+                }
+            }
+            is ApiResult.Failure -> result
+        }
+    }
+
     /**
      * Archive a thread
      */
@@ -190,12 +228,11 @@ class InboxRepository @Inject constructor(
         }
         
         // Create new thread
-        val body = buildString {
-            append("{")
-            append("\"participantId\":\"$opponentId\"")
-            listingId?.let { append(",\"listingId\":\"$it\"") }
-            append("}")
+        val bodyObj = kotlinx.serialization.json.buildJsonObject {
+            put("participantId", kotlinx.serialization.json.JsonPrimitive(opponentId))
+            listingId?.let { put("listingId", kotlinx.serialization.json.JsonPrimitive(it)) }
         }
+        val body = bodyObj.toString()
         
         // Try primary endpoint
         val primaryUrl = appConfig.buildApiUrl("inbox", "threads")
@@ -247,10 +284,14 @@ class InboxRepository @Inject constructor(
     private fun parseThreadsResponse(responseBody: String): ThreadsResult {
         val jsonElement = json.parseToJsonElement(responseBody)
         val jsonObject = jsonElement.jsonObject
-        
-        val data = jsonObject["data"]?.jsonObject ?: jsonObject
-        val threadsArray = findArrayField(data, "threads", "items", "data")
-        
+
+        // Backend returns { items: [...], nextCursor } at root level
+        // Also support wrapped formats: { data: { threads: [...] } }
+        val root = jsonObject
+        val data = jsonObject["data"]?.jsonObject
+        val threadsArray = findArrayField(root, "items", "threads")
+            ?: (data?.let { findArrayField(it, "threads", "items", "data") })
+
         val threads = threadsArray?.mapNotNull { element ->
             try {
                 parseThread(element.jsonObject)
@@ -259,13 +300,16 @@ class InboxRepository @Inject constructor(
                 null
             }
         } ?: emptyList()
-        
-        val nextCursor = data["nextCursor"]?.jsonPrimitive?.content
-            ?: data["cursor"]?.jsonPrimitive?.content
-        
-        val hasMore = data["hasMore"]?.jsonPrimitive?.boolean
-            ?: (nextCursor != null)
-        
+
+        // Cursor can be at root level or nested in data
+        val cursorSource = if (root.containsKey("nextCursor")) root else data ?: root
+        val rawCursor = cursorSource["nextCursor"]?.jsonPrimitive?.content
+            ?: cursorSource["cursor"]?.jsonPrimitive?.content
+        val nextCursor = rawCursor?.takeIf { it.isNotBlank() && it != "null" }
+
+        val serverHasMore = try { cursorSource["hasMore"]?.jsonPrimitive?.boolean ?: false } catch (_: Exception) { false }
+        val hasMore = (serverHasMore || nextCursor != null) && nextCursor != null
+
         return ThreadsResult(threads, nextCursor, hasMore)
     }
     
@@ -282,6 +326,7 @@ class InboxRepository @Inject constructor(
             try {
                 parseTolerantThread(element.jsonObject)
             } catch (e: Exception) {
+                timber.log.Timber.w(e, "Failed to parse tolerant thread element")
                 null
             }
         } ?: emptyList()
@@ -290,30 +335,39 @@ class InboxRepository @Inject constructor(
     }
     
     private fun parseThread(obj: JsonObject): Thread {
-        val id = obj["_id"]?.jsonPrimitive?.content
+        val rawId = obj["_id"]?.jsonPrimitive?.content
             ?: obj["id"]?.jsonPrimitive?.content
-            ?: ""
-        
-        val participants = extractStringArray(obj, "participants", "participantIds")
-        
+        val id = rawId?.takeIf { it.isNotBlank() } ?: ""
+
+        val participants = extractStringArray(obj, "participants", "participantIds", "members")
+
         val lastMessage = obj["lastMessage"]?.jsonObject?.let { parseMessage(it) }
-        
-        val unreadCount = obj["unreadCount"]?.jsonPrimitive?.int
-            ?: obj["unread"]?.jsonPrimitive?.int
-            ?: 0
-        
+
+        // Backend enriches unread as a plain integer; fall back to 0 on any parse issue
+        val unreadCount = try {
+            obj["unreadCount"]?.jsonPrimitive?.int
+                ?: obj["unread"]?.jsonPrimitive?.int
+                ?: 0
+        } catch (_: Exception) { 0 }
+
         val updatedAt = obj["updatedAt"]?.jsonPrimitive?.content
             ?: obj["updated_at"]?.jsonPrimitive?.content
-        
+            ?: obj["lastMessageAt"]?.jsonPrimitive?.content
+
         val listing = obj["listing"]?.jsonObject?.let { parseListing(it) }
-        
+
         val opponent = obj["opponent"]?.jsonObject?.let { parseUser(it) }
             ?: obj["participant"]?.jsonObject?.let { parseUser(it) }
-        
+
+        // Use lastMessageText from thread if no embedded lastMessage object
+        val resolvedLastMessage = lastMessage ?: obj["lastMessageText"]?.jsonPrimitive?.content?.let { text ->
+            if (text.isNotBlank()) Message(id = "", text = text, senderId = "", timestamp = updatedAt) else null
+        }
+
         return Thread(
             id = id,
             participants = participants,
-            lastMessage = lastMessage,
+            lastMessage = resolvedLastMessage,
             unreadCount = unreadCount,
             updatedAt = updatedAt,
             listing = listing,
@@ -446,15 +500,33 @@ class InboxRepository @Inject constructor(
     }
     
     private fun parseUser(obj: JsonObject): ThreadUser {
+        // Backend uses snake_case: first_name, last_name, profilePic (array or string)
+        val firstName = obj["first_name"]?.jsonPrimitive?.content
+            ?: obj["firstName"]?.jsonPrimitive?.content ?: ""
+        val lastName = obj["last_name"]?.jsonPrimitive?.content
+            ?: obj["lastName"]?.jsonPrimitive?.content ?: ""
+        val fullName = "$firstName $lastName".trim()
+
+        val name = obj["name"]?.jsonPrimitive?.content
+            ?: obj["displayName"]?.jsonPrimitive?.content
+            ?: fullName.ifEmpty { "User" }
+
+        // profilePic may be a string or array of strings; also try avatarUrl
+        val avatar = try {
+            obj["profilePic"]?.jsonPrimitive?.content
+        } catch (_: Exception) {
+            try { obj["profilePic"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content } catch (_: Exception) { null }
+        }
+            ?: obj["avatarUrl"]?.jsonPrimitive?.content
+            ?: obj["avatar"]?.jsonPrimitive?.content
+            ?: obj["profileImage"]?.jsonPrimitive?.content
+
         return ThreadUser(
             id = obj["_id"]?.jsonPrimitive?.content
                 ?: obj["id"]?.jsonPrimitive?.content
                 ?: "",
-            name = obj["name"]?.jsonPrimitive?.content
-                ?: obj["displayName"]?.jsonPrimitive?.content
-                ?: "${obj["firstName"]?.jsonPrimitive?.content ?: ""} ${obj["lastName"]?.jsonPrimitive?.content ?: ""}".trim(),
-            avatar = obj["avatar"]?.jsonPrimitive?.content
-                ?: obj["profileImage"]?.jsonPrimitive?.content
+            name = name,
+            avatar = avatar
         )
     }
     
@@ -504,14 +576,6 @@ class InboxRepository @Inject constructor(
         return emptyList()
     }
     
-    private fun String.escapeJson(): String {
-        return this
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-    }
 }
 
 // Result classes

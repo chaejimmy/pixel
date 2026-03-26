@@ -22,25 +22,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 @Composable
 fun PrimaryTextButton(
     modifier: Modifier = Modifier,
-    text:String,
+    text: String,
     onClick: () -> Unit,
-){
-    TextButton(modifier = modifier, onClick = { onClick() }) {
+) {
+    TextButton(modifier = modifier, onClick = onClick) {
         Text(
             modifier = Modifier.fillMaxWidth(),
             text = text,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-            ),
-            textAlign = TextAlign.Left
-            ,
+            style = PaceDreamTypography.Callout,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Start,
         )
     }
 }

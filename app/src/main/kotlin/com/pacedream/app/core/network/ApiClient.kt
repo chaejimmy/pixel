@@ -4,12 +4,15 @@ import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -105,37 +108,44 @@ class ApiClient @Inject constructor(
         includeAuth: Boolean = false
     ): ApiResult<String> {
         val cacheKey = url.toString()
-        
+
         // Check for in-flight request (deduplication)
-        mutex.withLock {
-            inFlightRequests[cacheKey]?.let { existing ->
-                Timber.d("Reusing in-flight GET request: $cacheKey")
-                return existing.await()
-            }
-            
-            // Create new deferred for this request
-            val deferred = CompletableDeferred<ApiResult<String>>()
-            inFlightRequests[cacheKey] = deferred
+        // Important: await() must be called OUTSIDE the mutex lock to avoid deadlock
+        val existingDeferred = mutex.withLock {
+            inFlightRequests[cacheKey]
         }
-        
+        if (existingDeferred != null) {
+            Timber.d("Reusing in-flight GET request: $cacheKey")
+            return existingDeferred.await()
+        }
+
+        // Create new deferred for this request
+        val deferred = CompletableDeferred<ApiResult<String>>()
+        mutex.withLock {
+            // Double-check: another coroutine may have registered between our check and lock
+            inFlightRequests[cacheKey]?.let { racing ->
+                return@withLock racing
+            }
+            inFlightRequests[cacheKey] = deferred
+            null
+        }?.let { racing ->
+            return racing.await()
+        }
+
         try {
             val result = executeWithRetry(url, includeAuth)
-            
-            mutex.withLock {
-                inFlightRequests[cacheKey]?.complete(result)
-                inFlightRequests.remove(cacheKey)
-            }
-            
+            deferred.complete(result)
+            inFlightRequests.remove(cacheKey)
             return result
+        } catch (e: CancellationException) {
+            deferred.cancel(e)
+            inFlightRequests.remove(cacheKey)
+            throw e
         } catch (e: Exception) {
             val error = mapException(e)
             val result = ApiResult.Failure(error)
-            
-            mutex.withLock {
-                inFlightRequests[cacheKey]?.complete(result)
-                inFlightRequests.remove(cacheKey)
-            }
-            
+            deferred.complete(result)
+            inFlightRequests.remove(cacheKey)
             return result
         }
     }
@@ -147,15 +157,15 @@ class ApiClient @Inject constructor(
     private suspend fun executeWithRetry(
         url: HttpUrl,
         includeAuth: Boolean
-    ): ApiResult<String> {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
         var lastError: ApiError = ApiError.Unknown()
-        
+
         for (attempt in 0..AppConfig.MAX_RETRY_ATTEMPTS) {
             try {
                 val request = buildRequest(url, "GET", null, includeAuth)
                 val response = executeRequest(request)
-                
-                return when {
+
+                return@withContext when {
                     response.isSuccessful -> {
                         val body = response.body?.string() ?: ""
                         ApiResult.Success(body)
@@ -166,22 +176,24 @@ class ApiClient @Inject constructor(
                         ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 lastError = mapException(e)
-                
+
                 // Only retry on timeout/transient errors
                 if (!isRetryableError(lastError) || attempt >= AppConfig.MAX_RETRY_ATTEMPTS) {
-                    return ApiResult.Failure(lastError)
+                    return@withContext ApiResult.Failure(lastError)
                 }
-                
+
                 // Exponential backoff
                 val delayMs = AppConfig.RETRY_DELAYS_MS.getOrElse(attempt) { 800L }
                 Timber.d("Retrying GET after ${delayMs}ms (attempt ${attempt + 1})")
                 delay(delayMs)
             }
         }
-        
-        return ApiResult.Failure(lastError)
+
+        ApiResult.Failure(lastError)
     }
     
     /**
@@ -223,11 +235,11 @@ class ApiClient @Inject constructor(
     suspend fun delete(
         url: HttpUrl,
         includeAuth: Boolean = false
-    ): ApiResult<String> {
-        return try {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
             val request = buildRequest(url, "DELETE", null, includeAuth)
             val response = executeRequest(request)
-            
+
             when {
                 response.isSuccessful -> {
                     ApiResult.Success(response.body?.string() ?: "")
@@ -238,11 +250,13 @@ class ApiClient @Inject constructor(
                     ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ApiResult.Failure(mapException(e))
         }
     }
-    
+
     /**
      * Execute non-GET request (no retry)
      */
@@ -251,11 +265,11 @@ class ApiClient @Inject constructor(
         url: HttpUrl,
         body: String,
         includeAuth: Boolean
-    ): ApiResult<String> {
-        return try {
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
             val request = buildRequest(url, method, body, includeAuth)
             val response = executeRequest(request)
-            
+
             when {
                 response.isSuccessful -> {
                     ApiResult.Success(response.body?.string() ?: "")
@@ -266,6 +280,8 @@ class ApiClient @Inject constructor(
                     ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ApiResult.Failure(mapException(e))
         }
@@ -320,7 +336,6 @@ class ApiClient @Inject constructor(
      */
     private fun mapException(e: Exception): ApiError {
         return when (e) {
-            is CancellationException -> ApiError.Cancelled
             is SocketTimeoutException -> ApiError.NetworkTimeout
             is UnknownHostException -> ApiError.NoConnection
             is HtmlResponseException -> ApiError.HtmlResponse
@@ -338,6 +353,47 @@ class ApiClient @Inject constructor(
             is ApiError.ServiceUnavailable,
             is ApiError.NoConnection -> true
             else -> false
+        }
+    }
+
+    /**
+     * POST multipart/form-data request (for file uploads, no retry).
+     * iOS parity: APIClient.requestMultipart()
+     */
+    suspend fun postMultipart(
+        url: HttpUrl,
+        parts: List<MultipartBody.Part>,
+        includeAuth: Boolean = false
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val bodyBuilder = MultipartBody.Builder().setType(MultipartBody.FORM)
+            parts.forEach { bodyBuilder.addPart(it) }
+            val multipartBody = bodyBuilder.build()
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                .post(multipartBody)
+
+            if (includeAuth) {
+                tokenStorage.accessToken?.let { token ->
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+            }
+
+            val response = executeRequest(requestBuilder.build())
+            when {
+                response.isSuccessful -> ApiResult.Success(response.body?.string() ?: "")
+                else -> {
+                    val responseBody = response.body?.string()
+                    val serverMessage = ApiError.extractServerMessage(responseBody)
+                    ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ApiResult.Failure(mapException(e))
         }
     }
 }

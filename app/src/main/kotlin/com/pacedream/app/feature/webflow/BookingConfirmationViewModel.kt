@@ -7,6 +7,9 @@ import com.pacedream.app.core.auth.TokenStorage
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.shourov.apps.pacedream.core.data.repository.BookingRepository as CoreBookingRepository
+import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +38,8 @@ class BookingConfirmationViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val tokenStorage: TokenStorage,
-    private val json: Json
+    private val json: Json,
+    private val coreBookingRepository: CoreBookingRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(BookingConfirmationUiState())
@@ -99,10 +103,15 @@ class BookingConfirmationViewModel @Inject constructor(
             when (val result = apiClient.get(url, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val bookingId = parseBookingId(result.data)
-                    
+
+                    // Cache confirmed booking to Room so detail view can find it
+                    if (bookingId != null) {
+                        cacheConfirmedBooking(bookingId, result.data)
+                    }
+
                     // Clear persisted checkout on success
                     tokenStorage.clearCheckoutSession()
-                    
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -128,15 +137,58 @@ class BookingConfirmationViewModel @Inject constructor(
         return try {
             val element = json.parseToJsonElement(responseBody)
             val obj = element.jsonObject
-            
+
             val data = obj["data"]?.jsonObject ?: obj
-            
+
             data["_id"]?.jsonPrimitive?.content
                 ?: data["id"]?.jsonPrimitive?.content
                 ?: data["bookingId"]?.jsonPrimitive?.content
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse booking ID")
             null
+        }
+    }
+
+    private suspend fun cacheConfirmedBooking(bookingId: String, responseBody: String) {
+        try {
+            val element = json.parseToJsonElement(responseBody)
+            val obj = element.jsonObject
+            val data = obj["data"]?.jsonObject ?: obj
+
+            val title = data["itemTitle"]?.jsonPrimitive?.content
+                ?: data["title"]?.jsonPrimitive?.content
+                ?: data["listingTitle"]?.jsonPrimitive?.content
+                ?: ""
+            val startDate = data["startDate"]?.jsonPrimitive?.content
+                ?: data["start_date"]?.jsonPrimitive?.content
+                ?: data["startTime"]?.jsonPrimitive?.content
+                ?: ""
+            val endDate = data["endDate"]?.jsonPrimitive?.content
+                ?: data["end_date"]?.jsonPrimitive?.content
+                ?: data["endTime"]?.jsonPrimitive?.content
+                ?: ""
+            val amount = data["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                ?: data["total"]?.jsonPrimitive?.content?.toDoubleOrNull()
+                ?: 0.0
+            val status = data["status"]?.jsonPrimitive?.content ?: "confirmed"
+
+            val booking = BookingModel(
+                id = bookingId,
+                propertyName = title,
+                startDate = startDate,
+                endDate = endDate,
+                totalPrice = amount,
+                price = amount.toString(),
+                status = BookingStatus.fromString(status),
+                bookingStatus = status,
+                checkInTime = startDate,
+                checkOutTime = endDate,
+                currency = "USD"
+            )
+            coreBookingRepository.cacheBooking(booking)
+            Timber.d("Cached confirmed booking $bookingId to Room")
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to cache confirmed booking to Room")
         }
     }
 }

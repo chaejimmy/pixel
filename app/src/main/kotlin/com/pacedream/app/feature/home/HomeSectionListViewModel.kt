@@ -51,7 +51,10 @@ class HomeSectionListViewModel @Inject constructor(
                     queryParams = mapOf("item_type" to "room")
                 )
                 "rent-gear" -> appConfig.buildApiUrl("gear-rentals", "get", "hourly-rental-gear", "tech_gear")
-                "split-stays" -> appConfig.buildApiUrl("roommate", "get", "room-stay")
+                "split-stays" -> appConfig.buildApiUrl(
+                    "listings",
+                    queryParams = mapOf("shareType" to "SPLIT", "page" to "1", "limit" to "50")
+                )
                 else -> {
                     _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Unknown section type") }
                     return@launch
@@ -89,8 +92,11 @@ class HomeSectionListViewModel @Inject constructor(
             val obj = element.jsonObject
             
             val dataArray = obj["data"]?.jsonArray
+                ?: obj["results"]?.jsonArray
                 ?: obj["items"]?.jsonArray
                 ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("results")?.jsonArray
+                ?: (obj["data"] as? JsonObject)?.get("listings")?.jsonArray
                 ?: return emptyList()
             
             dataArray.mapNotNull { item ->
@@ -104,10 +110,15 @@ class HomeSectionListViewModel @Inject constructor(
                             ?: itemObj["title"]?.jsonPrimitive?.content
                             ?: "Listing",
                         imageUrl = itemObj["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                            ?: itemObj["primaryImage"]?.jsonPrimitive?.content
                             ?: itemObj["image"]?.jsonPrimitive?.content,
                         location = itemObj["location"]?.let { loc ->
                             when (loc) {
-                                is JsonObject -> loc["city"]?.jsonPrimitive?.content
+                                is JsonObject -> {
+                                    val city = loc["city"]?.jsonPrimitive?.content
+                                    val state = loc["state"]?.jsonPrimitive?.content
+                                    listOfNotNull(city, state).joinToString(", ").ifBlank { null }
+                                }
                                 else -> loc.jsonPrimitive.content
                             }
                         },

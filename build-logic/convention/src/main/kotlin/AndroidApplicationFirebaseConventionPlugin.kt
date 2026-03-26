@@ -1,6 +1,7 @@
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+import com.google.firebase.perf.plugin.FirebasePerfExtension
 import com.shourov.apps.pacedream.libs
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -10,14 +11,19 @@ import org.gradle.kotlin.dsl.dependencies
 class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
+            val hasGoogleServices = file("google-services.json").exists()
+
             with(pluginManager) {
-                // Only apply when google-services.json exists; the file is
-                // gitignored so fresh clones / CI builds without it still succeed.
-                if (file("google-services.json").exists()) {
+                // Only apply Firebase plugins when google-services.json exists; the
+                // file is gitignored so fresh clones / CI builds without it still
+                // succeed.  The firebase-perf plugin instruments OkHttp at bytecode
+                // level, so applying it without a configured FirebaseApp causes a
+                // fatal NoClassDefFoundError at runtime.
+                if (hasGoogleServices) {
                     apply("com.google.gms.google-services")
+                    apply("com.google.firebase.firebase-perf")
+                    apply("com.google.firebase.crashlytics")
                 }
-                apply("com.google.firebase.firebase-perf")
-                apply("com.google.firebase.crashlytics")
             }
 
             dependencies {
@@ -28,13 +34,31 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
                 "implementation"(libs.findLibrary("firebase.crashlytics").get())
             }
 
-            extensions.configure<ApplicationExtension> {
-                buildTypes.configureEach {
-                    // Disable the Crashlytics mapping file upload. This feature should only be
-                    // enabled if a Firebase backend is available and configured in
-                    // google-services.json.
-                    configure<CrashlyticsExtension> {
-                        mappingFileUploadEnabled = false
+            if (hasGoogleServices) {
+                extensions.configure<ApplicationExtension> {
+                    // Enable Crashlytics mapping file upload for release builds so that
+                    // R8-obfuscated stack traces are symbolicated in the Firebase console.
+                    // Disable for debug builds to speed up build times.
+                    buildTypes.getByName("release") {
+                        configure<CrashlyticsExtension> {
+                            mappingFileUploadEnabled = true
+                        }
+                    }
+                    buildTypes.getByName("debug") {
+                        configure<CrashlyticsExtension> {
+                            mappingFileUploadEnabled = false
+                        }
+                    }
+
+                    // Disable Firebase Performance bytecode instrumentation for debug
+                    // builds.  The debug variant uses applicationIdSuffix ".debug" which
+                    // google-services.json typically does not cover, so FirebaseApp
+                    // cannot initialise and the instrumented OkHttp calls crash with
+                    // ExceptionInInitializerError at runtime.
+                    buildTypes.getByName("debug") {
+                        configure<FirebasePerfExtension> {
+                            setInstrumentationEnabled(false)
+                        }
                     }
                 }
             }

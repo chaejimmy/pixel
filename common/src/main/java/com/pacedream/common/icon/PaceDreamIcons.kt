@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Apartment
@@ -66,6 +67,7 @@ import androidx.compose.material.icons.rounded.Bed
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmarks
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Business
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -84,6 +86,7 @@ import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DirectionsBike
 import androidx.compose.material.icons.rounded.Edit
@@ -163,6 +166,17 @@ import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Wc
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.Yard
+import androidx.compose.material.icons.rounded.Article
+import androidx.compose.material.icons.rounded.Gavel
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.FlightTakeoff
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.TravelExplore
+import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -211,7 +225,9 @@ object PaceDreamIcons {
     val Check: ImageVector = Icons.Rounded.Check
     val CheckCircle: ImageVector = Icons.Rounded.CheckCircle
     val Add: ImageVector = Icons.Rounded.Add
+    val AddCircle: ImageVector = Icons.Filled.AddCircle
     val Edit: ImageVector = Icons.Rounded.Edit
+    val Remove: ImageVector = Icons.Rounded.Remove
     val Delete: ImageVector = Icons.Rounded.Delete
     val Share: ImageVector = Icons.Rounded.Share
     val Send: ImageVector = Rounded.Send
@@ -233,6 +249,7 @@ object PaceDreamIcons {
     val People: ImageVector = Icons.Rounded.People
     val Group: ImageVector = Icons.Rounded.Group
     val Lock: ImageVector = Icons.Rounded.Lock
+    val Shield: ImageVector = Icons.Rounded.Security
     val VerifiedUser: ImageVector = Icons.Rounded.VerifiedUser
     val Verified: ImageVector = Icons.Rounded.Verified
 
@@ -351,8 +368,25 @@ object PaceDreamIcons {
     val CameraAlt: ImageVector = Icons.Rounded.CameraAlt
     val AddPhotoAlternate: ImageVector = Icons.Rounded.AddPhotoAlternate
 
+    // ── Badges ─────────────────────────────────────────────────
+    val Bolt: ImageVector = Icons.Rounded.Bolt
+
     // ── Listing & Gear Types ────────────────────────────────────
     val Build: ImageVector = Icons.Rounded.Build
     val SportsEsports: ImageVector = Icons.Rounded.SportsEsports
     val SmartToy: ImageVector = Icons.Rounded.SmartToy
+
+    // ── iOS/Web Feature Parity Icons ────────────────────────────
+    val Article: ImageVector = Icons.Rounded.Article
+    val Gavel: ImageVector = Icons.Rounded.Gavel
+    val Flag: ImageVector = Icons.Rounded.Flag
+    val ThumbUp: ImageVector = Icons.Rounded.ThumbUp
+    val SwapHoriz: ImageVector = Icons.Rounded.SwapHoriz
+    val FlightTakeoff: ImageVector = Icons.Rounded.FlightTakeoff
+    val Explore: ImageVector = Icons.Rounded.Explore
+    val TravelExplore: ImageVector = Icons.Rounded.TravelExplore
+    val Sort: ImageVector = Icons.Rounded.Sort
+    val SwapVert: ImageVector = Icons.Rounded.SwapVert
+    val ArrowDropDown: ImageVector = Icons.Filled.ArrowDropDown
+    val Clock: ImageVector = Icons.Rounded.Schedule
 }

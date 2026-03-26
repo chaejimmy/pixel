@@ -40,5 +40,8 @@ data class BookingModel(
     val hostId: String = "",
     val guestCount: Int = 1,
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    // iOS PR #202 parity: verification PIN for guest/host check-in
+    val verificationPin: String? = null,
+    val pinStatus: String? = null
 )

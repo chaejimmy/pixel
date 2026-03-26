@@ -46,10 +46,12 @@ object ApiEndPoints {
     // ── Bookings ──────────────────────────────────────────
     const val CREATE_BOOKING = "bookings"
     const val GET_USER_BOOKINGS = "bookings/user/{userId}"
+    const val GET_MY_BOOKINGS = "bookings/mine" // iOS parity: primary endpoint for user's bookings
     const val GET_BOOKING_BY_ID = "bookings/{bookingId}"
     const val UPDATE_BOOKING = "bookings/{bookingId}"
     const val CANCEL_BOOKING = "bookings/{bookingId}"
     const val CONFIRM_BOOKING = "bookings/{bookingId}/confirm"
+    const val CONFIRM_BOOKING_POST_PAYMENT = "bookings/{bookingId}/confirm-booking" // iOS: call after Stripe payment succeeds
     const val GET_BOOKING_AVAILABILITY = "bookings/availability/{propertyId}"
 
     // ── Messaging / Chat ──────────────────────────────────
@@ -60,10 +62,11 @@ object ApiEndPoints {
     const val MARK_MESSAGE_READ = "chats/{chatId}/messages/{messageId}/read"
 
     // ── Notifications ─────────────────────────────────────
-    const val GET_USER_NOTIFICATIONS = "notifications/user/{userId}"
+    const val GET_NOTIFICATIONS = "notifications"
+    const val GET_UNREAD_COUNT = "notifications/unread-count"
     const val MARK_NOTIFICATION_READ = "notifications/{notificationId}/read"
-    const val MARK_ALL_NOTIFICATIONS_READ = "notifications/user/{userId}/read-all"
-    const val REGISTER_PUSH_TOKEN = "notifications/register-device"
+    const val MARK_ALL_NOTIFICATIONS_READ = "notifications/mark-all"
+    const val REGISTER_PUSH_TOKEN = "notifications/push-token"
 
     // ── Payments ──────────────────────────────────────────
     const val CREATE_PAYMENT_INTENT = "payments/create-intent"
@@ -85,16 +88,44 @@ object ApiEndPoints {
     const val ADD_TO_COLLECTION = "collections/{collectionId}/items"
     const val REMOVE_FROM_COLLECTION = "collections/{collectionId}/items/{itemId}"
 
+    // ── Listings (iOS ListingService parity) ───────────────
+    const val CREATE_LISTING = "listings" // iOS: POST /listings with Bearer auth
+    const val GET_LISTING_BY_ID = "listings/{listingId}"
+
     // ── Host (iOS parity) ─────────────────────────────────
+    const val HOST_DASHBOARD_OVERVIEW = "hosts/dashboard/overview"
+    const val HOST_DASHBOARD_ANALYTICS = "hosts/dashboard/analytics"
+    const val HOST_DASHBOARD_REVENUE = "hosts/dashboard/revenue"
+    const val HOST_DASHBOARD_BOOKINGS = "hosts/dashboard/bookings"
     const val HOST_GET_LISTINGS = "host/listings"
     const val HOST_CREATE_LISTING = "host/listings"
     const val HOST_UPDATE_LISTING = "host/listings/{listingId}"
     const val HOST_DELETE_LISTING = "host/listings/{listingId}"
+    const val HOST_GET_BOOKINGS = "bookings/host"
+    const val HOST_UPDATE_BOOKING = "bookings/host/{bookingId}"
+    const val HOST_ACCEPT_BOOKING = "bookings/host/{bookingId}/accept"
+    const val HOST_DECLINE_BOOKING = "bookings/host/{bookingId}/decline"
     const val HOST_GET_EARNINGS = "host/earnings"
-    const val HOST_GET_BOOKINGS = "host/bookings"
-    const val HOST_ACCEPT_BOOKING = "host/bookings/{bookingId}/accept"
-    const val HOST_DECLINE_BOOKING = "host/bookings/{bookingId}/decline"
+    const val HOST_EARNINGS_DASHBOARD = "host/earnings/dashboard"
     const val HOST_GET_ANALYTICS = "host/analytics"
+
+    // ── Host Payouts (Stripe Connect - iOS parity) ──────
+    const val HOST_PAYOUT_STATUS = "host/payouts/status"
+    const val HOST_PAYOUT_SETUP_ELIGIBILITY = "hosts/payouts/setup-eligibility"
+    const val HOST_PAYOUT_ONBOARDING_LINK = "host/payouts/create-onboarding-link"
+    const val HOST_PAYOUT_LOGIN_LINK = "host/payouts/create-login-link"
+    const val HOST_PAYOUT_METHODS = "host/payouts/methods"
+
+    // ── Host Reviews ────────────────────────────────────
+    const val HOST_REVIEWS_SUMMARY = "host/reviews/summary"
+    const val HOST_REVIEWS = "host/reviews"
+
+    // ── Host Personal Info ──────────────────────────────
+    const val HOST_PERSONAL_INFO = "hosts/personal-info"
+
+    // ── Host Payments & Transactions ────────────────────
+    const val HOST_PAYMENTS = "hosts/payments"
+    const val HOST_TRANSACTIONS = "hosts/transactions"
 
     // ── Verification ──────────────────────────────────────
     const val VERIFICATION_SEND_PHONE_CODE = "users/verification/phone/send-code"
@@ -107,8 +138,55 @@ object ApiEndPoints {
     const val TRACK_EVENT = "analytics/event"
     const val TRACK_PROPERTY_VIEW = "analytics/property-view"
 
+    // ── Reviews (iOS parity: full CRUD) ────────────────────
+    const val UPDATE_REVIEW = "reviews/{reviewId}"
+    const val DELETE_REVIEW = "reviews/{reviewId}"
+    const val REVIEW_HELPFUL = "reviews/{reviewId}/helpful"
+    const val REVIEW_REPORT = "reviews/{reviewId}/report"
+    const val REVIEW_REPLY = "reviews/{reviewId}/reply"
+
+    // ── Blog (iOS BlogService parity) ────────────────────
+    const val GET_BLOG_POSTS = "blog/posts"
+    const val GET_BLOG_POST = "blog/posts/{postId}"
+
+    // ── Trip Planner (iOS TripPlannerService parity) ─────
+    const val GET_TRIPS = "trips"
+    const val CREATE_TRIP = "trips"
+    const val DELETE_TRIP = "trips/{tripId}"
+    const val GET_TOURS = "tours"
+
+    // ── Bidding (iOS BidService parity) ──────────────────
+    const val GET_BIDS = "bids"
+    const val CREATE_BID = "bids"
+    const val GET_BID = "bids/{bidId}"
+    const val WITHDRAW_BID = "bids/{bidId}/withdraw"
+    const val GET_LISTING_BIDS = "bids/listing/{listingId}"
+    const val ACCEPT_BID = "bids/{bidId}/accept"
+    const val REJECT_BID = "bids/{bidId}/reject"
+
+    // ── Split Booking (iOS SplitStayService parity) ──────
+    const val CREATE_SPLIT_BOOKING = "split-bookings"
+    const val GET_SPLIT_BOOKING = "split-bookings/{splitId}"
+    const val JOIN_SPLIT_BOOKING = "split-bookings/join"
+    const val DECLINE_SPLIT_BOOKING = "split-bookings/decline"
+    const val SPLIT_BOOKING_PAYMENT = "split-bookings/payment"
+    const val GET_ACTIVE_SPLITS = "split-bookings/active"
+    const val GET_SPLIT_HISTORY = "split-bookings/history"
+
+    // ── Destinations (iOS parity) ────────────────────────
+    const val GET_DESTINATIONS = "destinations"
+    const val GET_DESTINATION = "destinations/{destinationId}"
+    const val GET_DESTINATION_LISTINGS = "destinations/{destinationId}/listings"
+
+    // ── Chat Media (iOS/Web photo sharing parity) ────────
+    const val CHAT_ATTACHMENT_STATUS = "inbox/threads/{threadId}/attachment-status"
+    const val CHAT_SEND_MEDIA = "inbox/threads/{threadId}/messages/media"
+
+    // ── Content Reporting (iOS/Web parity) ───────────────
+    const val REPORT_CONTENT = "users/report"
+
     // ── Legacy ────────────────────────────────────────────
-    const val GET_ALREADY_BOOKED = ""
+    const val GET_ALREADY_BOOKED = "bookings/mine"
     const val HOURLY_RENTED_GEAR = "gear-rentals/get/hourly-rental-gear/{type}"
     const val ROOMMATE_ROOM_STAY = "roommate/get/room-stay"
 }

@@ -14,6 +14,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// ── Secrets loading ──────────────────────────────────────────────────
+// Priority: secrets.properties (gitignored, local/CI) > secrets.defaults.properties (checked in, placeholders)
+val secretsProps = Properties()
+listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
+    rootProject.file(name).takeIf { it.exists() }?.inputStream()?.use { secretsProps.load(it) }
+}
+
 android {
     defaultConfig {
         applicationId = "com.shourov.apps.pacedream"
@@ -24,31 +31,61 @@ android {
             useSupportLibrary = true
         }
 
-        // Secrets (local-only): read from root `secrets.properties` with defaults from
-        // `secrets.defaults.properties`. Do not hardcode real values in source control.
-        val secrets = Properties()
-        val secretsDefaultsFile = rootProject.file("secrets.defaults.properties")
-        if (secretsDefaultsFile.exists()) {
-            secretsDefaultsFile.inputStream().use { secrets.load(it) }
-        }
-        val secretsFile = rootProject.file("secrets.properties")
-        if (secretsFile.exists()) {
-            secretsFile.inputStream().use { secrets.load(it) }
-        }
-
-        // Google Maps API key used by `@string/google_maps_key` in the manifest.
-        val googleMapsKey = secrets.getProperty("GOOGLE_MAPS_API_KEY")
-            ?: secrets.getProperty("google_maps_key")
-            ?: ""
-        resValue("string", "google_maps_key", googleMapsKey)
-        
-        // Auth0 manifest placeholders
-        manifestPlaceholders["auth0Domain"] = "pacedream.us.auth0.com"
+        // Auth0 manifest placeholders (consumed by Auth0 SDK RedirectActivity)
+        manifestPlaceholders["auth0Domain"] = secretsProps.getProperty("AUTH0_DOMAIN", "pacedream.us.auth0.com")
         manifestPlaceholders["auth0Scheme"] = "pacedream"
-        // Stripe publishable key (set in local.properties or CI as stripePublishableKey)
-        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"${(project.findProperty("stripePublishableKey") as? String) ?: ""}\"")
-        // Auth0 client ID – MUST be set in local.properties or CI as auth0ClientId
-        buildConfigField("String", "AUTH0_CLIENT_ID", "\"${(project.findProperty("auth0ClientId") as? String) ?: ""}\"")
+
+        // BuildConfig fields – sourced from secrets.properties or gradle properties (CI)
+        // Synced with iOS xcconfig pattern: defaults in secrets.defaults.properties,
+        // overrides in secrets.properties or -P flags.
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY",
+            "\"${(project.findProperty("stripePublishableKey") as? String)
+                ?: secretsProps.getProperty("STRIPE_PUBLISHABLE_KEY", "")}\"")
+        buildConfigField("String", "AUTH0_CLIENT_ID",
+            "\"${(project.findProperty("auth0ClientId") as? String)
+                ?: secretsProps.getProperty("AUTH0_CLIENT_ID", "")}\"")
+        buildConfigField("String", "ONESIGNAL_APP_ID",
+            "\"${(project.findProperty("onesignalAppId") as? String)
+                ?: secretsProps.getProperty("ONESIGNAL_APP_ID", "")}\"")
+
+        // Environment tag (iOS parity: PD_ENVIRONMENT in xcconfig)
+        buildConfigField("String", "PD_ENVIRONMENT",
+            "\"${secretsProps.getProperty("PD_ENVIRONMENT", "development")}\"")
+
+        // Frontend base URL (iOS parity: FRONTEND_BASE_URL in xcconfig)
+        buildConfigField("String", "FRONTEND_BASE_URL",
+            "\"${secretsProps.getProperty("FRONTEND_BASE_URL", "https://www.pacedream.com")}\"")
+
+        // Cloudinary config (iOS parity: CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET in xcconfig)
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME",
+            "\"${secretsProps.getProperty("CLOUDINARY_CLOUD_NAME", "")}\"")
+        buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET",
+            "\"${secretsProps.getProperty("CLOUDINARY_UPLOAD_PRESET", "")}\"")
+
+        // Google Maps API key – injected as a resource value so the manifest
+        // meta-data picks it up via @string/google_maps_key.  The static XML
+        // resource serves as a safe empty fallback when no key is configured.
+        val mapsKey = (project.findProperty("googleMapsApiKey") as? String)
+            ?: secretsProps.getProperty("GOOGLE_MAPS_API_KEY", "")
+        if (mapsKey.isNotBlank()) {
+            resValue("string", "google_maps_key", mapsKey)
+        }
+    }
+
+    signingConfigs {
+        // Release signing – loaded from secrets.properties or CI environment.
+        // When the keystore properties are absent the config is still created but
+        // with safe defaults so that the build file parses without error; the
+        // release buildType falls back to the debug signing config in that case.
+        create("release") {
+            val ksFile = secretsProps.getProperty("RELEASE_KEYSTORE_FILE", "")
+            if (ksFile.isNotBlank()) {
+                storeFile = rootProject.file(ksFile)
+                storePassword = secretsProps.getProperty("RELEASE_KEYSTORE_PASSWORD", "")
+                keyAlias = secretsProps.getProperty("RELEASE_KEY_ALIAS", "")
+                keyPassword = secretsProps.getProperty("RELEASE_KEY_PASSWORD", "")
+            }
+        }
     }
 
     buildTypes {
@@ -63,10 +100,14 @@ android {
                 "proguard-rules.pro",
             )
 
-            // To publish on the Play store a private signing key is required, but to allow anyone
-            // who clones the code to sign and run the release variant, use the debug signing key.
-            // TODO: Abstract the signing configuration to a separate file to avoid hardcoding this.
-            signingConfig = signingConfigs.named("debug").get()
+            // Use release signing config when a keystore is configured; fall back to
+            // debug signing so open-source contributors can still build locally.
+            val releaseKs = signingConfigs.named("release").get()
+            signingConfig = if (releaseKs.storeFile?.exists() == true) {
+                releaseKs
+            } else {
+                signingConfigs.named("debug").get()
+            }
             // Ensure Baseline Profile is fresh for release builds.
             baselineProfile.automaticGenerationDuringBuild = true
         }
@@ -134,11 +175,16 @@ dependencies {
     // Firebase Messaging for push notifications
     implementation(libs.firebase.cloud.messaging)
 
+    // OneSignal SDK for push notification delivery (iOS parity)
+    implementation(libs.onesignal)
+
     // Kotlinx Serialization for JSON parsing
     implementation(libs.kotlinx.serialization.json)
 
     // Retrofit for HostModule
     implementation(libs.retrofit.core)
+    implementation(libs.gson.convert)
+    implementation(libs.retrofit.gson)
 
     // Auth0 SDK for authentication
     implementation(libs.auth0)

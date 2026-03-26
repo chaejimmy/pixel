@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import com.pacedream.common.composables.buttons.CompactProcessButton
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,10 +32,25 @@ import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
 
+/**
+ * Data class for a destination fetched from the backend.
+ */
+data class DestinationItem(
+    val name: String,
+    val propertyCount: Int? = null,
+    val imageUrl: String? = null,
+    val isPopular: Boolean = false
+)
+
 @Composable
 fun DestinationListScreen(
     onBackClick: () -> Unit,
     onDestinationClick: (String) -> Unit,
+    popularDestinations: List<DestinationItem> = emptyList(),
+    allDestinations: List<DestinationItem> = emptyList(),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -48,66 +64,103 @@ fun DestinationListScreen(
             subtitle = "Explore amazing places",
             onBackClick = onBackClick
         )
-        
-        // Destinations Content
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(PaceDreamSpacing.LG)
-        ) {
-            item {
-                // Popular Destinations
-                Text(
-                    text = "Popular Destinations",
-                    style = PaceDreamTypography.Title3,
-                    color = PaceDreamColors.TextPrimary
-                )
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                
-                val popularDestinations = listOf(
-                    "New York", "London", "Paris", "Tokyo", "Sydney", "Dubai"
-                )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+
+        when {
+            isLoading && popularDestinations.isEmpty() && allDestinations.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(popularDestinations) { destination ->
-                        PaceDreamDestinationCard(
-                            name = destination,
-                            imageUrl = null,
-                            onClick = { onDestinationClick(destination) }
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
+                }
+            }
+            errorMessage != null && popularDestinations.isEmpty() && allDestinations.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(PaceDreamSpacing.LG),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = errorMessage,
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        CompactProcessButton(
+                            onClick = onRetry,
+                            text = "Retry",
                         )
                     }
                 }
             }
-            
-            item {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                
-                // All Destinations
-                Text(
-                    text = "All Destinations",
-                    style = PaceDreamTypography.Title3,
-                    color = PaceDreamColors.TextPrimary
-                )
-            }
-            
-            // Mock destinations
-            val allDestinations = listOf(
-                "Amsterdam", "Barcelona", "Berlin", "Boston", "Chicago", "Copenhagen",
-                "Dublin", "Edinburgh", "Florence", "Hamburg", "Helsinki", "Istanbul",
-                "Lisbon", "Madrid", "Milan", "Munich", "Oslo", "Prague", "Rome", "Stockholm"
-            )
-            
-            items(allDestinations) { destination ->
-                DestinationListItem(
-                    destination = destination,
-                    propertyCount = (10..50).random(),
-                    onClick = { onDestinationClick(destination) }
-                )
-                
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            else -> {
+                // Destinations Content
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(PaceDreamSpacing.LG)
+                ) {
+                    if (popularDestinations.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "Popular Destinations",
+                                style = PaceDreamTypography.Title3,
+                                color = PaceDreamColors.TextPrimary
+                            )
+
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                            ) {
+                                items(popularDestinations) { destination ->
+                                    PaceDreamDestinationCard(
+                                        name = destination.name,
+                                        imageUrl = destination.imageUrl,
+                                        onClick = { onDestinationClick(destination.name) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (allDestinations.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+                            Text(
+                                text = "All Destinations",
+                                style = PaceDreamTypography.Title3,
+                                color = PaceDreamColors.TextPrimary
+                            )
+                        }
+
+                        items(allDestinations) { destination ->
+                            DestinationListItem(
+                                destination = destination.name,
+                                propertyCount = destination.propertyCount,
+                                onClick = { onDestinationClick(destination.name) }
+                            )
+
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        }
+                    }
+
+                    if (popularDestinations.isEmpty() && allDestinations.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(PaceDreamSpacing.XL),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No destinations available yet.",
+                                    style = PaceDreamTypography.Body,
+                                    color = PaceDreamColors.TextSecondary
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -116,7 +169,7 @@ fun DestinationListScreen(
 @Composable
 private fun DestinationListItem(
     destination: String,
-    propertyCount: Int,
+    propertyCount: Int?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -139,14 +192,16 @@ private fun DestinationListItem(
                     style = PaceDreamTypography.Title3,
                     color = PaceDreamColors.TextPrimary
                 )
-                
-                Text(
-                    text = "$propertyCount properties available",
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
-                )
+
+                if (propertyCount != null) {
+                    Text(
+                        text = "$propertyCount properties available",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
             }
-            
+
             Icon(
                 imageVector = PaceDreamIcons.ArrowForward,
                 contentDescription = "View destination",

@@ -98,11 +98,11 @@ val PaceDreamMaterialTypography = Typography(
         letterSpacing = 0.35.sp
     ),
 
-    // Title 3 → 20sp, Regular (iOS uses regular weight for Title 3)
+    // Title 3 → 20sp, SemiBold (iOS PaceDreamDesignSystem.Typography.title3)
     headlineLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 20.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.SemiBold,
         lineHeight = 25.sp,
         letterSpacing = 0.38.sp
     ),
@@ -123,11 +123,11 @@ val PaceDreamMaterialTypography = Typography(
         letterSpacing = (-0.41).sp
     ),
 
-    // Title 3 (duplicate mapping for M3 titleLarge) → 20sp
+    // Title 3 (duplicate mapping for M3 titleLarge) → 20sp SemiBold
     titleLarge = TextStyle(
         fontFamily = paceDreamFontFamily,
         fontSize = 20.sp,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.SemiBold,
         lineHeight = 25.sp,
         letterSpacing = 0.38.sp
     ),

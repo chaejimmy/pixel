@@ -116,13 +116,42 @@ data class ChatResponse(
     @SerializedName("otherUserAvatar") val otherUserAvatar: String = ""
 )
 
+data class AttachmentResponse(
+    @SerializedName("url") val url: String = "",
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("type") val type: String? = null,
+    @SerializedName("size") val size: Long? = null,
+    @SerializedName("width") val width: Int? = null,
+    @SerializedName("height") val height: Int? = null,
+    @SerializedName("mimeType") val mimeType: String? = null
+)
+
 data class MessageResponse(
     @SerializedName("_id") val id: String = "",
     @SerializedName("chatId") val chatId: String = "",
     @SerializedName("senderId") val senderId: String = "",
     @SerializedName("text") val text: String = "",
+    @SerializedName("content") val content: String = "",
+    @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
+    @SerializedName("messageType") val messageType: String? = null,
     @SerializedName("createdAt") val createdAt: String = "",
-    @SerializedName("isRead") val isRead: Boolean = false
+    @SerializedName("isRead") val isRead: Boolean = false,
+    @SerializedName("status") val status: String? = null
+)
+
+data class MediaUploadResponse(
+    @SerializedName("id") val id: String = "",
+    @SerializedName("text") val text: String = "",
+    @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
+    @SerializedName("createdAt") val createdAt: String = ""
+)
+
+data class AttachmentStatusResponse(
+    @SerializedName("attachmentsEnabled") val attachmentsEnabled: Boolean = false,
+    @SerializedName("reason") val reason: String? = null,
+    @SerializedName("maxFileSize") val maxFileSize: Long? = null,
+    @SerializedName("allowedTypes") val allowedTypes: List<String> = emptyList()
 )
 
 // ── Notification ─────────────────────────────────────────────────────────────
@@ -131,10 +160,32 @@ data class NotificationResponse(
     @SerializedName("_id") val id: String = "",
     @SerializedName("userId") val userId: String = "",
     @SerializedName("title") val title: String = "",
-    @SerializedName("message") val message: String = "",
-    @SerializedName("type") val type: String = "",
-    @SerializedName("isRead") val isRead: Boolean = false,
+    @SerializedName("body") val body: String = "",
+    @SerializedName("event") val event: String = "",
+    @SerializedName("readAt") val readAt: String? = null,
+    @SerializedName("deepLink") val deepLink: String? = null,
+    @SerializedName("status") val status: String = "",
     @SerializedName("createdAt") val createdAt: String = ""
+) {
+    val isRead: Boolean get() = readAt != null
+    val type: String get() = event
+    val message: String get() = body
+}
+
+data class NotificationListData(
+    @SerializedName("notifications") val notifications: List<NotificationResponse> = emptyList(),
+    @SerializedName("pagination") val pagination: PaginationData? = null
+)
+
+data class PaginationData(
+    @SerializedName("page") val page: Int = 1,
+    @SerializedName("pageSize") val pageSize: Int = 20,
+    @SerializedName("total") val total: Int = 0,
+    @SerializedName("totalPages") val totalPages: Int = 0
+)
+
+data class UnreadCountData(
+    @SerializedName("count") val count: Int = 0
 )
 
 // ── Payment ──────────────────────────────────────────────────────────────────

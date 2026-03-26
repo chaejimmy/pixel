@@ -156,10 +156,67 @@ class AccountSettingsRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteAccount(): ApiResult<Unit> {
+        val url = appConfig.buildFrontendUrl("api", "proxy", "users", "delete", "account")
+        return when (val result = apiClient.delete(url, includeAuth = true)) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Failure -> result
+        }
+    }
+
+    // endregion
+
+    // region Content Moderation
+
+    @Serializable
+    data class ReportRequest(
+        val reportedUserId: String? = null,
+        val listingId: String? = null,
+        val reason: String,
+        val details: String? = null
+    )
+
+    suspend fun reportContent(
+        reportedUserId: String? = null,
+        listingId: String? = null,
+        reason: String,
+        details: String? = null
+    ): ApiResult<Unit> {
+        val url = appConfig.buildFrontendUrl("api", "proxy", "users", "report")
+        val body = json.encodeToString(
+            ReportRequest.serializer(),
+            ReportRequest(reportedUserId, listingId, reason, details)
+        )
+        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Failure -> result
+        }
+    }
+
+    suspend fun blockUser(userId: String): ApiResult<Unit> {
+        val url = appConfig.buildFrontendUrl("api", "proxy", "users", "edit", "block-user", userId)
+        val body = "{}"
+        return when (val result = apiClient.put(url, body, includeAuth = true)) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Failure -> {
+                Timber.w("blockUser endpoint may not be available: ${result.error.message}")
+                result
+            }
+        }
+    }
+
     // endregion
 
     // region Notifications
 
+    /**
+     * Notification settings matching iOS NotificationSettings model (iOS parity).
+     *
+     * iOS has: emailNotifications, pushNotifications, smsNotifications,
+     * marketingNotifications, bookingNotifications, messageNotifications,
+     * reviewNotifications, friendRequestNotifications, systemNotifications,
+     * quietHours (with start/end/timezone).
+     */
     @Serializable
     data class NotificationSettings(
         val emailGeneral: Boolean = false,
@@ -167,7 +224,17 @@ class AccountSettingsRepository @Inject constructor(
         val messageNotifications: Boolean = false,
         val bookingUpdates: Boolean = false,
         val bookingAlerts: Boolean = false,
-        val marketingPromotions: Boolean = false
+        val marketingPromotions: Boolean = false,
+        // iOS parity: additional notification categories
+        val reviewNotifications: Boolean = true,
+        val friendRequestNotifications: Boolean = true,
+        val systemNotifications: Boolean = true,
+        val smsNotifications: Boolean = false,
+        // iOS parity: quiet hours
+        val quietHoursEnabled: Boolean = false,
+        val quietHoursStart: String? = null,
+        val quietHoursEnd: String? = null,
+        val quietHoursTimezone: String? = null
     )
 
     suspend fun getNotificationSettings(): ApiResult<NotificationSettings> {

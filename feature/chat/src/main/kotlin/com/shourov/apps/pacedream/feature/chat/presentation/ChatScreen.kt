@@ -16,9 +16,18 @@
 
 package com.shourov.apps.pacedream.feature.chat.presentation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,11 +40,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pacedream.common.composables.components.PaceDreamUserAvatar
 import com.pacedream.common.composables.theme.PaceDreamDesignSystem
+import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,37 +66,101 @@ fun ChatScreen(
     onBackClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+    var fullScreenImageUrl by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(chatId) {
         viewModel.loadMessages(chatId)
     }
-    
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaceDreamDesignSystem.PaceDreamColors.Background)
-    ) {
-        // Chat Header
-        ChatHeader(
-            otherUserName = uiState.otherUserName,
-            otherUserAvatar = uiState.otherUserAvatar,
-            onBackClick = onBackClick
-        )
-        
-        // Messages List
-        MessagesList(
-            messages = uiState.messages,
-            currentUserId = uiState.currentUserId,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // Message Input
-        MessageInput(
-            message = uiState.newMessage,
-            onMessageChange = viewModel::onMessageChange,
-            onSendMessage = viewModel::sendMessage,
-            isSending = uiState.isSending
-        )
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PaceDreamDesignSystem.PaceDreamColors.Background)
+                .imePadding()
+        ) {
+            // Chat Header
+            ChatHeader(
+                otherUserName = uiState.otherUserName,
+                otherUserAvatar = uiState.otherUserAvatar,
+                onBackClick = onBackClick
+            )
+
+            // Messages List
+            MessagesList(
+                messages = uiState.messages,
+                currentUserId = uiState.currentUserId,
+                onImageClick = { url -> fullScreenImageUrl = url },
+                onRetryClick = viewModel::retryFailedMessage,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Upload error banner
+            AnimatedVisibility(visible = uiState.uploadError != null) {
+                uiState.uploadError?.let { error ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = PaceDreamDesignSystem.PaceDreamSpacing.MD, vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = viewModel::clearError, modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD)) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Close,
+                                    contentDescription = "Dismiss",
+                                    modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.SM),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Upload progress bar
+            AnimatedVisibility(visible = uiState.isUploading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = PaceDreamDesignSystem.PaceDreamColors.Primary
+                )
+            }
+
+            // Photo preview tray
+            AnimatedVisibility(visible = uiState.pendingPhotos.isNotEmpty()) {
+                PhotoPreviewTray(
+                    photos = uiState.pendingPhotos,
+                    onRemove = viewModel::removePendingPhoto,
+                    attachmentsEnabled = uiState.attachmentsEnabled
+                )
+            }
+
+            // Message Input
+            MessageInput(
+                message = uiState.newMessage,
+                onMessageChange = viewModel::onMessageChange,
+                onSendMessage = viewModel::sendMessage,
+                onAttachPhotos = viewModel::addPendingPhotos,
+                isSending = uiState.isSending || uiState.isUploading,
+                canSend = uiState.canSend,
+                attachmentsEnabled = uiState.attachmentsEnabled
+            )
+        }
+
+        // Full-screen image viewer
+        fullScreenImageUrl?.let { url ->
+            FullScreenImageViewer(
+                imageUrl = url,
+                onDismiss = { fullScreenImageUrl = null }
+            )
+        }
     }
 }
 
@@ -91,7 +173,7 @@ private fun ChatHeader(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = PaceDreamDesignSystem.PaceDreamColors.Surface,
-        shadowElevation = 4.dp
+        shadowElevation = PaceDreamDesignSystem.PaceDreamElevation.LG
     ) {
         Row(
             modifier = Modifier
@@ -106,17 +188,17 @@ private fun ChatHeader(
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))
-            
+
             PaceDreamUserAvatar(
                 imageUrl = otherUserAvatar,
                 contentDescription = "Avatar of $otherUserName",
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.XL)
             )
-            
+
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.MD))
-            
+
             Column {
                 Text(
                     text = otherUserName,
@@ -130,9 +212,9 @@ private fun ChatHeader(
                     color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.6f)
                 )
             }
-            
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             IconButton(onClick = { /* Handle call */ }) {
                 Icon(
                     imageVector = PaceDreamIcons.Call,
@@ -140,7 +222,7 @@ private fun ChatHeader(
                     tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
                 )
             }
-            
+
             IconButton(onClick = { /* Handle video call */ }) {
                 Icon(
                     imageVector = PaceDreamIcons.Videocam,
@@ -156,11 +238,12 @@ private fun ChatHeader(
 private fun MessagesList(
     messages: List<MessageModel>,
     currentUserId: String,
+    onImageClick: (String) -> Unit,
+    onRetryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
@@ -173,10 +256,12 @@ private fun MessagesList(
         contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
         verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM)
     ) {
-        items(messages) { message ->
+        items(messages, key = { it.id ?: it.hashCode().toString() }) { message ->
             MessageBubble(
                 message = message,
-                isFromCurrentUser = message.senderId == currentUserId
+                isFromCurrentUser = message.senderId == currentUserId,
+                onImageClick = onImageClick,
+                onRetryClick = onRetryClick
             )
         }
     }
@@ -185,58 +270,267 @@ private fun MessagesList(
 @Composable
 private fun MessageBubble(
     message: MessageModel,
-    isFromCurrentUser: Boolean
+    isFromCurrentUser: Boolean,
+    onImageClick: (String) -> Unit,
+    onRetryClick: (String) -> Unit
 ) {
+    val isFailed = message.status == "failed"
+    val isSending = message.status == "sending"
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isFromCurrentUser) Arrangement.End else Arrangement.Start
     ) {
         if (!isFromCurrentUser) {
             PaceDreamUserAvatar(
-                imageUrl = null, // This would come from user data
+                imageUrl = null,
                 contentDescription = "User avatar",
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))
         }
-        
+
         Column(
-            horizontalAlignment = if (isFromCurrentUser) Alignment.End else Alignment.Start
+            horizontalAlignment = if (isFromCurrentUser) Alignment.End else Alignment.Start,
+            modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isFromCurrentUser) {
-                        PaceDreamDesignSystem.PaceDreamColors.Primary
-                    } else {
-                        PaceDreamDesignSystem.PaceDreamColors.SurfaceVariant
-                    }
-                ),
-                shape = RoundedCornerShape(
-                    topStart = PaceDreamDesignSystem.PaceDreamRadius.MD,
-                    topEnd = PaceDreamDesignSystem.PaceDreamRadius.MD,
-                    bottomStart = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.MD else PaceDreamDesignSystem.PaceDreamRadius.SM,
-                    bottomEnd = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.SM else PaceDreamDesignSystem.PaceDreamRadius.MD
+            // Image attachments
+            if (message.hasImageAttachments) {
+                PhotoGrid(
+                    attachments = message.imageAttachments,
+                    onImageClick = onImageClick,
+                    isFromCurrentUser = isFromCurrentUser
                 )
-            ) {
-                Text(
-                    text = message.content,
-                    style = PaceDreamDesignSystem.PaceDreamTypography.Body,
-                    color = if (isFromCurrentUser) {
-                        PaceDreamDesignSystem.PaceDreamColors.OnPrimary
-                    } else {
-                        PaceDreamDesignSystem.PaceDreamColors.OnSurfaceVariant
-                    },
-                    modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.SM)
-                )
+                Spacer(modifier = Modifier.height(2.dp))
             }
-            
+
+            // Text content (skip placeholder text for media messages)
+            val displayText = message.displayText
+            if (displayText.isNotBlank() && !(message.hasImageAttachments && displayText.startsWith("Sending "))) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isFromCurrentUser) {
+                            PaceDreamDesignSystem.PaceDreamColors.Primary
+                        } else {
+                            PaceDreamDesignSystem.PaceDreamColors.SurfaceVariant
+                        }
+                    ),
+                    shape = RoundedCornerShape(
+                        topStart = PaceDreamDesignSystem.PaceDreamRadius.MD,
+                        topEnd = PaceDreamDesignSystem.PaceDreamRadius.MD,
+                        bottomStart = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.MD else PaceDreamDesignSystem.PaceDreamRadius.SM,
+                        bottomEnd = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.SM else PaceDreamDesignSystem.PaceDreamRadius.MD
+                    )
+                ) {
+                    Text(
+                        text = displayText,
+                        style = PaceDreamDesignSystem.PaceDreamTypography.Body,
+                        color = if (isFromCurrentUser) {
+                            PaceDreamDesignSystem.PaceDreamColors.OnPrimary
+                        } else {
+                            PaceDreamDesignSystem.PaceDreamColors.OnSurfaceVariant
+                        },
+                        modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.SM)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.XS))
-            
-            Text(
-                text = formatMessageTime(message.timestamp),
-                style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
-                color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.6f)
+
+            // Status row: timestamp + sending/failed indicator
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = formatMessageTime(message.timestamp ?: message.createdAt ?: ""),
+                    style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
+                    color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.6f)
+                )
+
+                if (isSending) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.5f)
+                    )
+                }
+
+                if (isFailed) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Failed",
+                        style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Retry",
+                        style = PaceDreamDesignSystem.PaceDreamTypography.Caption,
+                        color = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { message.id?.let { onRetryClick(it) } }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoGrid(
+    attachments: List<MessageAttachment>,
+    onImageClick: (String) -> Unit,
+    isFromCurrentUser: Boolean
+) {
+    val shape = RoundedCornerShape(
+        topStart = PaceDreamDesignSystem.PaceDreamRadius.MD,
+        topEnd = PaceDreamDesignSystem.PaceDreamRadius.MD,
+        bottomStart = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.MD else PaceDreamDesignSystem.PaceDreamRadius.SM,
+        bottomEnd = if (isFromCurrentUser) PaceDreamDesignSystem.PaceDreamRadius.SM else PaceDreamDesignSystem.PaceDreamRadius.MD
+    )
+
+    when (attachments.size) {
+        1 -> {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(attachments[0].displayUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = attachments[0].name ?: "Photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .widthIn(max = 240.dp)
+                    .heightIn(max = 240.dp)
+                    .clip(shape)
+                    .clickable { onImageClick(attachments[0].url) }
             )
+        }
+        2 -> {
+            Row(
+                modifier = Modifier
+                    .clip(shape)
+                    .widthIn(max = 260.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                attachments.forEach { att ->
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(att.displayUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = att.name ?: "Photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(140.dp)
+                            .clickable { onImageClick(att.url) }
+                    )
+                }
+            }
+        }
+        else -> {
+            // Grid layout for 3+ images
+            val rows = attachments.chunked(2)
+            Column(
+                modifier = Modifier
+                    .clip(shape)
+                    .widthIn(max = 260.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                rows.forEachIndexed { rowIndex, row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        row.forEachIndexed { colIndex, att ->
+                            val index = rowIndex * 2 + colIndex
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(if (attachments.size <= 4) 120.dp else 100.dp)
+                                    .clickable { onImageClick(att.url) }
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(att.displayUrl)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = att.name ?: "Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                // "+N" overlay on last visible image if there are more
+                                if (index == 3 && attachments.size > 4) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.5f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "+${attachments.size - 4}",
+                                            color = Color.White,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // Pad odd rows
+                        if (row.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                    // Only show first 2 rows (4 images) for large sets
+                    if (rowIndex >= 1 && attachments.size > 4) return@Column
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoPreviewTray(
+    photos: List<PendingPhoto>,
+    onRemove: (Uri) -> Unit,
+    attachmentsEnabled: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = PaceDreamDesignSystem.PaceDreamColors.Surface
+    ) {
+        LazyRow(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(photos, key = { it.id }) { photo ->
+                Box(modifier = Modifier.size(72.dp)) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(photo.uri)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Selected photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    // Remove button
+                    IconButton(
+                        onClick = { onRemove(photo.uri) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp)
+                            .size(22.dp)
+                            .background(Color.White, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Close,
+                            contentDescription = "Remove photo",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -246,12 +540,25 @@ private fun MessageInput(
     message: String,
     onMessageChange: (String) -> Unit,
     onSendMessage: () -> Unit,
-    isSending: Boolean
+    onAttachPhotos: (List<Uri>) -> Unit,
+    isSending: Boolean,
+    canSend: Boolean,
+    attachmentsEnabled: Boolean
 ) {
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(
+            maxItems = ChatViewModel.MAX_PHOTOS_PER_MESSAGE
+        )
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onAttachPhotos(uris)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = PaceDreamDesignSystem.PaceDreamColors.Surface,
-        shadowElevation = 4.dp
+        shadowElevation = PaceDreamDesignSystem.PaceDreamElevation.LG
     ) {
         Row(
             modifier = Modifier
@@ -259,6 +566,29 @@ private fun MessageInput(
                 .padding(PaceDreamDesignSystem.PaceDreamSpacing.MD),
             verticalAlignment = Alignment.Bottom
         ) {
+            // Photo attachment button
+            IconButton(
+                onClick = {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                enabled = attachmentsEnabled && !isSending,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Image,
+                    contentDescription = "Attach photo",
+                    tint = if (attachmentsEnabled) {
+                        PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.7f)
+                    } else {
+                        PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.3f)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
@@ -267,13 +597,17 @@ private fun MessageInput(
                 maxLines = 4,
                 shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
             )
-            
+
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))
-            
+
             FloatingActionButton(
-                onClick = { if (message.isNotBlank()) onSendMessage() },
+                onClick = { if (canSend) onSendMessage() },
                 modifier = Modifier.size(48.dp),
-                containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                containerColor = if (canSend) {
+                    PaceDreamDesignSystem.PaceDreamColors.Primary
+                } else {
+                    PaceDreamDesignSystem.PaceDreamColors.Primary.copy(alpha = 0.4f)
+                },
                 contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
             ) {
                 if (isSending) {
@@ -289,6 +623,57 @@ private fun MessageInput(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FullScreenImageViewer(
+    imageUrl: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.95f))
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Full screen photo",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .clickable(enabled = false) {} // Prevent dismiss on image click
+            )
         }
     }
 }

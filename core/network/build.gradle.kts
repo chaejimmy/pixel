@@ -16,21 +16,31 @@ android {
     }
 
     defaultConfig {
-        // Load secrets from properties file
+        // Load secrets: defaults first, then local overrides (secrets.properties wins)
         val secretsProperties = Properties()
-        val secretsFile = rootProject.file("secrets.defaults.properties")
-        if (secretsFile.exists()) {
-            secretsFile.inputStream().use { secretsProperties.load(it) }
+        listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
+            val f = rootProject.file(name)
+            if (f.exists()) f.inputStream().use { secretsProperties.load(it) }
         }
         
         // Auth0 Configuration from secrets file
-        val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "dev-pacedream.us.auth0.com"
-        val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: ""
+        val auth0Domain = secretsProperties.getProperty("AUTH0_DOMAIN") ?: "" // Set in secrets.defaults.properties
+        val auth0ClientId = secretsProperties.getProperty("AUTH0_CLIENT_ID") ?: "" // Set in secrets.defaults.properties
         val auth0Audience = secretsProperties.getProperty("AUTH0_AUDIENCE") ?: "https://$auth0Domain/api/v2/"
         
         buildConfigField("String", "AUTH0_DOMAIN", "\"$auth0Domain\"")
         buildConfigField("String", "AUTH0_CLIENT_ID", "\"$auth0ClientId\"")
         buildConfigField("String", "AUTH0_AUDIENCE", "\"$auth0Audience\"")
+
+        // Frontend URL (iOS parity: FRONTEND_BASE_URL in xcconfig)
+        val frontendUrl = secretsProperties.getProperty("FRONTEND_BASE_URL") ?: "https://www.pacedream.com"
+        buildConfigField("String", "FRONTEND_BASE_URL", "\"$frontendUrl\"")
+
+        // Cloudinary config (iOS parity: CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET in xcconfig)
+        val cloudName = secretsProperties.getProperty("CLOUDINARY_CLOUD_NAME") ?: ""
+        val uploadPreset = secretsProperties.getProperty("CLOUDINARY_UPLOAD_PRESET") ?: ""
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME", "\"$cloudName\"")
+        buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET", "\"$uploadPreset\"")
     }
 
 }

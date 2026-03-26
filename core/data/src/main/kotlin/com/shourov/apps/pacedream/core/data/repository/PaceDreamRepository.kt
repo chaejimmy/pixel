@@ -18,6 +18,7 @@ import com.shourov.apps.pacedream.model.MessageModel
 import com.shourov.apps.pacedream.model.response.home.rooms.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import javax.inject.Inject
 
 class PaceDreamRepository @Inject constructor(
@@ -56,10 +57,10 @@ class PaceDreamRepository @Inject constructor(
             // Convert API response to entities and insert
             // This would need to be implemented based on your API response structure
         } catch (e: Exception) {
-            // Handle error
+            Timber.e(e, "Failed to refresh properties from API")
         }
     }
-    
+
     // Booking operations
     fun getAllBookings(): Flow<List<BookingModel>> {
         return bookingDao.getAllBookings().map { entities ->
@@ -78,7 +79,7 @@ class PaceDreamRepository @Inject constructor(
             // For now, just insert into local DB
             bookingDao.insertBooking(booking)
         } catch (e: Exception) {
-            // Handle error
+            Timber.e(e, "Failed to insert booking into local DB")
         }
     }
     
@@ -94,7 +95,7 @@ class PaceDreamRepository @Inject constructor(
             // For now, just insert into local DB
             messageDao.insertMessage(message)
         } catch (e: Exception) {
-            // Handle error
+            Timber.e(e, "Failed to insert message into local DB")
         }
     }
     
@@ -123,7 +124,15 @@ class PaceDreamRepository @Inject constructor(
             checkOutTime = checkOutTime,
             checkInTime = checkInTime,
             bookingStatus = bookingStatus,
-            price = price
+            price = price,
+            propertyImage = propertyImage,
+            propertyName = propertyName ?: "",
+            hostName = hostName ?: "",
+            currency = currency ?: "USD",
+            totalPrice = totalPrice ?: 0.0,
+            startDate = startDate ?: "",
+            endDate = endDate ?: "",
+            status = com.shourov.apps.pacedream.model.BookingStatus.fromString(status)
         )
     }
     

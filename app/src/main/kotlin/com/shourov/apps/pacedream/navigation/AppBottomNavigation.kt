@@ -28,6 +28,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -39,6 +40,7 @@ import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import androidx.compose.foundation.layout.navigationBars
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamIconSize
 
@@ -46,11 +48,11 @@ import com.pacedream.common.composables.theme.PaceDreamIconSize
  * iOS 26 Liquid Glass Floating Tab Bar
  *
  * Matches iOS tab bar design language:
- * - Translucent glass material background
+ * - Translucent glass material background with subtle top shadow
  * - Compact height (iOS standard tab bar)
- * - Caption2 labels (11sp)
- * - System indigo active tint, secondary label inactive
- * - No indicator / transparent selection
+ * - Caption2 labels (11sp) with medium weight for selected state
+ * - Primary active tint with stronger presence, secondary label inactive
+ * - Pill-shaped indicator for selected tab (iOS parity)
  */
 @Composable
 fun AppBottomNavigation(
@@ -59,21 +61,27 @@ fun AppBottomNavigation(
     onItemClick: (Int) -> Unit,
 ) {
     NavigationBar(
-        windowInsets = NavigationBarDefaults.windowInsets,
+        windowInsets = WindowInsets.navigationBars,
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(0.dp),
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = 0.04f)
+            )
             .border(
                 width = 0.5.dp,
-                color = PaceDreamColors.Border.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
+                color = PaceDreamColors.Border.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(0.dp)
             ),
         containerColor = PaceDreamColors.Background.copy(alpha = PaceDreamGlass.ThickAlpha),
         tonalElevation = 0.dp
     ) {
         items.forEachIndexed { index, bottomNavigationItem ->
+            val isSelected = selectedIndex == index
             NavigationBarItem(
-                selected = selectedIndex == index,
+                selected = isSelected,
                 onClick = { onItemClick(index) },
                 icon = {
                     BadgedBox(
@@ -94,13 +102,15 @@ fun AppBottomNavigation(
                         }
                     ) {
                         Icon(
-                            modifier = Modifier.size(PaceDreamIconSize.MD),
+                            modifier = Modifier.size(
+                                if (isSelected) 24.dp else PaceDreamIconSize.MD
+                            ),
                             painter = painterResource(id = bottomNavigationItem.icon),
                             contentDescription = stringResource(id = bottomNavigationItem.text),
-                            tint = if (selectedIndex == index)
+                            tint = if (isSelected)
                                 PaceDreamColors.Primary
                             else
-                                PaceDreamColors.TextSecondary
+                                PaceDreamColors.TextSecondary.copy(alpha = 0.7f)
                         )
                     }
                 },
@@ -108,15 +118,16 @@ fun AppBottomNavigation(
                     Text(
                         text = stringResource(id = bottomNavigationItem.text),
                         style = PaceDreamTypography.Caption2.copy(
-                            fontWeight = if (selectedIndex == index)
-                                FontWeight.SemiBold
+                            fontWeight = if (isSelected)
+                                FontWeight.Bold
                             else
-                                FontWeight.Normal
+                                FontWeight.Normal,
+                            letterSpacing = if (isSelected) 0.1.sp else 0.07.sp
                         ),
-                        color = if (selectedIndex == index)
+                        color = if (isSelected)
                             PaceDreamColors.Primary
                         else
-                            PaceDreamColors.TextSecondary
+                            PaceDreamColors.TextSecondary.copy(alpha = 0.7f)
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
@@ -124,7 +135,7 @@ fun AppBottomNavigation(
                     selectedTextColor = PaceDreamColors.Primary,
                     unselectedIconColor = PaceDreamColors.TextSecondary,
                     unselectedTextColor = PaceDreamColors.TextSecondary,
-                    indicatorColor = Color.Transparent
+                    indicatorColor = PaceDreamColors.Primary.copy(alpha = 0.1f)
                 )
             )
         }

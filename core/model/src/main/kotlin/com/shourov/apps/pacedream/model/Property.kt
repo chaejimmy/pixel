@@ -1,9 +1,36 @@
 package com.shourov.apps.pacedream.model
 
+import com.google.gson.annotations.SerializedName
+
+/**
+ * Pricing unit matching the backend enum: 'hour' | 'day' | 'week' | 'month'.
+ * Maps directly to the web platform's pricing_type / pricing.unit fields.
+ */
+enum class PricingUnit(
+    val value: String,
+    val displayLabel: String,
+    val shortLabel: String,
+    /** Backend pricing_type value (e.g. "hourly", "daily") – iOS parity. */
+    val backendPricingType: String,
+    /** Backend frequency value (e.g. "HOUR", "DAY") – iOS parity. */
+    val backendFrequency: String,
+) {
+    HOUR("hour", "Hourly", "hr", "hourly", "HOUR"),
+    DAY("day", "Daily", "day", "daily", "DAY"),
+    WEEK("week", "Weekly", "wk", "weekly", "WEEK"),
+    MONTH("month", "Monthly", "mo", "monthly", "MONTH");
+
+    companion object {
+        fun fromValue(value: String): PricingUnit =
+            entries.firstOrNull { it.value == value.lowercase() } ?: HOUR
+    }
+}
+
 /**
  * Property model for host features
  */
 data class Property(
+    @SerializedName(value = "id", alternate = ["_id", "listingId"])
     val id: String = "",
     val title: String = "",
     val description: String = "",
@@ -26,6 +53,7 @@ data class PropertyLocation(
     val city: String = "",
     val country: String = "",
     val address: String = "",
+    val state: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0
 )
@@ -33,6 +61,19 @@ data class PropertyLocation(
 data class PropertyPricing(
     val basePrice: Double = 0.0,
     val currency: String = "USD",
+    val unit: String = "hour",
+    val pricingType: String = "hour",
     val cleaningFee: Double = 0.0,
     val serviceFee: Double = 0.0
+)
+
+/**
+ * Per-unit price map used when switching between pricing modes.
+ * Mirrors the web platform's `prices: { hour, day, month }` field.
+ */
+data class PricingPrices(
+    val hour: Double = 0.0,
+    val day: Double = 0.0,
+    val week: Double = 0.0,
+    val month: Double = 0.0,
 )

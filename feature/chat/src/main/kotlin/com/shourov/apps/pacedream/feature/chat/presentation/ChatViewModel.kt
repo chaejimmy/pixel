@@ -16,12 +16,17 @@
 
 package com.shourov.apps.pacedream.feature.chat.presentation
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
+import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,22 +37,49 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val messageRepository: MessageRepository
+    private val messageRepository: MessageRepository,
+    private val authSession: com.shourov.apps.pacedream.core.network.auth.AuthSession,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-    
+
+    private var loadMessagesJob: Job? = null
+
     fun loadMessages(chatId: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId)
-            
+        loadMessagesJob?.cancel()
+        loadMessagesJob = viewModelScope.launch {
+            val resolvedUserId = authSession.currentUserId ?: "unknown"
+            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId, currentUserId = resolvedUserId)
+
+            // Check attachment status
+            launch {
+                when (val result = messageRepository.getAttachmentStatus(chatId)) {
+                    is Result.Success -> {
+                        _uiState.value = _uiState.value.copy(attachmentsEnabled = result.data)
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(attachmentsEnabled = false)
+                    }
+                }
+            }
+
             messageRepository.getChatMessages(chatId).collect { result ->
                 when (result) {
                     is Result.Success -> {
+                        // Derive otherUserId from message history if not yet set
+                        val currentOther = _uiState.value.otherUserId
+                        val derivedOther = if (currentOther.isBlank()) {
+                            result.data.firstOrNull { it.senderId != resolvedUserId }?.senderId
+                                ?: result.data.firstOrNull()?.receiverId
+                                ?: ""
+                        } else currentOther
+
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             messages = result.data,
+                            otherUserId = derivedOther,
                             error = null
                         )
                     }
@@ -61,64 +93,196 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun onMessageChange(message: String) {
         _uiState.value = _uiState.value.copy(newMessage = message)
     }
-    
+
+    fun addPendingPhotos(uris: List<Uri>) {
+        val current = _uiState.value.pendingPhotos
+        val remaining = MAX_PHOTOS_PER_MESSAGE - current.size
+        if (remaining <= 0) {
+            _uiState.value = _uiState.value.copy(uploadError = "Maximum $MAX_PHOTOS_PER_MESSAGE photos per message.")
+            return
+        }
+        val newPhotos = uris.take(remaining).map { PendingPhoto(uri = it) }
+        _uiState.value = _uiState.value.copy(
+            pendingPhotos = current + newPhotos,
+            uploadError = null
+        )
+    }
+
+    fun removePendingPhoto(uri: Uri) {
+        _uiState.value = _uiState.value.copy(
+            pendingPhotos = _uiState.value.pendingPhotos.filter { it.uri != uri }
+        )
+    }
+
     fun sendMessage() {
-        val currentState = _uiState.value
-        val message = currentState.newMessage.trim()
-        
-        if (message.isEmpty()) return
-        
+        val snapshot = _uiState.value
+        val message = snapshot.newMessage.trim()
+        val photos = snapshot.pendingPhotos
+
+        if (message.isEmpty() && photos.isEmpty()) return
+
         viewModelScope.launch {
-            _uiState.value = currentState.copy(isSending = true)
-            
-            val messageModel = MessageModel(
-                id = UUID.randomUUID().toString(),
-                chatId = currentState.chatId,
-                senderId = currentState.currentUserId,
-                receiverId = currentState.otherUserId,
-                content = message,
-                messageType = "TEXT",
-                attachmentUrl = null,
-                isRead = false,
-                timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date()),
-                createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
-            )
-            
-            when (val result = messageRepository.sendMessage(currentState.chatId, messageModel)) {
-                is Result.Success -> {
-                    _uiState.value = currentState.copy(
-                        newMessage = "",
-                        isSending = false
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = currentState.copy(
-                        isSending = false,
-                        error = result.exception.message
-                    )
-                }
+            if (photos.isNotEmpty()) {
+                sendMediaMessage(message, photos)
+            } else {
+                sendTextMessage(message)
             }
         }
     }
-    
+
+    private suspend fun sendTextMessage(text: String) {
+        _uiState.value = _uiState.value.copy(isSending = true, uploadError = null)
+
+        val snapshot = _uiState.value
+        val messageModel = MessageModel(
+            id = UUID.randomUUID().toString(),
+            chatId = snapshot.chatId,
+            senderId = snapshot.currentUserId,
+            receiverId = snapshot.otherUserId,
+            content = text,
+            messageType = "TEXT",
+            isRead = false,
+            timestamp = nowIso(),
+            createdAt = nowIso(),
+            status = "sending"
+        )
+
+        // Optimistic insert
+        _uiState.value = _uiState.value.copy(
+            messages = _uiState.value.messages + messageModel,
+            newMessage = "",
+            isSending = true
+        )
+
+        when (val result = messageRepository.sendMessage(snapshot.chatId, messageModel)) {
+            is Result.Success -> {
+                _uiState.value = _uiState.value.copy(isSending = false)
+            }
+            is Result.Error -> {
+                // Mark message as failed
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    messages = _uiState.value.messages.map {
+                        if (it.id == messageModel.id) it.copy(status = "failed") else it
+                    },
+                    error = result.exception.message
+                )
+            }
+        }
+    }
+
+    private suspend fun sendMediaMessage(text: String, photos: List<PendingPhoto>) {
+        _uiState.value = _uiState.value.copy(
+            isUploading = true,
+            uploadProgress = 0f,
+            uploadError = null,
+            pendingPhotos = emptyList(),
+            newMessage = ""
+        )
+
+        // Optimistic placeholder message
+        val tempId = UUID.randomUUID().toString()
+        val placeholderMessage = MessageModel(
+            id = tempId,
+            chatId = _uiState.value.chatId,
+            senderId = _uiState.value.currentUserId,
+            content = text.ifBlank { "Sending ${photos.size} photo${if (photos.size > 1) "s" else ""}..." },
+            messageType = "IMAGE",
+            status = "sending",
+            timestamp = nowIso(),
+            createdAt = nowIso()
+        )
+        _uiState.value = _uiState.value.copy(
+            messages = _uiState.value.messages + placeholderMessage
+        )
+
+        when (val result = messageRepository.uploadChatMedia(
+            context = appContext,
+            threadId = _uiState.value.chatId,
+            imageUris = photos.map { it.uri },
+            text = text.ifBlank { null }
+        )) {
+            is Result.Success -> {
+                // Replace placeholder with real message
+                val realMessage = result.data
+                _uiState.value = _uiState.value.copy(
+                    isUploading = false,
+                    uploadProgress = 1f,
+                    messages = _uiState.value.messages.map {
+                        if (it.id == tempId) realMessage else it
+                    }
+                )
+            }
+            is Result.Error -> {
+                // Mark placeholder as failed and restore photos for retry
+                _uiState.value = _uiState.value.copy(
+                    isUploading = false,
+                    uploadProgress = 0f,
+                    uploadError = result.exception.message,
+                    pendingPhotos = photos,
+                    messages = _uiState.value.messages.map {
+                        if (it.id == tempId) it.copy(status = "failed") else it
+                    }
+                )
+            }
+        }
+    }
+
+    fun retryFailedMessage(messageId: String) {
+        val failedMessage = _uiState.value.messages.find { it.id == messageId && it.status == "failed" } ?: return
+        // Remove the failed message and re-send
+        _uiState.value = _uiState.value.copy(
+            messages = _uiState.value.messages.filter { it.id != messageId }
+        )
+
+        viewModelScope.launch {
+            if (failedMessage.hasImageAttachments || _uiState.value.pendingPhotos.isNotEmpty()) {
+                sendMediaMessage(failedMessage.content, _uiState.value.pendingPhotos)
+            } else {
+                _uiState.value = _uiState.value.copy(newMessage = failedMessage.content)
+                sendTextMessage(failedMessage.content)
+            }
+        }
+    }
+
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(error = null, uploadError = null)
+    }
+
+    private fun nowIso(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+
+    companion object {
+        const val MAX_PHOTOS_PER_MESSAGE = 10
     }
 }
+
+data class PendingPhoto(
+    val uri: Uri,
+    val id: String = UUID.randomUUID().toString()
+)
 
 data class ChatUiState(
     val isLoading: Boolean = false,
     val chatId: String = "",
-    val currentUserId: String = "current_user_id", // This should come from user session
+    val currentUserId: String = "",
     val otherUserId: String = "",
-    val otherUserName: String = "Other User", // This should come from user data
-    val otherUserAvatar: String? = null, // This should come from user data
+    val otherUserName: String = "Other User",
+    val otherUserAvatar: String? = null,
     val messages: List<MessageModel> = emptyList(),
     val newMessage: String = "",
     val isSending: Boolean = false,
+    val isUploading: Boolean = false,
+    val uploadProgress: Float = 0f,
+    val uploadError: String? = null,
+    val attachmentsEnabled: Boolean = false,
+    val pendingPhotos: List<PendingPhoto> = emptyList(),
     val error: String? = null
-)
+) {
+    val canSend: Boolean
+        get() = (newMessage.isNotBlank() || pendingPhotos.isNotEmpty()) && !isSending && !isUploading
+}

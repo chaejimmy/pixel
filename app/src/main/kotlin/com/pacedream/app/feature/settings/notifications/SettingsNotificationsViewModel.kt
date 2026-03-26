@@ -14,6 +14,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * UI state matching iOS NotificationsSettingsView (iOS parity).
+ *
+ * Includes all notification categories from iOS: email, push, messages,
+ * booking updates/alerts, marketing, reviews, friend requests, system,
+ * SMS, and quiet hours.
+ */
 data class NotificationsUiState(
     val isLoading: Boolean = false,
     val emailGeneral: Boolean = false,
@@ -22,6 +29,15 @@ data class NotificationsUiState(
     val bookingUpdates: Boolean = false,
     val bookingAlerts: Boolean = false,
     val marketingPromotions: Boolean = false,
+    // iOS parity: additional categories
+    val reviewNotifications: Boolean = true,
+    val friendRequestNotifications: Boolean = true,
+    val systemNotifications: Boolean = true,
+    val smsNotifications: Boolean = false,
+    // iOS parity: quiet hours
+    val quietHoursEnabled: Boolean = false,
+    val quietHoursStart: String = "22:00",
+    val quietHoursEnd: String = "08:00",
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -53,7 +69,14 @@ class SettingsNotificationsViewModel @Inject constructor(
                             messageNotifications = s.messageNotifications,
                             bookingUpdates = s.bookingUpdates,
                             bookingAlerts = s.bookingAlerts,
-                            marketingPromotions = s.marketingPromotions
+                            marketingPromotions = s.marketingPromotions,
+                            reviewNotifications = s.reviewNotifications,
+                            friendRequestNotifications = s.friendRequestNotifications,
+                            systemNotifications = s.systemNotifications,
+                            smsNotifications = s.smsNotifications,
+                            quietHoursEnabled = s.quietHoursEnabled,
+                            quietHoursStart = s.quietHoursStart ?: "22:00",
+                            quietHoursEnd = s.quietHoursEnd ?: "08:00"
                         )
                     }
                 }
@@ -96,6 +119,26 @@ class SettingsNotificationsViewModel @Inject constructor(
         _uiState.update { it.copy(marketingPromotions = !it.marketingPromotions) }
     }
 
+    fun toggleReviewNotifications() {
+        _uiState.update { it.copy(reviewNotifications = !it.reviewNotifications) }
+    }
+
+    fun toggleFriendRequestNotifications() {
+        _uiState.update { it.copy(friendRequestNotifications = !it.friendRequestNotifications) }
+    }
+
+    fun toggleSystemNotifications() {
+        _uiState.update { it.copy(systemNotifications = !it.systemNotifications) }
+    }
+
+    fun toggleSmsNotifications() {
+        _uiState.update { it.copy(smsNotifications = !it.smsNotifications) }
+    }
+
+    fun toggleQuietHours() {
+        _uiState.update { it.copy(quietHoursEnabled = !it.quietHoursEnabled) }
+    }
+
     fun save() {
         val state = _uiState.value
         viewModelScope.launch {
@@ -106,7 +149,14 @@ class SettingsNotificationsViewModel @Inject constructor(
                 messageNotifications = state.messageNotifications,
                 bookingUpdates = state.bookingUpdates,
                 bookingAlerts = state.bookingAlerts,
-                marketingPromotions = state.marketingPromotions
+                marketingPromotions = state.marketingPromotions,
+                reviewNotifications = state.reviewNotifications,
+                friendRequestNotifications = state.friendRequestNotifications,
+                systemNotifications = state.systemNotifications,
+                smsNotifications = state.smsNotifications,
+                quietHoursEnabled = state.quietHoursEnabled,
+                quietHoursStart = state.quietHoursStart,
+                quietHoursEnd = state.quietHoursEnd
             )
             when (val result = repository.updateNotificationSettings(settings)) {
                 is ApiResult.Success -> {
@@ -132,4 +182,3 @@ class SettingsNotificationsViewModel @Inject constructor(
         }
     }
 }
-

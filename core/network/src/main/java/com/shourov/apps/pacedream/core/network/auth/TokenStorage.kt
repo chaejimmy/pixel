@@ -195,8 +195,10 @@ class TokenStorage @Inject constructor(
      * Store both tokens at once
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
-        this.accessToken = accessToken
-        this.refreshToken = refreshToken
+        encryptedPrefs.edit().apply {
+            if (accessToken != null) putString(KEY_ACCESS_TOKEN, accessToken) else remove(KEY_ACCESS_TOKEN)
+            if (refreshToken != null) putString(KEY_REFRESH_TOKEN, refreshToken) else remove(KEY_REFRESH_TOKEN)
+        }.apply()
     }
     
     /**

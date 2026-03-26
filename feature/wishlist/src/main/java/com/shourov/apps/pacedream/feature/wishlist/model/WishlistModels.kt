@@ -10,12 +10,34 @@ data class WishlistItem(
     val description: String? = null,
     val imageUrl: String? = null,
     val price: Double? = null,
+    val priceUnit: String? = null,
     val itemType: WishlistItemType = WishlistItemType.TIME_BASED,
     val location: String? = null,
     val rating: Double? = null
 ) {
     val formattedPrice: String
-        get() = price?.let { "$${String.format("%.2f", it)}" } ?: ""
+        get() {
+            val amount = price ?: return ""
+            val amountStr = if (amount == amount.toLong().toDouble()) {
+                "$${amount.toLong()}"
+            } else {
+                "$${String.format("%.2f", amount)}"
+            }
+            val unit = priceUnit?.let { formatPriceUnit(it) }
+            return if (unit != null) "$amountStr/$unit" else amountStr
+        }
+
+    companion object {
+        fun formatPriceUnit(frequency: String): String {
+            return when (frequency.lowercase().trim()) {
+                "hourly", "hour", "hr" -> "hr"
+                "daily", "day" -> "day"
+                "weekly", "week" -> "wk"
+                "monthly", "month", "mo" -> "mo"
+                else -> frequency.lowercase()
+            }
+        }
+    }
     
     val formattedRating: String
         get() = rating?.let { String.format("%.1f", it) } ?: ""
@@ -25,9 +47,9 @@ data class WishlistItem(
  * Wishlist item types matching iOS routing behavior
  */
 enum class WishlistItemType(val apiValue: String, val displayName: String) {
-    TIME_BASED("time-based", "Hourly Spaces"),
-    HOURLY_GEAR("hourly-gear", "Rent Gear"),
-    SPLIT_STAY("room-stay", "Split Stays"),
+    TIME_BASED("time-based", "Spaces"),
+    HOURLY_GEAR("hourly-gear", "Items"),
+    SPLIT_STAY("room-stay", "Services"),
     OTHER("other", "Other");
     
     companion object {
@@ -35,11 +57,15 @@ enum class WishlistItemType(val apiValue: String, val displayName: String) {
             if (value == null) return null
             val normalized = value.lowercase().trim()
             return when {
-                normalized.contains("time") || normalized == "use" -> TIME_BASED
-                normalized.contains("gear") || normalized == "borrow" || 
-                    normalized.contains("car") || normalized.contains("vehicle") -> HOURLY_GEAR
-                normalized.contains("split") || normalized.contains("room") ||
-                    normalized.contains("stay") || normalized.contains("roommate") -> SPLIT_STAY
+                normalized.contains("time") || normalized == "use" || normalized == "share" ||
+                    normalized.contains("short") || normalized.contains("hourly") -> TIME_BASED
+                normalized.contains("gear") || normalized == "borrow" ||
+                    normalized.contains("car") || normalized.contains("vehicle") ||
+                    normalized.contains("parking") -> HOURLY_GEAR
+                normalized.contains("split") || normalized.contains("roommate") -> SPLIT_STAY
+                // "room" alone is too generic for SPLIT_STAY — backends use room_type for
+                // many listing kinds. Only match "room-stay" or "room stay" specifically.
+                normalized == "room-stay" || normalized == "room stay" -> SPLIT_STAY
                 else -> null
             }
         }
@@ -51,16 +77,16 @@ enum class WishlistItemType(val apiValue: String, val displayName: String) {
  */
 enum class WishlistFilter(val displayName: String) {
     ALL("All"),
-    HOURLY("Hourly"),
-    GEAR("Gear"),
-    SPLIT("Split");
-    
+    SPACES("Spaces"),
+    ITEMS("Items"),
+    SERVICES("Services");
+
     fun matches(item: WishlistItem): Boolean {
         return when (this) {
             ALL -> true
-            HOURLY -> item.itemType == WishlistItemType.TIME_BASED
-            GEAR -> item.itemType == WishlistItemType.HOURLY_GEAR
-            SPLIT -> item.itemType == WishlistItemType.SPLIT_STAY
+            SPACES -> item.itemType == WishlistItemType.TIME_BASED
+            ITEMS -> item.itemType == WishlistItemType.HOURLY_GEAR
+            SERVICES -> item.itemType == WishlistItemType.SPLIT_STAY
         }
     }
 }
@@ -103,6 +129,7 @@ sealed class WishlistNavigation {
     data class ToTimeBasedDetail(val itemId: String) : WishlistNavigation()
     data class ToHourlyGearDetail(val gearId: String) : WishlistNavigation()
     object ShowAuthSheet : WishlistNavigation()
+    object ExploreListings : WishlistNavigation()
 }
 
 

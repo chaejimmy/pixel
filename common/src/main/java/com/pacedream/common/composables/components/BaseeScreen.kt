@@ -19,10 +19,10 @@ package com.pacedream.common.composables.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.pacedream.common.R
 import com.pacedream.common.composables.buttons.RoundIconButton
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,21 +46,23 @@ fun BaseeScreen(
                 title = {
                     Text(
                         text = title,
-                        modifier = Modifier.fillMaxWidth(0.8f),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PaceDreamTypography.Headline,
                     )
                 },
                 navigationIcon = {
                     RoundIconButton(
                         icon = ImageVector.vectorResource(id = R.drawable.ic_chevron_left),
                         onclick = {
-                            //TODO on click implementation, navigate back} 
+                            //TODO on click implementation, navigate back}
                         },
                     )
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background
+                ),
             )
         },
+        containerColor = PaceDreamColors.Background,
     )
     {
         content(Modifier.padding(it))
