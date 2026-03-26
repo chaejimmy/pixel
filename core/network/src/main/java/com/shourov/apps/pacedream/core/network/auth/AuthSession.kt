@@ -554,7 +554,10 @@ class AuthSession @Inject constructor(
                 profileImage = userData["profileImage"]?.jsonPrimitive?.content
                     ?: userData["profile_image"]?.jsonPrimitive?.content
                     ?: userData["avatarUrl"]?.jsonPrimitive?.content
-                    ?: userData["avatar"]?.jsonPrimitive?.content,
+                    ?: userData["avatar"]?.jsonPrimitive?.content
+                    ?: try { userData["profilePic"]?.jsonPrimitive?.content } catch (_: Exception) {
+                        try { userData["profilePic"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content } catch (_: Exception) { null }
+                    },
                 phone = userData["phone"]?.jsonPrimitive?.content
                     ?: userData["phoneNumber"]?.jsonPrimitive?.content,
                 superHost = superHost,
