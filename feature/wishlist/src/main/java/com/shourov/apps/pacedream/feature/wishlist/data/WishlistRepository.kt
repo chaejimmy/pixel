@@ -261,6 +261,7 @@ class WishlistRepository @Inject constructor(
                 val nested = wlObj["properties"]?.jsonArray
                     ?: wlObj["items"]?.jsonArray
                     ?: wlObj["listings"]?.jsonArray
+                    ?: wlObj["rooms"]?.jsonArray
                 if (nested != null) {
                     nested.forEach { itemEl ->
                         val itemObj = itemEl as? JsonObject ?: return@forEach
@@ -335,6 +336,9 @@ class WishlistRepository @Inject constructor(
         val imageUrl = itemObject["image"]?.jsonPrimitive?.content
             ?: itemObject["imageUrl"]?.jsonPrimitive?.content
             ?: itemObject["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            ?: itemObject["cover_image"]?.jsonPrimitive?.content
+            ?: itemObject["coverImage"]?.jsonPrimitive?.content
+            ?: itemObject["place_image"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
             ?: itemObject["thumbnail"]?.jsonPrimitive?.content
             ?: (itemObject["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
             ?: (itemObject["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
