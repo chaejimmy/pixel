@@ -96,35 +96,37 @@ class WishlistRepository @Inject constructor(
     
     /**
      * Add a property/listing to wishlist.
-     * Primary: POST /v1/wishlists/add { propertyId }
-     * Fallback: POST /v1/account/wishlist/toggle
+     * Primary: POST /v1/wishlists/toggle { propertyId }
+     * Fallback: POST /v1/wishlists/add { room_id, name }
      */
     suspend fun addToWishlist(propertyId: String): ApiResult<Unit> {
-        val primaryUrl = appConfig.buildApiUrl("wishlists", "add")
-        val body = buildJsonBody(mapOf("propertyId" to propertyId))
-        val primary = apiClient.post(primaryUrl, body, includeAuth = true)
-        if (primary is ApiResult.Success) {
-            if (isSuccessResponse(primary.data)) {
+        val toggleUrl = appConfig.buildApiUrl("wishlists", "toggle")
+        val toggleBody = buildJsonBody(mapOf("propertyId" to propertyId))
+        val toggleResult = apiClient.post(toggleUrl, toggleBody, includeAuth = true)
+        if (toggleResult is ApiResult.Success) {
+            if (isSuccessResponse(toggleResult.data)) {
                 notifyChanged()
                 return ApiResult.Success(Unit)
             }
         }
 
-        // Fallback: toggle
-        val fallback = toggleWishlistItem(itemId = propertyId, listingId = propertyId, type = null)
+        // Fallback: legacy add with room_id field name
+        val fallbackUrl = appConfig.buildApiUrl("wishlists", "add")
+        val fallbackBody = buildJsonBody(mapOf("room_id" to propertyId, "name" to "Favorites"))
+        val fallback = apiClient.post(fallbackUrl, fallbackBody, includeAuth = true)
         return when (fallback) {
             is ApiResult.Success -> {
                 notifyChanged()
                 ApiResult.Success(Unit)
             }
-            is ApiResult.Failure -> (primary as? ApiResult.Failure)?.let { it } ?: fallback
+            is ApiResult.Failure -> (toggleResult as? ApiResult.Failure) ?: fallback
         }
     }
 
     /**
      * Remove a property/listing from wishlist.
      * Primary: DELETE /v1/wishlists/{propertyId}
-     * Fallback: POST /v1/account/wishlist/toggle
+     * Fallback: POST /v1/wishlists/toggle { propertyId }
      */
     suspend fun removeFromWishlist(propertyId: String): ApiResult<Unit> {
         val primaryUrl = appConfig.buildApiUrl("wishlists", propertyId)
@@ -141,8 +143,10 @@ class WishlistRepository @Inject constructor(
             }
         }
 
-        // Fallback: toggle (expected liked=false for removal, but we treat any success as completion)
-        val fallback = toggleWishlistItem(itemId = propertyId, listingId = propertyId, type = null)
+        // Fallback: toggle endpoint to remove
+        val toggleUrl = appConfig.buildApiUrl("wishlists", "toggle")
+        val toggleBody = buildJsonBody(mapOf("propertyId" to propertyId))
+        val fallback = apiClient.post(toggleUrl, toggleBody, includeAuth = true)
         return when (fallback) {
             is ApiResult.Success -> {
                 notifyChanged()
@@ -161,10 +165,11 @@ class WishlistRepository @Inject constructor(
         listingId: String? = null,
         type: WishlistItemType? = null
     ): ApiResult<ToggleResult> {
-        val url = appConfig.buildApiUrl("account", "wishlist", "toggle")
+        val url = appConfig.buildApiUrl("wishlists", "toggle")
         
-        // Build request body - supports both itemId and listingId
+        // Build request body - send propertyId (server primary key) plus itemId/listingId
         val bodyMap = mutableMapOf<String, String>()
+        bodyMap["propertyId"] = itemId
         bodyMap["itemId"] = itemId
         listingId?.let { bodyMap["listingId"] = it }
         type?.let { bodyMap["type"] = it.apiValue }
