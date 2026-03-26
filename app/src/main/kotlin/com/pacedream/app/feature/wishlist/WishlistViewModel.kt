@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
@@ -151,8 +152,9 @@ class WishlistViewModel @Inject constructor(
     private fun filterItems(items: List<WishlistItem>, filter: WishlistFilter): List<WishlistItem> {
         return when (filter) {
             WishlistFilter.ALL -> items
-            WishlistFilter.SPACES -> items.filter { it.type == "time-based" || it.type == "room-stay" }
-            WishlistFilter.GEAR -> items.filter { it.type == "hourly-gear" || it.type == "gear" }
+            WishlistFilter.SPACES -> items.filter { it.type == "room-stay" || it.type == "room_stays" }
+            WishlistFilter.ITEMS -> items.filter { it.type == "time-based" || it.type == "hourly-gear" || it.type == "gear" }
+            WishlistFilter.SERVICES -> items.filter { it.type == "service" || it.type == "split-stay" }
         }
     }
     
@@ -198,11 +200,19 @@ class WishlistViewModel @Inject constructor(
             val obj = element.jsonObject
             
             // Find items array in common locations
-            val itemsArray = obj["data"]?.jsonArray
+            // Backend wraps via helper.sendSuccess: { data: { items: [...] } }
+            // Check data-as-object first to avoid jsonArray throwing on an object
+            val dataElement = obj["data"]
+            val itemsArray = when {
+                dataElement is JsonObject -> {
+                    dataElement["items"]?.jsonArray
+                        ?: dataElement["wishlist"]?.jsonArray
+                }
+                dataElement is kotlinx.serialization.json.JsonArray -> dataElement
+                else -> null
+            }
                 ?: obj["items"]?.jsonArray
                 ?: obj["wishlist"]?.jsonArray
-                ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
-                ?: (obj["data"] as? JsonObject)?.get("wishlist")?.jsonArray
                 ?: return emptyList()
             
             itemsArray.mapNotNull { item ->
@@ -227,7 +237,8 @@ class WishlistViewModel @Inject constructor(
                         title = listingData["name"]?.jsonPrimitive?.content
                             ?: listingData["title"]?.jsonPrimitive?.content
                             ?: "Item",
-                        imageUrl = listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                        imageUrl = listingData["coverUrl"]?.jsonPrimitive?.content
+                            ?: listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
                             ?: listingData["image"]?.jsonPrimitive?.content
                             ?: listingData["cover_image"]?.jsonPrimitive?.content
                             ?: listingData["coverImage"]?.jsonPrimitive?.content
@@ -235,9 +246,9 @@ class WishlistViewModel @Inject constructor(
                         location = listingData["location"]?.let { loc ->
                             when (loc) {
                                 is JsonObject -> loc["city"]?.jsonPrimitive?.content
-                                else -> loc.jsonPrimitive.content
+                                else -> try { loc.jsonPrimitive.content } catch (_: Exception) { null }
                             }
-                        },
+                        } ?: listingData["city"]?.jsonPrimitive?.content,
                         price = parsePrice(listingData),
                         rating = listingData["rating"]?.jsonPrimitive?.doubleOrNull,
                         type = type
@@ -371,7 +382,8 @@ data class WishlistItem(
 enum class WishlistFilter(val displayName: String) {
     ALL("All"),
     SPACES("Spaces"),
-    GEAR("Gear")
+    ITEMS("Items"),
+    SERVICES("Services")
 }
 
 /**
