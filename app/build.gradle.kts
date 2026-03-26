@@ -1,4 +1,5 @@
 import com.shourov.apps.pacedream.PaceDreamBuildType
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.pacedream.android.application)
@@ -22,6 +23,24 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Secrets (local-only): read from root `secrets.properties` with defaults from
+        // `secrets.defaults.properties`. Do not hardcode real values in source control.
+        val secrets = Properties()
+        val secretsDefaultsFile = rootProject.file("secrets.defaults.properties")
+        if (secretsDefaultsFile.exists()) {
+            secretsDefaultsFile.inputStream().use { secrets.load(it) }
+        }
+        val secretsFile = rootProject.file("secrets.properties")
+        if (secretsFile.exists()) {
+            secretsFile.inputStream().use { secrets.load(it) }
+        }
+
+        // Google Maps API key used by `@string/google_maps_key` in the manifest.
+        val googleMapsKey = secrets.getProperty("GOOGLE_MAPS_API_KEY")
+            ?: secrets.getProperty("google_maps_key")
+            ?: ""
+        resValue("string", "google_maps_key", googleMapsKey)
         
         // Auth0 manifest placeholders
         manifestPlaceholders["auth0Domain"] = "pacedream.us.auth0.com"

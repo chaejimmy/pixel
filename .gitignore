@@ -10,6 +10,9 @@ Thumbs.db
 # Local SDK config
 local.properties
 
+# Local secrets (never commit)
+secrets.properties
+
 # Gradle
 .gradle/
 **/.gradle/
