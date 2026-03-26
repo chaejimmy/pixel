@@ -184,6 +184,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to fetch bookings: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Host bookings fetch failed")
             Result.failure(e)
         }
     }
@@ -203,6 +204,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to update booking status: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Failed to update booking status for id=$id to status=$status")
             Result.failure(e)
         }
     }
@@ -231,6 +233,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to fetch listings: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Host listings fetch failed")
             Result.failure(e)
         }
     }
@@ -286,6 +289,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to update listing: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Failed to update listing id=$id")
             Result.failure(e)
         }
     }
@@ -299,6 +303,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to delete listing: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Failed to delete listing id=$id")
             Result.failure(e)
         }
     }
@@ -335,6 +340,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to fetch payout status: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Payout status fetch failed")
             Result.failure(e)
         }
     }
@@ -370,6 +376,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to create onboarding link: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Failed to create onboarding link")
             Result.failure(e)
         }
     }
@@ -385,6 +392,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to create login link: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Failed to create login link")
             Result.failure(e)
         }
     }
@@ -406,6 +414,7 @@ class HostRepository @Inject constructor(
                 Result.success(emptyList())
             }
         } catch (e: Exception) {
+            Timber.w(e, "Payout methods fetch failed, returning empty list")
             Result.success(emptyList())
         }
     }
@@ -489,6 +498,7 @@ class HostRepository @Inject constructor(
                 Result.failure(Exception("Failed to fetch revenue: ${response.code()}"))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Revenue fetch failed for period=$period")
             Result.failure(e)
         }
     }

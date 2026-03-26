@@ -67,6 +67,7 @@ class AppConfig @Inject constructor() {
             val value = field.get(null) as? String
             if (!value.isNullOrBlank()) value else default
         } catch (e: Exception) {
+            timber.log.Timber.d(e, "Auth0 config field '$fieldName' not found, using default")
             default
         }
     }
@@ -80,6 +81,7 @@ class AppConfig @Inject constructor() {
             val url = BuildConfig.SERVICE_URL
             if (url.isNotBlank()) url else getDefaultBackendUrl()
         } catch (e: Exception) {
+            timber.log.Timber.d(e, "SERVICE_URL not available in BuildConfig, using default backend URL")
             getDefaultBackendUrl()
         }
     }
@@ -103,6 +105,7 @@ class AppConfig @Inject constructor() {
             val url = field?.get(null) as? String
             if (!url.isNullOrBlank()) url else DEFAULT_FRONTEND_URL
         } catch (e: Exception) {
+            timber.log.Timber.d(e, "Frontend URL not available in BuildConfig, using default")
             DEFAULT_FRONTEND_URL
         }
     }

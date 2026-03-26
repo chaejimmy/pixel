@@ -115,6 +115,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(Exception("Failed to send message: ${response.message()}"))
             }
         } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to send message in chat $chatId")
             Result.Error(e)
         }
     }
@@ -181,6 +182,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(Exception(errorMsg))
             }
         } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to upload chat media to thread $threadId")
             Result.Error(e)
         }
     }
@@ -196,7 +198,8 @@ class MessageRepository @Inject constructor(
             } else {
                 Result.Success(false)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            timber.log.Timber.w(e, "Attachment status check failed for thread $threadId")
             Result.Success(false)
         }
     }
@@ -212,6 +215,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(Exception("Failed to create chat: ${response.message()}"))
             }
         } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to create chat")
             Result.Error(e)
         }
     }
@@ -221,6 +225,7 @@ class MessageRepository @Inject constructor(
             messageDao.markMessagesAsRead(userName)
             Result.Success(Unit)
         } catch (e: Exception) {
+            timber.log.Timber.w(e, "Failed to mark messages as read for user $userName")
             Result.Error(e)
         }
     }
@@ -234,6 +239,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(Exception("Failed to refresh messages: ${response.message()}"))
             }
         } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to refresh chat messages")
             Result.Error(e)
         }
     }
@@ -247,6 +253,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(Exception("Failed to refresh chats: ${response.message()}"))
             }
         } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to refresh user chats")
             Result.Error(e)
         }
     }

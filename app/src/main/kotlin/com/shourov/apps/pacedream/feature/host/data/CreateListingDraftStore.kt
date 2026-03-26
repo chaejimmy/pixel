@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import timber.log.Timber
 
 /**
  * iOS parity: CreateListingDraftStore.
@@ -35,8 +36,8 @@ class CreateListingDraftStore(
         try {
             val encoded = json.encodeToString(draft)
             prefs.edit().putString(key, encoded).apply()
-        } catch (_: Exception) {
-            // Silently fail — draft persistence is best-effort
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to save listing draft (best-effort)")
         }
     }
 
@@ -44,7 +45,8 @@ class CreateListingDraftStore(
         return try {
             val raw = prefs.getString(key, null) ?: return null
             json.decodeFromString<ListingDraftData>(raw)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to load listing draft, returning null")
             null
         }
     }
