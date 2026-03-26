@@ -541,6 +541,9 @@ fun MainNavHost(
                                 restoreState = true
                             }
                         },
+                        onNavigateToThread = { threadId ->
+                            navController.navigate(NavRoutes.threadDetail(threadId))
+                        },
                         onNavigateToCheckout = { draft ->
                             navController.currentBackStackEntry?.savedStateHandle?.set(
                                 "booking_draft_json_${draft.listingId}",

@@ -20,6 +20,7 @@ fun ListingDetailRoute(
     onBackClick: () -> Unit,
     onLoginRequired: () -> Unit,
     onNavigateToInbox: () -> Unit,
+    onNavigateToThread: (String) -> Unit,
     onNavigateToCheckout: (com.pacedream.app.feature.checkout.BookingDraft) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -48,6 +49,9 @@ fun ListingDetailRoute(
                     }
                     context.startActivity(Intent.createChooser(shareIntent, "Share"))
                 }
+                is ListingDetailViewModel.Effect.NavigateToThread -> {
+                    onNavigateToThread(effect.threadId)
+                }
             }
         }
     }
@@ -63,7 +67,7 @@ fun ListingDetailRoute(
             if (!viewModel.isAuthenticated()) {
                 onLoginRequired()
             } else {
-                onNavigateToInbox()
+                viewModel.contactHost()
             }
         },
         onOpenInMaps = { viewModel.openInMaps() },
