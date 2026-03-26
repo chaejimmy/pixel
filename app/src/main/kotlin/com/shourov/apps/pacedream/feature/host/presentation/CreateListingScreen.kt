@@ -972,7 +972,9 @@ private fun CreateListingWizardScreen(
                                                     val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                                                     imageUrls.add("data:image/jpeg;base64,$b64")
                                                 }
-                                            } catch (_: Exception) { }
+                                            } catch (e: Exception) {
+                                                timber.log.Timber.w(e, "Base64 fallback failed for image upload")
+                                            }
                                         }
                                     }
                                     uploadedCount++

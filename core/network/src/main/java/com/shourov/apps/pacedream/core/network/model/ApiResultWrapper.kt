@@ -16,7 +16,7 @@ suspend fun <T> wrapIntoApiResult(
         try {
             ApiResult.Success(apiCall.invoke())
         } catch (throwable: Throwable) {
-            throwable.printStackTrace()
+            timber.log.Timber.e(throwable, "API call failed")
             when (throwable) {
                 is IOException -> ApiResult.NetworkError
                 else -> {

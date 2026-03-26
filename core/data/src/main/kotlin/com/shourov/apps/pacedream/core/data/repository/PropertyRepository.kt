@@ -24,6 +24,7 @@ import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.response.home.rooms.Result as PropertyModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,6 +83,7 @@ class PropertyRepository @Inject constructor(
             // This would need to be implemented based on your API response structure
             Result.Success(Unit)
         } catch (e: Exception) {
+            Timber.e(e, "Failed to refresh properties")
             Result.Error(e)
         }
     }
@@ -109,6 +111,7 @@ class PropertyRepository @Inject constructor(
             // This would need to be implemented based on your API response structure
             Result.Success(emptyList())
         } catch (e: Exception) {
+            Timber.e(e, "Remote property search failed for query: $query")
             Result.Error(e)
         }
     }
@@ -120,6 +123,7 @@ class PropertyRepository @Inject constructor(
             // This would need to be implemented based on your API response structure
             Result.Success(null)
         } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch property by ID: $propertyId")
             Result.Error(e)
         }
     }

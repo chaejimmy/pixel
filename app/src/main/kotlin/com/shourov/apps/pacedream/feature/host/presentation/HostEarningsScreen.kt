@@ -1011,7 +1011,9 @@ private fun PayoutRequestBottomSheet(
 
 private fun formatDollarAmount(amount: Double, currency: String = "usd"): String {
     val formatter = NumberFormat.getCurrencyInstance(Locale.US)
-    try { formatter.currency = Currency.getInstance(currency.uppercase()) } catch (_: Exception) { }
+    try { formatter.currency = Currency.getInstance(currency.uppercase()) } catch (e: Exception) {
+        timber.log.Timber.w(e, "Unknown currency code: $currency, using USD")
+    }
     return formatter.format(amount)
 }
 

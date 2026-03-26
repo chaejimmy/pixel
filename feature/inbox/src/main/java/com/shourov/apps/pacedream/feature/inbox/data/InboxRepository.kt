@@ -326,6 +326,7 @@ class InboxRepository @Inject constructor(
             try {
                 parseTolerantThread(element.jsonObject)
             } catch (e: Exception) {
+                timber.log.Timber.w(e, "Failed to parse tolerant thread element")
                 null
             }
         } ?: emptyList()

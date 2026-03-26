@@ -437,7 +437,10 @@ class BookingRepository @Inject constructor(
                 ?: obj["guests"]?.jsonPrimitive?.int
                 ?: obj["numberOfGuests"]?.jsonPrimitive?.int
                 ?: 1
-        } catch (e: Exception) { 1 }
+        } catch (e: Exception) {
+            timber.log.Timber.w(e, "Failed to parse guest count, defaulting to 1")
+            1
+        }
 
         val createdAt = obj["createdAt"]?.jsonPrimitive?.content
             ?: obj["created_at"]?.jsonPrimitive?.content

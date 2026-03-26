@@ -145,7 +145,10 @@ fun NavGraphBuilder.HostNavigationGraph(
                 context.applicationContext,
                 ImageUploadEntryPoint::class.java
             ).imageUploadService()
-        } catch (_: Exception) { null }
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to resolve ImageUploadService from Hilt entry point")
+            null
+        }
 
         CreateListingScreen(
             listingMode = listingMode,
@@ -165,7 +168,10 @@ fun NavGraphBuilder.HostNavigationGraph(
                 context.applicationContext,
                 ImageUploadEntryPoint::class.java
             ).imageUploadService()
-        } catch (_: Exception) { null }
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to resolve ImageUploadService from Hilt entry point")
+            null
+        }
 
         CreateListingScreen(
             listingMode = ListingMode.SHARE,

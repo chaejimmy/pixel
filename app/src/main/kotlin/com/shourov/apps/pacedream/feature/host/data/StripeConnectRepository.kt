@@ -102,6 +102,7 @@ class StripeConnectRepository @Inject constructor(
                 Result.failure(Exception(extractErrorMessage(response, "Failed to create connect account")))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Create connect account failed")
             Result.failure(e)
         }
     }
@@ -116,6 +117,7 @@ class StripeConnectRepository @Inject constructor(
                 Result.failure(Exception(extractErrorMessage(response, "Couldn't start Stripe setup")))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Create onboarding link failed")
             Result.failure(e)
         }
     }
@@ -129,6 +131,7 @@ class StripeConnectRepository @Inject constructor(
                 Result.failure(Exception(extractErrorMessage(response, "Couldn't open Stripe dashboard")))
             }
         } catch (e: Exception) {
+            Timber.e(e, "Create login link failed")
             Result.failure(e)
         }
     }

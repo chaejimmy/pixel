@@ -226,7 +226,7 @@ fun parseDate(dateString: String?): Long? {
             val sdf = java.text.SimpleDateFormat(fmt, java.util.Locale.US)
             sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
             return sdf.parse(dateString)?.time
-        } catch (_: Exception) { }
+        } catch (_: Exception) { /* try next format */ }
     }
     return null
 }
