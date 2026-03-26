@@ -98,7 +98,7 @@ fun BookingDetailScreen(
                 )
             }
             uiState.booking != null -> {
-                val booking = uiState.booking!!
+                val booking = uiState.booking ?: return@Scaffold
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

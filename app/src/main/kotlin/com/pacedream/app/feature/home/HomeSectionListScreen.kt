@@ -123,7 +123,7 @@ fun HomeSectionListScreen(
                 uiState.error != null && uiState.items.isEmpty() -> {
                     ErrorState(
                         sectionTitle = title,
-                        message = uiState.error!!,
+                        message = uiState.error ?: "An unexpected error occurred",
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )

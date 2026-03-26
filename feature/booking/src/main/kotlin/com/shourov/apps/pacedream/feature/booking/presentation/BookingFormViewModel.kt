@@ -120,7 +120,7 @@ class BookingFormViewModel @Inject constructor(
             try {
                 val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
                 val startCal = Calendar.getInstance()
-                startCal.time = fmt.parse(currentState.startTime)!!
+                startCal.time = fmt.parse(currentState.startTime) ?: return
                 startCal.add(Calendar.MINUTE, currentState.selectedDuration)
                 val endTime = fmt.format(startCal.time)
                 _uiState.value = currentState.copy(endTime = endTime)

@@ -92,7 +92,7 @@ fun BookingsScreen(
                 // Error with no data
                 uiState.error != null && uiState.allBookings.isEmpty() -> {
                     BookingsErrorState(
-                        message = uiState.error!!,
+                        message = uiState.error ?: "An unexpected error occurred",
                         onRetry = { viewModel.refresh() }
                     )
                 }
@@ -132,7 +132,7 @@ fun BookingsScreen(
                         if (uiState.error != null) {
                             item {
                                 InlineErrorBanner(
-                                    text = uiState.error!!,
+                                    text = uiState.error ?: "An unexpected error occurred",
                                     onRetry = { viewModel.refresh() }
                                 )
                             }

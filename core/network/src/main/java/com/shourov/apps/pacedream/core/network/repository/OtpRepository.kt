@@ -31,9 +31,12 @@ class OtpRepository @Inject constructor(
         try {
             val response = otpService.sendOTP(OtpSendRequest(phone))
             
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
-                if (body.ok) {
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body == null) {
+                    Timber.w("sendOTP: response body was null despite successful status")
+                    Result.failure(OtpError.NetworkError("Empty response from server"))
+                } else if (body.ok) {
                     Result.success(body)
                 } else {
                     Result.failure(parseError(body.error))
@@ -50,17 +53,20 @@ class OtpRepository @Inject constructor(
             Result.failure(OtpError.NetworkError(e.message ?: "Network error"))
         }
     }
-    
+
     /**
      * Verify OTP code
      */
     suspend fun verifyOTP(phone: String, code: String): Result<OtpCheckResponse> = withContext(Dispatchers.IO) {
         try {
             val response = otpService.verifyOTP(OtpCheckRequest(phone, code))
-            
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
-                if (body.ok) {
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body == null) {
+                    Timber.w("verifyOTP: response body was null despite successful status")
+                    Result.failure(OtpError.NetworkError("Empty response from server"))
+                } else if (body.ok) {
                     Result.success(body)
                 } else {
                     Result.failure(parseError(body.error))
@@ -76,16 +82,20 @@ class OtpRepository @Inject constructor(
             Result.failure(OtpError.NetworkError(e.message ?: "Network error"))
         }
     }
-    
+
     /**
      * Login with verified phone number
      */
     suspend fun login(phone: String): Result<OtpLoginResponse> = withContext(Dispatchers.IO) {
         try {
             val response = otpService.login(OtpLoginRequest(phone))
-            
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body == null) {
+                    Timber.w("login: response body was null despite successful status")
+                    Result.failure(OtpError.NetworkError("Empty response from server"))
+                } else if (body.ok && body.success == true) {
                 if (body.ok && body.success == true) {
                     Result.success(body)
                 } else {
