@@ -93,7 +93,7 @@ interface HostApiService {
     // ── Earnings Dashboard (iOS parity: single all-in-one endpoint) ──
 
     @GET(ApiEndPoints.HOST_EARNINGS_DASHBOARD)
-    suspend fun getEarningsDashboard(): Response<EarningsDashboardResponse>
+    suspend fun getEarningsDashboard(): Response<JsonElement>
 
     // ── Legacy Stripe Connect endpoints (kept for createPayout/createConnectAccount) ──
 

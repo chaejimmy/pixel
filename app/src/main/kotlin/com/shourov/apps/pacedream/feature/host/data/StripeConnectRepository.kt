@@ -1,5 +1,7 @@
 package com.shourov.apps.pacedream.feature.host.data
 
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +39,11 @@ class StripeConnectRepository @Inject constructor(
     /**
      * Fetch the all-in-one earnings dashboard from /host/earnings/dashboard.
      * This is the same endpoint iOS uses (PayoutsService.fetchDashboard).
-     * Returns stripe status, balances, payouts, transactions, and stats.
+     *
+     * Parses the raw JSON manually (like iOS) to handle:
+     * - Backend responses that may or may not have a `data` envelope
+     * - snake_case vs camelCase field names
+     * - Null/missing arrays (Gson bypasses Kotlin defaults via Unsafe)
      */
     suspend fun getEarningsDashboard(): Result<EarningsDashboardResponse> {
         Timber.d("[Earnings] Fetching dashboard from /host/earnings/dashboard")
@@ -45,23 +51,35 @@ class StripeConnectRepository @Inject constructor(
             val response = hostApiService.getEarningsDashboard()
             Timber.d("[Earnings] Dashboard response: status=${response.code()}")
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    Timber.d(
-                        "[Earnings] Dashboard loaded: connected=${body.stripe?.connected}, " +
-                            "payoutsEnabled=${body.stripe?.payoutsEnabled}, " +
-                            "available=${body.balances?.available}, " +
-                            "pending=${body.balances?.pending}, " +
-                            "settling=${body.balances?.settling}, " +
-                            "lifetime=${body.balances?.lifetime}, " +
-                            "payouts=${body.payouts.size}, " +
-                            "transactions=${body.transactions.size}"
-                    )
-                    Result.success(body)
-                } else {
-                    Timber.w("[Earnings] Dashboard response body is null")
-                    Result.success(EarningsDashboardResponse())
+                val rawJson = response.body()
+                if (rawJson == null || !rawJson.isJsonObject) {
+                    Timber.w("[Earnings] Dashboard response body is null or not an object")
+                    return Result.success(EarningsDashboardResponse())
                 }
+
+                val root = rawJson.asJsonObject
+
+                // Unwrap data envelope if present (some backends wrap like { data: { ... } })
+                val json: JsonObject = if (root.has("stripe") || root.has("balances")) {
+                    root
+                } else if (root.has("data") && root.get("data").isJsonObject) {
+                    root.getAsJsonObject("data")
+                } else {
+                    root
+                }
+
+                val dashboard = parseDashboard(json)
+                Timber.d(
+                    "[Earnings] Dashboard loaded: connected=${dashboard.stripe?.connected}, " +
+                        "payoutsEnabled=${dashboard.stripe?.payoutsEnabled}, " +
+                        "available=${dashboard.balances?.available}, " +
+                        "pending=${dashboard.balances?.pending}, " +
+                        "settling=${dashboard.balances?.settling}, " +
+                        "lifetime=${dashboard.balances?.lifetime}, " +
+                        "payouts=${dashboard.payouts.size}, " +
+                        "transactions=${dashboard.transactions.size}"
+                )
+                Result.success(dashboard)
             } else {
                 val code = response.code()
                 val errorMsg = if (code == 401) {
@@ -77,6 +95,133 @@ class StripeConnectRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    // ── Manual JSON parsing (iOS PayoutsService.fetchDashboard parity) ──
+
+    private fun parseDashboard(json: JsonObject): EarningsDashboardResponse {
+        val stripeObj = json.obj("stripe")
+        val balObj = json.obj("balances")
+        val payoutsArr = json.arr("payouts")
+        val txArr = json.arr("transactions")
+        val statsObj = json.obj("stats")
+        val rulesObj = json.obj("payoutRules") ?: json.obj("payout_rules")
+
+        return EarningsDashboardResponse(
+            success = json.bool("success"),
+            stripe = stripeObj?.let { parseStripeStatus(it) },
+            balances = balObj?.let { parseBalances(it) },
+            payouts = payoutsArr?.map { parsePayout(it.asJsonObject) } ?: emptyList(),
+            transactions = txArr?.map { parseTransaction(it.asJsonObject) } ?: emptyList(),
+            stats = statsObj?.let { parseStats(it) },
+            payoutRules = rulesObj?.let { parsePayoutRules(it) }
+        )
+    }
+
+    private fun parseStripeStatus(j: JsonObject) = DashboardStripeStatus(
+        connected = j.bool("connected"),
+        accountId = j.str("accountId") ?: j.str("account_id"),
+        chargesEnabled = j.bool("chargesEnabled") || j.bool("charges_enabled"),
+        payoutsEnabled = j.bool("payoutsEnabled") || j.bool("payouts_enabled"),
+        detailsSubmitted = j.bool("detailsSubmitted") || j.bool("details_submitted"),
+        onboardingComplete = j.bool("onboardingComplete") || j.bool("onboarding_complete"),
+        disabledReason = j.str("disabledReason") ?: j.str("disabled_reason"),
+        requirements = j.strList("requirements")
+    )
+
+    private fun parseBalances(j: JsonObject) = DashboardBalances(
+        available = j.dbl("available"),
+        pending = j.dbl("pending"),
+        settling = j.dbl("settling"),
+        readyForTransfer = j.dbl("readyForTransfer").let { if (it > 0) it else j.dbl("ready_for_transfer") },
+        lifetime = j.dbl("lifetime"),
+        currency = j.str("currency") ?: "usd",
+        fundsSettling = j.bool("fundsSettling") || j.bool("funds_settling"),
+        settlingNote = j.str("settlingNote") ?: j.str("settling_note")
+    )
+
+    private fun parsePayout(j: JsonObject) = DashboardPayout(
+        id = j.str("id") ?: "",
+        amount = j.dbl("amount"),
+        currency = j.str("currency") ?: "usd",
+        status = j.str("status") ?: "unknown",
+        method = j.str("method"),
+        arrivalDate = j.str("arrivalDate") ?: j.str("arrival_date"),
+        createdAt = j.str("createdAt") ?: j.str("created_at"),
+        description = j.str("description"),
+        destination = j.obj("destination")?.let { d ->
+            DashboardPayoutDestination(
+                last4 = d.str("last4") ?: d.str("last_4"),
+                bankName = d.str("bankName") ?: d.str("bank_name")
+            )
+        }
+    )
+
+    private fun parseTransaction(j: JsonObject) = DashboardTransaction(
+        id = j.str("id") ?: "",
+        bookingId = j.str("bookingId") ?: j.str("booking_id"),
+        bookingType = j.str("bookingType") ?: j.str("booking_type"),
+        amount = j.dbl("amount"),
+        grossAmount = j.dbl("grossAmount").let { if (it > 0) it else j.dbl("gross_amount") },
+        stripeProcessingFee = j.dbl("stripeProcessingFee").let { if (it > 0) it else j.dbl("stripe_processing_fee") },
+        netAmount = j.dbl("netAmount").let { if (it > 0) it else j.dbl("net_amount") },
+        currency = j.str("currency") ?: "usd",
+        status = j.str("status"),
+        payoutStatus = j.str("payoutStatus") ?: j.str("payout_status"),
+        platformFee = j.dbl("platformFee").let { if (it > 0) it else j.dbl("platform_fee") },
+        releaseRule = j.str("releaseRule") ?: j.str("release_rule"),
+        payoutReleaseAt = j.str("payoutReleaseAt") ?: j.str("payout_release_at"),
+        stripeTransferId = j.str("stripeTransferId") ?: j.str("stripe_transfer_id"),
+        blockedReason = j.str("blockedReason") ?: j.str("blocked_reason"),
+        createdAt = j.str("createdAt") ?: j.str("created_at"),
+        description = j.str("description")
+    )
+
+    private fun parseStats(j: JsonObject) = DashboardStats(
+        totalTransactions = j.int("totalTransactions").let { if (it > 0) it else j.int("total_transactions") },
+        completedPayouts = j.int("completedPayouts").let { if (it > 0) it else j.int("completed_payouts") },
+        completedAmount = j.dbl("completedAmount").let { if (it > 0) it else j.dbl("completed_amount") },
+        heldPayouts = j.int("heldPayouts").let { if (it > 0) it else j.int("held_payouts") },
+        heldAmount = j.dbl("heldAmount").let { if (it > 0) it else j.dbl("held_amount") },
+        settlingPayouts = j.int("settlingPayouts").let { if (it > 0) it else j.int("settling_payouts") },
+        settlingAmount = j.dbl("settlingAmount").let { if (it > 0) it else j.dbl("settling_amount") },
+        readyPayouts = j.int("readyPayouts").let { if (it > 0) it else j.int("ready_payouts") },
+        readyAmount = j.dbl("readyAmount").let { if (it > 0) it else j.dbl("ready_amount") },
+        blockedPayouts = j.int("blockedPayouts").let { if (it > 0) it else j.int("blocked_payouts") },
+        blockedAmount = j.dbl("blockedAmount").let { if (it > 0) it else j.dbl("blocked_amount") }
+    )
+
+    private fun parsePayoutRules(j: JsonObject) = DashboardPayoutRules(
+        shortBookingThresholdHours = j.int("shortBookingThresholdHours").let {
+            if (it > 0) it else j.int("short_booking_threshold_hours").let { v -> if (v > 0) v else 24 }
+        },
+        shortBookingRule = j.str("shortBookingRule") ?: j.str("short_booking_rule") ?: "",
+        longBookingRule = j.str("longBookingRule") ?: j.str("long_booking_rule") ?: ""
+    )
+
+    // ── JsonObject extension helpers for safe field access ──
+
+    private fun JsonObject.str(key: String): String? =
+        if (has(key) && get(key).isJsonPrimitive) get(key).asJsonPrimitive.let {
+            if (it.isString) it.asString else it.asString
+        } else null
+
+    private fun JsonObject.bool(key: String): Boolean =
+        try { if (has(key)) get(key).asBoolean else false } catch (_: Exception) { false }
+
+    private fun JsonObject.dbl(key: String): Double =
+        try { if (has(key)) get(key).asDouble else 0.0 } catch (_: Exception) { 0.0 }
+
+    private fun JsonObject.int(key: String): Int =
+        try { if (has(key)) get(key).asInt else 0 } catch (_: Exception) { 0 }
+
+    private fun JsonObject.obj(key: String): JsonObject? =
+        if (has(key) && get(key).isJsonObject) getAsJsonObject(key) else null
+
+    private fun JsonObject.arr(key: String): List<JsonElement>? =
+        if (has(key) && get(key).isJsonArray) getAsJsonArray(key).toList() else null
+
+    private fun JsonObject.strList(key: String): List<String> =
+        arr(key)?.mapNotNull { try { it.asString } catch (_: Exception) { null } } ?: emptyList()
 
     // Connect Account
     suspend fun getConnectAccountStatus(): Result<ConnectAccount> {
