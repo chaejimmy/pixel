@@ -476,6 +476,41 @@ class SessionManager @Inject constructor(
     }
 
     /**
+     * Update the current user's profile image URL after a successful upload.
+     * This updates both the in-memory user and the cached summary.
+     */
+    fun updateUserProfileImage(imageUrl: String) {
+        val current = _currentUser.value ?: return
+        _currentUser.value = current.copy(profileImage = imageUrl)
+        // Update cached summary so the new avatar persists across app restarts
+        tokenStorage.cachedUserSummary?.let { cached ->
+            try {
+                val element = json.parseToJsonElement(cached)
+                val mutableMap = element.jsonObject.toMutableMap()
+                val dataObj = mutableMap["data"]?.jsonObject?.toMutableMap()
+                if (dataObj != null) {
+                    val profileObj = dataObj["profile"]?.jsonObject?.toMutableMap()
+                    if (profileObj != null) {
+                        profileObj["profileImage"] = JsonPrimitive(imageUrl)
+                        profileObj["avatarUrl"] = JsonPrimitive(imageUrl)
+                        dataObj["profile"] = JsonObject(profileObj)
+                    } else {
+                        dataObj["profileImage"] = JsonPrimitive(imageUrl)
+                        dataObj["avatarUrl"] = JsonPrimitive(imageUrl)
+                    }
+                    mutableMap["data"] = JsonObject(dataObj)
+                } else {
+                    mutableMap["profileImage"] = JsonPrimitive(imageUrl)
+                    mutableMap["avatarUrl"] = JsonPrimitive(imageUrl)
+                }
+                tokenStorage.cachedUserSummary = JsonObject(mutableMap).toString()
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to update cached user summary with new avatar")
+            }
+        }
+    }
+
+    /**
      * Load cached user from storage
      */
     private fun loadCachedUser() {

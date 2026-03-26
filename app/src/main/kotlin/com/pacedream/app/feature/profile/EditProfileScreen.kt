@@ -1,5 +1,8 @@
 package com.pacedream.app.feature.profile
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -42,6 +45,8 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -50,6 +55,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -57,7 +63,11 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +77,7 @@ import javax.inject.Inject
 data class EditProfileUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
+    val isUploadingPhoto: Boolean = false,
     val firstName: String = "",
     val lastName: String = "",
     val email: String = "",
@@ -88,6 +99,7 @@ sealed class EditProfileEvent {
 
 @HiltViewModel
 class EditProfileViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
@@ -206,17 +218,48 @@ class EditProfileViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true) }
 
             try {
+                // Step 1: Upload profile photo if a new one was selected
+                var avatarUrl: String? = null
+                if (state.selectedImageUri != null) {
+                    _uiState.update { it.copy(isUploadingPhoto = true) }
+                    when (val uploadResult = uploadProfileImage(state.selectedImageUri)) {
+                        is ApiResult.Success -> {
+                            avatarUrl = uploadResult.data
+                            Timber.d("Profile photo uploaded: $avatarUrl")
+                        }
+                        is ApiResult.Failure -> {
+                            _uiState.update { it.copy(isSaving = false, isUploadingPhoto = false) }
+                            _events.emit(
+                                EditProfileEvent.ShowError(
+                                    uploadResult.error.message ?: "Failed to upload photo."
+                                )
+                            )
+                            return@launch
+                        }
+                    }
+                    _uiState.update { it.copy(isUploadingPhoto = false) }
+                }
+
+                // Step 2: Save profile fields (and avatarUrl if photo was uploaded)
                 val body = buildJsonObject {
                     put("firstName", state.firstName.trim())
                     put("lastName", state.lastName.trim())
                     put("phone", state.phone.trim())
                     put("bio", state.bio.trim())
                     put("location", state.location.trim())
+                    if (avatarUrl != null) {
+                        put("avatarUrl", avatarUrl)
+                    }
                 }.toString()
 
-                val url = appConfig.buildApiUrl("account", "me")
+                val url = appConfig.buildFrontendUrl("api", "proxy", "account", "profile")
                 when (val result = apiClient.put(url, body, includeAuth = true)) {
                     is ApiResult.Success -> {
+                        // Update SessionManager with new avatar if uploaded
+                        if (avatarUrl != null) {
+                            sessionManager.updateUserProfileImage(avatarUrl)
+                            _uiState.update { it.copy(avatarUrl = avatarUrl, selectedImageUri = null) }
+                        }
                         _uiState.update { it.copy(isSaving = false) }
                         _events.emit(EditProfileEvent.ShowSuccess("Profile updated successfully."))
                     }
@@ -231,10 +274,118 @@ class EditProfileViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to save profile")
-                _uiState.update { it.copy(isSaving = false) }
+                _uiState.update { it.copy(isSaving = false, isUploadingPhoto = false) }
                 _events.emit(EditProfileEvent.ShowError("An unexpected error occurred."))
             }
         }
+    }
+
+    /**
+     * Upload a profile image to Cloudinary via the backend upload endpoint.
+     * Matches the website flow: compress image, upload to /api/upload, get secure_url.
+     */
+    private suspend fun uploadProfileImage(imageUri: Uri): ApiResult<String> =
+        withContext(Dispatchers.IO) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                    ?: return@withContext ApiResult.Failure(
+                        com.pacedream.app.core.network.ApiError.Unknown("Cannot read image")
+                    )
+
+                val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+
+                if (originalBitmap == null) {
+                    return@withContext ApiResult.Failure(
+                        com.pacedream.app.core.network.ApiError.Unknown("Cannot decode image")
+                    )
+                }
+
+                // Compress to match website: max 800x800, JPEG quality 85
+                val scaledBitmap = downscaleBitmap(originalBitmap, MAX_PHOTO_DIMENSION)
+                val outputStream = ByteArrayOutputStream()
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
+                val jpegBytes = outputStream.toByteArray()
+
+                if (scaledBitmap != originalBitmap) scaledBitmap.recycle()
+                originalBitmap.recycle()
+
+                Timber.d("Profile photo compressed: ${jpegBytes.size} bytes")
+
+                // Upload as multipart form data with folder field
+                val uploadUrl = appConfig.buildFrontendUrl("api", "upload")
+                val filePart = MultipartBody.Part.createFormData(
+                    "file",
+                    "profile.jpg",
+                    jpegBytes.toRequestBody("image/jpeg".toMediaType())
+                )
+                val folderPart = MultipartBody.Part.createFormData(
+                    "folder",
+                    "pacedream/ProfilePics"
+                )
+
+                when (val result = apiClient.postMultipart(
+                    url = uploadUrl,
+                    parts = listOf(filePart, folderPart),
+                    includeAuth = true
+                )) {
+                    is ApiResult.Success -> {
+                        val secureUrl = parseSecureUrl(result.data)
+                        if (secureUrl != null) {
+                            ApiResult.Success(secureUrl)
+                        } else {
+                            ApiResult.Failure(
+                                com.pacedream.app.core.network.ApiError.DecodingError(
+                                    "Missing secure_url in upload response"
+                                )
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> result
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Profile photo upload failed")
+                ApiResult.Failure(
+                    com.pacedream.app.core.network.ApiError.Unknown(
+                        e.message ?: "Photo upload failed"
+                    )
+                )
+            }
+        }
+
+    private fun parseSecureUrl(responseBody: String): String? {
+        return try {
+            val root = json.parseToJsonElement(responseBody)
+            val obj = root.jsonObject
+            obj["secure_url"]?.jsonPrimitive?.content
+                ?: obj["url"]?.jsonPrimitive?.content
+                ?: obj["data"]?.jsonObject?.get("secure_url")?.jsonPrimitive?.content
+                ?: obj["data"]?.jsonObject?.get("url")?.jsonPrimitive?.content
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse upload response")
+            null
+        }
+    }
+
+    private fun downscaleBitmap(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= maxDimension && height <= maxDimension) return bitmap
+        val ratio = minOf(
+            maxDimension.toFloat() / width,
+            maxDimension.toFloat() / height
+        )
+        return Bitmap.createScaledBitmap(
+            bitmap,
+            (width * ratio).toInt(),
+            (height * ratio).toInt(),
+            true
+        )
+    }
+
+    companion object {
+        private const val MAX_PHOTO_DIMENSION = 800  // Match website compression
+        private const val JPEG_QUALITY = 85          // Match website quality
     }
 }
 
@@ -468,7 +619,7 @@ fun EditProfileScreen(
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
-                                "Saving...",
+                                if (uiState.isUploadingPhoto) "Uploading photo..." else "Saving...",
                                 style = PaceDreamTypography.Button.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White
                             )
