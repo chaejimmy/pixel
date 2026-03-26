@@ -378,18 +378,22 @@ class ThreadViewModel @Inject constructor(
             
             val data = obj["data"]?.jsonObject ?: obj
             
-            val participant = data["participant"]?.jsonObject
+            val participant = data["opponent"]?.jsonObject
+                ?: data["participant"]?.jsonObject
                 ?: data["otherUser"]?.jsonObject
-            
+
             val participantName = participant?.get("name")?.jsonPrimitive?.content
                 ?: participant?.let {
-                    val firstName = it["firstName"]?.jsonPrimitive?.content ?: ""
-                    val lastName = it["lastName"]?.jsonPrimitive?.content ?: ""
+                    val firstName = it["first_name"]?.jsonPrimitive?.content
+                        ?: it["firstName"]?.jsonPrimitive?.content ?: ""
+                    val lastName = it["last_name"]?.jsonPrimitive?.content
+                        ?: it["lastName"]?.jsonPrimitive?.content ?: ""
                     "$firstName $lastName".trim().ifEmpty { "User" }
                 }
                 ?: "User"
-            
-            val participantAvatar = participant?.get("avatar")?.jsonPrimitive?.content
+
+            val participantAvatar = participant?.get("profilePic")?.jsonPrimitive?.content
+                ?: participant?.get("avatar")?.jsonPrimitive?.content
                 ?: participant?.get("profileImage")?.jsonPrimitive?.content
 
             val participantId = participant?.get("_id")?.jsonPrimitive?.content
