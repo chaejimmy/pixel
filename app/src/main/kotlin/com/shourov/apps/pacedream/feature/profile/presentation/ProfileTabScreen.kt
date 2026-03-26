@@ -3,6 +3,8 @@ package com.shourov.apps.pacedream.feature.profile.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.lazy.LazyColumn
@@ -96,6 +98,7 @@ fun ProfileTabScreen(
                             email = state.user.email ?: "",
                             memberSince = memberSince,
                             onEditClick = onEditProfileClick,
+                            avatarUrl = state.user.profileImage,
                             verificationStatus = verificationStatus
                         )
                     }
@@ -250,6 +253,7 @@ fun ProfileHeader(
     email: String,
     memberSince: String,
     onEditClick: () -> Unit,
+    avatarUrl: String? = null,
     bookingsCount: Int = 0,
     wishlistCount: Int = 0,
     verificationStatus: VerificationStatus = VerificationStatus()
@@ -264,7 +268,7 @@ fun ProfileHeader(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar — iOS: 60pt circle with initials
+            // Avatar — show profile image if available, otherwise initials
             Box(
                 modifier = Modifier
                     .size(60.dp)
@@ -272,12 +276,23 @@ fun ProfileHeader(
                     .background(PaceDreamColors.Gray100),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = name.firstOrNull()?.uppercase() ?: "?",
-                    style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
-                    color = PaceDreamColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
+                if (!avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = "Profile photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Text(
+                        text = name.firstOrNull()?.uppercase() ?: "?",
+                        style = PaceDreamTypography.Headline.copy(fontSize = 18.sp),
+                        color = PaceDreamColors.Primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(14.dp))
