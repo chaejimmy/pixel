@@ -229,7 +229,7 @@ fun PropertyDetailScreen(
                 if (uiState.inlineErrorMessage != null) {
                     item {
                         InlineError(
-                            message = uiState.inlineErrorMessage!!,
+                            message = uiState.inlineErrorMessage ?: "An unexpected error occurred",
                             onRetry = { viewModel.refreshDetail() },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -477,7 +477,7 @@ fun PropertyDetailScreen(
                     item { SectionDivider() }
                     item {
                         SectionCancellationPolicy(
-                            policyText = detail.cancellationPolicyText!!,
+                            policyText = detail.cancellationPolicyText ?: "",
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = PaceDreamSpacing.LG)

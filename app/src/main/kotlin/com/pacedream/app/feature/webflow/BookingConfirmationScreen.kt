@@ -70,7 +70,7 @@ fun BookingConfirmationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = uiState.error!!,
+                        text = uiState.error ?: "An unexpected error occurred",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center

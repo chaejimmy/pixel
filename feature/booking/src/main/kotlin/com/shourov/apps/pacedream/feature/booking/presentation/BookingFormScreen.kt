@@ -740,7 +740,7 @@ private fun BookingSummaryBar(
                             val displayDate = try {
                                 val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                                 val outFmt = SimpleDateFormat("MMM d", Locale.getDefault())
-                                outFmt.format(fmt.parse(uiState.startDate)!!)
+                                fmt.parse(uiState.startDate)?.let { outFmt.format(it) } ?: uiState.startDate
                             } catch (_: Exception) { uiState.startDate }
                             SummaryChip(
                                 icon = PaceDreamIcons.CalendarToday,
@@ -751,7 +751,7 @@ private fun BookingSummaryBar(
                             val displayTime = try {
                                 val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
                                 val outFmt = SimpleDateFormat("h:mm a", Locale.getDefault())
-                                outFmt.format(fmt.parse(uiState.startTime)!!)
+                                fmt.parse(uiState.startTime)?.let { outFmt.format(it) } ?: uiState.startTime
                             } catch (_: Exception) { uiState.startTime }
                             SummaryChip(
                                 icon = PaceDreamIcons.Schedule,

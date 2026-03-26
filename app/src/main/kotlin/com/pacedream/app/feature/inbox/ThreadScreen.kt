@@ -166,7 +166,7 @@ fun ThreadScreen(
                 
                 uiState.error != null -> {
                     ErrorState(
-                        message = uiState.error!!,
+                        message = uiState.error ?: "An unexpected error occurred",
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )

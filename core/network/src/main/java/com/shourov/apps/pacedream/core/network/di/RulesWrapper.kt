@@ -17,6 +17,7 @@
 package com.shourov.apps.pacedream.core.network.di
 
 import com.google.gson.*
+import timber.log.Timber
 import java.lang.reflect.Type
 
 sealed class RulesWrapper {
@@ -35,7 +36,12 @@ class RulesWrapperAdapter : JsonDeserializer<RulesWrapper>, JsonSerializer<Rules
         } else {
             // If it's a JSON object, treat it as a Rules object
             val rulesObject = context?.deserialize<Rules>(json, Rules::class.java)
-            RulesWrapper.RulesObject(rulesObject!!)
+            if (rulesObject == null) {
+                Timber.w("RulesWrapper: deserialization returned null for Rules object")
+                RulesWrapper.RulesList(emptyList())
+            } else {
+                RulesWrapper.RulesObject(rulesObject)
+            }
         }
     }
 
@@ -49,7 +55,7 @@ class RulesWrapperAdapter : JsonDeserializer<RulesWrapper>, JsonSerializer<Rules
             }
             is RulesWrapper.RulesObject -> {
                 // Serialize the Rules object
-                context!!.serialize(src.rules)
+                context?.serialize(src.rules) ?: JsonNull.INSTANCE
             }
             else -> JsonNull.INSTANCE
         }
