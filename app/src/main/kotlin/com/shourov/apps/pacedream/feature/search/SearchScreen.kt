@@ -2,7 +2,6 @@ package com.shourov.apps.pacedream.feature.search
 
 import android.Manifest
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -164,7 +163,6 @@ fun SearchScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
-    var mapMode by remember { mutableStateOf(false) }
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -247,22 +245,7 @@ fun SearchScreen(
                         style = PaceDreamTypography.Headline
                     )
                 },
-                actions = {
-                    // Map toggle button
-                    Surface(
-                        shape = RoundedCornerShape(PaceDreamRadius.SM),
-                        color = if (mapMode) PaceDreamColors.Primary.copy(alpha = 0.12f) else Color.Transparent,
-                        modifier = Modifier.padding(end = PaceDreamSpacing.SM)
-                    ) {
-                        IconButton(onClick = { mapMode = !mapMode }) {
-                            Icon(
-                                PaceDreamIcons.Map,
-                                contentDescription = "Map toggle",
-                                tint = if (mapMode) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
-                            )
-                        }
-                    }
-                },
+                actions = {},
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PaceDreamColors.Background
                 )
@@ -387,15 +370,7 @@ fun SearchScreen(
                     return@PullToRefreshBox
                 }
 
-                // Map/List toggle
-                Crossfade(
-                    targetState = mapMode,
-                    label = "search_map_mode"
-                ) { isMap ->
-                    if (isMap) {
-                        MapPlaceholder()
-                    } else {
-                        Column {
+                Column {
                             // Sort and category filters row (matching website)
                             FiltersRow(
                                 selectedSort = selectedSort,
@@ -469,8 +444,6 @@ fun SearchScreen(
                                     )
                                 }
                             }
-                        }
-                    }
                 }
             }
         }
@@ -1161,27 +1134,3 @@ private fun ModernSearchResultCard(
     }
 }
 
-@Composable
-private fun MapPlaceholder() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.XL),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                PaceDreamIcons.Map,
-                contentDescription = null,
-                tint = PaceDreamColors.TextTertiary,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Text(
-                text = "Map view coming soon",
-                style = PaceDreamTypography.Callout,
-                color = PaceDreamColors.TextSecondary
-            )
-        }
-    }
-}
