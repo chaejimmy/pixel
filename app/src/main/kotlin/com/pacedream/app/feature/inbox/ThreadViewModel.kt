@@ -392,7 +392,14 @@ class ThreadViewModel @Inject constructor(
                 }
                 ?: "User"
 
-            val participantAvatar = participant?.get("profilePic")?.jsonPrimitive?.content
+            val participantAvatar = try {
+                participant?.get("profilePic")?.jsonPrimitive?.content
+            } catch (_: Exception) {
+                try {
+                    participant?.get("profilePic")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                } catch (_: Exception) { null }
+            }
+                ?: participant?.get("avatarUrl")?.jsonPrimitive?.content
                 ?: participant?.get("avatar")?.jsonPrimitive?.content
                 ?: participant?.get("profileImage")?.jsonPrimitive?.content
 
