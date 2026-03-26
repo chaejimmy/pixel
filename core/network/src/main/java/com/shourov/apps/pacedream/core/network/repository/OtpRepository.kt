@@ -96,7 +96,6 @@ class OtpRepository @Inject constructor(
                     Timber.w("login: response body was null despite successful status")
                     Result.failure(OtpError.NetworkError("Empty response from server"))
                 } else if (body.ok && body.success == true) {
-                if (body.ok && body.success == true) {
                     Result.success(body)
                 } else {
                     Result.failure(parseError(body.error))
