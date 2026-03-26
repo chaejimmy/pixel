@@ -284,10 +284,14 @@ class InboxRepository @Inject constructor(
     private fun parseThreadsResponse(responseBody: String): ThreadsResult {
         val jsonElement = json.parseToJsonElement(responseBody)
         val jsonObject = jsonElement.jsonObject
-        
-        val data = jsonObject["data"]?.jsonObject ?: jsonObject
-        val threadsArray = findArrayField(data, "threads", "items", "data")
-        
+
+        // Backend returns { items: [...], nextCursor } at root level
+        // Also support wrapped formats: { data: { threads: [...] } }
+        val root = jsonObject
+        val data = jsonObject["data"]?.jsonObject
+        val threadsArray = findArrayField(root, "items", "threads")
+            ?: (data?.let { findArrayField(it, "threads", "items", "data") })
+
         val threads = threadsArray?.mapNotNull { element ->
             try {
                 parseThread(element.jsonObject)
@@ -296,16 +300,15 @@ class InboxRepository @Inject constructor(
                 null
             }
         } ?: emptyList()
-        
-        // Guard: treat blank or literal "null" cursor as null to prevent "Invalid ID format" errors
-        // (JsonNull.content returns the string "null" in kotlinx.serialization)
-        val rawCursor = data["nextCursor"]?.jsonPrimitive?.content
-            ?: data["cursor"]?.jsonPrimitive?.content
+
+        // Cursor can be at root level or nested in data
+        val cursorSource = if (root.containsKey("nextCursor")) root else data ?: root
+        val rawCursor = cursorSource["nextCursor"]?.jsonPrimitive?.content
+            ?: cursorSource["cursor"]?.jsonPrimitive?.content
         val nextCursor = rawCursor?.takeIf { it.isNotBlank() && it != "null" }
 
-        val serverHasMore = data["hasMore"]?.jsonPrimitive?.boolean ?: false
-        // Cannot paginate without a valid cursor, regardless of what the server claims
-        val hasMore = serverHasMore && nextCursor != null
+        val serverHasMore = try { cursorSource["hasMore"]?.jsonPrimitive?.boolean ?: false } catch (_: Exception) { false }
+        val hasMore = (serverHasMore || nextCursor != null) && nextCursor != null
 
         return ThreadsResult(threads, nextCursor, hasMore)
     }
@@ -334,27 +337,36 @@ class InboxRepository @Inject constructor(
         val rawId = obj["_id"]?.jsonPrimitive?.content
             ?: obj["id"]?.jsonPrimitive?.content
         val id = rawId?.takeIf { it.isNotBlank() } ?: ""
-        
-        val participants = extractStringArray(obj, "participants", "participantIds")
-        
+
+        val participants = extractStringArray(obj, "participants", "participantIds", "members")
+
         val lastMessage = obj["lastMessage"]?.jsonObject?.let { parseMessage(it) }
-        
-        val unreadCount = obj["unreadCount"]?.jsonPrimitive?.int
-            ?: obj["unread"]?.jsonPrimitive?.int
-            ?: 0
-        
+
+        // Backend enriches unread as a plain integer; fall back to 0 on any parse issue
+        val unreadCount = try {
+            obj["unreadCount"]?.jsonPrimitive?.int
+                ?: obj["unread"]?.jsonPrimitive?.int
+                ?: 0
+        } catch (_: Exception) { 0 }
+
         val updatedAt = obj["updatedAt"]?.jsonPrimitive?.content
             ?: obj["updated_at"]?.jsonPrimitive?.content
-        
+            ?: obj["lastMessageAt"]?.jsonPrimitive?.content
+
         val listing = obj["listing"]?.jsonObject?.let { parseListing(it) }
-        
+
         val opponent = obj["opponent"]?.jsonObject?.let { parseUser(it) }
             ?: obj["participant"]?.jsonObject?.let { parseUser(it) }
-        
+
+        // Use lastMessageText from thread if no embedded lastMessage object
+        val resolvedLastMessage = lastMessage ?: obj["lastMessageText"]?.jsonPrimitive?.content?.let { text ->
+            if (text.isNotBlank()) Message(id = "", text = text, senderId = "", timestamp = updatedAt) else null
+        }
+
         return Thread(
             id = id,
             participants = participants,
-            lastMessage = lastMessage,
+            lastMessage = resolvedLastMessage,
             unreadCount = unreadCount,
             updatedAt = updatedAt,
             listing = listing,
@@ -487,15 +499,33 @@ class InboxRepository @Inject constructor(
     }
     
     private fun parseUser(obj: JsonObject): ThreadUser {
+        // Backend uses snake_case: first_name, last_name, profilePic (array or string)
+        val firstName = obj["first_name"]?.jsonPrimitive?.content
+            ?: obj["firstName"]?.jsonPrimitive?.content ?: ""
+        val lastName = obj["last_name"]?.jsonPrimitive?.content
+            ?: obj["lastName"]?.jsonPrimitive?.content ?: ""
+        val fullName = "$firstName $lastName".trim()
+
+        val name = obj["name"]?.jsonPrimitive?.content
+            ?: obj["displayName"]?.jsonPrimitive?.content
+            ?: fullName.ifEmpty { "User" }
+
+        // profilePic may be a string or array of strings; also try avatarUrl
+        val avatar = try {
+            obj["profilePic"]?.jsonPrimitive?.content
+        } catch (_: Exception) {
+            try { obj["profilePic"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content } catch (_: Exception) { null }
+        }
+            ?: obj["avatarUrl"]?.jsonPrimitive?.content
+            ?: obj["avatar"]?.jsonPrimitive?.content
+            ?: obj["profileImage"]?.jsonPrimitive?.content
+
         return ThreadUser(
             id = obj["_id"]?.jsonPrimitive?.content
                 ?: obj["id"]?.jsonPrimitive?.content
                 ?: "",
-            name = obj["name"]?.jsonPrimitive?.content
-                ?: obj["displayName"]?.jsonPrimitive?.content
-                ?: "${obj["firstName"]?.jsonPrimitive?.content ?: ""} ${obj["lastName"]?.jsonPrimitive?.content ?: ""}".trim(),
-            avatar = obj["avatar"]?.jsonPrimitive?.content
-                ?: obj["profileImage"]?.jsonPrimitive?.content
+            name = name,
+            avatar = avatar
         )
     }
     
