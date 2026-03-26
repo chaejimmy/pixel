@@ -178,6 +178,7 @@ sealed class ThreadDetailUiState {
         val currentUserId: String,
         val isRefreshing: Boolean = false,
         val hasMore: Boolean = false,
+        val isLoadingMore: Boolean = false,
         val isSending: Boolean = false,
         val sendError: String? = null
     ) : ThreadDetailUiState()

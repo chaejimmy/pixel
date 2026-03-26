@@ -162,36 +162,50 @@ class ThreadViewModel @Inject constructor(
     private fun refresh() {
         val currentState = _uiState.value as? ThreadDetailUiState.Success
         currentState?.let {
-            _uiState.value = it.copy(isRefreshing = true)
+            _uiState.value = it.copy(isRefreshing = true, isLoadingMore = false)
         }
-        
+
         beforeCursor = null
         loadMessages()
     }
     
     private fun loadMore() {
         val cursor = beforeCursor ?: return
-        if (_uiState.value !is ThreadDetailUiState.Success) return
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        if (currentState.isLoadingMore) return
+
+        _uiState.value = currentState.copy(isLoadingMore = true)
 
         viewModelScope.launch {
-            val result = inboxRepository.getMessages(
-                threadId = threadId,
-                limit = 50,
-                before = cursor
-            )
+            try {
+                val result = inboxRepository.getMessages(
+                    threadId = threadId,
+                    limit = 50,
+                    before = cursor
+                )
 
-            when (result) {
-                is ApiResult.Success -> {
-                    beforeCursor = result.data.messages.lastOrNull()?.id
-                    // Use latest state to avoid overwriting concurrent mutations
-                    val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
-                    _uiState.value = latestState.copy(
-                        messages = latestState.messages + result.data.messages,
-                        hasMore = result.data.hasMore
-                    )
+                when (result) {
+                    is ApiResult.Success -> {
+                        beforeCursor = result.data.messages.lastOrNull()?.id
+                        // Use latest state to avoid overwriting concurrent mutations
+                        val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                        _uiState.value = latestState.copy(
+                            messages = latestState.messages + result.data.messages,
+                            hasMore = result.data.hasMore,
+                            isLoadingMore = false
+                        )
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to load more messages: ${result.error.message}")
+                        val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+                        _uiState.value = latestState.copy(isLoadingMore = false)
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to load more messages: ${result.error.message}")
+            } catch (e: Exception) {
+                Timber.e(e, "ThreadViewModel: loadMore EXCEPTION")
+                val latestState = _uiState.value as? ThreadDetailUiState.Success
+                if (latestState != null) {
+                    _uiState.value = latestState.copy(isLoadingMore = false)
                 }
             }
         }
