@@ -16,11 +16,11 @@ android {
     }
 
     defaultConfig {
-        // Load secrets from properties file
+        // Load secrets: defaults first, then local overrides (secrets.properties wins)
         val secretsProperties = Properties()
-        val secretsFile = rootProject.file("secrets.defaults.properties")
-        if (secretsFile.exists()) {
-            secretsFile.inputStream().use { secretsProperties.load(it) }
+        listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
+            val f = rootProject.file(name)
+            if (f.exists()) f.inputStream().use { secretsProperties.load(it) }
         }
         
         // Auth0 Configuration from secrets file

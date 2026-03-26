@@ -30,7 +30,7 @@ captures/
 *.jks
 **/google-services.json
 
-# Secrets properties (actual values — use local.properties or CI)
+# Secrets properties (actual values — use secrets.properties.template as a starting point)
 secrets.properties
 secrets.local.properties
 
