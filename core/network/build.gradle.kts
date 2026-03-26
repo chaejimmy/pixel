@@ -3,7 +3,9 @@ plugins {
     alias(libs.plugins.pacedream.android.hilt)
     alias(libs.plugins.pacedream.android.library.jacoco)
     id("kotlinx-serialization")
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    // NOTE: secrets-gradle-plugin removed from this module.
+    // BuildConfig fields are generated manually below with proper empty-string quoting.
+    // The plugin cannot handle empty property values (generates `= ;` instead of `= ""`).
 }
 
 import java.util.Properties
@@ -43,10 +45,6 @@ android {
         buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET", "\"$uploadPreset\"")
     }
 
-}
-
-secrets {
-    defaultPropertiesFileName = "secrets.defaults.properties"
 }
 
 dependencies {
