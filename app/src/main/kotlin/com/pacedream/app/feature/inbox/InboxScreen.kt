@@ -49,19 +49,11 @@ fun InboxScreen(
             if (showTopBar) {
                 TopAppBar(
                     title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "Messages",
-                                style = PaceDreamTypography.Title1,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (uiState.unreadCount > 0) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Badge {
-                                    Text(uiState.unreadCount.toString())
-                                }
-                            }
-                        }
+                        Text(
+                            "Messages",
+                            style = PaceDreamTypography.Title1,
+                            fontWeight = FontWeight.Bold
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
                 )
@@ -73,6 +65,14 @@ fun InboxScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // iOS parity: Guest/Host mode toggle
+            ModeToggle(
+                selectedMode = uiState.selectedMode,
+                guestUnreadCount = uiState.guestUnreadCount,
+                hostUnreadCount = uiState.hostUnreadCount,
+                onModeSelected = { viewModel.switchMode(it) }
+            )
+
         PullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
@@ -97,7 +97,10 @@ fun InboxScreen(
                 }
 
                 uiState.threads.isEmpty() -> {
-                    EmptyState(modifier = Modifier.fillMaxSize())
+                    EmptyState(
+                        isHostMode = uiState.selectedMode == "host",
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
 
                 else -> {
@@ -230,7 +233,10 @@ private fun ThreadItem(
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
+private fun EmptyState(
+    isHostMode: Boolean = false,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -261,7 +267,10 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
-            text = "Your conversations will appear here when you message a host or receive a booking inquiry.",
+            text = if (isHostMode)
+                "Guest conversations will appear here when they reach out."
+            else
+                "Your conversations will appear here when you message a host or receive a booking inquiry.",
             style = PaceDreamTypography.Body,
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center
@@ -316,6 +325,91 @@ private fun ErrorState(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Try Again", style = PaceDreamTypography.Button)
+        }
+    }
+}
+
+/**
+ * iOS parity: Guest/Host mode toggle with unread badges
+ */
+@Composable
+private fun ModeToggle(
+    selectedMode: String,
+    guestUnreadCount: Int,
+    hostUnreadCount: Int,
+    onModeSelected: (String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        ModeButton(
+            label = "Guest",
+            badgeCount = guestUnreadCount,
+            isActive = selectedMode == "guest",
+            onClick = { onModeSelected("guest") },
+            modifier = Modifier.weight(1f)
+        )
+        ModeButton(
+            label = "Host",
+            badgeCount = hostUnreadCount,
+            isActive = selectedMode == "host",
+            onClick = { onModeSelected("host") },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ModeButton(
+    label: String,
+    badgeCount: Int,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (isActive) PaceDreamColors.Primary
+                else PaceDreamColors.Gray50
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = label,
+                style = PaceDreamTypography.Subheadline,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isActive) PaceDreamColors.OnPrimary
+                       else PaceDreamColors.TextPrimary
+            )
+            if (badgeCount > 0) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = badgeCount.toString(),
+                    style = PaceDreamTypography.Caption,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isActive) PaceDreamColors.Primary
+                           else PaceDreamColors.OnPrimary,
+                    modifier = Modifier
+                        .background(
+                            color = if (isActive) PaceDreamColors.OnPrimary
+                                   else PaceDreamColors.Error,
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }
