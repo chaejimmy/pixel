@@ -31,6 +31,16 @@ android {
         buildConfigField("String", "AUTH0_DOMAIN", "\"$auth0Domain\"")
         buildConfigField("String", "AUTH0_CLIENT_ID", "\"$auth0ClientId\"")
         buildConfigField("String", "AUTH0_AUDIENCE", "\"$auth0Audience\"")
+
+        // Frontend URL (iOS parity: FRONTEND_BASE_URL in xcconfig)
+        val frontendUrl = secretsProperties.getProperty("FRONTEND_BASE_URL") ?: "https://www.pacedream.com"
+        buildConfigField("String", "FRONTEND_BASE_URL", "\"$frontendUrl\"")
+
+        // Cloudinary config (iOS parity: CLOUDINARY_CLOUD_NAME / CLOUDINARY_UPLOAD_PRESET in xcconfig)
+        val cloudName = secretsProperties.getProperty("CLOUDINARY_CLOUD_NAME") ?: ""
+        val uploadPreset = secretsProperties.getProperty("CLOUDINARY_UPLOAD_PRESET") ?: ""
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME", "\"$cloudName\"")
+        buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET", "\"$uploadPreset\"")
     }
 
 }
