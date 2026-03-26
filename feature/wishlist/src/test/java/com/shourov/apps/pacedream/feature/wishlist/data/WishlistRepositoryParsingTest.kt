@@ -316,6 +316,107 @@ class WishlistRepositoryParsingTest {
         assertFalse(repo.isSuccessResponseForTest("not-json"))
     }
 
+    // ── Room model field parsing (backend parity) ──────────────────
+
+    @Test
+    fun `parseWishlistResponse handles dynamic_price for price and frequency`() {
+        val body = """[{ "id": "1", "name": "Studio", "dynamic_price": { "amount": 75.0, "currency": "USD", "frequency": "hourly" } }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals(75.0, items[0].price!!, 0.01)
+        assertEquals("hourly", items[0].priceUnit)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles nested location object`() {
+        val body = """[{ "id": "1", "name": "T", "location": { "city": "Boston", "state": "MA", "country": "US" } }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals("Boston, MA, US", items[0].location)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles location object with display string`() {
+        val body = """[{ "id": "1", "name": "T", "location": { "location": "Downtown LA", "city": "LA", "state": "CA" } }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals("Downtown LA", items[0].location)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles flat location string`() {
+        val body = """[{ "id": "1", "name": "T", "location": "New York" }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals("New York", items[0].location)
+    }
+
+    @Test
+    fun `parseWishlistResponse computes average rating from reviews`() {
+        val body = """[{ "id": "1", "name": "T", "reviews": [{ "rating": 4.0 }, { "rating": 5.0 }] }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals(4.5, items[0].rating!!, 0.01)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles empty reviews array`() {
+        val body = """[{ "id": "1", "name": "T", "reviews": [] }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertNull(items[0].rating)
+    }
+
+    @Test
+    fun `parseWishlistResponse prefers flat rating over reviews`() {
+        val body = """[{ "id": "1", "name": "T", "rating": 3.0, "reviews": [{ "rating": 5.0 }] }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals(3.0, items[0].rating!!, 0.01)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles summary for description`() {
+        val body = """[{ "id": "1", "name": "T", "summary": "A nice place" }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals("A nice place", items[0].description)
+    }
+
+    @Test
+    fun `parseWishlistResponse detects type from room_type field`() {
+        val body = """[{ "id": "1", "name": "T", "room_type": "short-term" }]"""
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals(com.shourov.apps.pacedream.feature.wishlist.model.WishlistItemType.TIME_BASED, items[0].itemType)
+    }
+
+    @Test
+    fun `parseWishlistResponse handles wishlists with nested rooms from backend`() {
+        val body = """
+            {
+              "status": true,
+              "data": [
+                {
+                  "_id": "wl1",
+                  "name": "Favorites",
+                  "rooms": [
+                    {
+                      "_id": "r1",
+                      "name": "Cozy Studio",
+                      "images": ["https://img1.jpg"],
+                      "dynamic_price": { "amount": 50.0, "currency": "USD", "frequency": "daily" },
+                      "location": { "city": "NYC", "state": "NY", "country": "US" },
+                      "reviews": [{ "rating": 4.0 }, { "rating": 5.0 }],
+                      "room_type": "short-term"
+                    }
+                  ]
+                }
+              ]
+            }
+        """.trimIndent()
+        val items = repo.parseWishlistResponseForTest(body)
+        assertEquals(1, items.size)
+        assertEquals("r1", items[0].id)
+        assertEquals("Cozy Studio", items[0].title)
+        assertEquals("https://img1.jpg", items[0].imageUrl)
+        assertEquals(50.0, items[0].price!!, 0.01)
+        assertEquals("daily", items[0].priceUnit)
+        assertEquals("NYC, NY, US", items[0].location)
+        assertEquals(4.5, items[0].rating!!, 0.01)
+    }
+
     // ── Edge cases ──────────────────────────────────────────────────
 
     @Test

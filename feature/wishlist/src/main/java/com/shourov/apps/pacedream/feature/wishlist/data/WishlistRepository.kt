@@ -321,57 +321,73 @@ class WishlistRepository @Inject constructor(
     }
     
     /**
-     * Parse individual wishlist item with tolerant field extraction
+     * Parse individual wishlist item with tolerant field extraction.
+     *
+     * The backend Room model uses these field names:
+     * - name (not title)
+     * - images[] (array of URLs)
+     * - dynamic_price { amount, currency, frequency }
+     * - location { city, state, country, street, zipcode }
+     * - reviews[] { rating } (average must be computed)
+     * - room_type / property_type (for category)
      */
     private fun parseWishlistItem(itemObject: JsonObject): WishlistItem {
         val id = itemObject["_id"]?.jsonPrimitive?.content
             ?: itemObject["id"]?.jsonPrimitive?.content
             ?: ""
-        
+
         val listingId = itemObject["listingId"]?.jsonPrimitive?.content
             ?: itemObject["listing_id"]?.jsonPrimitive?.content
             ?: id
-        
+
         val title = itemObject["title"]?.jsonPrimitive?.content
             ?: itemObject["name"]?.jsonPrimitive?.content
             ?: ""
-        
+
         val description = itemObject["description"]?.jsonPrimitive?.content
-        
+            ?: itemObject["summary"]?.jsonPrimitive?.content
+
         val imageUrl = itemObject["image"]?.jsonPrimitive?.content
             ?: itemObject["imageUrl"]?.jsonPrimitive?.content
-            ?: itemObject["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            ?: (itemObject["images"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()?.jsonPrimitive?.content
             ?: itemObject["cover_image"]?.jsonPrimitive?.content
             ?: itemObject["coverImage"]?.jsonPrimitive?.content
-            ?: itemObject["place_image"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            ?: (itemObject["place_image"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()?.jsonPrimitive?.content
             ?: itemObject["thumbnail"]?.jsonPrimitive?.content
             ?: (itemObject["gallery"] as? JsonObject)?.get("thumbnail")?.jsonPrimitive?.content
             ?: (itemObject["gallery"] as? JsonObject)?.get("images")?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
             ?: (itemObject["galleryImages"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()?.jsonPrimitive?.content
             ?: itemObject["coverPhoto"]?.jsonPrimitive?.content
             ?: itemObject["photo"]?.jsonPrimitive?.content
-        
-        val priceValue = itemObject["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
+
+        // Price: backend Room model uses dynamic_price { amount, currency, frequency }
+        val dynamicPrice = itemObject["dynamic_price"] as? JsonObject
+        val priceValue = dynamicPrice?.get("amount")?.jsonPrimitive?.content?.toDoubleOrNull()
+            ?: itemObject["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
             ?: itemObject["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
             ?: (itemObject["price"] as? JsonObject)?.get("amount")?.jsonPrimitive?.content?.toDoubleOrNull()
 
-        val priceUnit = (itemObject["price"] as? JsonObject)?.get("frequency")?.jsonPrimitive?.content
+        val priceUnit = dynamicPrice?.get("frequency")?.jsonPrimitive?.content
+            ?: (itemObject["price"] as? JsonObject)?.get("frequency")?.jsonPrimitive?.content
             ?: (itemObject["pricing"] as? JsonObject)?.get("frequency")?.jsonPrimitive?.content
             ?: (itemObject["price"] as? kotlinx.serialization.json.JsonArray)?.firstOrNull()
                 ?.jsonObject?.get("frequency")?.jsonPrimitive?.content
-        
+
         val itemTypeString = itemObject["type"]?.jsonPrimitive?.content
             ?: itemObject["listingType"]?.jsonPrimitive?.content
             ?: itemObject["shareType"]?.jsonPrimitive?.content
             ?: itemObject["category"]?.jsonPrimitive?.content
-        
+            ?: itemObject["room_type"]?.jsonPrimitive?.content
+            ?: itemObject["property_type"]?.jsonPrimitive?.content
+
         val itemType = parseItemType(itemTypeString, itemObject)
-        
-        val location = itemObject["location"]?.jsonPrimitive?.content
-            ?: itemObject["address"]?.jsonPrimitive?.content
-        
-        val rating = itemObject["rating"]?.jsonPrimitive?.content?.toDoubleOrNull()
-        
+
+        // Location: backend Room model uses location { city, state, country, ... }
+        val location = extractLocation(itemObject)
+
+        // Rating: backend Room model uses reviews[] array; compute average
+        val rating = extractRating(itemObject)
+
         return WishlistItem(
             id = id,
             listingId = listingId,
@@ -385,33 +401,93 @@ class WishlistRepository @Inject constructor(
             rating = rating
         )
     }
+
+    /**
+     * Extract location string from various response shapes.
+     * Backend Room model stores location as { city, state, country, street, zipcode, location }.
+     */
+    private fun extractLocation(itemObject: JsonObject): String? {
+        // Try flat string first (some endpoints may return a flat value)
+        try {
+            itemObject["location"]?.jsonPrimitive?.content?.let { return it }
+        } catch (_: Exception) {
+            // location is an object, not a primitive
+        }
+
+        // Parse location object: prefer "location" sub-field, else build from parts
+        val locObj = itemObject["location"] as? JsonObject
+        if (locObj != null) {
+            // Some backends put a display string in location.location
+            try {
+                locObj["location"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }?.let { return it }
+            } catch (_: Exception) { /* not a primitive */ }
+
+            val city = locObj["city"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            val state = locObj["state"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            val country = locObj["country"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            val parts = listOfNotNull(city, state, country)
+            if (parts.isNotEmpty()) return parts.joinToString(", ")
+        }
+
+        // Fallback to address field
+        return itemObject["address"]?.jsonPrimitive?.content
+    }
+
+    /**
+     * Extract rating from a flat "rating" field or by averaging reviews[].rating.
+     */
+    private fun extractRating(itemObject: JsonObject): Double? {
+        // Try flat rating first
+        itemObject["rating"]?.jsonPrimitive?.content?.toDoubleOrNull()?.let { return it }
+
+        // Compute average from reviews array (backend Room model)
+        val reviews = itemObject["reviews"] as? kotlinx.serialization.json.JsonArray ?: return null
+        if (reviews.isEmpty()) return null
+
+        var sum = 0.0
+        var count = 0
+        for (review in reviews) {
+            val reviewObj = review as? JsonObject ?: continue
+            val r = reviewObj["rating"]?.jsonPrimitive?.content?.toDoubleOrNull() ?: continue
+            sum += r
+            count++
+        }
+        return if (count > 0) sum / count else null
+    }
     
     /**
-     * Parse item type with fallback logic
+     * Parse item type with fallback logic.
+     * Backend Room model uses room_type and property_type fields.
      */
     private fun parseItemType(typeString: String?, itemObject: JsonObject): WishlistItemType {
         // First try direct type string
         typeString?.let { type ->
             WishlistItemType.fromString(type)?.let { return it }
         }
-        
-        // Look at category or other hints
+
+        // Look at all available type hints
         val category = itemObject["category"]?.jsonPrimitive?.content?.lowercase() ?: ""
         val listingType = itemObject["listingType"]?.jsonPrimitive?.content?.lowercase() ?: ""
         val shareType = itemObject["shareType"]?.jsonPrimitive?.content?.lowercase() ?: ""
-        
+        val roomType = itemObject["room_type"]?.jsonPrimitive?.content?.lowercase() ?: ""
+        val propertyType = itemObject["property_type"]?.jsonPrimitive?.content?.lowercase() ?: ""
+
         return when {
-            shareType == "split" || category.contains("split") || listingType.contains("roommate") ->
+            shareType == "split" || category.contains("split") || listingType.contains("roommate") ||
+                roomType.contains("roommate") || roomType.contains("split") ->
                 WishlistItemType.SPLIT_STAY
-            
-            category.contains("gear") || category.contains("car") || 
-            category.contains("vehicle") || listingType.contains("borrow") ->
+
+            category.contains("gear") || category.contains("car") ||
+                category.contains("vehicle") || listingType.contains("borrow") ||
+                roomType.contains("gear") || roomType.contains("parking") ||
+                propertyType.contains("gear") || propertyType.contains("vehicle") ->
                 WishlistItemType.HOURLY_GEAR
-            
-            shareType == "use" || listingType.contains("hourly") || 
-            listingType.contains("time") ->
+
+            shareType == "use" || listingType.contains("hourly") ||
+                listingType.contains("time") || roomType.contains("short") ||
+                roomType.contains("time") || roomType.contains("hourly") ->
                 WishlistItemType.TIME_BASED
-            
+
             else -> WishlistItemType.TIME_BASED // Default fallback
         }
     }
