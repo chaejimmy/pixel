@@ -201,7 +201,13 @@ private fun SuccessState(
 
                 // Load more indicator
                 if (state.hasMore) {
-                    item {
+                    item(key = "load_more") {
+                        if (!state.isLoadingMore) {
+                            LaunchedEffect(Unit) {
+                                onEvent(ThreadDetailEvent.LoadMore)
+                            }
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -212,10 +218,6 @@ private fun SuccessState(
                                 color = PaceDreamColors.Primary,
                                 modifier = Modifier.size(24.dp)
                             )
-                        }
-
-                        LaunchedEffect(Unit) {
-                            onEvent(ThreadDetailEvent.LoadMore)
                         }
                     }
                 }

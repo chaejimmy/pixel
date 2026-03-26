@@ -29,6 +29,7 @@ import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import okhttp3.MediaType.Companion.toMediaType
@@ -72,10 +73,10 @@ class MessageRepository @Inject constructor(
                     emit(Result.Error(Exception("Failed to load messages: ${response.message()}")))
                 }
             } catch (e: Exception) {
-                // Fall back to cached messages
-                messageDao.getChatMessages(chatId).collect { entities ->
-                    emit(Result.Success(entities.map { it.asExternalModel() }))
-                }
+                // Fall back to cached messages (use first() to get a single snapshot
+                // instead of collect, which would never complete on Room's infinite Flow)
+                val cached = messageDao.getChatMessages(chatId).first()
+                emit(Result.Success(cached.map { it.asExternalModel() }))
             }
         }
     }

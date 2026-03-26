@@ -26,6 +26,7 @@ import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,8 +45,11 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
+    private var loadMessagesJob: Job? = null
+
     fun loadMessages(chatId: String) {
-        viewModelScope.launch {
+        loadMessagesJob?.cancel()
+        loadMessagesJob = viewModelScope.launch {
             val resolvedUserId = authSession.currentUserId ?: "unknown"
             _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId, currentUserId = resolvedUserId)
 
