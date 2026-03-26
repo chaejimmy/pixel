@@ -228,7 +228,10 @@ class WishlistViewModel @Inject constructor(
                             ?: listingData["title"]?.jsonPrimitive?.content
                             ?: "Item",
                         imageUrl = listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
-                            ?: listingData["image"]?.jsonPrimitive?.content,
+                            ?: listingData["image"]?.jsonPrimitive?.content
+                            ?: listingData["cover_image"]?.jsonPrimitive?.content
+                            ?: listingData["coverImage"]?.jsonPrimitive?.content
+                            ?: listingData["place_image"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content,
                         location = listingData["location"]?.let { loc ->
                             when (loc) {
                                 is JsonObject -> loc["city"]?.jsonPrimitive?.content
