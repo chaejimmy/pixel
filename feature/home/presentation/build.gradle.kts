@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":feature:home:domain"))
     implementation(project(":feature:home:data"))
+    implementation(project(":feature:wishlist"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)

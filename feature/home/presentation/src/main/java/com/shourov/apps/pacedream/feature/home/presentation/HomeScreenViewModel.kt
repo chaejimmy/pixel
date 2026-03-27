@@ -22,6 +22,7 @@ import com.shourov.apps.pacedream.core.common.result.Result.Error
 import com.shourov.apps.pacedream.core.common.result.Result.Loading
 import com.shourov.apps.pacedream.core.common.result.Result.Success
 import com.shourov.apps.pacedream.core.common.result.asResult
+import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.feature.home.domain.repository.HomeRepository
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.GetRentedGears
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.GetSplitStays
@@ -29,7 +30,11 @@ import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.GetT
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.LoadAllSections
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.NavigateToSection
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.RefreshAll
+import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.ToggleFavorite
+import com.shourov.apps.pacedream.feature.wishlist.data.FavoritesCache
+import com.shourov.apps.pacedream.feature.wishlist.data.WishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -46,6 +51,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val homeRepository: HomeRepository,
+    private val wishlistRepository: WishlistRepository,
+    private val favoritesCache: FavoritesCache,
 ) : ViewModel() {
 
     private var _homeScreenRoomsState: MutableStateFlow<HomeScreenRoomsState> =
@@ -66,6 +73,10 @@ class HomeScreenViewModel @Inject constructor(
     private var _isRefreshing: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    // Favorite/wishlist state — set of property IDs that are favorited
+    private val _favoriteIds = MutableStateFlow<Set<String>>(emptySet())
+    val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
+
     // Navigation events for View All
     private val _navigationEvent = MutableSharedFlow<NavigationEvent>()
     val navigationEvent: SharedFlow<NavigationEvent> = _navigationEvent.asSharedFlow()
@@ -73,6 +84,12 @@ class HomeScreenViewModel @Inject constructor(
     // Track current filter types for refresh
     private var currentRoomType: String = "room"
     private var currentGearType: String = "tech_gear"
+
+    init {
+        // Load cached favorites immediately so hearts render before network response
+        _favoriteIds.value = favoritesCache.getCachedFavoriteIds()
+        loadFavoriteIds()
+    }
 
     fun onEvent(event: HomeScreenEvent) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -99,6 +116,10 @@ class HomeScreenViewModel @Inject constructor(
 
                 is RefreshAll -> {
                     refreshAllSections()
+                }
+
+                is ToggleFavorite -> {
+                    toggleFavorite(event.propertyId)
                 }
 
                 is NavigateToSection -> {
@@ -211,6 +232,69 @@ class HomeScreenViewModel @Inject constructor(
                         splitStays = result.data,
                         error = null,
                     )
+                }
+            }
+        }
+    }
+
+    /**
+     * Load favorite IDs from the wishlist so hearts render correctly on home cards.
+     */
+    private fun loadFavoriteIds() {
+        viewModelScope.launch(Dispatchers.IO) {
+            when (val result = wishlistRepository.getWishlist()) {
+                is ApiResult.Success -> {
+                    val ids = result.data.mapNotNull { item ->
+                        item.id.takeIf { it.isNotEmpty() } ?: item.listingId.takeIf { it.isNotEmpty() }
+                    }.toSet()
+                    _favoriteIds.value = ids
+                    favoritesCache.saveFavoriteIds(ids)
+                }
+                is ApiResult.Failure -> {
+                    Timber.w("Failed to load wishlist for home favorites, using cached data")
+                    // Keep cached favorites (already loaded in init)
+                }
+            }
+        }
+    }
+
+    /**
+     * Toggle favorite with optimistic UI update.
+     * On network errors, keeps the optimistic state and queues for retry.
+     */
+    private suspend fun toggleFavorite(propertyId: String) {
+        val wasFavorited = _favoriteIds.value.contains(propertyId)
+
+        // Optimistic update — persist to cache immediately
+        _favoriteIds.update { current ->
+            if (wasFavorited) current - propertyId else current + propertyId
+        }
+        favoritesCache.saveFavoriteIds(_favoriteIds.value)
+
+        // Call API
+        val result = wishlistRepository.toggleWishlistItem(itemId = propertyId)
+        when (result) {
+            is ApiResult.Success -> {
+                // Sync with server response — server is the source of truth
+                _favoriteIds.update { current ->
+                    if (result.data.liked) current + propertyId else current - propertyId
+                }
+                favoritesCache.saveFavoriteIds(_favoriteIds.value)
+                favoritesCache.removePendingToggle(propertyId)
+            }
+            is ApiResult.Failure -> {
+                if (result.error is com.shourov.apps.pacedream.core.network.api.ApiError.NetworkError ||
+                    result.error is com.shourov.apps.pacedream.core.network.api.ApiError.Timeout) {
+                    // Network error: keep optimistic update, queue for retry
+                    favoritesCache.addPendingToggle(propertyId)
+                    Timber.w("Favorite toggle queued for retry (offline): $propertyId")
+                } else {
+                    // Non-network error: revert optimistic update
+                    Timber.w("Failed to toggle favorite for $propertyId, reverting")
+                    _favoriteIds.update { current ->
+                        if (wasFavorited) current + propertyId else current - propertyId
+                    }
+                    favoritesCache.saveFavoriteIds(_favoriteIds.value)
                 }
             }
         }

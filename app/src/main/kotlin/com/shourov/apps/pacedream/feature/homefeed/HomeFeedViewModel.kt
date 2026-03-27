@@ -6,8 +6,10 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.core.network.auth.AuthState
+import com.shourov.apps.pacedream.feature.wishlist.data.FavoritesCache
 import com.shourov.apps.pacedream.feature.wishlist.data.WishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +23,8 @@ import javax.inject.Inject
 class HomeFeedViewModel @Inject constructor(
     private val repo: HomeFeedRepository,
     private val authSession: AuthSession,
-    private val wishlistRepository: WishlistRepository
+    private val wishlistRepository: WishlistRepository,
+    private val favoritesCache: FavoritesCache
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeFeedState())
@@ -45,6 +48,9 @@ class HomeFeedViewModel @Inject constructor(
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
     init {
+        // Load cached favorites immediately so hearts render before network response
+        _favoriteIds.value = favoritesCache.getCachedFavoriteIds()
+
         loadAll()
 
         // Keep filteredState in sync whenever raw state or selected category changes
@@ -63,7 +69,9 @@ class HomeFeedViewModel @Inject constructor(
                 authSession.authState.collectLatest { st ->
                     if (st == AuthState.Unauthenticated) {
                         _favoriteIds.value = emptySet()
+                        favoritesCache.saveFavoriteIds(emptySet())
                     } else {
+                        syncPendingToggles()
                         refreshFavorites()
                     }
                 }
@@ -143,8 +151,9 @@ class HomeFeedViewModel @Inject constructor(
 
     suspend fun toggleFavorite(listingId: String): ApiResult<Boolean> {
         val wasFavorited = _favoriteIds.value.contains(listingId)
-        // Optimistic UI update
+        // Optimistic UI update — persist to cache immediately
         _favoriteIds.value = if (wasFavorited) _favoriteIds.value - listingId else _favoriteIds.value + listingId
+        favoritesCache.saveFavoriteIds(_favoriteIds.value)
 
         val res = if (wasFavorited) {
             wishlistRepository.removeFromWishlist(propertyId = listingId)
@@ -153,11 +162,24 @@ class HomeFeedViewModel @Inject constructor(
         }
 
         return when (res) {
-            is ApiResult.Success -> ApiResult.Success(!wasFavorited)
+            is ApiResult.Success -> {
+                // Clear any pending toggle for this item since it succeeded
+                favoritesCache.removePendingToggle(listingId)
+                ApiResult.Success(!wasFavorited)
+            }
             is ApiResult.Failure -> {
-                // Roll back optimistic update
-                _favoriteIds.value = if (wasFavorited) _favoriteIds.value + listingId else _favoriteIds.value - listingId
-                res
+                if (res.error is ApiError.NetworkError || res.error is ApiError.Timeout) {
+                    // Network error: keep the optimistic update, queue for retry
+                    favoritesCache.addPendingToggle(listingId)
+                    Timber.w("Favorite toggle queued for retry (offline): $listingId")
+                    // Return success to the UI so the heart stays and snackbar shows "Saved"
+                    ApiResult.Success(!wasFavorited)
+                } else {
+                    // Non-network error (auth, server, etc.): roll back
+                    _favoriteIds.value = if (wasFavorited) _favoriteIds.value + listingId else _favoriteIds.value - listingId
+                    favoritesCache.saveFavoriteIds(_favoriteIds.value)
+                    res
+                }
             }
         }
     }
@@ -167,14 +189,46 @@ class HomeFeedViewModel @Inject constructor(
             try {
                 when (val res = wishlistRepository.getWishlist()) {
                     is ApiResult.Success -> {
-                        _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+                        val serverIds = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+                        _favoriteIds.value = serverIds
+                        favoritesCache.saveFavoriteIds(serverIds)
                     }
                     is ApiResult.Failure -> {
-                        // Non-blocking: keep last known favorites (no silent fake fallback).
-                        if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
+                        if (res.error is ApiError.Unauthorized) {
+                            _favoriteIds.value = emptySet()
+                            favoritesCache.saveFavoriteIds(emptySet())
+                        }
+                        // On network error: keep cached favorites (already loaded in init)
                     }
                 }
-            } catch (_: Exception) { /* keep last known favorites */ }
+            } catch (_: Exception) { /* keep last known favorites from cache */ }
+        }
+    }
+
+    /**
+     * Replay any pending toggle operations that failed due to network errors.
+     * Called when network becomes available (auth state changes to authenticated).
+     */
+    private suspend fun syncPendingToggles() {
+        val pending = favoritesCache.getPendingToggles()
+        if (pending.isEmpty()) return
+
+        Timber.d("Syncing ${pending.size} pending favorite toggles")
+        for (propertyId in pending) {
+            try {
+                val isFavorited = _favoriteIds.value.contains(propertyId)
+                val res = if (isFavorited) {
+                    wishlistRepository.addToWishlist(propertyId = propertyId)
+                } else {
+                    wishlistRepository.removeFromWishlist(propertyId = propertyId)
+                }
+                if (res is ApiResult.Success) {
+                    favoritesCache.removePendingToggle(propertyId)
+                }
+                // If still failing, leave it in queue for next sync
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to sync pending toggle for $propertyId")
+            }
         }
     }
 
