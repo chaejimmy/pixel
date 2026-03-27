@@ -106,21 +106,16 @@ class HomeFeedViewModel @Inject constructor(
             "fitness", "learning", "creative",
         )
 
-        /** Map UI category chip names to backend subCategory keywords (iOS/web parity). */
+        /** Map UI category chip names to backend subCategory keywords (iOS parity). */
         private val CATEGORY_TO_KEYWORD = mapOf(
-            "Entire Home" to "entire_home",
-            "Private Room" to "private_room",
             "Restroom" to "restroom",
             "Nap Pod" to "nap_pod",
             "Meeting Room" to "meeting_room",
-            "Workspace" to "workspace",
-            "EV Parking" to "ev_parking",
-            "Study Room" to "study_room",
+            "Gym" to "gym",
             "Short Stay" to "short_stay",
-            "Apartment" to "apartment",
+            "WIFI" to "wifi",
             "Parking" to "parking",
-            "Luxury Room" to "luxury_room",
-            "Storage" to "storage",
+            "Storage Space" to "storage_space",
         )
     }
 
