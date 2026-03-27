@@ -58,11 +58,23 @@ fun HomeScreen(
     onListingClick: (HomeListingItem) -> Unit,
     onSearchClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
-    onCategoryFilterClick: (String) -> Unit = {}
+    onCategoryFilterClick: (String) -> Unit = {},
+    onShowAuthSheet: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val selectedCategoryFilter = uiState.selectedCategory
 
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is HomeViewModel.Effect.ShowAuthRequired -> onShowAuthSheet()
+                is HomeViewModel.Effect.ShowToast -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -197,6 +209,11 @@ fun HomeScreen(
                 }
             }
         }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
     }
 }
 
@@ -742,7 +759,9 @@ private fun ListingSection(
                 items(items) { item ->
                     ListingCard(
                         item = item,
-                        onClick = { onItemClick(item) }
+                        isFavorite = viewModel.isFavorite(item.id),
+                        onClick = { onItemClick(item) },
+                        onFavoriteClick = { viewModel.toggleFavorite(item.id) }
                     )
                 }
             }
@@ -758,7 +777,9 @@ private fun ListingSection(
 @Composable
 private fun ListingCard(
     item: HomeListingItem,
-    onClick: () -> Unit
+    isFavorite: Boolean = false,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit = {}
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -858,13 +879,14 @@ private fun ListingCard(
                         .padding(12.dp)
                         .size(34.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.30f)
+                    color = Color.Black.copy(alpha = 0.30f),
+                    onClick = onFavoriteClick
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = "Add to favorites",
-                            tint = Color.White,
+                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                     }
