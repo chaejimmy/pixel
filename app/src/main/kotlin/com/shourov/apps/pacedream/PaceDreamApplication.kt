@@ -12,6 +12,7 @@ import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.notification.OneSignalService
+import com.shourov.apps.pacedream.notification.PaceDreamNotificationService
 import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,12 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var oneSignalService: OneSignalService
+
+    // Eagerly inject so notification channels are created at app startup.
+    // Without this, background FCM notifications can arrive before channels exist
+    // (e.g., after fresh install or data clear) and get silently dropped on Android 8+.
+    @Inject
+    lateinit var notificationService: PaceDreamNotificationService
 
     override fun onCreate() {
         super.onCreate()

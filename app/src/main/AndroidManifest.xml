@@ -140,6 +140,19 @@
             </intent-filter>
         </receiver>
 
+        <!-- FCM default notification channel for background notifications (Android 8+).
+             Without this, notification+data payloads delivered while app is in background
+             are silently dropped because FCM has no channel to post them on. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="messages" />
+
+        <!-- FCM default notification icon for background notifications.
+             Without this, the launcher icon is used which renders as a white square. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
         <!-- Firebase Messaging Service -->
         <service
             android:name=".notification.PaceDreamFirebaseMessagingService"
