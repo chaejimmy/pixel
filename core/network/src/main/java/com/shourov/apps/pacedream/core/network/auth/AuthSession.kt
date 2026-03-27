@@ -31,21 +31,22 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.HttpUrl
 import timber.log.Timber
-import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 /**
  * AuthSession - Manages authentication state matching iOS behavior
- * 
+ *
  * On app launch:
  * - Load tokens; if accessToken exists mark authenticated=true immediately
  * - Then attempt GET /v1/account/me to fetch profile
  * - If 401: attempt refresh, if fails sign out
  * - If non-401 error: keep token, show cached user
+ *
+ * Provided by [com.shourov.apps.pacedream.core.network.di.NetworkModule].
  */
 @Singleton
-class AuthSession @Inject constructor(
+class AuthSession constructor(
     private val tokenStorage: TokenStorage,
     private val appConfig: AppConfig,
     private val json: Json

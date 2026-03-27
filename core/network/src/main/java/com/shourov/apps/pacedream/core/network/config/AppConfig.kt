@@ -3,19 +3,20 @@ package com.shourov.apps.pacedream.core.network.config
 import com.shourov.apps.pacedream.core.network.BuildConfig
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * AppConfig - Configuration management matching iOS conventions
- * 
+ *
  * Handles URL normalization for backend and frontend URLs:
  * - Read BACKEND_BASE_URL from config (BuildConfig field). Support fallback key PD_BACKEND_BASE_URL if present.
  * - Normalize into apiBaseUrl = https://<host>/v1 (append /v1 exactly once, remove trailing slashes, ensure scheme exists default https).
  * - Also read FRONTEND_BASE_URL (fallback PD_FRONTEND_BASE_URL) default https://www.pacedream.com (NO /v1).
+ *
+ * Provided by [com.shourov.apps.pacedream.core.network.di.NetworkModule].
  */
 @Singleton
-class AppConfig @Inject constructor() {
+class AppConfig constructor() {
     
     /**
      * The normalized API base URL with /v1 suffix
