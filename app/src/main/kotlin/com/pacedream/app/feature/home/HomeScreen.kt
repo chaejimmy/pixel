@@ -126,8 +126,10 @@ fun HomeScreen(
                         subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
                         items = uiState.filteredHourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
+                        favoriteIds = uiState.favoriteListingIds,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -141,8 +143,10 @@ fun HomeScreen(
                         subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
                         items = uiState.filteredRentGear,
                         isLoading = uiState.isLoadingRentGear,
+                        favoriteIds = uiState.favoriteListingIds,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -156,8 +160,10 @@ fun HomeScreen(
                         subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
                         items = uiState.filteredSplitStays,
                         isLoading = uiState.isLoadingSplitStays,
+                        favoriteIds = uiState.favoriteListingIds,
                         onViewAllClick = { onSectionViewAll("split-stays") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -730,8 +736,10 @@ private fun ListingSection(
     subtitle: String,
     items: List<HomeListingItem>,
     isLoading: Boolean,
+    favoriteIds: Set<String>,
     onViewAllClick: () -> Unit,
     onItemClick: (HomeListingItem) -> Unit,
+    onFavoriteClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -759,9 +767,9 @@ private fun ListingSection(
                 items(items) { item ->
                     ListingCard(
                         item = item,
-                        isFavorite = viewModel.isFavorite(item.id),
+                        isFavorite = item.id in favoriteIds,
                         onClick = { onItemClick(item) },
-                        onFavoriteClick = { viewModel.toggleFavorite(item.id) }
+                        onFavoriteClick = { onFavoriteClick(item.id) }
                     )
                 }
             }
