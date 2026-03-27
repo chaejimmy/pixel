@@ -125,8 +125,20 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (sessionManager.authState.value != AuthState.Authenticated) return@launch
 
-            val url = appConfig.buildApiUrl("account", "wishlist")
-            when (val result = apiClient.get(url, includeAuth = true)) {
+            // Try primary endpoint first (matches iOS), fallback to legacy
+            val primaryUrl = appConfig.buildApiUrl("wishlists")
+            val primary = apiClient.get(primaryUrl, includeAuth = true)
+            if (primary is ApiResult.Success) {
+                val ids = parseFavoriteIds(primary.data)
+                if (ids.isNotEmpty()) {
+                    _uiState.update { it.copy(favoriteListingIds = ids) }
+                    return@launch
+                }
+            }
+
+            // Fallback to legacy endpoint
+            val fallbackUrl = appConfig.buildApiUrl("account", "wishlist")
+            when (val result = apiClient.get(fallbackUrl, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val ids = parseFavoriteIds(result.data)
                     _uiState.update { it.copy(favoriteListingIds = ids) }
@@ -154,16 +166,38 @@ class HomeViewModel @Inject constructor(
                 ?: obj["wishlist"]?.jsonArray
                 ?: return emptySet()
 
-            itemsArray.mapNotNull { item ->
+            val ids = mutableSetOf<String>()
+            for (item in itemsArray) {
                 try {
                     val itemObj = item.jsonObject
-                    val listingData = itemObj["listing"]?.jsonObject
-                        ?: itemObj["item"]?.jsonObject
-                        ?: itemObj
-                    listingData["_id"]?.jsonPrimitive?.content
-                        ?: listingData["id"]?.jsonPrimitive?.content
-                } catch (_: Exception) { null }
-            }.toSet()
+                    // Backend returns wishlists with nested rooms arrays:
+                    // { _id: "wishlist_id", name: "Favorites", rooms: [{ _id: "listing_id", ... }] }
+                    // We need the room/listing IDs, not the wishlist IDs.
+                    val rooms = (itemObj["rooms"] as? JsonArray)
+                        ?: (itemObj["properties"] as? JsonArray)
+                        ?: (itemObj["items"] as? JsonArray)
+                        ?: (itemObj["listings"] as? JsonArray)
+                    if (rooms != null) {
+                        for (room in rooms) {
+                            try {
+                                val roomObj = room.jsonObject
+                                val roomId = roomObj["_id"]?.jsonPrimitive?.content
+                                    ?: roomObj["id"]?.jsonPrimitive?.content
+                                if (roomId != null) ids.add(roomId)
+                            } catch (_: Exception) { /* skip malformed room */ }
+                        }
+                    } else {
+                        // Flat item (not a wishlist wrapper) — extract ID directly
+                        val listingData = itemObj["listing"]?.jsonObject
+                            ?: itemObj["item"]?.jsonObject
+                            ?: itemObj
+                        val id = listingData["_id"]?.jsonPrimitive?.content
+                            ?: listingData["id"]?.jsonPrimitive?.content
+                        if (id != null) ids.add(id)
+                    }
+                } catch (_: Exception) { /* skip malformed item */ }
+            }
+            ids
         } catch (_: Exception) { emptySet() }
     }
 
