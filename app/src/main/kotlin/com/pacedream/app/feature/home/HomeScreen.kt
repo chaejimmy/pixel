@@ -106,6 +106,14 @@ fun HomeScreen(
                 }
             }
 
+            // ── Extended Categories (iOS parity) ──
+            item {
+                ExtendedCategoriesSection(
+                    onCategoryClick = onCategoryClick,
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+            }
+
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
@@ -489,17 +497,17 @@ private fun CategoryTab(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Categories Row (iOS parity: horizontal chip row with gradient icons)
+// Extended Categories Section (iOS parity: horizontal chip row with gradient icons)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun QuickCategoriesRow(
+private fun ExtendedCategoriesSection(
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
-            title = "Explore Categories",
+            title = "Categories",
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -586,9 +594,14 @@ private data class CategoryCardData(
 
 private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
-        CategoryCardData("Spaces", PaceDreamIcons.Home, Color(0xFF3B82F6)),
-        CategoryCardData("Items", PaceDreamIcons.Storage, Color(0xFF10B981)),
-        CategoryCardData("Services", PaceDreamIcons.Business, Color(0xFF8B5CF6))
+        CategoryCardData("Rest Room", PaceDreamIcons.Wc, Color(0xFF3B82F6)),
+        CategoryCardData("Time-Based", PaceDreamIcons.Schedule, Color(0xFF5527D7)),
+        CategoryCardData("Parking", PaceDreamIcons.LocalParking, Color(0xFFF59E0B)),
+        CategoryCardData("Items", PaceDreamIcons.Build, Color(0xFF10B981)),
+        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, Color(0xFFEC4899)),
+        CategoryCardData("Meeting Rooms", PaceDreamIcons.MeetingRoom, Color(0xFF8B5CF6)),
+        CategoryCardData("Workspace", PaceDreamIcons.Laptop, Color(0xFF5527D7)),
+        CategoryCardData("Storage", PaceDreamIcons.Storage, Color(0xFF10B981))
     )
 }
 
