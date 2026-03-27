@@ -31,9 +31,10 @@ import javax.inject.Inject
 
 /**
  * HomeViewModel - Loads 3 sections concurrently
- * 
- * iOS Parity:
- * - Fetch Hourly Spaces, Rent Gear, Split Stays in parallel
+ *
+ * iOS/Web Parity:
+ * - Fetch Spaces, Items, Services in parallel
+ * - Spaces and Services both come from shareType=USE, split by shareCategory
  * - Hide sections that fail (don't block UI)
  * - Show warning banner if any section failed
  * - Support pull to refresh
@@ -170,43 +171,56 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(selectedCategory = category) }
     }
     
+    companion object {
+        /** shareCategory values that identify service listings (matches website). */
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE"
+        )
+    }
+
     private fun loadAllSections() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
-            
-            // Fetch all sections concurrently
-            val hourlySpacesDeferred = async { fetchHourlySpaces() }
+
+            // Fetch USE listings once and split into spaces vs services (matches website)
+            val useListingsDeferred = async { fetchUseListings() }
             val rentGearDeferred = async { fetchRentGear() }
-            val splitStaysDeferred = async { fetchSplitStays() }
-            
-            // Wait for all and update state
-            val hourlySpaces = hourlySpacesDeferred.await()
+
+            val useListings = useListingsDeferred.await()
             val rentGear = rentGearDeferred.await()
-            val splitStays = splitStaysDeferred.await()
-            
+
+            // Split USE listings by shareCategory into spaces and services
+            val (spaces, services) = if (useListings.second != null) {
+                Pair(emptyList<HomeListingItem>(), emptyList<HomeListingItem>())
+            } else {
+                useListings.first.partition { it.shareCategory !in SERVICE_SHARE_CATEGORIES }
+            }
+
             _uiState.update {
                 it.copy(
                     isRefreshing = false,
                     isLoadingHourlySpaces = false,
                     isLoadingRentGear = false,
                     isLoadingSplitStays = false,
-                    hourlySpaces = hourlySpaces.first,
+                    hourlySpaces = spaces,
                     rentGear = rentGear.first,
-                    splitStays = splitStays.first,
-                    hourlySpacesError = hourlySpaces.second,
+                    splitStays = services,
+                    hourlySpacesError = useListings.second,
                     rentGearError = rentGear.second,
-                    splitStaysError = splitStays.second
+                    splitStaysError = useListings.second
                 )
             }
         }
     }
     
     /**
-     * Fetch hourly spaces (USE share type - matches website endpoint)
+     * Fetch all USE-type listings (shareType=USE).
+     * The caller splits results into spaces vs services by shareCategory.
      * GET /v1/poc/listings?shareType=USE&status=published&limit=24&skip_pagination=true
      */
-    private suspend fun fetchHourlySpaces(): Pair<List<HomeListingItem>, String?> {
-        _uiState.update { it.copy(isLoadingHourlySpaces = true) }
+    private suspend fun fetchUseListings(): Pair<List<HomeListingItem>, String?> {
+        _uiState.update { it.copy(isLoadingHourlySpaces = true, isLoadingSplitStays = true) }
 
         val url = appConfig.buildApiUrl(
             "poc", "listings",
@@ -224,7 +238,7 @@ class HomeViewModel @Inject constructor(
                 Pair(items, null)
             }
             is ApiResult.Failure -> {
-                Timber.w("Failed to fetch hourly spaces: ${result.error.message}")
+                Timber.w("Failed to fetch USE listings: ${result.error.message}")
                 Pair(emptyList(), result.error.message)
             }
         }
@@ -254,35 +268,6 @@ class HomeViewModel @Inject constructor(
             }
             is ApiResult.Failure -> {
                 Timber.w("Failed to fetch rent gear: ${result.error.message}")
-                Pair(emptyList(), result.error.message)
-            }
-        }
-    }
-
-    /**
-     * Fetch split stays (SPLIT share type - matches website endpoint)
-     * GET /v1/poc/listings?shareType=SPLIT&status=published&limit=24&skip_pagination=true
-     */
-    private suspend fun fetchSplitStays(): Pair<List<HomeListingItem>, String?> {
-        _uiState.update { it.copy(isLoadingSplitStays = true) }
-
-        val url = appConfig.buildApiUrl(
-            "poc", "listings",
-            queryParams = mapOf(
-                "shareType" to "SPLIT",
-                "status" to "published",
-                "limit" to "24",
-                "skip_pagination" to "true"
-            )
-        )
-
-        return when (val result = apiClient.get(url, includeAuth = false)) {
-            is ApiResult.Success -> {
-                val items = parseListingsFromResponse(result.data, "split-stay")
-                Pair(items, null)
-            }
-            is ApiResult.Failure -> {
-                Timber.w("Failed to fetch split stays: ${result.error.message}")
                 Pair(emptyList(), result.error.message)
             }
         }
@@ -334,7 +319,8 @@ class HomeViewModel @Inject constructor(
                         },
                         price = parsePrice(itemObj),
                         rating = (itemObj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull,
-                        type = type
+                        type = type,
+                        shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                     )
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to parse listing item")
