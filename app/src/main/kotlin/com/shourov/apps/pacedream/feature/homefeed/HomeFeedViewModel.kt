@@ -109,8 +109,20 @@ class HomeFeedViewModel @Inject constructor(
         /** Subcategory IDs that identify service listings. */
         private val SERVICE_SUBCATEGORY_IDS = setOf(
             "home_help", "moving_help", "cleaning_organizing", "everyday_help",
-            "fitness", "learning", "creative",
+            "fitness", "learning", "creative", "other_service",
         )
+
+        /** Service shareCategory values (uppercase) from backend taxonomy. */
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE",
+        )
+
+        private fun isServiceListing(card: HomeCard): Boolean {
+            if (card.shareCategory?.uppercase() in SERVICE_SHARE_CATEGORIES) return true
+            if (card.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS) return true
+            return false
+        }
 
         /** Map UI category chip names to backend subCategory keywords (iOS parity). */
         private val CATEGORY_TO_KEYWORD = mapOf(
@@ -242,10 +254,10 @@ class HomeFeedViewModel @Inject constructor(
                             // use shareType=SHARE, so we separate them by subcategory.
                             val filtered = when (key) {
                                 HomeSectionKey.SERVICES -> res.data.filter {
-                                    it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                                    isServiceListing(it)
                                 }
                                 HomeSectionKey.SPACES -> res.data.filter {
-                                    it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                    !isServiceListing(it)
                                 }
                                 else -> res.data
                             }
