@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -81,9 +82,27 @@ class FcmTokenRegistrar @Inject constructor(
                 } catch (_: Exception) { "" }
             )
 
-            val onesignalId = oneSignalService.getSubscriptionId()
+            // Wait for OneSignal subscription ID with retry.
+            // OneSignal SDK may not have finished initializing when this runs
+            // during Application.onCreate(). Poll with backoff to avoid sending
+            // a registration without the player ID.
+            var onesignalId = oneSignalService.getSubscriptionId()
+            if (onesignalId == null) {
+                Timber.d("OneSignal subscriptionId not ready, waiting...")
+                val delays = listOf(500L, 1000L, 2000L, 3000L)
+                for (d in delays) {
+                    delay(d)
+                    onesignalId = oneSignalService.getSubscriptionId()
+                    if (onesignalId != null) {
+                        Timber.d("OneSignal subscriptionId became available after polling: %s", onesignalId)
+                        break
+                    }
+                }
+            }
             if (onesignalId != null) {
                 Timber.d("Including OneSignal subscriptionId=%s", onesignalId)
+            } else {
+                Timber.w("Registering FCM token without OneSignal subscriptionId (backend will register server-side)")
             }
 
             val body = json.encodeToString(
