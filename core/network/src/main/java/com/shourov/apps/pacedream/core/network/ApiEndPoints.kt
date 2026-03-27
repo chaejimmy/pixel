@@ -89,6 +89,7 @@ object ApiEndPoints {
     const val REMOVE_FROM_COLLECTION = "collections/{collectionId}/items/{itemId}"
 
     // ── Listings (iOS ListingService parity) ───────────────
+    const val GET_LISTINGS = "listings" // iOS: GET /listings with shareType, page, limit
     const val CREATE_LISTING = "listings" // iOS: POST /listings with Bearer auth
     const val GET_LISTING_BY_ID = "listings/{listingId}"
 

@@ -272,10 +272,20 @@ fun BrowseByTypeSection(
                                     splitStaysState.splitStays.take(6),
                                     key = { it._id ?: it.hashCode() }
                                 ) { stay ->
+                                    val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
+                                        when {
+                                            unit.contains("hour") || unit == "hr" -> "hr"
+                                            unit.contains("day") -> "day"
+                                            unit.contains("week") -> "wk"
+                                            unit.contains("month") -> "mo"
+                                            unit == "once" || unit == "total" -> "total"
+                                            else -> unit
+                                        }
+                                    } ?: "hr"
                                     UnifiedListingCard(
                                         title = stay.name ?: "Service",
                                         subtitle = stay.location ?: stay.city ?: "Location",
-                                        price = "$${stay.price ?: "0"} total",
+                                        price = "$${stay.price?.toInt() ?: "0"}/$priceUnit",
                                         rating = stay.rating?.toDouble(),
                                         imageUrl = stay.images?.firstOrNull(),
                                         accentColor = selectedType.gradientColors.first(),

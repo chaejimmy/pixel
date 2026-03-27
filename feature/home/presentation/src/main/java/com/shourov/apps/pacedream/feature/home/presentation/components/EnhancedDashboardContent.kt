@@ -329,10 +329,20 @@ private fun FeaturedListingsSection(
                             splitStaysState.splitStays.take(10),
                             key = { it._id ?: it.hashCode() }
                         ) { stay ->
+                            val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
+                                when {
+                                    unit.contains("hour") || unit == "hr" -> "hr"
+                                    unit.contains("day") -> "day"
+                                    unit.contains("week") -> "wk"
+                                    unit.contains("month") -> "mo"
+                                    unit == "once" || unit == "total" -> "total"
+                                    else -> unit
+                                }
+                            } ?: "hr"
                             PaceDreamPropertyCard(
                                 title = stay.name ?: "Service",
                                 location = stay.location ?: stay.city ?: "Location",
-                                price = "$${stay.price ?: "0"} total",
+                                price = "$${stay.price?.toInt() ?: "0"}/$priceUnit",
                                 rating = stay.rating?.toDouble() ?: 0.0,
                                 reviewCount = stay.reviewCount ?: 0,
                                 imageUrl = stay.images?.firstOrNull(),
