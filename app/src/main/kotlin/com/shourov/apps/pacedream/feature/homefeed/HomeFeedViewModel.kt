@@ -277,7 +277,7 @@ class HomeFeedViewModel @Inject constructor(
                         is ApiResult.Success -> {
                             // Exclude service listings from Spaces section
                             val spacesOnly = res.data.filter {
-                                it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                !isServiceListing(it)
                             }
                             section.copy(items = spacesOnly, isLoading = false, errorMessage = null)
                         }

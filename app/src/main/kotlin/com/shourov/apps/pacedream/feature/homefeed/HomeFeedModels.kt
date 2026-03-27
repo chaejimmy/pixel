@@ -14,9 +14,9 @@ data class HomeCard(
 )
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
-    SPACES("Spaces", "SHARE"),
+    SPACES("Spaces", "USE"),
     ITEMS("Items", "BORROW"),
-    SERVICES("Services", "SHARE"),
+    SERVICES("Services", "USE"),
 }
 
 data class HomeSection(
