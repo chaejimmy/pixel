@@ -49,22 +49,26 @@ class StripeConnectRepository @Inject constructor(
         Timber.d("[Earnings] Fetching dashboard from /host/earnings/dashboard")
         return try {
             val response = hostApiService.getEarningsDashboard()
-            Timber.d("[Earnings] Dashboard response: status=${response.code()}")
+            val code = response.code()
+            Timber.d("[Earnings] Dashboard response: status=$code")
             if (response.isSuccessful) {
                 val rawJson = response.body()
                 if (rawJson == null || !rawJson.isJsonObject) {
-                    Timber.w("[Earnings] Dashboard response body is null or not an object")
+                    Timber.w("[Earnings] Dashboard response body is null or not an object, raw=$rawJson")
                     return Result.success(EarningsDashboardResponse())
                 }
 
                 val root = rawJson.asJsonObject
+                Timber.d("[Earnings] Raw response keys: ${root.keySet()}")
 
                 // Unwrap data envelope if present (some backends wrap like { data: { ... } })
                 val json: JsonObject = if (root.has("stripe") || root.has("balances")) {
                     root
                 } else if (root.has("data") && root.get("data").isJsonObject) {
+                    Timber.d("[Earnings] Unwrapping data envelope")
                     root.getAsJsonObject("data")
                 } else {
+                    Timber.d("[Earnings] No stripe/balances/data keys found, using root")
                     root
                 }
 
@@ -81,17 +85,18 @@ class StripeConnectRepository @Inject constructor(
                 )
                 Result.success(dashboard)
             } else {
-                val code = response.code()
                 val errorMsg = if (code == 401) {
                     "401 Unauthorized"
                 } else {
-                    extractErrorMessage(response, "Failed to fetch earnings dashboard")
+                    val serverMsg = extractErrorMessage(response, "")
+                    val detail = if (serverMsg.isNotBlank()) serverMsg else "HTTP $code"
+                    Timber.e("[Earnings] Dashboard failed: $code - $detail")
+                    detail
                 }
-                Timber.e("[Earnings] Dashboard failed: $code - $errorMsg")
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Timber.e(e, "[Earnings] Dashboard request exception")
+            Timber.e(e, "[Earnings] Dashboard request exception: ${e.javaClass.simpleName}: ${e.message}")
             Result.failure(e)
         }
     }
