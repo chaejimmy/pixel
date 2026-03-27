@@ -63,32 +63,32 @@ class WishlistRepository @Inject constructor(
      * Fetch wishlist items with tolerant parsing
      */
     suspend fun getWishlist(): ApiResult<List<WishlistItem>> {
-        val primaryUrl = appConfig.buildApiUrl("wishlists")
+        // Primary: /account/wishlist (matches iOS, single auth layer)
+        val primaryUrl = appConfig.buildApiUrl("account", "wishlist")
 
         val primary = apiClient.get(primaryUrl, includeAuth = true)
         if (primary is ApiResult.Success) {
             try {
-                val items = parseWishlistsEndpointResponse(primary.data)
+                val items = parseWishlistResponse(primary.data)
                 return ApiResult.Success(items)
             } catch (e: Exception) {
-                Timber.e(e, "Failed to parse /wishlists response; falling back to /account/wishlist")
+                Timber.e(e, "Failed to parse /account/wishlist response; falling back to /wishlists")
             }
         }
 
-        // Fallback to legacy endpoint only when primary fails or can't be parsed.
-        val fallbackUrl = appConfig.buildApiUrl("account", "wishlist")
+        // Fallback to /wishlists endpoint
+        val fallbackUrl = appConfig.buildApiUrl("wishlists")
         return when (val fallback = apiClient.get(fallbackUrl, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val items = parseWishlistResponse(fallback.data)
+                    val items = parseWishlistsEndpointResponse(fallback.data)
                     ApiResult.Success(items)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse legacy wishlist response")
+                    Timber.e(e, "Failed to parse /wishlists response")
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse wishlist", e))
                 }
             }
             is ApiResult.Failure -> {
-                // Prefer the primary error if we have it; otherwise return fallback error.
                 (primary as? ApiResult.Failure) ?: fallback
             }
         }
@@ -165,21 +165,34 @@ class WishlistRepository @Inject constructor(
         listingId: String? = null,
         type: WishlistItemType? = null
     ): ApiResult<ToggleResult> {
-        val url = appConfig.buildApiUrl("wishlists", "toggle")
-        
-        // Build request body - send propertyId (server primary key) plus itemId/listingId
+        // Build request body matching iOS: { itemId, listingId, type }
         val bodyMap = mutableMapOf<String, String>()
-        bodyMap["propertyId"] = itemId
         bodyMap["itemId"] = itemId
-        listingId?.let { bodyMap["listingId"] = it }
-        type?.let { bodyMap["type"] = it.apiValue }
-        
+        bodyMap["listingId"] = listingId ?: itemId
+        bodyMap["type"] = type?.apiValue ?: "listing"
+
         val body = buildJsonBody(bodyMap)
-        
-        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+
+        // Primary: use /account/wishlist/toggle (matches iOS, single auth layer)
+        val primaryUrl = appConfig.buildApiUrl("account", "wishlist", "toggle")
+        val primary = apiClient.post(primaryUrl, body, includeAuth = true)
+        if (primary is ApiResult.Success) {
+            try {
+                val toggleResult = parseToggleResponse(primary.data)
+                if (toggleResult.success) notifyChanged()
+                return ApiResult.Success(toggleResult)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to parse /account/wishlist/toggle response")
+            }
+        }
+
+        // Fallback: /wishlists/toggle (legacy endpoint)
+        val fallbackUrl = appConfig.buildApiUrl("wishlists", "toggle")
+        val fallbackBody = buildJsonBody(bodyMap + ("propertyId" to itemId))
+        return when (val fallback = apiClient.post(fallbackUrl, fallbackBody, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val toggleResult = parseToggleResponse(result.data)
+                    val toggleResult = parseToggleResponse(fallback.data)
                     if (toggleResult.success) notifyChanged()
                     ApiResult.Success(toggleResult)
                 } catch (e: Exception) {
@@ -187,7 +200,7 @@ class WishlistRepository @Inject constructor(
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse toggle result", e))
                 }
             }
-            is ApiResult.Failure -> result
+            is ApiResult.Failure -> (primary as? ApiResult.Failure) ?: fallback
         }
     }
     
