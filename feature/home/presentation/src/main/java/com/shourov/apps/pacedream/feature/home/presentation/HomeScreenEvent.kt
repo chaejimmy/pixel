@@ -35,6 +35,11 @@ sealed class HomeScreenEvent {
     ) : HomeScreenEvent()
     
     /**
+     * Toggle favorite/wishlist for a listing
+     */
+    data class ToggleFavorite(val propertyId: String) : HomeScreenEvent()
+
+    /**
      * Navigation events for View All
      */
     data class NavigateToSection(val section: String) : HomeScreenEvent()

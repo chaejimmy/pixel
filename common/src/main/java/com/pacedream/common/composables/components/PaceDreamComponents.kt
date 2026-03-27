@@ -354,6 +354,8 @@ fun PaceDreamPropertyCard(
     rating: Double,
     reviewCount: Int,
     imageUrl: String? = null,
+    isFavorite: Boolean = false,
+    onFavoriteClick: (() -> Unit)? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -369,14 +371,37 @@ fun PaceDreamPropertyCard(
         shape = cardShape
     ) {
         Column {
-            // Property Image
-            PaceDreamPropertyImage(
-                imageUrl = imageUrl,
-                contentDescription = "Property image: $title",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamPropertyCard.ImageHeight)
-            )
+            // Property Image with Favorite overlay
+            Box {
+                PaceDreamPropertyImage(
+                    imageUrl = imageUrl,
+                    contentDescription = "Property image: $title",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(PaceDreamPropertyCard.ImageHeight)
+                )
+
+                if (onFavoriteClick != null) {
+                    IconButton(
+                        onClick = onFavoriteClick,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(PaceDreamSpacing.XS)
+                            .size(36.dp)
+                            .background(
+                                Color.White.copy(alpha = 0.9f),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) PaceDreamColors.Error else PaceDreamTextSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
 
             // Property Details — consistent spacing and alignment
             Column(
