@@ -410,12 +410,17 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Marketplace-aligned categories matching PaceDream's product structure
+    // Category chips matching iOS defaultWebCategoryChips order
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-        Triple("Spaces", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
-        Triple("Items", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
-        Triple("Services", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business)
+        Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
+        Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
+        Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
+        Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
+        Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+        Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
+        Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
+        Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
     )
 
     Column(modifier = modifier) {
