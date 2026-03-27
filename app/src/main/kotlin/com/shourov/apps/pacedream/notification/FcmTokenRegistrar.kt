@@ -45,15 +45,19 @@ class FcmTokenRegistrar @Inject constructor(
      * Safe to call on every app start; deduplicates via FcmTokenStore.
      */
     fun registerCurrentToken() {
-        FirebaseMessaging.getInstance().token
-            .addOnSuccessListener { token ->
-                Timber.d("FCM token retrieved: %s...", token.take(10))
-                fcmTokenStore.saveToken(token)
-                scope.launch { sendTokenToServer(token) }
-            }
-            .addOnFailureListener { e ->
-                Timber.e(e, "Failed to retrieve FCM token")
-            }
+        try {
+            FirebaseMessaging.getInstance().token
+                .addOnSuccessListener { token ->
+                    Timber.d("FCM token retrieved: %s...", token.take(10))
+                    fcmTokenStore.saveToken(token)
+                    scope.launch { sendTokenToServer(token) }
+                }
+                .addOnFailureListener { e ->
+                    Timber.e(e, "Failed to retrieve FCM token")
+                }
+        } catch (e: Exception) {
+            Timber.e(e, "Firebase not available; skipping FCM token registration")
+        }
     }
 
     private suspend fun sendTokenToServer(token: String) {

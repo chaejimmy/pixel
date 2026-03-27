@@ -27,7 +27,6 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 import javax.inject.Singleton
 import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 
@@ -39,9 +38,11 @@ import com.shourov.apps.pacedream.core.network.auth.TokenStorage
  * - Status mapping: Proper error handling for all HTTP status codes
  * - In-flight GET de-dup: Share results for identical in-flight GET requests
  * - 401 handling: Attempt refresh once (no auth header) then retry original request once (iOS parity)
+ *
+ * Provided by [com.shourov.apps.pacedream.core.network.di.NetworkModule].
  */
 @Singleton
-class ApiClient @Inject constructor(
+class ApiClient constructor(
     private val appConfig: AppConfig,
     private val json: Json,
     private val tokenProvider: TokenProvider
