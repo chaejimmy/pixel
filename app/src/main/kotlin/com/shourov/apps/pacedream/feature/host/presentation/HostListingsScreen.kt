@@ -192,7 +192,7 @@ fun HostListingCard(
             ) {
                 if (listing.images.isNotEmpty()) {
                     AsyncImage(
-                        model = listing.images.first(),
+                        model = listing.images.firstOrNull()?.takeIf { it.isNotBlank() },
                         contentDescription = listing.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),

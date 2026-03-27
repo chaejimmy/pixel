@@ -22,7 +22,7 @@ data class Thread(
         get() = opponent?.name ?: "Unknown"
     
     val avatarUrl: String?
-        get() = opponent?.avatar
+        get() = opponent?.avatar?.takeIf { it.isNotBlank() }
     
     val lastMessagePreview: String
         get() = lastMessage?.text?.take(100) ?: ""

@@ -150,8 +150,12 @@ fun StripeConnectOnboardingScreen(
                     Button(
                         onClick = {
                             viewModel.startOnboarding { url ->
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                context.startActivity(intent)
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    viewModel.clearError()
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Accent),
@@ -177,8 +181,12 @@ fun StripeConnectOnboardingScreen(
                     Button(
                         onClick = {
                             viewModel.openDashboard { url ->
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                context.startActivity(intent)
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    viewModel.clearError()
+                                }
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),

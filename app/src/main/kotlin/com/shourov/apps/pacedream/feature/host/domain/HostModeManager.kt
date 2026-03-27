@@ -65,19 +65,34 @@ class HostModeManager @Inject constructor(
     val isBackendHost: StateFlow<Boolean> = _isBackendHost.asStateFlow()
 
     private fun loadHostMode(): Boolean {
-        val value = prefs.getBoolean(KEY_HOST_MODE, false)
-        Timber.d("[HostMode] loadHostMode=$value")
-        return value
+        return try {
+            val value = prefs.getBoolean(KEY_HOST_MODE, false)
+            Timber.d("[HostMode] loadHostMode=$value")
+            value
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to read host mode pref, defaulting to false")
+            false
+        }
     }
 
     private fun loadHostVerified(): Boolean {
-        val value = prefs.getBoolean(KEY_HOST_VERIFIED, false)
-        Timber.d("[HostMode] loadHostVerified=$value")
-        return value
+        return try {
+            val value = prefs.getBoolean(KEY_HOST_VERIFIED, false)
+            Timber.d("[HostMode] loadHostVerified=$value")
+            value
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to read host verified pref, defaulting to false")
+            false
+        }
     }
 
     private fun loadBackendHost(): Boolean {
-        return prefs.getBoolean(KEY_BACKEND_HOST, false)
+        return try {
+            prefs.getBoolean(KEY_BACKEND_HOST, false)
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to read backend host pref, defaulting to false")
+            false
+        }
     }
 
     /**
@@ -93,7 +108,11 @@ class HostModeManager @Inject constructor(
     fun setHostMode(enabled: Boolean) {
         Timber.d("[HostMode] setHostMode: $enabled (was ${_isHostMode.value})")
         _isHostMode.value = enabled
-        prefs.edit().putBoolean(KEY_HOST_MODE, enabled).apply()
+        try {
+            prefs.edit().putBoolean(KEY_HOST_MODE, enabled).apply()
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to persist host mode pref")
+        }
     }
 
     /**
@@ -135,7 +154,11 @@ class HostModeManager @Inject constructor(
     fun setHostVerified(verified: Boolean) {
         Timber.d("[HostMode] setHostVerified: $verified (was ${_isHostVerified.value})")
         _isHostVerified.value = verified
-        prefs.edit().putBoolean(KEY_HOST_VERIFIED, verified).apply()
+        try {
+            prefs.edit().putBoolean(KEY_HOST_VERIFIED, verified).apply()
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to persist host verified pref")
+        }
     }
 
     /**
@@ -162,7 +185,11 @@ class HostModeManager @Inject constructor(
     fun syncWithBackendHostStatus(isHost: Boolean) {
         val previousBackendHost = _isBackendHost.value
         _isBackendHost.value = isHost
-        prefs.edit().putBoolean(KEY_BACKEND_HOST, isHost).apply()
+        try {
+            prefs.edit().putBoolean(KEY_BACKEND_HOST, isHost).apply()
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to persist backend host pref")
+        }
 
         Timber.d("[HostMode] syncWithBackendHostStatus: isHost=$isHost, previousBackendHost=$previousBackendHost, currentMode=${_isHostMode.value}, verified=${_isHostVerified.value}")
 
@@ -194,7 +221,11 @@ class HostModeManager @Inject constructor(
         _isHostVerified.value = false
         _pendingHostRoute.value = null
         _isBackendHost.value = false
-        prefs.edit().clear().apply()
+        try {
+            prefs.edit().clear().apply()
+        } catch (e: Exception) {
+            Timber.w(e, "[HostMode] Failed to clear host mode prefs")
+        }
     }
 
     /**

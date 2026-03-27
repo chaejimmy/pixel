@@ -49,29 +49,35 @@ class HomeFeedViewModel @Inject constructor(
 
         // Keep filteredState in sync whenever raw state or selected category changes
         viewModelScope.launch {
-            kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
-                applyFilter(raw, cat)
-            }.collectLatest { filtered ->
-                _filteredState.value = filtered
-            }
+            try {
+                kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
+                    applyFilter(raw, cat)
+                }.collectLatest { filtered ->
+                    _filteredState.value = filtered
+                }
+            } catch (_: Exception) { /* filter sync failed; UI shows unfiltered state */ }
         }
 
         viewModelScope.launch {
-            authSession.authState.collectLatest { st ->
-                if (st == AuthState.Unauthenticated) {
-                    _favoriteIds.value = emptySet()
-                } else {
-                    refreshFavorites()
+            try {
+                authSession.authState.collectLatest { st ->
+                    if (st == AuthState.Unauthenticated) {
+                        _favoriteIds.value = emptySet()
+                    } else {
+                        refreshFavorites()
+                    }
                 }
-            }
+            } catch (_: Exception) { /* auth observation failed */ }
         }
 
         viewModelScope.launch {
-            wishlistRepository.changes.collectLatest {
-                if (authSession.authState.value != AuthState.Unauthenticated) {
-                    refreshFavorites()
+            try {
+                wishlistRepository.changes.collectLatest {
+                    if (authSession.authState.value != AuthState.Unauthenticated) {
+                        refreshFavorites()
+                    }
                 }
-            }
+            } catch (_: Exception) { /* wishlist observation failed */ }
         }
     }
 
@@ -146,15 +152,17 @@ class HomeFeedViewModel @Inject constructor(
 
     fun refreshFavorites() {
         viewModelScope.launch {
-            when (val res = wishlistRepository.getWishlist()) {
-                is ApiResult.Success -> {
-                    _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+            try {
+                when (val res = wishlistRepository.getWishlist()) {
+                    is ApiResult.Success -> {
+                        _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+                    }
+                    is ApiResult.Failure -> {
+                        // Non-blocking: keep last known favorites (no silent fake fallback).
+                        if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
+                    }
                 }
-                is ApiResult.Failure -> {
-                    // Non-blocking: keep last known favorites (no silent fake fallback).
-                    if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
-                }
-            }
+            } catch (_: Exception) { /* keep last known favorites */ }
         }
     }
 
@@ -163,27 +171,33 @@ class HomeFeedViewModel @Inject constructor(
     private fun loadAll(refresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
+            try {
+                if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
 
-            // Set all sections to loading if initial load
-            if (!refresh) {
-                _state.update { s ->
-                    s.copy(
-                        sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
-                        globalErrorMessage = null
-                    )
+                // Set all sections to loading if initial load
+                if (!refresh) {
+                    _state.update { s ->
+                        s.copy(
+                            sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
+                            globalErrorMessage = null
+                        )
+                    }
                 }
+
+                val hourlyDeferred = async { loadHourly() }
+                val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
+                val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
+
+                hourlyDeferred.await()
+                gearDeferred.await()
+                servicesDeferred.await()
+            } catch (_: kotlinx.coroutines.CancellationException) {
+                throw kotlinx.coroutines.CancellationException("loadAll cancelled")
+            } catch (_: Exception) {
+                _state.update { it.copy(globalErrorMessage = "Something went wrong. Pull to refresh.") }
+            } finally {
+                _state.update { it.copy(isRefreshing = false) }
             }
-
-            val hourlyDeferred = async { loadHourly() }
-            val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
-            val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
-
-            hourlyDeferred.await()
-            gearDeferred.await()
-            servicesDeferred.await()
-
-            _state.update { it.copy(isRefreshing = false) }
         }
     }
 

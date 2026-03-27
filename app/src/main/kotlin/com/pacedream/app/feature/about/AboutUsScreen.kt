@@ -168,25 +168,25 @@ fun AboutUsScreen(
                         AboutLinkItem(
                             icon = PaceDreamIcons.Language,
                             title = "Website",
-                            onClick = { uriHandler.openUri("https://www.pacedream.com") }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com") } catch (_: Exception) { } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Description,
                             title = "Terms of Service",
-                            onClick = { uriHandler.openUri("https://www.pacedream.com/terms") }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/terms") } catch (_: Exception) { } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Policy,
                             title = "Privacy Policy",
-                            onClick = { uriHandler.openUri("https://www.pacedream.com/privacy") }
+                            onClick = { try { uriHandler.openUri("https://www.pacedream.com/privacy") } catch (_: Exception) { } }
                         )
                         HorizontalDivider(color = PaceDreamColors.Border)
                         AboutLinkItem(
                             icon = PaceDreamIcons.Email,
                             title = "Contact Us",
-                            onClick = { uriHandler.openUri("mailto:support@pacedream.com") }
+                            onClick = { try { uriHandler.openUri("mailto:support@pacedream.com") } catch (_: Exception) { } }
                         )
                     }
                 }

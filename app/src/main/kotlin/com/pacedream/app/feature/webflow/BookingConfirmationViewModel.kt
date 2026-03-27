@@ -87,52 +87,59 @@ class BookingConfirmationViewModel @Inject constructor(
     
     private fun callSuccessEndpoint(sessionId: String, bookingType: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            
-            val url = when (bookingType) {
-                "gear" -> appConfig.buildApiUrl(
-                    "gear-rentals", "success", "checkout",
-                    queryParams = mapOf("session_id" to sessionId)
-                )
-                else -> appConfig.buildApiUrl(
-                    "properties", "bookings", "timebased", "success", "checkout",
-                    queryParams = mapOf("session_id" to sessionId)
-                )
-            }
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val bookingId = parseBookingId(result.data)
+            try {
+                _uiState.update { it.copy(isLoading = true, error = null) }
 
-                    // Cache confirmed booking to Room so detail view can find it
-                    if (bookingId != null) {
-                        cacheConfirmedBooking(bookingId, result.data)
+                val url = when (bookingType) {
+                    "gear" -> appConfig.buildApiUrl(
+                        "gear-rentals", "success", "checkout",
+                        queryParams = mapOf("session_id" to sessionId)
+                    )
+                    else -> appConfig.buildApiUrl(
+                        "properties", "bookings", "timebased", "success", "checkout",
+                        queryParams = mapOf("session_id" to sessionId)
+                    )
+                }
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val bookingId = parseBookingId(result.data)
+
+                        // Cache confirmed booking to Room so detail view can find it
+                        if (bookingId != null) {
+                            cacheConfirmedBooking(bookingId, result.data)
+                        }
+
+                        // Clear persisted checkout on success
+                        tokenStorage.clearCheckoutSession()
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                bookingId = bookingId,
+                                error = null
+                            )
+                        }
                     }
-
-                    // Clear persisted checkout on success
-                    tokenStorage.clearCheckoutSession()
-
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            bookingId = bookingId,
-                            error = null
-                        )
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to confirm booking: ${result.error.message}")
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to confirm booking: ${result.error.message}")
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.error.message
-                        )
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Unexpected error confirming booking")
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message ?: "An unexpected error occurred")
                 }
             }
         }
     }
-    
+
     private fun parseBookingId(responseBody: String): String? {
         return try {
             val element = json.parseToJsonElement(responseBody)

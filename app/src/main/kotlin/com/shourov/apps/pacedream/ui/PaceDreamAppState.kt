@@ -85,34 +85,38 @@ class PaceDreamAppState(
     fun navigateToUserStartDestination(
         destination: UserStartTopLevelDestination,
     ) {
-        trace(
-            label = "Navigation: ${destination.name}",
-        ) {
-            val destinationOptions = navOptions {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
+        try {
+            trace(
+                label = "Navigation: ${destination.name}",
+            ) {
+                val destinationOptions = navOptions {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
                 }
-                launchSingleTop = true
-                restoreState = true
-            }
-            when (destination) {
-                UserStartTopLevelDestination.ONBOARDING ->
-                    navController.navigateToUserOnBoardingScreen(
+                when (destination) {
+                    UserStartTopLevelDestination.ONBOARDING ->
+                        navController.navigateToUserOnBoardingScreen(
+                            destinationOptions,
+                        )
+
+                    UserStartTopLevelDestination.SIGN_IN_WITH_PHONE -> navController.navigateToSignInWithPhoneScreen(
                         destinationOptions,
                     )
 
-                UserStartTopLevelDestination.SIGN_IN_WITH_PHONE -> navController.navigateToSignInWithPhoneScreen(
-                    destinationOptions,
-                )
+                    UserStartTopLevelDestination.SIGN_IN_WITH_MAIL -> navController.navigateToEmailSignInScreen(
+                        destinationOptions,
+                    )
 
-                UserStartTopLevelDestination.SIGN_IN_WITH_MAIL -> navController.navigateToEmailSignInScreen(
-                    destinationOptions,
-                )
-
-                UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToCreateAccountScreen(
-                    destinationOptions,
-                )
+                    UserStartTopLevelDestination.ACCOUNT_SETUP -> navController.navigateToCreateAccountScreen(
+                        destinationOptions,
+                    )
+                }
             }
+        } catch (e: Exception) {
+            Timber.e(e, "navigateToUserStartDestination failed for: ${destination.name}")
         }
     }
     
@@ -121,30 +125,32 @@ class PaceDreamAppState(
      * Called when a deep link is received (booking success, booking cancelled, etc.)
      */
     fun handleDeepLink(deepLinkResult: DeepLinkResult) {
-        when (deepLinkResult) {
-            is DeepLinkResult.BookingSuccess -> {
-                val bookingType = deepLinkResult.bookingType?.name?.lowercase() ?: "time_based"
-                navController.navigate(
-                    "${BookingDestination.BOOKING_CONFIRMATION.name}/${deepLinkResult.sessionId}/$bookingType"
-                )
-            }
-            is DeepLinkResult.BookingCancelled -> {
-                navController.navigate(BookingDestination.BOOKING_CANCELLED.name)
-            }
-            is DeepLinkResult.ListingDetail -> {
-                navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.listingId}")
-            }
-            is DeepLinkResult.GearDetail -> {
-                navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
-            }
-            // iOS PR #200 parity: navigate to earnings after Stripe Connect return
-            is DeepLinkResult.StripeConnectReturn -> {
-                Timber.d("Stripe Connect return deep link received, refreshing earnings")
-                // Navigate to host earnings/payouts tab to refresh status
-                navController.navigate("host_earnings") {
-                    launchSingleTop = true
+        try {
+            when (deepLinkResult) {
+                is DeepLinkResult.BookingSuccess -> {
+                    val bookingType = deepLinkResult.bookingType?.name?.lowercase() ?: "time_based"
+                    navController.navigate(
+                        "${BookingDestination.BOOKING_CONFIRMATION.name}/${deepLinkResult.sessionId}/$bookingType"
+                    )
+                }
+                is DeepLinkResult.BookingCancelled -> {
+                    navController.navigate(BookingDestination.BOOKING_CANCELLED.name)
+                }
+                is DeepLinkResult.ListingDetail -> {
+                    navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.listingId}")
+                }
+                is DeepLinkResult.GearDetail -> {
+                    navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
+                }
+                is DeepLinkResult.StripeConnectReturn -> {
+                    Timber.d("Stripe Connect return deep link received, refreshing earnings")
+                    navController.navigate("host_earnings") {
+                        launchSingleTop = true
+                    }
                 }
             }
+        } catch (e: Exception) {
+            Timber.e(e, "handleDeepLink failed for: $deepLinkResult")
         }
     }
 }

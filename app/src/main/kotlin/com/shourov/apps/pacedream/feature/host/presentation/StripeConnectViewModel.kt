@@ -109,8 +109,15 @@ class StripeConnectViewModel @Inject constructor(
     fun refreshAccountStatus() {
         _uiState.value = _uiState.value.copy(isRefreshing = true)
         viewModelScope.launch {
-            loadConnectAccountStatus()
-            _uiState.value = _uiState.value.copy(isRefreshing = false)
+            try {
+                loadConnectAccountStatus()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = e.message ?: "Failed to refresh account status"
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isRefreshing = false)
+            }
         }
     }
 

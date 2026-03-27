@@ -113,14 +113,14 @@ class ListingDetailViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                inlineErrorMessage = result.error.message
+                                inlineErrorMessage = result.error.message ?: "Failed to load"
                             )
                         }
                     } else {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = result.error.message
+                                errorMessage = result.error.message ?: "Failed to load"
                             )
                         }
                     }
@@ -168,7 +168,7 @@ class ListingDetailViewModel @Inject constructor(
                 is ApiResult.Failure -> {
                     // Revert on failure
                     _uiState.update { it.copy(isFavorite = previous, isTogglingFavorite = false) }
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to update favorite"))
                 }
             }
         }
@@ -237,7 +237,7 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isSubmittingReview = false) }
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to submit review"))
                 }
             }
         }
@@ -288,7 +288,7 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     Timber.e("Failed to create thread: ${result.error.message}")
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to contact host"))
                 }
             }
         }

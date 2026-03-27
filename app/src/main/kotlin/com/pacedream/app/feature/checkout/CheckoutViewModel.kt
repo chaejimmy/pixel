@@ -99,7 +99,7 @@ class CheckoutViewModel @Inject constructor(
                     }
                 }
                 is ApiResult.Failure -> {
-                    _uiState.update { it.copy(isSubmitting = false, errorMessage = finalResult.error.message) }
+                    _uiState.update { it.copy(isSubmitting = false, errorMessage = finalResult.error.message ?: "Failed to create booking.") }
                 }
                 null -> {
                     _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }

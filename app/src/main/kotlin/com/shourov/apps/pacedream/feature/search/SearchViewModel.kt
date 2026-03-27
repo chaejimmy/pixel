@@ -82,14 +82,20 @@ class SearchViewModel @Inject constructor(
 
     fun refreshFavorites() {
         viewModelScope.launch {
-            when (val res = wishlistRepository.getWishlist()) {
-                is ApiResult.Success -> {
-                    _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+            try {
+                when (val res = wishlistRepository.getWishlist()) {
+                    is ApiResult.Success -> {
+                        _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+                    }
+                    is ApiResult.Failure -> {
+                        // Non-blocking: keep last known favorites.
+                        if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
+                    }
                 }
-                is ApiResult.Failure -> {
-                    // Non-blocking: keep last known favorites.
-                    if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
-                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Non-blocking: keep last known favorites on unexpected error.
             }
         }
     }
@@ -151,65 +157,78 @@ class SearchViewModel @Inject constructor(
     private fun loadPage(reset: Boolean) {
         if (reset) searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            val current = uiState.value
-            val whereQuery = current.query.trim()
-            val whatQ = current.whatQuery?.trim().orEmpty()
+            try {
+                val current = uiState.value
+                val whereQuery = current.query.trim()
+                val whatQ = current.whatQuery?.trim().orEmpty()
 
-            // Allow search if either WHERE or WHAT has content, or if shareType is set
-            // (browsing by category without a query is valid)
-            val hasQuery = whereQuery.isNotBlank() || whatQ.isNotBlank()
-            val hasShareType = !current.shareType.isNullOrBlank()
+                // Allow search if either WHERE or WHAT has content, or if shareType is set
+                // (browsing by category without a query is valid)
+                val hasQuery = whereQuery.isNotBlank() || whatQ.isNotBlank()
+                val hasShareType = !current.shareType.isNullOrBlank()
 
-            if (!hasQuery && !hasShareType) {
-                _uiState.update { it.copy(phase = SearchPhase.Idle, items = emptyList(), hasMore = false) }
-                return@launch
-            }
+                if (!hasQuery && !hasShareType) {
+                    _uiState.update { it.copy(phase = SearchPhase.Idle, items = emptyList(), hasMore = false) }
+                    return@launch
+                }
 
-            val page = if (reset) 0 else current.page0 + 1
-            _uiState.update {
-                it.copy(
-                    phase = if (reset) SearchPhase.Loading else SearchPhase.LoadingMore,
+                val page = if (reset) 0 else current.page0 + 1
+                _uiState.update {
+                    it.copy(
+                        phase = if (reset) SearchPhase.Loading else SearchPhase.LoadingMore,
+                        page0 = page,
+                        errorMessage = null
+                    )
+                }
+
+                val res = repo.search(
+                    q = whereQuery,
+                    city = current.city?.takeIf { it.isNotBlank() }
+                        ?: whereQuery.takeIf { it.isNotBlank() },
+                    category = current.category?.takeIf { it.isNotBlank() },
                     page0 = page,
-                    errorMessage = null
+                    perPage = current.perPage,
+                    sort = current.sort,
+                    shareType = current.shareType?.takeIf { it.isNotBlank() },
+                    whatQuery = current.whatQuery?.takeIf { it.isNotBlank() },
+                    startDate = current.startDate?.takeIf { it.isNotBlank() },
+                    endDate = current.endDate?.takeIf { it.isNotBlank() }
                 )
-            }
 
-            val res = repo.search(
-                q = whereQuery,
-                city = current.city?.takeIf { it.isNotBlank() }
-                    ?: whereQuery.takeIf { it.isNotBlank() },
-                category = current.category?.takeIf { it.isNotBlank() },
-                page0 = page,
-                perPage = current.perPage,
-                sort = current.sort,
-                shareType = current.shareType?.takeIf { it.isNotBlank() },
-                whatQuery = current.whatQuery?.takeIf { it.isNotBlank() },
-                startDate = current.startDate?.takeIf { it.isNotBlank() },
-                endDate = current.endDate?.takeIf { it.isNotBlank() }
-            )
-
-            when (res) {
-                is ApiResult.Success -> {
-                    _uiState.update { s ->
-                        val newItems = if (reset) res.data.items else (s.items + res.data.items)
-                        s.copy(
-                            phase = if (newItems.isEmpty()) SearchPhase.Empty else SearchPhase.Success,
-                            items = newItems,
-                            hasMore = res.data.hasMore,
-                            errorMessage = null
-                        )
+                when (res) {
+                    is ApiResult.Success -> {
+                        _uiState.update { s ->
+                            val newItems = if (reset) res.data.items else (s.items + res.data.items)
+                            s.copy(
+                                phase = if (newItems.isEmpty()) SearchPhase.Empty else SearchPhase.Success,
+                                items = newItems,
+                                hasMore = res.data.hasMore,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update { s ->
+                            // No silent fake data fallback; if we have prior results keep them.
+                            val hasPrior = s.items.isNotEmpty()
+                            s.copy(
+                                phase = if (hasPrior) SearchPhase.Success else SearchPhase.Error,
+                                hasMore = false,
+                                errorMessage = res.error.message ?: "Search failed"
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update { s ->
-                        // No silent fake data fallback; if we have prior results keep them.
-                        val hasPrior = s.items.isNotEmpty()
-                        s.copy(
-                            phase = if (hasPrior) SearchPhase.Success else SearchPhase.Error,
-                            hasMore = false,
-                            errorMessage = res.error.message ?: "Search failed"
-                        )
-                    }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.update { s ->
+                    val hasPrior = s.items.isNotEmpty()
+                    s.copy(
+                        phase = if (hasPrior) SearchPhase.Success else SearchPhase.Error,
+                        hasMore = false,
+                        errorMessage = e.message ?: "Search failed"
+                    )
                 }
             }
         }
@@ -223,14 +242,20 @@ class SearchViewModel @Inject constructor(
         }
 
         autocompleteJob = viewModelScope.launch {
-            delay(250)
-            val res = repo.autocompleteWhere(q.trim())
-            when (res) {
-                is ApiResult.Success -> _uiState.update { it.copy(suggestions = res.data) }
-                is ApiResult.Failure -> {
-                    // Non-blocking; keep suggestions empty on failure.
-                    _uiState.update { it.copy(suggestions = emptyList()) }
+            try {
+                delay(250)
+                val res = repo.autocompleteWhere(q.trim())
+                when (res) {
+                    is ApiResult.Success -> _uiState.update { it.copy(suggestions = res.data) }
+                    is ApiResult.Failure -> {
+                        // Non-blocking; keep suggestions empty on failure.
+                        _uiState.update { it.copy(suggestions = emptyList()) }
+                    }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _uiState.update { it.copy(suggestions = emptyList()) }
             }
         }
     }

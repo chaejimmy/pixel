@@ -39,29 +39,33 @@ class SettingsPreferencesViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.getPreferences()) {
-                is ApiResult.Success -> {
-                    val prefs = result.data
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            language = prefs.language.orEmpty(),
-                            currency = prefs.currency.orEmpty(),
-                            timezone = prefs.timezone.orEmpty()
-                        )
+            try {
+                when (val result = repository.getPreferences()) {
+                    is ApiResult.Success -> {
+                        val prefs = result.data
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                language = prefs.language.orEmpty(),
+                                currency = prefs.currency.orEmpty(),
+                                timezone = prefs.timezone.orEmpty()
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
@@ -82,31 +86,35 @@ class SettingsPreferencesViewModel @Inject constructor(
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            val prefs = AccountSettingsRepository.Preferences(
-                language = state.language.takeIf { it.isNotBlank() },
-                currency = state.currency.takeIf { it.isNotBlank() },
-                timezone = state.timezone.takeIf { it.isNotBlank() }
-            )
-            when (val result = repository.updatePreferences(prefs)) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            successMessage = "Preferences updated successfully"
-                        )
+            try {
+                val prefs = AccountSettingsRepository.Preferences(
+                    language = state.language.takeIf { it.isNotBlank() },
+                    currency = state.currency.takeIf { it.isNotBlank() },
+                    timezone = state.timezone.takeIf { it.isNotBlank() }
+                )
+                when (val result = repository.updatePreferences(prefs)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                successMessage = "Preferences updated successfully"
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }

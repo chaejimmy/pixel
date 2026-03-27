@@ -40,30 +40,34 @@ class SettingsPersonalInfoViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.getAccount()) {
-                is ApiResult.Success -> {
-                    val profile = result.data
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            firstName = profile.firstName.orEmpty(),
-                            lastName = profile.lastName.orEmpty(),
-                            email = profile.email.orEmpty(),
-                            phoneNumber = profile.phoneNumber.orEmpty()
-                        )
+            try {
+                when (val result = repository.getAccount()) {
+                    is ApiResult.Success -> {
+                        val profile = result.data
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                firstName = profile.firstName.orEmpty(),
+                                lastName = profile.lastName.orEmpty(),
+                                email = profile.email.orEmpty(),
+                                phoneNumber = profile.phoneNumber.orEmpty()
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
@@ -93,31 +97,35 @@ class SettingsPersonalInfoViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.updateProfile(
-                firstName = state.firstName.trim(),
-                lastName = state.lastName.trim(),
-                email = state.email.trim(),
-                phoneNumber = state.phoneNumber.trim().ifEmpty { null }
-            )) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            successMessage = "Profile updated successfully."
-                        )
+            try {
+                when (val result = repository.updateProfile(
+                    firstName = state.firstName.trim(),
+                    lastName = state.lastName.trim(),
+                    email = state.email.trim(),
+                    phoneNumber = state.phoneNumber.trim().ifEmpty { null }
+                )) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                successMessage = "Profile updated successfully."
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }

@@ -56,8 +56,16 @@ class ImageUploadService @Inject constructor(
                     com.shourov.apps.pacedream.core.network.api.ApiError.Unknown("Cannot read image")
                 )
 
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
+            val originalBitmap = try {
+                BitmapFactory.decodeStream(inputStream)
+            } catch (e: OutOfMemoryError) {
+                Timber.e("ImageUpload: OutOfMemoryError decoding image")
+                return ApiResult.Failure(
+                    com.shourov.apps.pacedream.core.network.api.ApiError.Unknown("Image too large to process")
+                )
+            } finally {
+                try { inputStream.close() } catch (_: Exception) {}
+            }
 
             if (originalBitmap == null) {
                 return ApiResult.Failure(
@@ -207,10 +215,15 @@ class ImageUploadService @Inject constructor(
             maxDimension.toFloat() / height
         )
 
-        val newWidth = (width * ratio).toInt()
-        val newHeight = (height * ratio).toInt()
+        val newWidth = (width * ratio).toInt().coerceAtLeast(1)
+        val newHeight = (height * ratio).toInt().coerceAtLeast(1)
 
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        return try {
+            Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+        } catch (e: OutOfMemoryError) {
+            Timber.e("ImageUpload: OutOfMemoryError scaling bitmap, returning original")
+            bitmap
+        }
     }
 
     companion object {

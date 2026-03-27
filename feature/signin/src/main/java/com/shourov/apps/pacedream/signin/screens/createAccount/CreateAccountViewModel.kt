@@ -101,23 +101,28 @@ class CreateAccountViewModel @Inject constructor(
 
     fun onDoneClicked() {
         viewModelScope.launch {
-            val data = _createAccountData
-            val result = authSession.updateProfile(
-                firstName = data.firstName,
-                lastName = data.lastName,
-                dateOfBirth = null,
-                interests = emptySet(),
-            )
-            result.fold(
-                onSuccess = {
-                    Timber.d("Account creation profile update succeeded")
-                    toastMessage.value = "Account created successfully"
-                },
-                onFailure = { error ->
-                    Timber.e("Account creation profile update failed: ${error.message}")
-                    toastMessage.value = error.message ?: "Failed to create account"
-                }
-            )
+            try {
+                val data = _createAccountData
+                val result = authSession.updateProfile(
+                    firstName = data.firstName,
+                    lastName = data.lastName,
+                    dateOfBirth = null,
+                    interests = emptySet(),
+                )
+                result.fold(
+                    onSuccess = {
+                        Timber.d("Account creation profile update succeeded")
+                        toastMessage.value = "Account created successfully"
+                    },
+                    onFailure = { error ->
+                        Timber.e("Account creation profile update failed: ${error.message}")
+                        toastMessage.value = error.message ?: "Failed to create account"
+                    }
+                )
+            } catch (e: Exception) {
+                Timber.e("Account creation profile update crashed: ${e.message}")
+                toastMessage.value = e.message ?: "Failed to create account"
+            }
         }
     }
 }

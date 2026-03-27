@@ -259,7 +259,7 @@ fun PropertyDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                             Text(
-                                text = if (hasRating) String.format("%.1f", rating) else "New",
+                                text = if (hasRating) String.format("%.1f", rating ?: 0.0) else "New",
                                 style = PaceDreamTypography.Callout,
                                 fontWeight = FontWeight.Medium,
                                 color = if (hasRating) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary

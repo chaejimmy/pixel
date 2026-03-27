@@ -70,19 +70,27 @@ class OtpVerificationViewModel @Inject constructor(
                             // Store tokens
                             val data = loginResponse.data
                             if (data != null) {
-                                tokenStorage.storeTokens(
-                                    data.accessToken,
-                                    data.refreshToken
-                                )
-                                tokenStorage.userId = data.user.id
-                                
-                                // Store user data as JSON
-                                val userJson = com.google.gson.Gson().toJson(data.user)
-                                tokenStorage.cachedUserSummary = userJson
-                                
+                                try {
+                                    tokenStorage.storeTokens(
+                                        data.accessToken,
+                                        data.refreshToken
+                                    )
+                                    tokenStorage.userId = data.user.id
+
+                                    // Store user data as JSON
+                                    val userJson = com.google.gson.Gson().toJson(data.user)
+                                    tokenStorage.cachedUserSummary = userJson
+                                } catch (e: Exception) {
+                                    Timber.e(e, "Failed to store auth tokens")
+                                }
+
                                 // Refresh auth session to fetch full profile
-                                authSession.refreshProfile()
-                                
+                                try {
+                                    authSession.refreshProfile()
+                                } catch (e: Exception) {
+                                    Timber.e(e, "Failed to refresh profile after login")
+                                }
+
                                 _uiState.value = _uiState.value.copy(isLoading = false)
                                 onSuccess(data.user)
                             } else {

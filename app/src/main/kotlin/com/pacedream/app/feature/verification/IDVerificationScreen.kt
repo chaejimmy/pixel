@@ -214,8 +214,12 @@ fun ImageUploadSection(
             imageUri != null -> {
                 // Show local image
                 val bitmap = remember(imageUri) {
-                    context.contentResolver.openInputStream(imageUri)?.use {
-                        BitmapFactory.decodeStream(it)
+                    try {
+                        context.contentResolver.openInputStream(imageUri)?.use {
+                            BitmapFactory.decodeStream(it)
+                        }
+                    } catch (e: Exception) {
+                        null
                     }
                 }
                 

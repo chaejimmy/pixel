@@ -11,12 +11,11 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.int
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
 import timber.log.Timber
 import androidx.annotation.VisibleForTesting
 import javax.inject.Inject
@@ -307,7 +306,7 @@ class InboxRepository @Inject constructor(
             ?: cursorSource["cursor"]?.jsonPrimitive?.content
         val nextCursor = rawCursor?.takeIf { it.isNotBlank() && it != "null" }
 
-        val serverHasMore = try { cursorSource["hasMore"]?.jsonPrimitive?.boolean ?: false } catch (_: Exception) { false }
+        val serverHasMore = try { cursorSource["hasMore"]?.jsonPrimitive?.booleanOrNull ?: false } catch (_: Exception) { false }
         val hasMore = (serverHasMore || nextCursor != null) && nextCursor != null
 
         return ThreadsResult(threads, nextCursor, hasMore)
@@ -345,8 +344,8 @@ class InboxRepository @Inject constructor(
 
         // Backend enriches unread as a plain integer; fall back to 0 on any parse issue
         val unreadCount = try {
-            obj["unreadCount"]?.jsonPrimitive?.int
-                ?: obj["unread"]?.jsonPrimitive?.int
+            obj["unreadCount"]?.jsonPrimitive?.intOrNull
+                ?: obj["unread"]?.jsonPrimitive?.intOrNull
                 ?: 0
         } catch (_: Exception) { 0 }
 
@@ -421,7 +420,7 @@ class InboxRepository @Inject constructor(
         } ?: emptyList()
         
         val hasMore = when (jsonElement) {
-            is JsonObject -> jsonElement["hasMore"]?.jsonPrimitive?.boolean ?: false
+            is JsonObject -> try { jsonElement["hasMore"]?.jsonPrimitive?.booleanOrNull ?: false } catch (_: Exception) { false }
             else -> false
         }
         
@@ -437,17 +436,23 @@ class InboxRepository @Inject constructor(
                 ?: obj["content"]?.jsonPrimitive?.content
                 ?: obj["body"]?.jsonPrimitive?.content
                 ?: "",
-            senderId = obj["senderId"]?.jsonPrimitive?.content
-                ?: obj["sender"]?.jsonPrimitive?.content
-                ?: obj["from"]?.jsonPrimitive?.content
-                ?: "",
+            senderId = try {
+                val senderElement = obj["senderId"] ?: obj["sender"] ?: obj["from"]
+                when (senderElement) {
+                    is JsonObject -> senderElement["_id"]?.jsonPrimitive?.content
+                        ?: senderElement["id"]?.jsonPrimitive?.content ?: ""
+                    else -> senderElement?.jsonPrimitive?.content ?: ""
+                }
+            } catch (_: Exception) { "" },
             timestamp = obj["createdAt"]?.jsonPrimitive?.content
                 ?: obj["timestamp"]?.jsonPrimitive?.content
                 ?: obj["created_at"]?.jsonPrimitive?.content,
             attachments = extractStringArray(obj, "attachments"),
-            isRead = obj["read"]?.jsonPrimitive?.boolean
-                ?: obj["isRead"]?.jsonPrimitive?.boolean
-                ?: false
+            isRead = try {
+                obj["read"]?.jsonPrimitive?.booleanOrNull
+                    ?: obj["isRead"]?.jsonPrimitive?.booleanOrNull
+                    ?: false
+            } catch (_: Exception) { false }
         )
     }
     
@@ -464,12 +469,16 @@ class InboxRepository @Inject constructor(
         val data = jsonObject["data"]?.jsonObject ?: jsonObject
         
         return UnreadCounts(
-            guestUnread = data["guestUnread"]?.jsonPrimitive?.int
-                ?: data["guest"]?.jsonPrimitive?.int
-                ?: 0,
-            hostUnread = data["hostUnread"]?.jsonPrimitive?.int
-                ?: data["host"]?.jsonPrimitive?.int
-                ?: 0
+            guestUnread = try {
+                data["guestUnread"]?.jsonPrimitive?.intOrNull
+                    ?: data["guest"]?.jsonPrimitive?.intOrNull
+                    ?: 0
+            } catch (_: Exception) { 0 },
+            hostUnread = try {
+                data["hostUnread"]?.jsonPrimitive?.intOrNull
+                    ?: data["host"]?.jsonPrimitive?.intOrNull
+                    ?: 0
+            } catch (_: Exception) { 0 }
         )
     }
 

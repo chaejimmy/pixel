@@ -24,14 +24,11 @@ class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     
-    private val masterKey: MasterKey by lazy {
-        MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-    }
-    
     private val prefs: SharedPreferences by lazy {
         try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
             EncryptedSharedPreferences.create(
                 context,
                 PREFS_NAME,
@@ -44,6 +41,9 @@ class TokenStorage @Inject constructor(
             // Delete potentially corrupt encrypted prefs file and retry once
             context.deleteSharedPreferences(PREFS_NAME)
             try {
+                val masterKey = MasterKey.Builder(context)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build()
                 EncryptedSharedPreferences.create(
                     context,
                     PREFS_NAME,
@@ -52,71 +52,92 @@ class TokenStorage @Inject constructor(
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
                 )
             } catch (retryException: Exception) {
-                Timber.e(retryException, "EncryptedSharedPreferences retry also failed")
-                throw retryException
+                Timber.e(retryException, "EncryptedSharedPreferences retry also failed, falling back to plain SharedPreferences")
+                context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
             }
         }
     }
     
     /** Backend JWT access token */
     var accessToken: String?
-        get() = prefs.getString(KEY_ACCESS_TOKEN, null)
-        set(value) = prefs.edit().putString(KEY_ACCESS_TOKEN, value).apply()
-    
+        get() = safeGetString(KEY_ACCESS_TOKEN)
+        set(value) = safePutString(KEY_ACCESS_TOKEN, value)
+
     /** Backend refresh token */
     var refreshToken: String?
-        get() = prefs.getString(KEY_REFRESH_TOKEN, null)
-        set(value) = prefs.edit().putString(KEY_REFRESH_TOKEN, value).apply()
-    
+        get() = safeGetString(KEY_REFRESH_TOKEN)
+        set(value) = safePutString(KEY_REFRESH_TOKEN, value)
+
     /** Auth0 access token (for reference) */
     var auth0AccessToken: String?
-        get() = prefs.getString(KEY_AUTH0_ACCESS_TOKEN, null)
-        set(value) = prefs.edit().putString(KEY_AUTH0_ACCESS_TOKEN, value).apply()
-    
+        get() = safeGetString(KEY_AUTH0_ACCESS_TOKEN)
+        set(value) = safePutString(KEY_AUTH0_ACCESS_TOKEN, value)
+
     /** Auth0 ID token */
     var auth0IdToken: String?
-        get() = prefs.getString(KEY_AUTH0_ID_TOKEN, null)
-        set(value) = prefs.edit().putString(KEY_AUTH0_ID_TOKEN, value).apply()
-    
+        get() = safeGetString(KEY_AUTH0_ID_TOKEN)
+        set(value) = safePutString(KEY_AUTH0_ID_TOKEN, value)
+
     /** Current user ID */
     var userId: String?
-        get() = prefs.getString(KEY_USER_ID, null)
-        set(value) = prefs.edit().putString(KEY_USER_ID, value).apply()
-    
+        get() = safeGetString(KEY_USER_ID)
+        set(value) = safePutString(KEY_USER_ID, value)
+
     /** Cached user summary JSON (for offline display) */
     var cachedUserSummary: String?
-        get() = prefs.getString(KEY_CACHED_USER_SUMMARY, null)
-        set(value) = prefs.edit().putString(KEY_CACHED_USER_SUMMARY, value).apply()
-    
+        get() = safeGetString(KEY_CACHED_USER_SUMMARY)
+        set(value) = safePutString(KEY_CACHED_USER_SUMMARY, value)
+
     /** Last checkout session ID (for resume after relaunch) */
     var lastCheckoutSessionId: String?
-        get() = prefs.getString(KEY_LAST_CHECKOUT_SESSION_ID, null)
-        set(value) = prefs.edit().putString(KEY_LAST_CHECKOUT_SESSION_ID, value).apply()
-    
+        get() = safeGetString(KEY_LAST_CHECKOUT_SESSION_ID)
+        set(value) = safePutString(KEY_LAST_CHECKOUT_SESSION_ID, value)
+
     /** Last checkout booking type (timebased/gear) */
     var lastCheckoutBookingType: String?
-        get() = prefs.getString(KEY_LAST_CHECKOUT_BOOKING_TYPE, null)
-        set(value) = prefs.edit().putString(KEY_LAST_CHECKOUT_BOOKING_TYPE, value).apply()
-    
+        get() = safeGetString(KEY_LAST_CHECKOUT_BOOKING_TYPE)
+        set(value) = safePutString(KEY_LAST_CHECKOUT_BOOKING_TYPE, value)
+
     /** Guest/Host mode */
     var isHostMode: Boolean
-        get() = prefs.getBoolean(KEY_IS_HOST_MODE, false)
-        set(value) = prefs.edit().putBoolean(KEY_IS_HOST_MODE, value).apply()
+        get() = try { prefs.getBoolean(KEY_IS_HOST_MODE, false) } catch (e: Exception) { Timber.e(e, "Failed to read isHostMode"); false }
+        set(value) { try { prefs.edit().putBoolean(KEY_IS_HOST_MODE, value).apply() } catch (e: Exception) { Timber.e(e, "Failed to write isHostMode") } }
+
+    private fun safeGetString(key: String): String? {
+        return try {
+            prefs.getString(key, null)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to read key: $key from encrypted prefs")
+            null
+        }
+    }
+
+    private fun safePutString(key: String, value: String?) {
+        try {
+            prefs.edit().putString(key, value).apply()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to write key: $key to encrypted prefs")
+        }
+    }
     
     /**
      * Check if tokens exist
      */
-    fun hasTokens(): Boolean = !accessToken.isNullOrBlank()
-    
+    fun hasTokens(): Boolean = try { !accessToken.isNullOrBlank() } catch (e: Exception) { Timber.e(e, "Failed to check tokens"); false }
+
     /**
      * Store backend tokens
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
-        prefs.edit()
-            .putString(KEY_ACCESS_TOKEN, accessToken)
-            .putString(KEY_REFRESH_TOKEN, refreshToken)
-            .apply()
-        Timber.d("Tokens stored")
+        try {
+            prefs.edit()
+                .putString(KEY_ACCESS_TOKEN, accessToken)
+                .putString(KEY_REFRESH_TOKEN, refreshToken)
+                .apply()
+            Timber.d("Tokens stored")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to store tokens")
+        }
     }
     
     /**
@@ -139,15 +160,19 @@ class TokenStorage @Inject constructor(
      * Clear all tokens and user data
      */
     fun clearAll() {
-        prefs.edit()
-            .remove(KEY_ACCESS_TOKEN)
-            .remove(KEY_REFRESH_TOKEN)
-            .remove(KEY_AUTH0_ACCESS_TOKEN)
-            .remove(KEY_AUTH0_ID_TOKEN)
-            .remove(KEY_USER_ID)
-            .remove(KEY_CACHED_USER_SUMMARY)
-            .apply()
-        Timber.d("All tokens cleared")
+        try {
+            prefs.edit()
+                .remove(KEY_ACCESS_TOKEN)
+                .remove(KEY_REFRESH_TOKEN)
+                .remove(KEY_AUTH0_ACCESS_TOKEN)
+                .remove(KEY_AUTH0_ID_TOKEN)
+                .remove(KEY_USER_ID)
+                .remove(KEY_CACHED_USER_SUMMARY)
+                .apply()
+            Timber.d("All tokens cleared")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clear tokens")
+        }
     }
     
     /**
@@ -162,6 +187,7 @@ class TokenStorage @Inject constructor(
     
     companion object {
         private const val PREFS_NAME = "pacedream_secure_prefs"
+        private const val PREFS_NAME_FALLBACK = "pacedream_prefs_fallback"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_AUTH0_ACCESS_TOKEN = "auth0_access_token"

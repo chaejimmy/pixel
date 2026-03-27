@@ -678,7 +678,7 @@ private fun ProfilePhotoSection(
                             .clip(CircleShape)
                     )
                 }
-                avatarUrl != null -> {
+                !avatarUrl.isNullOrBlank() -> {
                     AsyncImage(
                         model = avatarUrl,
                         contentDescription = "Profile photo",

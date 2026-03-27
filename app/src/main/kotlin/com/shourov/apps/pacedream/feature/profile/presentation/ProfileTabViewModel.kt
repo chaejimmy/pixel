@@ -91,14 +91,20 @@ class ProfileTabViewModel @Inject constructor(
 
     private fun loadProfileStats() {
         viewModelScope.launch {
-            val bookingsDeferred = async { fetchBookingsCount() }
-            val wishlistDeferred = async { fetchWishlistCount() }
-            val verificationDeferred = async { fetchVerificationStatus() }
-            val memberSinceDeferred = async { fetchMemberSince() }
-            _bookingsCount.value = bookingsDeferred.await()
-            _wishlistCount.value = wishlistDeferred.await()
-            _verificationStatus.value = verificationDeferred.await()
-            _memberSince.value = memberSinceDeferred.await()
+            try {
+                val bookingsDeferred = async { fetchBookingsCount() }
+                val wishlistDeferred = async { fetchWishlistCount() }
+                val verificationDeferred = async { fetchVerificationStatus() }
+                val memberSinceDeferred = async { fetchMemberSince() }
+                _bookingsCount.value = bookingsDeferred.await()
+                _wishlistCount.value = wishlistDeferred.await()
+                _verificationStatus.value = verificationDeferred.await()
+                _memberSince.value = memberSinceDeferred.await()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.e(e, "loadProfileStats failed")
+            }
         }
     }
 
