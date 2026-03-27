@@ -285,7 +285,11 @@ class SessionManager @Inject constructor(
      */
     fun signOut() {
         Timber.d("Signing out")
-        tokenStorage.clearAll()
+        try {
+            tokenStorage.clearAll()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clear tokens during sign out")
+        }
         _currentUser.value = null
         _authState.value = AuthState.Unauthenticated
     }

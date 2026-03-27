@@ -94,16 +94,20 @@ class AuthSession @Inject constructor(
      * iOS parity: do not force logout for transient/profile failures; keep last good cached user if present.
      */
     suspend fun refreshProfile() {
-        if (!tokenStorage.hasTokens()) {
-            _authState.value = AuthState.Unauthenticated
-            _currentUser.value = null
-            return
+        try {
+            if (!tokenStorage.hasTokens()) {
+                _authState.value = AuthState.Unauthenticated
+                _currentUser.value = null
+                return
+            }
+            // Keep authenticated immediately; bootstrap will handle 401 via refresh/signout.
+            if (_authState.value != AuthState.Authenticated) {
+                _authState.value = AuthState.Authenticated
+            }
+            bootstrap()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to refresh profile")
         }
-        // Keep authenticated immediately; bootstrap will handle 401 via refresh/signout.
-        if (_authState.value != AuthState.Authenticated) {
-            _authState.value = AuthState.Authenticated
-        }
-        bootstrap()
     }
     
     /**
