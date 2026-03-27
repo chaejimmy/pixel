@@ -177,6 +177,19 @@ class HomeViewModel @Inject constructor(
             "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
             "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE"
         )
+
+        /** subCategory / room_type values that identify service listings (website parity). */
+        private val SERVICE_SUBCATEGORY_IDS = setOf(
+            "home_help", "moving_help", "cleaning_organizing", "everyday_help",
+            "fitness", "learning", "creative", "other_service"
+        )
+    }
+
+    /** Returns true if this listing should be classified as a service. */
+    private fun isServiceListing(item: HomeListingItem): Boolean {
+        if (item.shareCategory in SERVICE_SHARE_CATEGORIES) return true
+        if (item.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS) return true
+        return false
     }
 
     private fun loadAllSections() {
@@ -190,11 +203,12 @@ class HomeViewModel @Inject constructor(
             val useListings = useListingsDeferred.await()
             val rentGear = rentGearDeferred.await()
 
-            // Split USE listings by shareCategory into spaces and services
+            // Split USE listings into spaces and services (website parity:
+            // check both shareCategory and subCategory/room_type).
             val (spaces, services) = if (useListings.second != null) {
                 Pair(emptyList<HomeListingItem>(), emptyList<HomeListingItem>())
             } else {
-                useListings.first.partition { it.shareCategory !in SERVICE_SHARE_CATEGORIES }
+                useListings.first.partition { !isServiceListing(it) }
             }
 
             _uiState.update {
@@ -320,7 +334,10 @@ class HomeViewModel @Inject constructor(
                         price = parsePrice(itemObj),
                         rating = (itemObj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull,
                         type = type,
-                        shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                        shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                        subCategory = (itemObj["subCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["roomType"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                     )
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to parse listing item")

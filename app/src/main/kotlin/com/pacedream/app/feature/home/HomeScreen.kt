@@ -169,7 +169,7 @@ fun HomeScreen(
                         items = uiState.filteredSplitStays,
                         isLoading = uiState.isLoadingSplitStays,
                         favoriteIds = uiState.favoriteListingIds,
-                        onViewAllClick = { onSectionViewAll("split-stays") },
+                        onViewAllClick = { onSectionViewAll("services") },
                         onItemClick = onListingClick,
                         onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
@@ -1738,5 +1738,6 @@ data class HomeListingItem(
     val price: String?,
     val rating: Double?,
     val type: String,
-    val shareCategory: String? = null
+    val shareCategory: String? = null,
+    val subCategory: String? = null
 )

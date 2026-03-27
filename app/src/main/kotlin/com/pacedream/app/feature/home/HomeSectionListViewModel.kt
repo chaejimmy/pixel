@@ -30,6 +30,17 @@ class HomeSectionListViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SectionListUiState())
     val uiState: StateFlow<SectionListUiState> = _uiState.asStateFlow()
     
+    companion object {
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE"
+        )
+        private val SERVICE_SUBCATEGORY_IDS = setOf(
+            "home_help", "moving_help", "cleaning_organizing", "everyday_help",
+            "fitness", "learning", "creative", "other_service"
+        )
+    }
+
     private var currentSectionType: String = ""
     
     fun loadSection(sectionType: String) {
@@ -55,6 +66,15 @@ class HomeSectionListViewModel @Inject constructor(
                     "listings",
                     queryParams = mapOf("shareType" to "SPLIT", "page" to "1", "limit" to "50")
                 )
+                "services" -> appConfig.buildApiUrl(
+                    "poc", "listings",
+                    queryParams = mapOf(
+                        "shareType" to "USE",
+                        "status" to "published",
+                        "limit" to "50",
+                        "skip_pagination" to "true"
+                    )
+                )
                 else -> {
                     _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Unknown section type") }
                     return@launch
@@ -63,7 +83,14 @@ class HomeSectionListViewModel @Inject constructor(
             
             when (val result = apiClient.get(url, includeAuth = false)) {
                 is ApiResult.Success -> {
-                    val items = parseListings(result.data, sectionType)
+                    var items = parseListings(result.data, sectionType)
+                    // For the services section, filter to only service subcategories
+                    if (sectionType == "services") {
+                        items = items.filter { item ->
+                            item.shareCategory in SERVICE_SHARE_CATEGORIES
+                                || item.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                        }
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -124,7 +151,11 @@ class HomeSectionListViewModel @Inject constructor(
                         },
                         price = parsePrice(itemObj),
                         rating = itemObj["rating"]?.jsonPrimitive?.doubleOrNull,
-                        type = type
+                        type = type,
+                        shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                        subCategory = (itemObj["subCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["roomType"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                     )
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to parse listing item")
