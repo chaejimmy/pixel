@@ -252,55 +252,50 @@ private fun ModernSearchField(
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = PaceDreamSpacing.XS, bottom = PaceDreamSpacing.XS)
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            TextField(
-                value = value,
-                onValueChange = onValueChange,
-                placeholder = {
-                    Text(
-                        text = placeholder,
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.TextTertiary
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = leadingIcon,
-                        contentDescription = null,
-                        tint = PaceDreamColors.TextSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                readOnly = readOnly,
-                enabled = !readOnly,
-                singleLine = true,
-                modifier = (if (onClick != null && readOnly) {
-                    Modifier
-                        .weight(1f)
-                        .clickable(onClick = onClick)
-                } else {
-                    Modifier.weight(1f)
-                }),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = PaceDreamColors.Surface,
-                    unfocusedContainerColor = PaceDreamColors.Surface,
-                    disabledContainerColor = PaceDreamColors.Surface,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    focusedTextColor = PaceDreamColors.TextPrimary,
-                    unfocusedTextColor = PaceDreamColors.TextPrimary
-                ),
-                textStyle = PaceDreamTypography.Callout
-            )
-            if (trailingContent != null) {
-                trailingContent()
-            }
-        }
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextTertiary
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = if (trailingContent != null) {
+                { trailingContent() }
+            } else null,
+            readOnly = readOnly,
+            enabled = !readOnly,
+            singleLine = true,
+            modifier = (if (onClick != null && readOnly) {
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick)
+            } else {
+                Modifier.fillMaxWidth()
+            }),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = PaceDreamColors.Surface,
+                unfocusedContainerColor = PaceDreamColors.Surface,
+                disabledContainerColor = PaceDreamColors.Surface,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedTextColor = PaceDreamColors.TextPrimary,
+                unfocusedTextColor = PaceDreamColors.TextPrimary
+            ),
+            textStyle = PaceDreamTypography.Callout
+        )
     }
 }
 
