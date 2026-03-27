@@ -157,6 +157,10 @@ fun MainNavHost(
                             // Filter listings by category (could update view model state)
                             // For now, navigate to search with filter
                             navController.navigate("${NavRoutes.SEARCH}?filter=$categoryFilter")
+                        },
+                        onShowAuthSheet = {
+                            authSheetSubtitle = "Save your favorites and book spaces."
+                            showAuthSheet = true
                         }
                     )
                 }

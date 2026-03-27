@@ -2,14 +2,19 @@ package com.pacedream.app.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.app.core.auth.AuthState
+import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.listingdetail.ListingWishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -37,24 +42,128 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
+    private val sessionManager: SessionManager,
+    private val wishlistRepository: ListingWishlistRepository,
     private val json: Json
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-    
+
+    sealed class Effect {
+        data object ShowAuthRequired : Effect()
+        data class ShowToast(val message: String) : Effect()
+    }
+
+    private val _effects = Channel<Effect>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
+
     init {
         loadAllSections()
+        loadFavorites()
         // Set default hero image URL (can be fetched from API/config later)
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 heroImageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" // Default scenic image
             )
         }
     }
-    
+
     fun refresh() {
         loadAllSections()
+        loadFavorites()
+    }
+
+    fun isFavorite(listingId: String): Boolean {
+        return listingId in _uiState.value.favoriteListingIds
+    }
+
+    fun toggleFavorite(listingId: String) {
+        viewModelScope.launch {
+            if (sessionManager.authState.value != AuthState.Authenticated) {
+                _effects.send(Effect.ShowAuthRequired)
+                return@launch
+            }
+
+            val currentlyFavorite = listingId in _uiState.value.favoriteListingIds
+            val previousIds = _uiState.value.favoriteListingIds
+
+            // Optimistic update
+            _uiState.update {
+                it.copy(
+                    favoriteListingIds = if (currentlyFavorite) previousIds - listingId else previousIds + listingId
+                )
+            }
+
+            val result = if (currentlyFavorite) {
+                wishlistRepository.removeFromWishlist(listingId, null)
+            } else {
+                wishlistRepository.addToWishlist(listingId)
+            }
+
+            when (result) {
+                is ApiResult.Success -> {
+                    val isFav = result.data.isFavorite
+                    _uiState.update {
+                        it.copy(
+                            favoriteListingIds = if (isFav) it.favoriteListingIds + listingId else it.favoriteListingIds - listingId
+                        )
+                    }
+                    _effects.send(Effect.ShowToast(if (isFav) "Saved to Favorites" else "Removed from Favorites"))
+                }
+                is ApiResult.Failure -> {
+                    // Revert
+                    _uiState.update { it.copy(favoriteListingIds = previousIds) }
+                    _effects.send(Effect.ShowToast("Failed to update favorite"))
+                }
+            }
+        }
+    }
+
+    private fun loadFavorites() {
+        viewModelScope.launch {
+            if (sessionManager.authState.value != AuthState.Authenticated) return@launch
+
+            val url = appConfig.buildApiUrl("account", "wishlist")
+            when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    val ids = parseFavoriteIds(result.data)
+                    _uiState.update { it.copy(favoriteListingIds = ids) }
+                }
+                is ApiResult.Failure -> {
+                    Timber.w("Failed to load favorites: ${result.error.message}")
+                }
+            }
+        }
+    }
+
+    private fun parseFavoriteIds(responseBody: String): Set<String> {
+        return try {
+            val element = json.parseToJsonElement(responseBody)
+            val obj = element.jsonObject
+            val dataElement = obj["data"]
+            val itemsArray = when {
+                dataElement is JsonObject -> {
+                    dataElement["items"]?.jsonArray ?: dataElement["wishlist"]?.jsonArray
+                }
+                dataElement is JsonArray -> dataElement
+                else -> null
+            }
+                ?: obj["items"]?.jsonArray
+                ?: obj["wishlist"]?.jsonArray
+                ?: return emptySet()
+
+            itemsArray.mapNotNull { item ->
+                try {
+                    val itemObj = item.jsonObject
+                    val listingData = itemObj["listing"]?.jsonObject
+                        ?: itemObj["item"]?.jsonObject
+                        ?: itemObj
+                    listingData["_id"]?.jsonPrimitive?.content
+                        ?: listingData["id"]?.jsonPrimitive?.content
+                } catch (_: Exception) { null }
+            }.toSet()
+        } catch (_: Exception) { emptySet() }
     }
 
     fun selectCategory(category: String) {
@@ -345,7 +454,8 @@ data class HomeUiState(
     val rentGearError: String? = null,
     val splitStaysError: String? = null,
     val heroImageUrl: String? = null,
-    val selectedCategory: String = "All"
+    val selectedCategory: String = "All",
+    val favoriteListingIds: Set<String> = emptySet()
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays
