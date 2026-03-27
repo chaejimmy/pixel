@@ -128,10 +128,10 @@ class HomeSectionListViewModel @Inject constructor(
                 // so separate them by subcategory (same logic as HomeFeedViewModel).
                 val filtered = when (section) {
                     HomeSectionKey.SERVICES -> res.data.filter {
-                        it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                        isServiceListing(it)
                     }
                     HomeSectionKey.SPACES -> res.data.filter {
-                        it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                        !isServiceListing(it)
                     }
                     else -> res.data
                 }
@@ -149,8 +149,19 @@ class HomeSectionListViewModel @Inject constructor(
     companion object {
         private val SERVICE_SUBCATEGORY_IDS = setOf(
             "home_help", "moving_help", "cleaning_organizing", "everyday_help",
-            "fitness", "learning", "creative",
+            "fitness", "learning", "creative", "other_service",
         )
+
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE",
+        )
+
+        private fun isServiceListing(card: HomeCard): Boolean {
+            if (card.shareCategory?.uppercase() in SERVICE_SHARE_CATEGORIES) return true
+            if (card.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS) return true
+            return false
+        }
     }
 }
 

@@ -9,6 +9,8 @@ data class HomeCard(
     val rating: Double?,
     /** Subcategory / room_type / item_type — used for client-side resource type filtering. */
     val subCategory: String? = null,
+    /** Backend shareCategory (uppercase taxonomy value) for service identification. */
+    val shareCategory: String? = null,
 )
 
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
