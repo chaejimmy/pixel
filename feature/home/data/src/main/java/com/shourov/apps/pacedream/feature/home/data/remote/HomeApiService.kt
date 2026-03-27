@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.home.data.remote
 
 import com.shourov.apps.pacedream.core.network.ApiEndPoints
+import com.shourov.apps.pacedream.feature.home.data.dto.listings.ListingsResponse
 import com.shourov.apps.pacedream.feature.home.data.dto.retned_gears.RentedGearResponse
 import com.shourov.apps.pacedream.feature.home.data.dto.split_stays.SplitStayResponse
 import com.shourov.apps.pacedream.feature.home.data.dto.time_based_deals.TimeBasedDealsResponse
@@ -22,4 +23,11 @@ interface HomeApiService {
 
     @GET(ApiEndPoints.ROOMMATE_ROOM_STAY)
     suspend fun getSplitStays(): SplitStayResponse
+
+    @GET(ApiEndPoints.GET_LISTINGS)
+    suspend fun getListings(
+        @Query("shareType") shareType: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 24,
+    ): ListingsResponse
 }
