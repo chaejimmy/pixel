@@ -11,6 +11,7 @@ import coil.request.CachePolicy
 import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.shourov.apps.pacedream.notification.FcmTokenRegistrar
 import com.shourov.apps.pacedream.notification.OneSignalService
 import com.shourov.apps.pacedream.notification.PaceDreamNotificationService
 import com.shourov.apps.pacedream.util.ProfileVerifierLogger
@@ -43,6 +44,9 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
     // (e.g., after fresh install or data clear) and get silently dropped on Android 8+.
     @Inject
     lateinit var notificationService: PaceDreamNotificationService
+
+    @Inject
+    lateinit var fcmTokenRegistrar: FcmTokenRegistrar
 
     override fun onCreate() {
         super.onCreate()
@@ -80,12 +84,19 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             sessionManager.initialize()
         }
 
+        // Register FCM token with backend. OneSignal owns the FirebaseMessagingService
+        // (via manifest merger), so we retrieve the token explicitly here instead of
+        // relying on onNewToken(). Safe to call on every launch; deduplicates internally.
+        fcmTokenRegistrar.registerCurrentToken()
+
         // iOS parity: bind OneSignal external user ID when user is authenticated.
         // Mirrors iOS OneSignalService.setExternalUserId() called after auth.
+        // Also re-registers FCM token when user changes so backend has the correct mapping.
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             authSession.currentUser.collect { user ->
                 if (user != null && user.id.isNotBlank()) {
                     oneSignalService.setExternalUserId(user.id)
+                    fcmTokenRegistrar.registerCurrentToken()
                 } else {
                     oneSignalService.setExternalUserId(null)
                 }

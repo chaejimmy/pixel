@@ -153,14 +153,11 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
 
-        <!-- Firebase Messaging Service -->
-        <service
-            android:name=".notification.PaceDreamFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+        <!-- NOTE: No custom FirebaseMessagingService declared here. OneSignal v5 SDK
+             registers its own internal service via manifest merger. Having two services
+             competing for MESSAGING_EVENT causes undefined behavior where neither reliably
+             receives messages. FCM token registration is handled by FcmTokenRegistrar
+             in Application.onCreate() instead of via onNewToken(). -->
     </application>
 
 </manifest>
