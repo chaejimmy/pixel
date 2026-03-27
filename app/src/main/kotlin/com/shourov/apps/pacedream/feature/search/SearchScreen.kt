@@ -88,7 +88,10 @@ import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import com.pacedream.app.core.location.LocationService
 import com.pacedream.app.core.location.LocationServiceEntryPoint
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
@@ -150,7 +153,7 @@ private fun mapCategoryToBackend(cat: String): String {
     return categoryMap[cat] ?: cat.lowercase().replace(" ", "_")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
@@ -166,6 +169,8 @@ fun SearchScreen(
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Sort state
     var selectedSort by remember { mutableStateOf("relevance") }
@@ -339,6 +344,8 @@ fun SearchScreen(
                         }
                     },
                     onSearchClick = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
                         viewModel.updateSearchParams(
                             shareType = when (selectedTab) {
                                 com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
@@ -362,6 +369,8 @@ fun SearchScreen(
                     SuggestionsList(
                         suggestions = state.suggestions,
                         onClick = { suggestion ->
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
                             whereQuery = suggestion.value
                             viewModel.onQueryChanged(suggestion.value)
                             viewModel.submitSearch()

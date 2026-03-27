@@ -64,6 +64,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -80,7 +83,7 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
@@ -88,6 +91,8 @@ fun SearchScreen(
     initialCategory: String? = null
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Column(
         modifier = Modifier
@@ -167,7 +172,11 @@ fun SearchScreen(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { viewModel.search() }),
+                keyboardActions = KeyboardActions(onSearch = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                    viewModel.search()
+                }),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = PaceDreamColors.Surface,
                     unfocusedContainerColor = PaceDreamColors.Surface,
