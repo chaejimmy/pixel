@@ -1737,5 +1737,6 @@ data class HomeListingItem(
     val location: String?,
     val price: String?,
     val rating: Double?,
-    val type: String
+    val type: String,
+    val shareCategory: String? = null
 )
