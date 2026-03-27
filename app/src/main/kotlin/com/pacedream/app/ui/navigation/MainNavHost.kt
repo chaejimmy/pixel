@@ -38,6 +38,7 @@ import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.pacedream.app.feature.checkout.ConfirmationScreen
 import com.pacedream.app.feature.bookings.BookingListItem
 import com.pacedream.app.feature.bookings.BookingsScreen
+import com.pacedream.app.feature.home.HomeListingItem
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
 import com.pacedream.app.feature.inbox.InboxScreen
