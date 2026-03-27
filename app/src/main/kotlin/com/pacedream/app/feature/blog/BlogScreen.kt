@@ -201,9 +201,13 @@ class BlogViewModel @Inject constructor(
     fun clearSelectedPost() = _uiState.update { it.copy(selectedPost = null) }
 
     fun loadPostDetail(postId: String) = viewModelScope.launch {
-        when (val result = repository.getPost(postId)) {
-            is ApiResult.Success -> result.data.resolvedPost?.let { p -> _uiState.update { it.copy(selectedPost = p) } }
-            is ApiResult.Failure -> { /* keep existing data */ }
+        try {
+            when (val result = repository.getPost(postId)) {
+                is ApiResult.Success -> result.data.resolvedPost?.let { p -> _uiState.update { it.copy(selectedPost = p) } }
+                is ApiResult.Failure -> { /* keep existing data */ }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load post detail")
         }
     }
 

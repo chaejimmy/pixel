@@ -41,21 +41,29 @@ class BookingDetailViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            bookingRepository.getBookingById(bookingId).collectLatest { result ->
-                when (result) {
-                    is Result.Success -> _uiState.value = BookingDetailUiState(
-                        isLoading = false,
-                        booking = result.data,
-                        error = if (result.data == null) "Booking not found" else null
-                    )
-                    is Result.Error -> _uiState.value = BookingDetailUiState(
-                        isLoading = false,
-                        booking = null,
-                        error = result.exception.message ?: "Failed to load booking"
-                    )
-                    is Result.Loading -> _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                bookingRepository.getBookingById(bookingId).collectLatest { result ->
+                    when (result) {
+                        is Result.Success -> _uiState.value = BookingDetailUiState(
+                            isLoading = false,
+                            booking = result.data,
+                            error = if (result.data == null) "Booking not found" else null
+                        )
+                        is Result.Error -> _uiState.value = BookingDetailUiState(
+                            isLoading = false,
+                            booking = null,
+                            error = result.exception.message ?: "Failed to load booking"
+                        )
+                        is Result.Loading -> _uiState.value = _uiState.value.copy(isLoading = true)
+                    }
                 }
+            } catch (e: Exception) {
+                _uiState.value = BookingDetailUiState(
+                    isLoading = false,
+                    booking = null,
+                    error = e.message ?: "Failed to load booking"
+                )
             }
         }
     }
@@ -63,19 +71,26 @@ class BookingDetailViewModel @Inject constructor(
     fun cancelBooking() {
         if (bookingId.isBlank()) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            when (bookingRepository.cancelBooking(bookingId)) {
-                is Result.Success -> {
-                    // Reload to reflect cancelled status
-                    load()
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                when (bookingRepository.cancelBooking(bookingId)) {
+                    is Result.Success -> {
+                        // Reload to reflect cancelled status
+                        load()
+                    }
+                    is Result.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "Failed to cancel booking"
+                        )
+                    }
+                    is Result.Loading -> { /* no-op */ }
                 }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = "Failed to cancel booking"
-                    )
-                }
-                is Result.Loading -> { /* no-op */ }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to cancel booking"
+                )
             }
         }
     }

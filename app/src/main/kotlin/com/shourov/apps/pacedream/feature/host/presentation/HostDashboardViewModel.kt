@@ -49,7 +49,16 @@ class HostDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val result = hostRepository.loadDashboard()
+            val result = try {
+                hostRepository.loadDashboard()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    hasLoaded = true,
+                    error = e.message ?: "Failed to load dashboard"
+                )
+                return@launch
+            }
 
             // iOS parity: derive userName from personal info or overview if available
             val resolvedUserName = _uiState.value.userName.let { current ->

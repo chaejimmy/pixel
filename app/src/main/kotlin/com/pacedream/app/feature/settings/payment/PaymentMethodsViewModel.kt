@@ -33,84 +33,101 @@ class PaymentMethodsViewModel @Inject constructor(
     fun loadPaymentMethods() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = repository.fetchPaymentMethods()) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            paymentMethods = result.data,
-                            errorMessage = null,
-                            unauthorized = false
-                        )
-                    }
-                }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
+            try {
+                when (val result = repository.fetchPaymentMethods()) {
+                    is ApiResult.Success -> {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                paymentMethods = emptyList(),
-                                errorMessage = "Please log in to continue.",
-                                unauthorized = true
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = result.error.message
+                                paymentMethods = result.data,
+                                errorMessage = null,
+                                unauthorized = false
                             )
                         }
                     }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    paymentMethods = emptyList(),
+                                    errorMessage = "Please log in to continue.",
+                                    unauthorized = true
+                                )
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    errorMessage = result.error.message
+                                )
+                            }
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
 
     suspend fun createSetupIntent(): ApiResult<String> {
         _uiState.update { it.copy(isCreatingSetupIntent = true, errorMessage = null) }
-        val result = repository.createSetupIntent()
-        _uiState.update { it.copy(isCreatingSetupIntent = false) }
-        return result
+        return try {
+            val result = repository.createSetupIntent()
+            _uiState.update { it.copy(isCreatingSetupIntent = false) }
+            result
+        } catch (e: Exception) {
+            _uiState.update { it.copy(isCreatingSetupIntent = false) }
+            ApiResult.Failure(ApiError.Unknown(e.message ?: "Unexpected error creating setup intent"))
+        }
     }
 
     fun setDefault(paymentMethodId: String) {
         viewModelScope.launch {
-            when (val result = repository.setDefault(paymentMethodId)) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            paymentMethods = result.data,
-                            errorMessage = null
-                        )
+            try {
+                when (val result = repository.setDefault(paymentMethodId)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                paymentMethods = result.data,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(errorMessage = result.error.message)
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(errorMessage = result.error.message)
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "An unexpected error occurred.") }
             }
         }
     }
 
     fun deletePaymentMethod(id: String) {
         viewModelScope.launch {
-            when (val result = repository.deletePaymentMethod(id)) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            paymentMethods = result.data,
-                            errorMessage = null
-                        )
+            try {
+                when (val result = repository.deletePaymentMethod(id)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                paymentMethods = result.data,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(errorMessage = result.error.message)
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(errorMessage = result.error.message)
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "An unexpected error occurred.") }
             }
         }
     }

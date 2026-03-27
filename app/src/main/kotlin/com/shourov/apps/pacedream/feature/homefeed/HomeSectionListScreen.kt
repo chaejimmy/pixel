@@ -75,17 +75,26 @@ class HomeSectionListViewModel @Inject constructor(
 
     fun refresh(section: HomeSectionKey) {
         viewModelScope.launch {
-            isRefreshing = true
-            page1 = 1
-            load(section, reset = true)
-            isRefreshing = false
+            try {
+                isRefreshing = true
+                page1 = 1
+                load(section, reset = true)
+            } catch (_: Exception) {
+                errorMessage = "Something went wrong. Pull to refresh."
+            } finally {
+                isRefreshing = false
+            }
         }
     }
 
     fun loadMore(section: HomeSectionKey) {
         if (!hasMore) return
         viewModelScope.launch {
-            load(section, reset = false)
+            try {
+                load(section, reset = false)
+            } catch (_: Exception) {
+                errorMessage = "Failed to load more"
+            }
         }
     }
 
@@ -209,7 +218,7 @@ fun HomeSectionListScreen(
                                     .data(item.imageUrl?.takeIf { it.isNotBlank() })
                                     .crossfade(200)
                                     .build(),
-                                contentDescription = item.title,
+                                contentDescription = item.title.ifBlank { "Listing" },
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .width(100.dp)
@@ -226,7 +235,7 @@ fun HomeSectionListScreen(
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = item.title,
+                                    text = item.title.ifBlank { "Listing" },
                                     style = PaceDreamTypography.Headline,
                                     color = PaceDreamColors.TextPrimary,
                                     fontWeight = FontWeight.SemiBold,
@@ -240,7 +249,7 @@ fun HomeSectionListScreen(
                                         maxLines = 1
                                     )
                                 }
-                                item.priceText?.let {
+                                item.priceText?.takeIf { it.isNotBlank() }?.let {
                                     Text(
                                         text = it,
                                         style = PaceDreamTypography.Callout,

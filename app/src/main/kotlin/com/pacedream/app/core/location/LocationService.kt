@@ -12,6 +12,7 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,10 +24,23 @@ import javax.inject.Singleton
 class LocationService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val fusedLocationClient: FusedLocationProviderClient =
-        LocationServices.getFusedLocationProviderClient(context)
-    
-    private val geocoder: Geocoder = Geocoder(context, Locale.getDefault())
+    private val fusedLocationClient: FusedLocationProviderClient? by lazy {
+        try {
+            LocationServices.getFusedLocationProviderClient(context)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize FusedLocationProviderClient")
+            null
+        }
+    }
+
+    private val geocoder: Geocoder? by lazy {
+        try {
+            Geocoder(context, Locale.getDefault())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize Geocoder")
+            null
+        }
+    }
     
     /**
      * Check if location permission is granted

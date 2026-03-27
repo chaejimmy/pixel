@@ -156,7 +156,7 @@ private fun ThreadItem(
         // Avatar
         Box {
             AsyncImage(
-                model = thread.participantAvatar,
+                model = thread.participantAvatar?.takeIf { it.isNotBlank() },
                 contentDescription = thread.participantName,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

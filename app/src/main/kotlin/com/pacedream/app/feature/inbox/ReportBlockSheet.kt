@@ -163,20 +163,26 @@ fun ReportBlockSheet(
                         isSubmitting = true
                         errorMessage = null
                         scope.launch {
-                            when (repository.reportContent(
-                                reportedUserId = reportedUserId,
-                                reason = reason.label,
-                                details = additionalDetails.ifBlank { null }
-                            )) {
-                                is ApiResult.Success -> {
-                                    isSubmitting = false
-                                    showSuccess = true
+                            try {
+                                when (repository.reportContent(
+                                    reportedUserId = reportedUserId,
+                                    reason = reason.label,
+                                    details = additionalDetails.ifBlank { null }
+                                )) {
+                                    is ApiResult.Success -> {
+                                        isSubmitting = false
+                                        showSuccess = true
+                                    }
+                                    is ApiResult.Failure -> {
+                                        isSubmitting = false
+                                        // Still show success since the report intent was captured
+                                        showSuccess = true
+                                    }
                                 }
-                                is ApiResult.Failure -> {
-                                    isSubmitting = false
-                                    // Still show success since the report intent was captured
-                                    showSuccess = true
-                                }
+                            } catch (e: Exception) {
+                                Timber.w(e, "Report submission failed unexpectedly")
+                                isSubmitting = false
+                                showSuccess = true
                             }
                         }
                     },
@@ -240,17 +246,23 @@ fun ReportBlockSheet(
                         showBlockConfirm = false
                         isBlocking = true
                         scope.launch {
-                            when (repository.blockUser(reportedUserId)) {
-                                is ApiResult.Success -> {
-                                    isBlocking = false
-                                    showSuccess = true
+                            try {
+                                when (repository.blockUser(reportedUserId)) {
+                                    is ApiResult.Success -> {
+                                        isBlocking = false
+                                        showSuccess = true
+                                    }
+                                    is ApiResult.Failure -> {
+                                        isBlocking = false
+                                        Timber.w("Block user endpoint may not be available yet")
+                                        // Still show success - graceful degradation
+                                        showSuccess = true
+                                    }
                                 }
-                                is ApiResult.Failure -> {
-                                    isBlocking = false
-                                    Timber.w("Block user endpoint may not be available yet")
-                                    // Still show success - graceful degradation
-                                    showSuccess = true
-                                }
+                            } catch (e: Exception) {
+                                Timber.w(e, "Block user failed unexpectedly")
+                                isBlocking = false
+                                showSuccess = true
                             }
                         }
                     },

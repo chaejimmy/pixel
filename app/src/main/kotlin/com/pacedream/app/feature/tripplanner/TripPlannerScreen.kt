@@ -164,26 +164,39 @@ class TripPlannerViewModel @Inject constructor(
     fun swapCities() { _uiState.update { it.copy(fromCity = it.toCity, toCity = it.fromCity) } }
 
     fun searchTours() { val city = _uiState.value.toCity.ifBlank { return }; viewModelScope.launch {
-        _uiState.update { it.copy(isSearchingTours = true) }
-        when (val result = repository.getTours(city)) {
-            is ApiResult.Success -> _uiState.update { it.copy(tours = result.data.resolvedTours, isSearchingTours = false) }
-            is ApiResult.Failure -> _uiState.update { it.copy(isSearchingTours = false) }
+        try {
+            _uiState.update { it.copy(isSearchingTours = true) }
+            when (val result = repository.getTours(city)) {
+                is ApiResult.Success -> _uiState.update { it.copy(tours = result.data.resolvedTours, isSearchingTours = false) }
+                is ApiResult.Failure -> _uiState.update { it.copy(isSearchingTours = false) }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to search tours")
+            _uiState.update { it.copy(isSearchingTours = false) }
         }
     }}
 
     fun createTrip(name: String, travelers: Int) { val s = _uiState.value
         if (s.fromCity.isBlank() || s.toCity.isBlank()) return
         viewModelScope.launch {
-            val req = CreateTripRequest(name.ifBlank { "${s.fromCity} to ${s.toCity}" }, s.fromCity, s.toCity, s.departureDate, s.returnDate, travelers)
-            when (repository.createTrip(req)) {
-                is ApiResult.Success -> { _uiState.update { it.copy(showCreateDialog = false) }; loadTrips() }
-                is ApiResult.Failure -> {}
+            try {
+                val req = CreateTripRequest(name.ifBlank { "${s.fromCity} to ${s.toCity}" }, s.fromCity, s.toCity, s.departureDate, s.returnDate, travelers)
+                when (repository.createTrip(req)) {
+                    is ApiResult.Success -> { _uiState.update { it.copy(showCreateDialog = false) }; loadTrips() }
+                    is ApiResult.Failure -> { _uiState.update { it.copy(error = "Failed to create trip") } }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to create trip")
             }
         }
     }
 
     fun deleteTrip(id: String) { viewModelScope.launch {
-        when (repository.deleteTrip(id)) { is ApiResult.Success -> loadTrips(); is ApiResult.Failure -> {} }
+        try {
+            when (repository.deleteTrip(id)) { is ApiResult.Success -> loadTrips(); is ApiResult.Failure -> {} }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to delete trip")
+        }
     }}
 }
 

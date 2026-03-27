@@ -77,70 +77,86 @@ class InboxViewModel @Inject constructor(
         if (_uiState.value.isLoadingMore || cursor == null) return
         
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingMore = true) }
-            
-            val url = appConfig.buildApiUrl(
-                "inbox", "threads",
-                queryParams = mapOf(
-                    "limit" to "20",
-                    "cursor" to cursor,
-                    "mode" to mode
+            try {
+                _uiState.update { it.copy(isLoadingMore = true) }
+
+                val url = appConfig.buildApiUrl(
+                    "inbox", "threads",
+                    queryParams = mapOf(
+                        "limit" to "20",
+                        "cursor" to cursor,
+                        "mode" to mode
+                    )
                 )
-            )
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val (threads, nextCursor) = parseThreadsResponse(result.data)
-                    cursor = nextCursor
-                    _uiState.update {
-                        it.copy(
-                            isLoadingMore = false,
-                            threads = it.threads + threads,
-                            hasMore = nextCursor != null
-                        )
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val (threads, nextCursor) = parseThreadsResponse(result.data)
+                        cursor = nextCursor
+                        _uiState.update {
+                            it.copy(
+                                isLoadingMore = false,
+                                threads = it.threads + threads,
+                                hasMore = nextCursor != null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update { it.copy(isLoadingMore = false) }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update { it.copy(isLoadingMore = false) }
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load more threads")
+                _uiState.update { it.copy(isLoadingMore = false) }
             }
         }
     }
     
     private fun loadThreads() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, isRefreshing = true, error = null) }
-            
-            val url = appConfig.buildApiUrl(
-                "inbox", "threads",
-                queryParams = mapOf(
-                    "limit" to "20",
-                    "mode" to mode
+            try {
+                _uiState.update { it.copy(isLoading = true, isRefreshing = true, error = null) }
+
+                val url = appConfig.buildApiUrl(
+                    "inbox", "threads",
+                    queryParams = mapOf(
+                        "limit" to "20",
+                        "mode" to mode
+                    )
                 )
-            )
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val (threads, nextCursor) = parseThreadsResponse(result.data)
-                    cursor = nextCursor
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            threads = threads,
-                            hasMore = nextCursor != null,
-                            error = null
-                        )
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val (threads, nextCursor) = parseThreadsResponse(result.data)
+                        cursor = nextCursor
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                threads = threads,
+                                hasMore = nextCursor != null,
+                                error = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                error = result.error.message ?: "Failed to load threads"
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = result.error.message
-                        )
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load threads")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = e.message ?: "An unexpected error occurred"
+                    )
                 }
             }
         }
@@ -148,17 +164,21 @@ class InboxViewModel @Inject constructor(
     
     private fun loadUnreadCounts() {
         viewModelScope.launch {
-            val url = appConfig.buildApiUrl("inbox", "unread-counts")
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val count = parseUnreadCountResponse(result.data)
-                    _uiState.update { it.copy(unreadCount = count) }
+            try {
+                val url = appConfig.buildApiUrl("inbox", "unread-counts")
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val count = parseUnreadCountResponse(result.data)
+                        _uiState.update { it.copy(unreadCount = count) }
+                    }
+                    is ApiResult.Failure -> {
+                        // Ignore unread count errors
+                        Timber.w("Failed to fetch unread counts: ${result.error.message}")
+                    }
                 }
-                is ApiResult.Failure -> {
-                    // Ignore unread count errors
-                    Timber.w("Failed to fetch unread counts: ${result.error.message}")
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load unread counts")
             }
         }
     }

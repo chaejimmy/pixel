@@ -269,28 +269,45 @@ class ReviewsViewModel @Inject constructor(
 
     fun markHelpful(reviewId: String) {
         viewModelScope.launch {
-            repository.markHelpful(reviewId)
+            try {
+                repository.markHelpful(reviewId)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to mark review as helpful")
+            }
         }
     }
 
     fun submitReview(listingId: String?, rating: Int, comment: String) {
         viewModelScope.launch {
-            val request = SubmitReviewRequest(listingId = listingId, rate = rating, comment = comment)
-            when (repository.submitReview(request)) {
-                is ApiResult.Success -> {
-                    _uiState.update { it.copy(showWriteReview = false) }
-                    loadReviews()
+            try {
+                val request = SubmitReviewRequest(listingId = listingId, rate = rating, comment = comment)
+                when (repository.submitReview(request)) {
+                    is ApiResult.Success -> {
+                        _uiState.update { it.copy(showWriteReview = false) }
+                        loadReviews()
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update { it.copy(error = "Failed to submit review") }
+                    }
                 }
-                is ApiResult.Failure -> { /* show error */ }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to submit review")
+                _uiState.update { it.copy(error = "Failed to submit review") }
             }
         }
     }
 
     fun deleteReview(reviewId: String) {
         viewModelScope.launch {
-            when (repository.deleteReview(reviewId)) {
-                is ApiResult.Success -> loadReviews()
-                is ApiResult.Failure -> { /* show error */ }
+            try {
+                when (repository.deleteReview(reviewId)) {
+                    is ApiResult.Success -> loadReviews()
+                    is ApiResult.Failure -> {
+                        _uiState.update { it.copy(error = "Failed to delete review") }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to delete review")
             }
         }
     }

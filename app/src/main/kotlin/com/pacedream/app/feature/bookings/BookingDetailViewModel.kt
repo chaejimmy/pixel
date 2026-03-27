@@ -107,19 +107,23 @@ class BookingDetailViewModel @Inject constructor(
     private val json: Json
 ) : ViewModel() {
 
-    private val bookingId: String = checkNotNull(savedStateHandle["bookingId"])
+    private val bookingId: String = savedStateHandle.get<String>("bookingId").orEmpty()
 
     private val _uiState = MutableStateFlow(BookingDetailUiState())
     val uiState: StateFlow<BookingDetailUiState> = _uiState.asStateFlow()
 
     init {
-        // Check if we have cached data passed via savedStateHandle (iOS pattern)
-        val cachedTitle = savedStateHandle.get<String>("cached_title")
-        if (cachedTitle != null) {
-            val cached = buildCachedBookingDetail(savedStateHandle)
-            _uiState.update { it.copy(isLoading = false, booking = cached) }
+        if (bookingId.isNotBlank()) {
+            // Check if we have cached data passed via savedStateHandle (iOS pattern)
+            val cachedTitle = savedStateHandle.get<String>("cached_title")
+            if (cachedTitle != null) {
+                val cached = buildCachedBookingDetail(savedStateHandle)
+                _uiState.update { it.copy(isLoading = false, booking = cached) }
+            }
+            loadBookingDetail()
+        } else {
+            _uiState.update { it.copy(isLoading = false, error = "Missing booking ID") }
         }
-        loadBookingDetail()
     }
 
     /**
@@ -140,7 +144,7 @@ class BookingDetailViewModel @Inject constructor(
             status = BookingStatus.from(handle.get<String>("cached_status")),
             propertyName = handle.get<String>("cached_title") ?: "Booking",
             propertyLocation = handle.get<String>("cached_location") ?: "",
-            propertyImageUrl = handle.get<String>("cached_imageUrl"),
+            propertyImageUrl = handle.get<String>("cached_imageUrl")?.takeIf { it.isNotBlank() },
             checkInDate = handle.get<String>("cached_checkInDate") ?: "",
             checkInTime = handle.get<String>("cached_checkInTime"),
             checkOutDate = handle.get<String>("cached_checkOutDate") ?: "",
@@ -166,83 +170,102 @@ class BookingDetailViewModel @Inject constructor(
     }
 
     fun loadBookingDetail() {
+        if (bookingId.isBlank()) {
+            _uiState.update { it.copy(isLoading = false, error = "Missing booking ID") }
+            return
+        }
         viewModelScope.launch {
-            // Only show loading spinner if we have no cached data (matching iOS)
-            if (_uiState.value.booking == null) {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-            }
+            try {
+                // Only show loading spinner if we have no cached data (matching iOS)
+                if (_uiState.value.booking == null) {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
 
-            val url = appConfig.buildApiUrl("bookings", bookingId)
+                val url = appConfig.buildApiUrl("bookings", bookingId)
 
-            when (val res = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val detail = parseBookingDetail(res.data)
-                    if (detail != null) {
-                        _uiState.update { it.copy(isLoading = false, booking = detail, error = null) }
-                    } else {
-                        // Parse failed, but if we have cached data, keep it (matching iOS)
+                when (val res = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val detail = parseBookingDetail(res.data)
+                        if (detail != null) {
+                            _uiState.update { it.copy(isLoading = false, booking = detail, error = null) }
+                        } else {
+                            // Parse failed, but if we have cached data, keep it (matching iOS)
+                            if (_uiState.value.booking != null) {
+                                _uiState.update { it.copy(isLoading = false, error = null) }
+                            } else {
+                                _uiState.update { it.copy(isLoading = false, error = "Failed to parse booking details.") }
+                            }
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        // If we already have cached data, don't overwrite with error (matching iOS 404 handling)
                         if (_uiState.value.booking != null) {
                             _uiState.update { it.copy(isLoading = false, error = null) }
                         } else {
-                            _uiState.update { it.copy(isLoading = false, error = "Failed to parse booking details.") }
+                            _uiState.update { it.copy(isLoading = false, error = res.error.message) }
                         }
                     }
                 }
-                is ApiResult.Failure -> {
-                    // If we already have cached data, don't overwrite with error (matching iOS 404 handling)
-                    if (_uiState.value.booking != null) {
-                        _uiState.update { it.copy(isLoading = false, error = null) }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false, error = res.error.message) }
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load booking detail")
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message ?: "Failed to load booking details")
                 }
             }
         }
     }
 
     fun cancelBooking() {
+        if (bookingId.isBlank()) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isCancelling = true, cancelError = null) }
+            try {
+                _uiState.update { it.copy(isCancelling = true, cancelError = null) }
 
-            // Try POST first (matching iOS primary endpoint)
-            val cancelUrl = appConfig.buildApiUrl("poc", "bookings", bookingId, "cancel")
-            val result = apiClient.post(cancelUrl, body = "{}", includeAuth = true)
+                // Try POST first (matching iOS primary endpoint)
+                val cancelUrl = appConfig.buildApiUrl("poc", "bookings", bookingId, "cancel")
+                val result = apiClient.post(cancelUrl, body = "{}", includeAuth = true)
 
-            when (result) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isCancelling = false,
-                            cancelSuccess = true,
-                            booking = it.booking?.copy(
-                                status = BookingStatus.CANCELLED,
-                                statusLabel = "Cancelled"
+                when (result) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isCancelling = false,
+                                cancelSuccess = true,
+                                booking = it.booking?.copy(
+                                    status = BookingStatus.CANCELLED,
+                                    statusLabel = "Cancelled"
+                                )
                             )
-                        )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        // Fallback endpoint (matching iOS)
+                        val fallbackUrl = appConfig.buildApiUrl("bookings", bookingId, "cancel")
+                        when (val fallback = apiClient.put(fallbackUrl, body = "{}", includeAuth = true)) {
+                            is ApiResult.Success -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isCancelling = false,
+                                        cancelSuccess = true,
+                                        booking = it.booking?.copy(
+                                            status = BookingStatus.CANCELLED,
+                                            statusLabel = "Cancelled"
+                                        )
+                                    )
+                                }
+                            }
+                            is ApiResult.Failure -> {
+                                _uiState.update {
+                                    it.copy(isCancelling = false, cancelError = fallback.error.message)
+                                }
+                            }
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    // Fallback endpoint (matching iOS)
-                    val fallbackUrl = appConfig.buildApiUrl("bookings", bookingId, "cancel")
-                    when (val fallback = apiClient.put(fallbackUrl, body = "{}", includeAuth = true)) {
-                        is ApiResult.Success -> {
-                            _uiState.update {
-                                it.copy(
-                                    isCancelling = false,
-                                    cancelSuccess = true,
-                                    booking = it.booking?.copy(
-                                        status = BookingStatus.CANCELLED,
-                                        statusLabel = "Cancelled"
-                                    )
-                                )
-                            }
-                        }
-                        is ApiResult.Failure -> {
-                            _uiState.update {
-                                it.copy(isCancelling = false, cancelError = fallback.error.message)
-                            }
-                        }
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to cancel booking")
+                _uiState.update {
+                    it.copy(isCancelling = false, cancelError = e.message ?: "Failed to cancel booking")
                 }
             }
         }
@@ -279,7 +302,7 @@ class BookingDetailViewModel @Inject constructor(
     // ============================================================================
     private fun parseBookingDetail(body: String): BookingDetail? {
         return try {
-            val root = json.parseToJsonElement(body).jsonObject
+            val root = json.parseToJsonElement(body) as? JsonObject ?: return null
             val obj = root["data"]?.asObjOrNull()
                 ?: root["booking"]?.asObjOrNull()
                 ?: root
@@ -299,8 +322,9 @@ class BookingDetailViewModel @Inject constructor(
                 ?: "Property"
 
             // Image (comprehensive matching iOS)
-            val imageUrl = listing?.str("imageUrl", "image", "coverImage", "thumbnail")
-                ?: obj.str("coverUrl", "cover_url", "imageUrl", "propertyImage", "coverImage", "image")
+            val imageUrl = (listing?.str("imageUrl", "image", "coverImage", "thumbnail")
+                ?: obj.str("coverUrl", "cover_url", "imageUrl", "propertyImage", "coverImage", "image"))
+                ?.takeIf { it.isNotBlank() }
 
             // Location
             val city = location?.str("city") ?: obj.str("city", "location")

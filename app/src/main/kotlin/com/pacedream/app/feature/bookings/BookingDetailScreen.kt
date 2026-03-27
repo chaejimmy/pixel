@@ -206,7 +206,7 @@ private fun HeroImage(imageUrl: String?, statusLabel: String, status: BookingSta
             .fillMaxWidth()
             .height(260.dp)
     ) {
-        if (imageUrl != null) {
+        if (!imageUrl.isNullOrBlank()) {
             AsyncImage(
                 model = imageUrl,
                 contentDescription = "Property image",

@@ -154,64 +154,75 @@ class BookingsViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    isLoading = it.allBookings.isEmpty(),
-                    isRefreshing = true,
-                    error = null
-                )
-            }
-
-            // Fetch guest and host bookings in parallel (matching iOS)
-            val guestDeferred = async { fetchGuestBookings() }
-            val hostDeferred = async { fetchHostBookings() }
-
-            val guestResult = guestDeferred.await()
-            val hostResult = hostDeferred.await()
-
-            val allBookings = mutableListOf<BookingListItem>()
-            var guestError: String? = null
-            var hostError: String? = null
-
-            when (guestResult) {
-                is BookingsResult.Success -> allBookings.addAll(guestResult.items)
-                is BookingsResult.Failure -> guestError = guestResult.message
-            }
-            when (hostResult) {
-                is BookingsResult.Success -> allBookings.addAll(hostResult.items)
-                is BookingsResult.Failure -> hostError = hostResult.message
-            }
-
-            // Rebuild category caches
-            statusConfigs.clear()
-            val upcoming = mutableListOf<BookingListItem>()
-            val past = mutableListOf<BookingListItem>()
-            val cancelled = mutableListOf<BookingListItem>()
-
-            for (item in allBookings) {
-                val config = resolveStatusConfig(item)
-                statusConfigs[item.id] = config
-                when (config.filterCategory) {
-                    BookingFilterCategory.UPCOMING -> upcoming.add(item)
-                    BookingFilterCategory.PAST -> past.add(item)
-                    BookingFilterCategory.CANCELLED -> cancelled.add(item)
+            try {
+                _uiState.update {
+                    it.copy(
+                        isLoading = it.allBookings.isEmpty(),
+                        isRefreshing = true,
+                        error = null
+                    )
                 }
-            }
 
-            val error = if (guestError != null && hostError != null) {
-                "Couldn't load bookings."
-            } else null
+                // Fetch guest and host bookings in parallel (matching iOS)
+                val guestDeferred = async { fetchGuestBookings() }
+                val hostDeferred = async { fetchHostBookings() }
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    allBookings = allBookings,
-                    upcomingBookings = upcoming,
-                    pastBookings = past,
-                    cancelledBookings = cancelled,
-                    error = error
-                )
+                val guestResult = guestDeferred.await()
+                val hostResult = hostDeferred.await()
+
+                val allBookings = mutableListOf<BookingListItem>()
+                var guestError: String? = null
+                var hostError: String? = null
+
+                when (guestResult) {
+                    is BookingsResult.Success -> allBookings.addAll(guestResult.items)
+                    is BookingsResult.Failure -> guestError = guestResult.message
+                }
+                when (hostResult) {
+                    is BookingsResult.Success -> allBookings.addAll(hostResult.items)
+                    is BookingsResult.Failure -> hostError = hostResult.message
+                }
+
+                // Rebuild category caches
+                statusConfigs.clear()
+                val upcoming = mutableListOf<BookingListItem>()
+                val past = mutableListOf<BookingListItem>()
+                val cancelled = mutableListOf<BookingListItem>()
+
+                for (item in allBookings) {
+                    val config = resolveStatusConfig(item)
+                    statusConfigs[item.id] = config
+                    when (config.filterCategory) {
+                        BookingFilterCategory.UPCOMING -> upcoming.add(item)
+                        BookingFilterCategory.PAST -> past.add(item)
+                        BookingFilterCategory.CANCELLED -> cancelled.add(item)
+                    }
+                }
+
+                val error = if (guestError != null && hostError != null) {
+                    "Couldn't load bookings."
+                } else null
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        allBookings = allBookings,
+                        upcomingBookings = upcoming,
+                        pastBookings = past,
+                        cancelledBookings = cancelled,
+                        error = error
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to refresh bookings")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = e.message ?: "Failed to load bookings"
+                    )
+                }
             }
         }
     }
@@ -328,7 +339,8 @@ class BookingsViewModel @Inject constructor(
     // ============================================================================
     private fun parseGuestBookings(body: String): List<BookingListItem> {
         return try {
-            val root = json.parseToJsonElement(body).jsonObject
+            val rootElement = json.parseToJsonElement(body)
+            val root = rootElement as? JsonObject ?: return emptyList()
             val data = root["data"]
 
             // Handle multiple response shapes (matching iOS BookingMineResponse)
@@ -438,7 +450,8 @@ class BookingsViewModel @Inject constructor(
     // ============================================================================
     private fun parseHostBookings(body: String): List<BookingListItem> {
         return try {
-            val root = json.parseToJsonElement(body).jsonObject
+            val rootElement = json.parseToJsonElement(body)
+            val root = rootElement as? JsonObject ?: return emptyList()
             val arr = root["bookings"]?.asArrayOrNull()
                 ?: root["data"]?.asArrayOrNull()
                 ?: return emptyList()
@@ -511,12 +524,12 @@ class BookingsViewModel @Inject constructor(
         obj["images"]?.asArrayOrNull()?.firstOrNull()?.let { el ->
             val imgObj = el.asObjectOrNull()
             (imgObj?.str("thumbnail", "url", "src", "secure_url", "secureUrl")
-                ?: el.jsonPrimitive.contentOrNull)?.let { return it }
+                ?: runCatching { el.jsonPrimitive.contentOrNull }.getOrNull())?.let { return it }
         }
 
         obj["photos"]?.asArrayOrNull()?.firstOrNull()?.let { el ->
             val imgObj = el.asObjectOrNull()
-            (imgObj?.str("thumbnail", "url", "src") ?: el.jsonPrimitive.contentOrNull)
+            (imgObj?.str("thumbnail", "url", "src") ?: runCatching { el.jsonPrimitive.contentOrNull }.getOrNull())
                 ?.let { return it }
         }
 
@@ -527,7 +540,7 @@ class BookingsViewModel @Inject constructor(
 
         listing?.get("images")?.asArrayOrNull()?.firstOrNull()?.let { el ->
             val imgObj = el.asObjectOrNull()
-            (imgObj?.str("thumbnail", "url", "src") ?: el.jsonPrimitive.contentOrNull)
+            (imgObj?.str("thumbnail", "url", "src") ?: runCatching { el.jsonPrimitive.contentOrNull }.getOrNull())
                 ?.let { return it }
         }
 
@@ -562,22 +575,20 @@ class BookingsViewModel @Inject constructor(
     }
 
     companion object {
-        private val isoFormatters = listOf(
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            },
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            },
-            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US),
-            SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        private val isoFormats = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" to "UTC",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'" to "UTC",
+            "yyyy-MM-dd'T'HH:mm:ssXXX" to null,
+            "yyyy-MM-dd" to null
         )
 
         fun parseIsoDate(raw: String?): Date? {
             if (raw.isNullOrBlank()) return null
             val trimmed = raw.trim()
-            for (fmt in isoFormatters) {
+            for ((pattern, tz) in isoFormats) {
                 try {
+                    val fmt = SimpleDateFormat(pattern, Locale.US)
+                    if (tz != null) fmt.timeZone = TimeZone.getTimeZone(tz)
                     return fmt.parse(trimmed)
                 } catch (_: Exception) { }
             }

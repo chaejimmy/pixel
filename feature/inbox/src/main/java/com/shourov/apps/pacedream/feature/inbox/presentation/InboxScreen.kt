@@ -432,7 +432,7 @@ private fun ThreadCard(
                     .background(PaceDreamColors.Primary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                if (thread.avatarUrl != null) {
+                if (thread.avatarUrl?.takeIf { it.isNotBlank() } != null) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(thread.avatarUrl)

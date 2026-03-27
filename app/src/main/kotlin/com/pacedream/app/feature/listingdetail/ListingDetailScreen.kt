@@ -896,9 +896,9 @@ private fun ReserveSheet(
         // Confirm button
         Button(
             onClick = {
-                val d = requireNotNull(selectedDate)
-                val start = requireNotNull(selectedSlotStart)
-                val end = requireNotNull(selectedEnd)
+                val d = selectedDate ?: return@Button
+                val start = selectedSlotStart ?: return@Button
+                val end = selectedEnd ?: return@Button
                 val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
                 val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
                 val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
@@ -1129,13 +1129,13 @@ private fun TitleMetaBlock(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = String.format("%.1f", rating),
+                    text = String.format("%.1f", rating ?: 0.0),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "($reviewCount ${if (reviewCount == 1) "review" else "reviews"})",
+                    text = "(${reviewCount ?: 0} ${if (reviewCount == 1) "review" else "reviews"})",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2167,7 +2167,7 @@ private fun SectionSplitInfo(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(
-                        progress = { ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) },
+                        progress = { if (slotsTotal > 0) ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) else 0f },
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant

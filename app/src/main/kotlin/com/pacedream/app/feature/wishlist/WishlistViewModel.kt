@@ -95,45 +95,51 @@ class WishlistViewModel @Inject constructor(
             // Step 1: Optimistic remove - save original state
             val originalItems = allItems.toList()
             val itemIndex = allItems.indexOf(item)
-            
+
             // Remove immediately from UI
             allItems = allItems.filter { it.id != item.id }
             updateFilteredItems()
-            
-            // Step 2: Call toggle API
-            val url = appConfig.buildApiUrl("account", "wishlist", "toggle")
-            val body = json.encodeToString(
-                WishlistToggleRequest.serializer(),
-                WishlistToggleRequest(
-                    itemId = item.listingId ?: item.id,
-                    listingId = item.listingId
+
+            try {
+                // Step 2: Call toggle API
+                val url = appConfig.buildApiUrl("account", "wishlist", "toggle")
+                val body = json.encodeToString(
+                    WishlistToggleRequest.serializer(),
+                    WishlistToggleRequest(
+                        itemId = item.listingId ?: item.id,
+                        listingId = item.listingId
+                    )
                 )
-            )
-            
-            val result = apiClient.post(url, body, includeAuth = true)
-            
-            // Step 3: Handle result
-            when (result) {
-                is ApiResult.Success -> {
-                    val toggleResponse = parseToggleResponse(result.data)
-                    
-                    // If API returns liked=true, the item was NOT removed (unexpected)
-                    if (toggleResponse?.liked == true) {
-                        Timber.w("Item was not removed as expected, restoring")
+
+                val result = apiClient.post(url, body, includeAuth = true)
+
+                // Step 3: Handle result
+                when (result) {
+                    is ApiResult.Success -> {
+                        val toggleResponse = parseToggleResponse(result.data)
+
+                        // If API returns liked=true, the item was NOT removed (unexpected)
+                        if (toggleResponse?.liked == true) {
+                            Timber.w("Item was not removed as expected, restoring")
+                            restoreItem(originalItems, itemIndex, item)
+                            _toastMessages.send("Could not remove item. Please try again.")
+                        } else {
+                            // Successfully removed
+                            Timber.d("Item successfully removed from wishlist")
+                            _toastMessages.send("Removed from favorites")
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        // API failed, restore item
+                        Timber.e("Failed to remove item: ${result.error.message}")
                         restoreItem(originalItems, itemIndex, item)
-                        _toastMessages.send("Could not remove item. Please try again.")
-                    } else {
-                        // Successfully removed
-                        Timber.d("Item successfully removed from wishlist")
-                        _toastMessages.send("Removed from favorites")
+                        _toastMessages.send("Failed to remove item. Please try again.")
                     }
                 }
-                is ApiResult.Failure -> {
-                    // API failed, restore item
-                    Timber.e("Failed to remove item: ${result.error.message}")
-                    restoreItem(originalItems, itemIndex, item)
-                    _toastMessages.send("Failed to remove item. Please try again.")
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Unexpected error removing wishlist item")
+                restoreItem(originalItems, itemIndex, item)
+                _toastMessages.send("Failed to remove item. Please try again.")
             }
         }
     }
@@ -161,30 +167,41 @@ class WishlistViewModel @Inject constructor(
     private fun loadWishlist() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, isRefreshing = true, error = null) }
-            
-            val url = appConfig.buildApiUrl("account", "wishlist")
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val items = parseWishlistResponse(result.data)
-                    allItems = items
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            filteredItems = filterItems(items, it.selectedFilter),
-                            error = null
-                        )
+
+            try {
+                val url = appConfig.buildApiUrl("account", "wishlist")
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val items = parseWishlistResponse(result.data)
+                        allItems = items
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                filteredItems = filterItems(items, it.selectedFilter),
+                                error = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                error = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = result.error.message
-                        )
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Unexpected error loading wishlist")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = "An unexpected error occurred"
+                    )
                 }
             }
         }

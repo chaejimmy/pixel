@@ -70,16 +70,21 @@ class AuthSession @Inject constructor(
      * Initialize auth session on app launch
      */
     suspend fun initialize() {
-        Timber.d("Initializing auth session")
-        
-        // Load stored tokens
-        if (tokenStorage.hasTokens()) {
-            // Mark authenticated immediately to avoid UI loops
-            _authState.value = AuthState.Authenticated
-            
-            // Attempt to fetch user profile
-            bootstrap()
-        } else {
+        try {
+            Timber.d("Initializing auth session")
+
+            // Load stored tokens
+            if (tokenStorage.hasTokens()) {
+                // Mark authenticated immediately to avoid UI loops
+                _authState.value = AuthState.Authenticated
+
+                // Attempt to fetch user profile
+                bootstrap()
+            } else {
+                _authState.value = AuthState.Unauthenticated
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Auth session initialization failed, falling back to unauthenticated")
             _authState.value = AuthState.Unauthenticated
         }
     }
@@ -296,7 +301,11 @@ class AuthSession @Inject constructor(
      */
     fun signOut() {
         Timber.d("Signing out")
-        tokenStorage.clearAll()
+        try {
+            tokenStorage.clearAll()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to clear tokens during sign out")
+        }
         _currentUser.value = null
         _authState.value = AuthState.Unauthenticated
     }
@@ -311,47 +320,64 @@ class AuthSession @Inject constructor(
         activity: Activity,
         connection: String? = null
     ): Result<Unit> = suspendCancellableCoroutine { continuation ->
-        val auth0 = Auth0(
-            appConfig.auth0ClientId,
-            appConfig.auth0Domain
-        )
-        
-        val webAuth = WebAuthProvider.login(auth0)
-            .withScheme(appConfig.auth0Scheme)
-            .withScope("openid profile email offline_access")
-            .withAudience(appConfig.auth0Audience)
-        
-        // Add connection parameter if specified (for social logins like Google OAuth)
-        connection?.let {
-            webAuth.withConnection(it)
+        // Guard: crash-proof when Auth0 credentials are not configured
+        if (appConfig.auth0Domain.isBlank() || appConfig.auth0ClientId.isBlank()) {
+            Timber.e("Auth0 credentials not configured — domain='${appConfig.auth0Domain}', clientId length=${appConfig.auth0ClientId.length}")
+            continuation.resume(Result.failure(Exception("Auth0 is not configured. Please check app settings.")))
+            return@suspendCancellableCoroutine
         }
-        
-        webAuth.start(activity, object : Callback<Credentials, AuthenticationException> {
-                override fun onSuccess(result: Credentials) {
-                    Timber.d("Auth0 login successful")
-                    // Exchange for backend tokens
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val exchangeResult = handleAuth0Login(
-                            auth0AccessToken = result.accessToken,
-                            auth0IdToken = result.idToken
-                        )
-                        if (exchangeResult) {
-                            continuation.resume(Result.success(Unit))
-                        } else {
-                            continuation.resume(Result.failure(Exception("Failed to exchange Auth0 tokens")))
+
+        try {
+            val auth0 = Auth0(
+                appConfig.auth0ClientId,
+                appConfig.auth0Domain
+            )
+
+            val webAuth = WebAuthProvider.login(auth0)
+                .withScheme(appConfig.auth0Scheme)
+                .withScope("openid profile email offline_access")
+                .withAudience(appConfig.auth0Audience)
+
+            // Add connection parameter if specified (for social logins like Google OAuth)
+            connection?.let {
+                webAuth.withConnection(it)
+            }
+
+            webAuth.start(activity, object : Callback<Credentials, AuthenticationException> {
+                    override fun onSuccess(result: Credentials) {
+                        Timber.d("Auth0 login successful")
+                        // Exchange for backend tokens
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val exchangeResult = handleAuth0Login(
+                                    auth0AccessToken = result.accessToken,
+                                    auth0IdToken = result.idToken
+                                )
+                                if (exchangeResult) {
+                                    continuation.resume(Result.success(Unit))
+                                } else {
+                                    continuation.resume(Result.failure(Exception("Failed to exchange Auth0 tokens")))
+                                }
+                            } catch (e: Exception) {
+                                Timber.e(e, "Auth0 token exchange crashed")
+                                continuation.resume(Result.failure(Exception("Token exchange failed: ${e.message ?: "Unknown error"}")))
+                            }
                         }
                     }
-                }
-                
-                override fun onFailure(error: AuthenticationException) {
-                    Timber.e(error, "Auth0 login failed")
-                    if (error.isCanceled) {
-                        continuation.resume(Result.failure(Exception("Login cancelled")))
-                    } else {
-                        continuation.resume(Result.failure(Exception(error.getDescription())))
+
+                    override fun onFailure(error: AuthenticationException) {
+                        Timber.e(error, "Auth0 login failed")
+                        if (error.isCanceled) {
+                            continuation.resume(Result.failure(Exception("Login cancelled")))
+                        } else {
+                            continuation.resume(Result.failure(Exception(error.getDescription())))
+                        }
                     }
-                }
-            })
+                })
+        } catch (e: Exception) {
+            Timber.e(e, "Auth0 SDK initialization or start failed")
+            continuation.resume(Result.failure(Exception("Auth0 login failed: ${e.message ?: "Unknown error"}")))
+        }
     }
     
     /**

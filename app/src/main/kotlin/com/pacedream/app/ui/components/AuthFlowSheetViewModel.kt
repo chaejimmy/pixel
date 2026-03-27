@@ -88,29 +88,39 @@ class AuthFlowSheetViewModel @Inject constructor(
                 )
             }
 
-            val result = sessionManager.loginWithAuth0(activity, connection)
-            when (result) {
-                SessionManager.AuthActionResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isGoogleLoading = false,
-                            isAppleLoading = false,
-                            success = true
-                        )
+            try {
+                val result = sessionManager.loginWithAuth0(activity, connection)
+                when (result) {
+                    SessionManager.AuthActionResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isGoogleLoading = false,
+                                isAppleLoading = false,
+                                success = true
+                            )
+                        }
+                    }
+                    SessionManager.AuthActionResult.Cancelled -> {
+                        // Cancelling is not an error (iOS parity) - no-op.
+                        _uiState.update { it.copy(isGoogleLoading = false, isAppleLoading = false) }
+                    }
+                    is SessionManager.AuthActionResult.Error -> {
+                        _uiState.update {
+                            it.copy(
+                                isGoogleLoading = false,
+                                isAppleLoading = false,
+                                error = result.message
+                            )
+                        }
                     }
                 }
-                SessionManager.AuthActionResult.Cancelled -> {
-                    // Cancelling is not an error (iOS parity) - no-op.
-                    _uiState.update { it.copy(isGoogleLoading = false, isAppleLoading = false) }
-                }
-                is SessionManager.AuthActionResult.Error -> {
-                    _uiState.update {
-                        it.copy(
-                            isGoogleLoading = false,
-                            isAppleLoading = false,
-                            error = result.message
-                        )
-                    }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isGoogleLoading = false,
+                        isAppleLoading = false,
+                        error = e.message ?: "Authentication failed"
+                    )
                 }
             }
         }
@@ -123,15 +133,19 @@ class AuthFlowSheetViewModel @Inject constructor(
 
             _uiState.update { it.copy(isEmailLoading = true, error = null) }
 
-            val result = sessionManager.loginWithEmailPassword(email, password)
-            result.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isEmailLoading = false, success = true) }
-                },
-                onFailure = { e ->
-                    _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
-                }
-            )
+            try {
+                val result = sessionManager.loginWithEmailPassword(email, password)
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(isEmailLoading = false, success = true) }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
+            }
         }
     }
 
@@ -144,21 +158,25 @@ class AuthFlowSheetViewModel @Inject constructor(
 
             _uiState.update { it.copy(isEmailLoading = true, error = null) }
 
-            val result = sessionManager.registerWithEmailPassword(
-                email = email,
-                password = password,
-                firstName = first,
-                lastName = last
-            )
+            try {
+                val result = sessionManager.registerWithEmailPassword(
+                    email = email,
+                    password = password,
+                    firstName = first,
+                    lastName = last
+                )
 
-            result.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isEmailLoading = false, success = true) }
-                },
-                onFailure = { e ->
-                    _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
-                }
-            )
+                result.fold(
+                    onSuccess = {
+                        _uiState.update { it.copy(isEmailLoading = false, success = true) }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
+                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
+            }
         }
     }
 }

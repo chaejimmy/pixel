@@ -64,27 +64,41 @@ class BookingTabViewModel @Inject constructor(
 
     private fun checkAuthAndLoad() {
         viewModelScope.launch {
-            if (authSession.authState.value == AuthState.Unauthenticated) {
-                _uiState.value = BookingTabUiState.RequiresAuth
-                return@launch
+            try {
+                if (authSession.authState.value == AuthState.Unauthenticated) {
+                    _uiState.value = BookingTabUiState.RequiresAuth
+                    return@launch
+                }
+                loadBookings()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to check auth and load bookings")
+                _uiState.value = BookingTabUiState.Error(
+                    e.message ?: "Failed to load bookings"
+                )
             }
-            loadBookings()
         }
     }
 
     private fun refresh() {
         viewModelScope.launch {
-            if (authSession.authState.value == AuthState.Unauthenticated) {
-                _uiState.value = BookingTabUiState.RequiresAuth
-                return@launch
-            }
+            try {
+                if (authSession.authState.value == AuthState.Unauthenticated) {
+                    _uiState.value = BookingTabUiState.RequiresAuth
+                    return@launch
+                }
 
-            (_uiState.value as? BookingTabUiState.Success)?.let { current ->
-                _uiState.value = current.copy(isRefreshing = true)
-            }
+                (_uiState.value as? BookingTabUiState.Success)?.let { current ->
+                    _uiState.value = current.copy(isRefreshing = true)
+                }
 
-            currentOffset = 0
-            loadBookings()
+                currentOffset = 0
+                loadBookings()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to refresh bookings")
+                _uiState.value = BookingTabUiState.Error(
+                    e.message ?: "Failed to refresh bookings"
+                )
+            }
         }
     }
 
@@ -135,25 +149,29 @@ class BookingTabViewModel @Inject constructor(
         if (!initialState.hasMore) return
 
         viewModelScope.launch {
-            val result = bookingTabRepository.getBookings(
-                role = currentRole,
-                limit = PAGE_SIZE,
-                offset = currentOffset
-            )
+            try {
+                val result = bookingTabRepository.getBookings(
+                    role = currentRole,
+                    limit = PAGE_SIZE,
+                    offset = currentOffset
+                )
 
-            when (result) {
-                is ApiResult.Success -> {
-                    currentOffset += result.data.bookings.size
-                    // Use latest state to avoid overwriting concurrent mutations
-                    val latestState = _uiState.value as? BookingTabUiState.Success ?: return@launch
-                    _uiState.value = latestState.copy(
-                        bookings = latestState.bookings + result.data.bookings,
-                        hasMore = result.data.hasMore
-                    )
+                when (result) {
+                    is ApiResult.Success -> {
+                        currentOffset += result.data.bookings.size
+                        // Use latest state to avoid overwriting concurrent mutations
+                        val latestState = _uiState.value as? BookingTabUiState.Success ?: return@launch
+                        _uiState.value = latestState.copy(
+                            bookings = latestState.bookings + result.data.bookings,
+                            hasMore = result.data.hasMore
+                        )
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to load more bookings: ${result.error.message}")
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to load more bookings: ${result.error.message}")
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load more bookings")
             }
         }
     }
@@ -190,7 +208,14 @@ class BookingTabViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            loadBookings()
+            try {
+                loadBookings()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load bookings after role change")
+                _uiState.value = BookingTabUiState.Error(
+                    e.message ?: "Failed to load bookings"
+                )
+            }
         }
     }
 

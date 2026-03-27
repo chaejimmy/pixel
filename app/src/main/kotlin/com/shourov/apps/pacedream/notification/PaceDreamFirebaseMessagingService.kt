@@ -67,6 +67,14 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        try {
+            handleMessage(remoteMessage)
+        } catch (e: Exception) {
+            Timber.e(e, "FCM onMessageReceived crashed, swallowed to prevent service death")
+        }
+    }
+
+    private fun handleMessage(remoteMessage: RemoteMessage) {
         Timber.d("FCM message received from: %s", remoteMessage.from)
 
         val data = remoteMessage.data
@@ -119,8 +127,12 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Timber.d("FCM token refreshed")
-        sendTokenToServer(token)
+        try {
+            Timber.d("FCM token refreshed")
+            sendTokenToServer(token)
+        } catch (e: Exception) {
+            Timber.e(e, "FCM onNewToken crashed, swallowed to prevent service death")
+        }
     }
 
     /**

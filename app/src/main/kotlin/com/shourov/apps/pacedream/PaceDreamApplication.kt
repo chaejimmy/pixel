@@ -47,6 +47,10 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             Timber.plant(Timber.DebugTree())
         }
 
+        // Install global exception handler to prevent background thread crashes
+        // from killing the app. Fatal errors (OOM, etc.) still propagate to Crashlytics.
+        com.shourov.apps.pacedream.stability.GlobalExceptionHandler.install()
+
         // Initialize Firebase before any network calls. The firebase-perf gradle plugin
         // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
         // prior to any OkHttpClient.execute() call (including those in authSession.initialize()).

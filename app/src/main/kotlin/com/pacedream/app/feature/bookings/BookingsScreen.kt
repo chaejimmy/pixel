@@ -327,7 +327,7 @@ private fun UnifiedBookingCard(
                     .height(170.dp)
                     .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
             ) {
-                if (item.imageUrl != null) {
+                if (!item.imageUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = item.imageUrl,
                         contentDescription = item.title,

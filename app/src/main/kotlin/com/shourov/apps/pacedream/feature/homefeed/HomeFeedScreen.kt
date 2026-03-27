@@ -106,16 +106,20 @@ fun HomeFeedScreen(
             return
         }
         scope.launch {
-            val wasFavorited = favoriteIds.contains(listingId)
-            when (val res = viewModel.toggleFavorite(listingId)) {
-                is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                is ApiResult.Failure -> {
-                    if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                        onShowAuthSheet()
-                    } else {
-                        snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+            try {
+                val wasFavorited = favoriteIds.contains(listingId)
+                when (val res = viewModel.toggleFavorite(listingId)) {
+                    is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                    is ApiResult.Failure -> {
+                        if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                            onShowAuthSheet()
+                        } else {
+                            snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                        }
                     }
                 }
+            } catch (_: Exception) {
+                snackbarHostState.showSnackbar("Failed to save")
             }
         }
     }

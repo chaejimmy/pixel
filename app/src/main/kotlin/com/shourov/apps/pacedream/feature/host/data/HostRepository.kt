@@ -315,7 +315,12 @@ class HostRepository @Inject constructor(
     // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
 
     suspend fun resolvePayoutState(): PayoutConnectionState {
-        val response = hostApiService.getPayoutStatus()
+        val response = try {
+            hostApiService.getPayoutStatus()
+        } catch (e: Exception) {
+            Timber.e(e, "resolvePayoutState: failed to fetch payout status")
+            return PayoutConnectionState.NOT_CONNECTED
+        }
         if (!response.isSuccessful) return PayoutConnectionState.NOT_CONNECTED
 
         val body = response.body() ?: return PayoutConnectionState.NOT_CONNECTED

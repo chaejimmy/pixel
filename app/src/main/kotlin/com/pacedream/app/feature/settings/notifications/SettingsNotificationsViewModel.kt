@@ -58,39 +58,43 @@ class SettingsNotificationsViewModel @Inject constructor(
     fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.getNotificationSettings()) {
-                is ApiResult.Success -> {
-                    val s = result.data
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            emailGeneral = s.emailGeneral,
-                            pushGeneral = s.pushGeneral,
-                            messageNotifications = s.messageNotifications,
-                            bookingUpdates = s.bookingUpdates,
-                            bookingAlerts = s.bookingAlerts,
-                            marketingPromotions = s.marketingPromotions,
-                            reviewNotifications = s.reviewNotifications,
-                            friendRequestNotifications = s.friendRequestNotifications,
-                            systemNotifications = s.systemNotifications,
-                            smsNotifications = s.smsNotifications,
-                            quietHoursEnabled = s.quietHoursEnabled,
-                            quietHoursStart = s.quietHoursStart ?: "22:00",
-                            quietHoursEnd = s.quietHoursEnd ?: "08:00"
-                        )
+            try {
+                when (val result = repository.getNotificationSettings()) {
+                    is ApiResult.Success -> {
+                        val s = result.data
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                emailGeneral = s.emailGeneral,
+                                pushGeneral = s.pushGeneral,
+                                messageNotifications = s.messageNotifications,
+                                bookingUpdates = s.bookingUpdates,
+                                bookingAlerts = s.bookingAlerts,
+                                marketingPromotions = s.marketingPromotions,
+                                reviewNotifications = s.reviewNotifications,
+                                friendRequestNotifications = s.friendRequestNotifications,
+                                systemNotifications = s.systemNotifications,
+                                smsNotifications = s.smsNotifications,
+                                quietHoursEnabled = s.quietHoursEnabled,
+                                quietHoursStart = s.quietHoursStart ?: "22:00",
+                                quietHoursEnd = s.quietHoursEnd ?: "08:00"
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
@@ -143,41 +147,45 @@ class SettingsNotificationsViewModel @Inject constructor(
         val state = _uiState.value
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            val settings = AccountSettingsRepository.NotificationSettings(
-                emailGeneral = state.emailGeneral,
-                pushGeneral = state.pushGeneral,
-                messageNotifications = state.messageNotifications,
-                bookingUpdates = state.bookingUpdates,
-                bookingAlerts = state.bookingAlerts,
-                marketingPromotions = state.marketingPromotions,
-                reviewNotifications = state.reviewNotifications,
-                friendRequestNotifications = state.friendRequestNotifications,
-                systemNotifications = state.systemNotifications,
-                smsNotifications = state.smsNotifications,
-                quietHoursEnabled = state.quietHoursEnabled,
-                quietHoursStart = state.quietHoursStart,
-                quietHoursEnd = state.quietHoursEnd
-            )
-            when (val result = repository.updateNotificationSettings(settings)) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            successMessage = "Notification settings updated successfully"
-                        )
+            try {
+                val settings = AccountSettingsRepository.NotificationSettings(
+                    emailGeneral = state.emailGeneral,
+                    pushGeneral = state.pushGeneral,
+                    messageNotifications = state.messageNotifications,
+                    bookingUpdates = state.bookingUpdates,
+                    bookingAlerts = state.bookingAlerts,
+                    marketingPromotions = state.marketingPromotions,
+                    reviewNotifications = state.reviewNotifications,
+                    friendRequestNotifications = state.friendRequestNotifications,
+                    systemNotifications = state.systemNotifications,
+                    smsNotifications = state.smsNotifications,
+                    quietHoursEnabled = state.quietHoursEnabled,
+                    quietHoursStart = state.quietHoursStart,
+                    quietHoursEnd = state.quietHoursEnd
+                )
+                when (val result = repository.updateNotificationSettings(settings)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                successMessage = "Notification settings updated successfully"
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }

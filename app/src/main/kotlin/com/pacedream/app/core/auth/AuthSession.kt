@@ -76,15 +76,20 @@ class SessionManager @Inject constructor(
      * Initialize auth session on app launch
      */
     suspend fun initialize() {
-        Timber.d("Initializing auth session")
-        
-        if (tokenStorage.hasTokens()) {
-            // Mark authenticated immediately to avoid login loops (iOS parity)
-            _authState.value = AuthState.Authenticated
-            
-            // Attempt to validate and fetch profile
-            bootstrap()
-        } else {
+        try {
+            Timber.d("Initializing auth session")
+
+            if (tokenStorage.hasTokens()) {
+                // Mark authenticated immediately to avoid login loops (iOS parity)
+                _authState.value = AuthState.Authenticated
+
+                // Attempt to validate and fetch profile
+                bootstrap()
+            } else {
+                _authState.value = AuthState.Unauthenticated
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Auth session initialization failed, falling back to unauthenticated")
             _authState.value = AuthState.Unauthenticated
         }
     }
@@ -153,47 +158,57 @@ class SessionManager @Inject constructor(
             return@suspendCancellableCoroutine
         }
 
-        val auth0 = Auth0(
-            appConfig.auth0ClientId,
-            appConfig.auth0Domain
-        )
-        
-        WebAuthProvider.login(auth0)
-            .withScheme(appConfig.auth0Scheme)
-            .withScope(appConfig.auth0Scopes)
-            .withAudience(appConfig.auth0Audience)
-            .withConnection(connection.connection)
-            .start(activity, object : Callback<Credentials, AuthenticationException> {
-                override fun onSuccess(result: Credentials) {
-                    Timber.d("Auth0 login successful")
-                    
-                    // Exchange for backend tokens
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val exchangeResult = exchangeAuth0Tokens(
-                            accessToken = result.accessToken,
-                            idToken = result.idToken
-                        )
-                        
-                        if (exchangeResult) {
-                            _authState.value = AuthState.Authenticated
-                            bootstrap()
-                            continuation.resume(AuthActionResult.Success)
-                        } else {
-                            continuation.resume(AuthActionResult.Error("Failed to exchange Auth0 tokens"))
+        try {
+            val auth0 = Auth0(
+                appConfig.auth0ClientId,
+                appConfig.auth0Domain
+            )
+
+            WebAuthProvider.login(auth0)
+                .withScheme(appConfig.auth0Scheme)
+                .withScope(appConfig.auth0Scopes)
+                .withAudience(appConfig.auth0Audience)
+                .withConnection(connection.connection)
+                .start(activity, object : Callback<Credentials, AuthenticationException> {
+                    override fun onSuccess(result: Credentials) {
+                        Timber.d("Auth0 login successful")
+
+                        // Exchange for backend tokens
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val exchangeResult = exchangeAuth0Tokens(
+                                    accessToken = result.accessToken,
+                                    idToken = result.idToken
+                                )
+
+                                if (exchangeResult) {
+                                    _authState.value = AuthState.Authenticated
+                                    bootstrap()
+                                    continuation.resume(AuthActionResult.Success)
+                                } else {
+                                    continuation.resume(AuthActionResult.Error("Failed to exchange Auth0 tokens"))
+                                }
+                            } catch (e: Exception) {
+                                Timber.e(e, "Auth0 token exchange crashed")
+                                continuation.resume(AuthActionResult.Error("Token exchange failed: ${e.message ?: "Unknown error"}"))
+                            }
                         }
                     }
-                }
-                
-                override fun onFailure(error: AuthenticationException) {
-                    if (error.isCanceled) {
-                        // Cancelling is not an error (iOS parity) - no-op.
-                        continuation.resume(AuthActionResult.Cancelled)
-                    } else {
-                        Timber.e(error, "Auth0 login failed")
-                        continuation.resume(AuthActionResult.Error(error.getDescription()))
+
+                    override fun onFailure(error: AuthenticationException) {
+                        if (error.isCanceled) {
+                            // Cancelling is not an error (iOS parity) - no-op.
+                            continuation.resume(AuthActionResult.Cancelled)
+                        } else {
+                            Timber.e(error, "Auth0 login failed")
+                            continuation.resume(AuthActionResult.Error(error.getDescription()))
+                        }
                     }
-                }
-            })
+                })
+        } catch (e: Exception) {
+            Timber.e(e, "Auth0 SDK initialization or start failed")
+            continuation.resume(AuthActionResult.Error("Auth0 login failed: ${e.message ?: "Unknown error"}"))
+        }
     }
 
     /**
