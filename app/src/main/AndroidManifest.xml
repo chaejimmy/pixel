@@ -140,14 +140,24 @@
             </intent-filter>
         </receiver>
 
-        <!-- Firebase Messaging Service -->
-        <service
-            android:name=".notification.PaceDreamFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+        <!-- FCM default notification channel for background notifications (Android 8+).
+             Without this, notification+data payloads delivered while app is in background
+             are silently dropped because FCM has no channel to post them on. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="messages" />
+
+        <!-- FCM default notification icon for background notifications.
+             Without this, the launcher icon is used which renders as a white square. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <!-- NOTE: No custom FirebaseMessagingService declared here. OneSignal v5 SDK
+             registers its own internal service via manifest merger. Having two services
+             competing for MESSAGING_EVENT causes undefined behavior where neither reliably
+             receives messages. FCM token registration is handled by FcmTokenRegistrar
+             in Application.onCreate() instead of via onNewToken(). -->
     </application>
 
 </manifest>

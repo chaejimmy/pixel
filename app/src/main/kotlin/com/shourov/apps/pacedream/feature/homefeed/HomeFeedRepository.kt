@@ -188,6 +188,8 @@ class HomeFeedRepository @Inject constructor(
                 ?: (obj["details"] as? JsonObject)?.get("room_type").stringOrNull()
                 ?: obj["roomType"].stringOrNull()
 
+            val shareCategory = obj["shareCategory"].stringOrNull()
+
             HomeCard(
                 id = id,
                 title = title,
@@ -196,6 +198,7 @@ class HomeFeedRepository @Inject constructor(
                 priceText = priceText,
                 rating = rating,
                 subCategory = subCategory,
+                shareCategory = shareCategory,
             )
         } catch (e: Exception) {
             Timber.w(e, "Failed to parse single card")

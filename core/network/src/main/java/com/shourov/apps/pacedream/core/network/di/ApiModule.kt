@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.shourov.apps.pacedream.core.network.BuildConfig
 import com.shourov.apps.pacedream.core.network.PaceDreamNetworkRepositoryImpl
 import com.shourov.apps.pacedream.core.network.RetrofitPaceDreamApiService
+import com.shourov.apps.pacedream.core.network.api.TokenProvider
 import com.shourov.apps.pacedream.core.network.services.OtpService
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.core.network.services.VerificationApi
@@ -20,7 +21,13 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+/** Qualifier for the Accept-header interceptor so it doesn't collide with the auth interceptor. */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AcceptHeaderInterceptor
 
 private const val PACEDREAM_BASE_URL = BuildConfig.SERVICE_URL
 
@@ -51,13 +58,23 @@ object ApiModule {
     @Provides
     fun providesOkHttpClient(
         httpLoggingInterceptor: HttpLoggingInterceptor,
-        keyInterceptor: Interceptor,
-
-        ): OkHttpClient =
+        @AcceptHeaderInterceptor keyInterceptor: Interceptor,
+        tokenProvider: TokenProvider,
+    ): OkHttpClient =
         OkHttpClient
             .Builder()
             .addInterceptor(httpLoggingInterceptor)
             .addInterceptor(keyInterceptor)
+            .addInterceptor(Interceptor { chain ->
+                val token = tokenProvider.getAccessToken()
+                val requestBuilder = chain.request().newBuilder()
+                if (!token.isNullOrBlank()) {
+                    requestBuilder.header("Authorization", "Bearer $token")
+                    // iOS parity: backend also checks X-Access-Token for host/payout endpoints
+                    requestBuilder.header("X-Access-Token", token)
+                }
+                chain.proceed(requestBuilder.build())
+            })
             .connectTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -97,6 +114,7 @@ object ApiModule {
         paceDreamNetworkRepositoryImpl: PaceDreamNetworkRepositoryImpl,
     ): PaceDreamNetworkRepositoryImpl = paceDreamNetworkRepositoryImpl
 
+    @AcceptHeaderInterceptor
     @Singleton
     @Provides
     fun provideKeyInterceptor(): Interceptor =

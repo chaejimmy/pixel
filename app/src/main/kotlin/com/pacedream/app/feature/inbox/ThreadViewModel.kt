@@ -80,31 +80,36 @@ class ThreadViewModel @Inject constructor(
         if (beforeCursor?.startsWith("temp-") == true) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingMore = true) }
+            try {
+                _uiState.update { it.copy(isLoadingMore = true) }
 
-            val url = appConfig.buildApiUrl(
-                "inbox", "threads", threadId, "messages",
-                queryParams = mapOf(
-                    "limit" to "50",
-                    "before" to beforeCursor
+                val url = appConfig.buildApiUrl(
+                    "inbox", "threads", threadId, "messages",
+                    queryParams = mapOf(
+                        "limit" to "50",
+                        "before" to beforeCursor
+                    )
                 )
-            )
 
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val (messages, nextCursor) = parseMessagesResponse(result.data)
-                    beforeCursor = nextCursor
-                    _uiState.update {
-                        it.copy(
-                            isLoadingMore = false,
-                            messages = messages + it.messages, // Prepend older messages
-                            hasMore = nextCursor != null
-                        )
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val (messages, nextCursor) = parseMessagesResponse(result.data)
+                        beforeCursor = nextCursor
+                        _uiState.update {
+                            it.copy(
+                                isLoadingMore = false,
+                                messages = messages + it.messages, // Prepend older messages
+                                hasMore = nextCursor != null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update { it.copy(isLoadingMore = false) }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update { it.copy(isLoadingMore = false) }
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load more messages")
+                _uiState.update { it.copy(isLoadingMore = false) }
             }
         }
     }
@@ -155,21 +160,26 @@ class ThreadViewModel @Inject constructor(
      */
     fun sendMedia(fileData: ByteArray, fileName: String, mimeType: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true) }
+            try {
+                _uiState.update { it.copy(isSending = true) }
 
-            val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
-            val fileBody = fileData.toRequestBody(mimeType.toMediaType())
-            val filePart = MultipartBody.Part.createFormData("file", fileName, fileBody)
+                val url = appConfig.buildApiUrl("inbox", "threads", threadId, "messages")
+                val fileBody = fileData.toRequestBody(mimeType.toMediaType())
+                val filePart = MultipartBody.Part.createFormData("file", fileName, fileBody)
 
-            when (val result = apiClient.postMultipart(url, listOf(filePart), includeAuth = true)) {
-                is ApiResult.Success -> {
-                    refresh()
-                    _uiState.update { it.copy(isSending = false) }
+                when (val result = apiClient.postMultipart(url, listOf(filePart), includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        refresh()
+                        _uiState.update { it.copy(isSending = false) }
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to send media: ${result.error.message}")
+                        _uiState.update { it.copy(isSending = false, sendError = result.error.message ?: "Failed to send media") }
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.e("Failed to send media: ${result.error.message}")
-                    _uiState.update { it.copy(isSending = false, sendError = result.error.message) }
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to send media")
+                _uiState.update { it.copy(isSending = false, sendError = e.message ?: "Failed to send media") }
             }
         }
     }
@@ -180,22 +190,27 @@ class ThreadViewModel @Inject constructor(
      */
     fun checkAttachmentStatus() {
         viewModelScope.launch {
-            val url = appConfig.buildApiUrl("inbox", "threads", threadId, "attachment-status")
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    try {
-                        val element = json.parseToJsonElement(result.data)
-                        val obj = element.jsonObject
-                        val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: false
-                        val reason = obj["reason"]?.jsonPrimitive?.content
-                        _uiState.update { it.copy(attachmentsEnabled = enabled, attachmentDisabledReason = reason) }
-                    } catch (e: Exception) {
-                        Timber.w(e, "Failed to parse attachment status")
+            try {
+                val url = appConfig.buildApiUrl("inbox", "threads", threadId, "attachment-status")
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        try {
+                            val element = json.parseToJsonElement(result.data)
+                            val obj = element.jsonObject
+                            val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: false
+                            val reason = obj["reason"]?.jsonPrimitive?.content
+                            _uiState.update { it.copy(attachmentsEnabled = enabled, attachmentDisabledReason = reason) }
+                        } catch (e: Exception) {
+                            Timber.w(e, "Failed to parse attachment status")
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update { it.copy(attachmentsEnabled = false) }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update { it.copy(attachmentsEnabled = false) }
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to check attachment status")
+                _uiState.update { it.copy(attachmentsEnabled = false) }
             }
         }
     }
@@ -211,8 +226,7 @@ class ThreadViewModel @Inject constructor(
                 val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
                 val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    cursor.moveToFirst()
-                    if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
                 } ?: "attachment"
 
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -230,36 +244,46 @@ class ThreadViewModel @Inject constructor(
     
     private fun loadMessages() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            
-            val url = appConfig.buildApiUrl(
-                "inbox", "threads", threadId, "messages",
-                queryParams = mapOf("limit" to "50")
-            )
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val (messages, nextCursor) = parseMessagesResponse(result.data)
-                    beforeCursor = nextCursor
-                    // Derive opponent ID from messages if not set from thread info
-                    val opponentId = messages.firstOrNull { it.senderId != null && it.senderId != currentUserId }?.senderId
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            messages = messages,
-                            hasMore = nextCursor != null,
-                            error = null,
-                            participantId = it.participantId ?: opponentId
-                        )
+            try {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+
+                val url = appConfig.buildApiUrl(
+                    "inbox", "threads", threadId, "messages",
+                    queryParams = mapOf("limit" to "50")
+                )
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val (messages, nextCursor) = parseMessagesResponse(result.data)
+                        beforeCursor = nextCursor
+                        // Derive opponent ID from messages if not set from thread info
+                        val opponentId = messages.firstOrNull { it.senderId != null && it.senderId != currentUserId }?.senderId
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                messages = messages,
+                                hasMore = nextCursor != null,
+                                error = null,
+                                participantId = it.participantId ?: opponentId
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = result.error.message ?: "Failed to load messages"
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = result.error.message
-                        )
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load messages")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "An unexpected error occurred"
+                    )
                 }
             }
         }
@@ -267,15 +291,19 @@ class ThreadViewModel @Inject constructor(
     
     private fun loadThreadInfo() {
         viewModelScope.launch {
-            val url = appConfig.buildApiUrl("inbox", "threads", threadId)
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    parseThreadInfo(result.data)
+            try {
+                val url = appConfig.buildApiUrl("inbox", "threads", threadId)
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        parseThreadInfo(result.data)
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.w("Failed to load thread info: ${result.error.message}")
+                    }
                 }
-                is ApiResult.Failure -> {
-                    Timber.w("Failed to load thread info: ${result.error.message}")
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load thread info")
             }
         }
     }

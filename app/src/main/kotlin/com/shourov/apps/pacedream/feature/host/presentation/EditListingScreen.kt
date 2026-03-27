@@ -497,7 +497,7 @@ private fun EditListingForm(
                                 .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.6f))
-                                .clickable { newImageUris.removeAt(index) },
+                                .clickable { if (index in newImageUris.indices) newImageUris.removeAt(index) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(

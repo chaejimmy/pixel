@@ -71,6 +71,7 @@ fun EnhancedDashboardScreenWrapper(
     gearsState: HomeScreenRentedGearsState,
     splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
     isRefreshing: Boolean = false,
+    favoriteIds: Set<String> = emptySet(),
     event: (HomeScreenEvent) -> Unit,
 ) {
     // Load all sections in parallel on initial load
@@ -86,6 +87,7 @@ fun EnhancedDashboardScreenWrapper(
         gearsState = gearsState,
         splitStaysState = splitStaysState,
         isRefreshing = isRefreshing,
+        favoriteIds = favoriteIds,
         onTimeBasedRoomsChanged = { type ->
             event(HomeScreenEvent.GetTimeBasedRooms(type))
         },
@@ -101,6 +103,9 @@ fun EnhancedDashboardScreenWrapper(
         onPropertyClick = { propertyId ->
             // Navigate to property detail screen
             event(HomeScreenEvent.NavigateToSection("property:$propertyId"))
+        },
+        onFavoriteClick = { propertyId ->
+            event(HomeScreenEvent.ToggleFavorite(propertyId))
         },
         onCategoryClick = { category ->
             // Navigate to category listing

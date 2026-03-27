@@ -38,6 +38,7 @@ import com.pacedream.app.feature.checkout.CheckoutScreen
 import com.pacedream.app.feature.checkout.ConfirmationScreen
 import com.pacedream.app.feature.bookings.BookingListItem
 import com.pacedream.app.feature.bookings.BookingsScreen
+import com.pacedream.app.feature.home.HomeListingItem
 import com.pacedream.app.feature.home.HomeScreen
 import com.pacedream.app.feature.home.HomeSectionListScreen
 import com.pacedream.app.feature.inbox.InboxScreen
@@ -157,6 +158,10 @@ fun MainNavHost(
                             // Filter listings by category (could update view model state)
                             // For now, navigate to search with filter
                             navController.navigate("${NavRoutes.SEARCH}?filter=$categoryFilter")
+                        },
+                        onShowAuthSheet = {
+                            authSheetSubtitle = "Save your favorites and book spaces."
+                            showAuthSheet = true
                         }
                     )
                 }

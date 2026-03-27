@@ -108,14 +108,22 @@ fun NavGraphBuilder.DashboardNavigation(
                 // iOS-parity: allow other screens to request switching tabs.
                 LaunchedEffect(navController) {
                     TabRouter.events.collectLatest { destination ->
-                        navigateToTab(navController, destination.name)
+                        try {
+                            navigateToTab(navController, destination.name)
+                        } catch (e: Exception) {
+                            timber.log.Timber.e(e, "TabRouter.navigateToTab failed for: ${destination.name}")
+                        }
                     }
                 }
 
                 // iOS-parity: handle push notification in-tab navigation.
                 LaunchedEffect(navController) {
                     NavigationRouter.events.collectLatest { route ->
-                        navController.navigate(route)
+                        try {
+                            navController.navigate(route)
+                        } catch (e: Exception) {
+                            timber.log.Timber.e(e, "NavigationRouter.navigate failed for route: $route")
+                        }
                     }
                 }
 
@@ -1041,12 +1049,16 @@ fun navigateToTab(
     navController: NavController,
     route: String,
 ) {
-    navController.navigate(route) {
-        popUpTo(navController.graph.findStartDestination().id) {
-            saveState = true
+    try {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
         }
-        launchSingleTop = true
-        restoreState = true
+    } catch (e: Exception) {
+        timber.log.Timber.e(e, "navigateToTab failed for route: $route")
     }
 }
 

@@ -88,18 +88,24 @@ class EmailSignInViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isGoogleLoading = true, error = null)
 
         viewModelScope.launch {
-            val result = authSession.loginWithAuth0(activity, "google-oauth2")
-            result.fold(
-                onSuccess = {
-                    _uiState.value = _uiState.value.copy(isGoogleLoading = false)
-                    onSuccess()
-                },
-                onFailure = { error ->
-                    val errorMessage = error.message ?: "Google login failed"
-                    _uiState.value = _uiState.value.copy(isGoogleLoading = false, error = errorMessage)
-                    onError(errorMessage)
-                }
-            )
+            try {
+                val result = authSession.loginWithAuth0(activity, "google-oauth2")
+                result.fold(
+                    onSuccess = {
+                        _uiState.value = _uiState.value.copy(isGoogleLoading = false)
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        val errorMessage = error.message ?: "Google login failed"
+                        _uiState.value = _uiState.value.copy(isGoogleLoading = false, error = errorMessage)
+                        onError(errorMessage)
+                    }
+                )
+            } catch (e: Exception) {
+                val errorMessage = e.message ?: "Google login failed"
+                _uiState.value = _uiState.value.copy(isGoogleLoading = false, error = errorMessage)
+                onError(errorMessage)
+            }
         }
     }
 
@@ -111,18 +117,24 @@ class EmailSignInViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isAppleLoading = true, error = null)
 
         viewModelScope.launch {
-            val result = authSession.loginWithAuth0(activity, "apple")
-            result.fold(
-                onSuccess = {
-                    _uiState.value = _uiState.value.copy(isAppleLoading = false)
-                    onSuccess()
-                },
-                onFailure = { error ->
-                    val errorMessage = error.message ?: "Apple login failed"
-                    _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
-                    onError(errorMessage)
-                }
-            )
+            try {
+                val result = authSession.loginWithAuth0(activity, "apple")
+                result.fold(
+                    onSuccess = {
+                        _uiState.value = _uiState.value.copy(isAppleLoading = false)
+                        onSuccess()
+                    },
+                    onFailure = { error ->
+                        val errorMessage = error.message ?: "Apple login failed"
+                        _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
+                        onError(errorMessage)
+                    }
+                )
+            } catch (e: Exception) {
+                val errorMessage = e.message ?: "Apple login failed"
+                _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
+                onError(errorMessage)
+            }
         }
     }
 

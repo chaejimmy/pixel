@@ -345,7 +345,8 @@ fun BookingDetailScreen(
                                     color = PaceDreamColors.TextPrimary
                                 )
                                 Text(
-                                    "${booking.currency} ${String.format("%.2f", booking.totalPrice)}",
+                                    runCatching { "${booking.currency} ${String.format("%.2f", booking.totalPrice)}" }
+                                        .getOrDefault("${booking.currency} 0.00"),
                                     style = PaceDreamTypography.Title3,
                                     fontWeight = FontWeight.Bold,
                                     color = PaceDreamColors.Primary

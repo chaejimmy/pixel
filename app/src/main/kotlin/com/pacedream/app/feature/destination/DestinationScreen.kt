@@ -164,10 +164,14 @@ class DestinationViewModel @Inject constructor(
     fun loadListings(destinationId: String? = null) {
         val id = destinationId ?: _uiState.value.selectedDestination?.id ?: return
         viewModelScope.launch {
-            val s = _uiState.value
-            when (val r = repository.getDestinationListings(id, s.sortOption, s.searchQuery)) {
-                is ApiResult.Success -> _uiState.update { it.copy(listings = r.data.resolved) }
-                is ApiResult.Failure -> Timber.w("Failed to load listings")
+            try {
+                val s = _uiState.value
+                when (val r = repository.getDestinationListings(id, s.sortOption, s.searchQuery)) {
+                    is ApiResult.Success -> _uiState.update { it.copy(listings = r.data.resolved) }
+                    is ApiResult.Failure -> Timber.w("Failed to load listings")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load listings")
             }
         }
     }

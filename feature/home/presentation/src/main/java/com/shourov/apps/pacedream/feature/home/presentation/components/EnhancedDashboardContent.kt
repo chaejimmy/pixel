@@ -106,10 +106,12 @@ fun EnhancedDashboardContent(
     roomsState: HomeScreenRoomsState,
     gearsState: HomeScreenRentedGearsState,
     splitStaysState: HomeScreenSplitStaysState = HomeScreenSplitStaysState(),
+    favoriteIds: Set<String> = emptySet(),
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
     onSplitStaysRetry: () -> Unit = {},
     onPropertyClick: (String) -> Unit = {},
+    onFavoriteClick: (String) -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onViewAllClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
@@ -134,7 +136,9 @@ fun EnhancedDashboardContent(
                 roomsState = roomsState,
                 gearsState = gearsState,
                 splitStaysState = splitStaysState,
+                favoriteIds = favoriteIds,
                 onPropertyClick = onPropertyClick,
+                onFavoriteClick = onFavoriteClick,
                 onViewAllClick = onViewAllClick,
                 onRetryRooms = { onTimeBasedRoomsChanged("room") },
                 onRetryGears = { onRentedGearsChanged("tech_gear") },
@@ -213,7 +217,9 @@ private fun FeaturedListingsSection(
     roomsState: HomeScreenRoomsState,
     gearsState: HomeScreenRentedGearsState,
     splitStaysState: HomeScreenSplitStaysState,
+    favoriteIds: Set<String> = emptySet(),
     onPropertyClick: (String) -> Unit,
+    onFavoriteClick: (String) -> Unit = {},
     onViewAllClick: (String) -> Unit,
     onRetryRooms: () -> Unit,
     onRetryGears: () -> Unit,
@@ -308,6 +314,8 @@ private fun FeaturedListingsSection(
                                 rating = room.rating.toDouble(),
                                 reviewCount = 0,
                                 imageUrl = room.gallery.images.firstOrNull(),
+                                isFavorite = favoriteIds.contains(room.id),
+                                onFavoriteClick = { onFavoriteClick(room.id) },
                                 onClick = { onPropertyClick(room.id) }
                             )
                         }
@@ -322,6 +330,8 @@ private fun FeaturedListingsSection(
                                 rating = 0.0,
                                 reviewCount = 0,
                                 imageUrl = gear.images?.firstOrNull(),
+                                isFavorite = favoriteIds.contains(gear.id),
+                                onFavoriteClick = { onFavoriteClick(gear.id) },
                                 onClick = { onPropertyClick(gear.id) }
                             )
                         }
@@ -329,14 +339,27 @@ private fun FeaturedListingsSection(
                             splitStaysState.splitStays.take(10),
                             key = { it._id ?: it.hashCode() }
                         ) { stay ->
+                            val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
+                                when {
+                                    unit.contains("hour") || unit == "hr" -> "hr"
+                                    unit.contains("day") -> "day"
+                                    unit.contains("week") -> "wk"
+                                    unit.contains("month") -> "mo"
+                                    unit == "once" || unit == "total" -> "total"
+                                    else -> unit
+                                }
+                            } ?: "hr"
+                            val stayId = stay._id ?: ""
                             PaceDreamPropertyCard(
                                 title = stay.name ?: "Service",
                                 location = stay.location ?: stay.city ?: "Location",
-                                price = "$${stay.price ?: "0"} total",
+                                price = "$${stay.price?.toInt() ?: "0"}/$priceUnit",
                                 rating = stay.rating?.toDouble() ?: 0.0,
                                 reviewCount = stay.reviewCount ?: 0,
                                 imageUrl = stay.images?.firstOrNull(),
-                                onClick = { onPropertyClick(stay._id ?: "") }
+                                isFavorite = favoriteIds.contains(stayId),
+                                onFavoriteClick = { onFavoriteClick(stayId) },
+                                onClick = { onPropertyClick(stayId) }
                             )
                         }
                     }

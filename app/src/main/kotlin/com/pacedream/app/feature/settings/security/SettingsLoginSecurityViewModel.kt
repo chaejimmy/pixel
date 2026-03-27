@@ -48,6 +48,10 @@ class SettingsLoginSecurityViewModel @Inject constructor(
 
     fun changePassword() {
         val state = _uiState.value
+        if (state.currentPassword.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Current password is required.") }
+            return
+        }
         if (state.newPassword.length < 8) {
             _uiState.update { it.copy(errorMessage = "New password must be at least 8 characters.") }
             return
@@ -59,29 +63,33 @@ class SettingsLoginSecurityViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.changePassword(state.currentPassword, state.newPassword)) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            currentPassword = "",
-                            newPassword = "",
-                            confirmPassword = "",
-                            successMessage = "Password updated successfully"
-                        )
+            try {
+                when (val result = repository.changePassword(state.currentPassword, state.newPassword)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                currentPassword = "",
+                                newPassword = "",
+                                confirmPassword = "",
+                                successMessage = "Password updated successfully"
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
-                        sessionManager.signOut()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
-                    }
-                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
@@ -89,28 +97,32 @@ class SettingsLoginSecurityViewModel @Inject constructor(
     fun deleteAccount() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.deleteAccount()) {
-                is ApiResult.Success -> {
-                    sessionManager.signOut()
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            deleteSuccess = true,
-                            successMessage = "Account permanently deleted."
-                        )
-                    }
-                }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
+            try {
+                when (val result = repository.deleteAccount()) {
+                    is ApiResult.Success -> {
                         sessionManager.signOut()
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                deleteSuccess = true,
+                                successMessage = "Account permanently deleted."
+                            )
+                        }
                     }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
@@ -118,28 +130,32 @@ class SettingsLoginSecurityViewModel @Inject constructor(
     fun deactivateAccount() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
-            when (val result = repository.deactivateAccount()) {
-                is ApiResult.Success -> {
-                    sessionManager.signOut()
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            deactivateSuccess = true,
-                            successMessage = "Account deactivated."
-                        )
-                    }
-                }
-                is ApiResult.Failure -> {
-                    if (result.error is ApiError.Unauthorized) {
+            try {
+                when (val result = repository.deactivateAccount()) {
+                    is ApiResult.Success -> {
                         sessionManager.signOut()
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                deactivateSuccess = true,
+                                successMessage = "Account deactivated."
+                            )
+                        }
                     }
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = result.error.message
-                        )
+                    is ApiResult.Failure -> {
+                        if (result.error is ApiError.Unauthorized) {
+                            sessionManager.signOut()
+                        }
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = result.error.message
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }

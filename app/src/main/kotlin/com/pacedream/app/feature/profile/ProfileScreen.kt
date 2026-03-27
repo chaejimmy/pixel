@@ -308,7 +308,7 @@ private fun UserProfileHeader(
                     .background(PaceDreamColors.Gray100),
                 contentAlignment = Alignment.Center
             ) {
-                if (userAvatar != null) {
+                if (!userAvatar.isNullOrBlank()) {
                     AsyncImage(
                         model = userAvatar,
                         contentDescription = userName,

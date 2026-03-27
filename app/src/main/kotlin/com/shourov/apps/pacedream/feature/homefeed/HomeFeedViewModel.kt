@@ -6,8 +6,10 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.core.network.auth.AuthState
+import com.shourov.apps.pacedream.feature.wishlist.data.FavoritesCache
 import com.shourov.apps.pacedream.feature.wishlist.data.WishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import timber.log.Timber
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,8 @@ import javax.inject.Inject
 class HomeFeedViewModel @Inject constructor(
     private val repo: HomeFeedRepository,
     private val authSession: AuthSession,
-    private val wishlistRepository: WishlistRepository
+    private val wishlistRepository: WishlistRepository,
+    private val favoritesCache: FavoritesCache
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeFeedState())
@@ -46,35 +49,46 @@ class HomeFeedViewModel @Inject constructor(
     val favoriteIds: StateFlow<Set<String>> = _favoriteIds.asStateFlow()
 
     init {
+        // Load cached favorites immediately so hearts render before network response
+        _favoriteIds.value = favoritesCache.getCachedFavoriteIds()
+
         loadAll()
 
         // Keep filteredState in sync whenever raw state or selected category changes
         viewModelScope.launch {
-            kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
-                applyFilter(raw, cat)
-            }.collectLatest { filtered ->
-                _filteredState.value = filtered
-            }
+            try {
+                kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
+                    applyFilter(raw, cat)
+                }.collectLatest { filtered ->
+                    _filteredState.value = filtered
+                }
+            } catch (_: Exception) { /* filter sync failed; UI shows unfiltered state */ }
         }
 
         viewModelScope.launch {
-            authSession.authState.collectLatest { st ->
-                if (st == AuthState.Unauthenticated) {
-                    _favoriteIds.value = emptySet()
-                } else {
-                    refreshFavorites()
+            try {
+                authSession.authState.collectLatest { st ->
+                    if (st == AuthState.Unauthenticated) {
+                        _favoriteIds.value = emptySet()
+                        favoritesCache.saveFavoriteIds(emptySet())
+                    } else {
+                        syncPendingToggles()
+                        refreshFavorites()
+                    }
                 }
-            }
+            } catch (_: Exception) { /* auth observation failed */ }
         }
 
         viewModelScope.launch {
-            wishlistRepository.changes.collectLatest {
-                if (authSession.authState.value != AuthState.Unauthenticated) {
-                    // Let the server reflect the toggle before GET; avoids stale wishlist wiping UI.
-                    delay(400)
-                    refreshFavorites()
+            try {
+                wishlistRepository.changes.collectLatest {
+                    if (authSession.authState.value != AuthState.Unauthenticated) {
+                        // Let the server reflect the toggle before GET; avoids stale wishlist wiping UI.
+                        delay(400)
+                        refreshFavorites()
+                    }
                 }
-            }
+            } catch (_: Exception) { /* wishlist observation failed */ }
         }
     }
 
@@ -106,24 +120,31 @@ class HomeFeedViewModel @Inject constructor(
         /** Subcategory IDs that identify service listings. */
         private val SERVICE_SUBCATEGORY_IDS = setOf(
             "home_help", "moving_help", "cleaning_organizing", "everyday_help",
-            "fitness", "learning", "creative",
+            "fitness", "learning", "creative", "other_service",
         )
 
-        /** Map UI category chip names to backend subCategory keywords (iOS/web parity). */
+        /** Service shareCategory values (uppercase) from backend taxonomy. */
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE",
+        )
+
+        private fun isServiceListing(card: HomeCard): Boolean {
+            if (card.shareCategory?.uppercase() in SERVICE_SHARE_CATEGORIES) return true
+            if (card.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS) return true
+            return false
+        }
+
+        /** Map UI category chip names to backend subCategory keywords (iOS parity). */
         private val CATEGORY_TO_KEYWORD = mapOf(
-            "Entire Home" to "entire_home",
-            "Private Room" to "private_room",
             "Restroom" to "restroom",
             "Nap Pod" to "nap_pod",
             "Meeting Room" to "meeting_room",
-            "Workspace" to "workspace",
-            "EV Parking" to "ev_parking",
-            "Study Room" to "study_room",
+            "Gym" to "gym",
             "Short Stay" to "short_stay",
-            "Apartment" to "apartment",
+            "WIFI" to "wifi",
             "Parking" to "parking",
-            "Luxury Room" to "luxury_room",
-            "Storage" to "storage",
+            "Storage Space" to "storage_space",
         )
     }
 
@@ -133,8 +154,9 @@ class HomeFeedViewModel @Inject constructor(
 
     suspend fun toggleFavorite(listingId: String): ApiResult<Boolean> {
         val wasFavorited = _favoriteIds.value.contains(listingId)
-        // Optimistic UI update
+        // Optimistic UI update — persist to cache immediately
         _favoriteIds.value = if (wasFavorited) _favoriteIds.value - listingId else _favoriteIds.value + listingId
+        favoritesCache.saveFavoriteIds(_favoriteIds.value)
 
         val res = if (wasFavorited) {
             wishlistRepository.removeFromWishlist(propertyId = listingId)
@@ -143,25 +165,72 @@ class HomeFeedViewModel @Inject constructor(
         }
 
         return when (res) {
-            is ApiResult.Success -> ApiResult.Success(!wasFavorited)
+            is ApiResult.Success -> {
+                // Clear any pending toggle for this item since it succeeded
+                favoritesCache.removePendingToggle(listingId)
+                ApiResult.Success(!wasFavorited)
+            }
             is ApiResult.Failure -> {
-                // Roll back optimistic update
-                _favoriteIds.value = if (wasFavorited) _favoriteIds.value + listingId else _favoriteIds.value - listingId
-                res
+                if (res.error is ApiError.NetworkError || res.error is ApiError.Timeout) {
+                    // Network error: keep the optimistic update, queue for retry
+                    favoritesCache.addPendingToggle(listingId)
+                    Timber.w("Favorite toggle queued for retry (offline): $listingId")
+                    // Return success to the UI so the heart stays and snackbar shows "Saved"
+                    ApiResult.Success(!wasFavorited)
+                } else {
+                    // Non-network error (auth, server, etc.): roll back
+                    _favoriteIds.value = if (wasFavorited) _favoriteIds.value + listingId else _favoriteIds.value - listingId
+                    favoritesCache.saveFavoriteIds(_favoriteIds.value)
+                    res
+                }
             }
         }
     }
 
     fun refreshFavorites() {
         viewModelScope.launch {
-            when (val res = wishlistRepository.getWishlist()) {
-                is ApiResult.Success -> {
-                    _favoriteIds.value = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+            try {
+                when (val res = wishlistRepository.getWishlist()) {
+                    is ApiResult.Success -> {
+                        val serverIds = res.data.map { it.listingId.ifBlank { it.id } }.toSet()
+                        _favoriteIds.value = serverIds
+                        favoritesCache.saveFavoriteIds(serverIds)
+                    }
+                    is ApiResult.Failure -> {
+                        if (res.error is ApiError.Unauthorized) {
+                            _favoriteIds.value = emptySet()
+                            favoritesCache.saveFavoriteIds(emptySet())
+                        }
+                        // On network error: keep cached favorites (already loaded in init)
+                    }
                 }
-                is ApiResult.Failure -> {
-                    // Non-blocking: keep last known favorites (no silent fake fallback).
-                    if (res.error is ApiError.Unauthorized) _favoriteIds.value = emptySet()
+            } catch (_: Exception) { /* keep last known favorites from cache */ }
+        }
+    }
+
+    /**
+     * Replay any pending toggle operations that failed due to network errors.
+     * Called when network becomes available (auth state changes to authenticated).
+     */
+    private suspend fun syncPendingToggles() {
+        val pending = favoritesCache.getPendingToggles()
+        if (pending.isEmpty()) return
+
+        Timber.d("Syncing ${pending.size} pending favorite toggles")
+        for (propertyId in pending) {
+            try {
+                val isFavorited = _favoriteIds.value.contains(propertyId)
+                val res = if (isFavorited) {
+                    wishlistRepository.addToWishlist(propertyId = propertyId)
+                } else {
+                    wishlistRepository.removeFromWishlist(propertyId = propertyId)
                 }
+                if (res is ApiResult.Success) {
+                    favoritesCache.removePendingToggle(propertyId)
+                }
+                // If still failing, leave it in queue for next sync
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to sync pending toggle for $propertyId")
             }
         }
     }
@@ -171,27 +240,33 @@ class HomeFeedViewModel @Inject constructor(
     private fun loadAll(refresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
+            try {
+                if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
 
-            // Set all sections to loading if initial load
-            if (!refresh) {
-                _state.update { s ->
-                    s.copy(
-                        sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
-                        globalErrorMessage = null
-                    )
+                // Set all sections to loading if initial load
+                if (!refresh) {
+                    _state.update { s ->
+                        s.copy(
+                            sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
+                            globalErrorMessage = null
+                        )
+                    }
                 }
+
+                val hourlyDeferred = async { loadHourly() }
+                val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
+                val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
+
+                hourlyDeferred.await()
+                gearDeferred.await()
+                servicesDeferred.await()
+            } catch (_: kotlinx.coroutines.CancellationException) {
+                throw kotlinx.coroutines.CancellationException("loadAll cancelled")
+            } catch (_: Exception) {
+                _state.update { it.copy(globalErrorMessage = "Something went wrong. Pull to refresh.") }
+            } finally {
+                _state.update { it.copy(isRefreshing = false) }
             }
-
-            val hourlyDeferred = async { loadHourly() }
-            val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
-            val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
-
-            hourlyDeferred.await()
-            gearDeferred.await()
-            servicesDeferred.await()
-
-            _state.update { it.copy(isRefreshing = false) }
         }
     }
 
@@ -205,7 +280,7 @@ class HomeFeedViewModel @Inject constructor(
                         is ApiResult.Success -> {
                             // Exclude service listings from Spaces section
                             val spacesOnly = res.data.filter {
-                                it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                !isServiceListing(it)
                             }
                             section.copy(items = spacesOnly, isLoading = false, errorMessage = null)
                         }
@@ -236,10 +311,10 @@ class HomeFeedViewModel @Inject constructor(
                             // use shareType=SHARE, so we separate them by subcategory.
                             val filtered = when (key) {
                                 HomeSectionKey.SERVICES -> res.data.filter {
-                                    it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                                    isServiceListing(it)
                                 }
                                 HomeSectionKey.SPACES -> res.data.filter {
-                                    it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                                    !isServiceListing(it)
                                 }
                                 else -> res.data
                             }

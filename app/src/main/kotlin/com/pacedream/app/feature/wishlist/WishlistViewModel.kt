@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
@@ -94,45 +95,51 @@ class WishlistViewModel @Inject constructor(
             // Step 1: Optimistic remove - save original state
             val originalItems = allItems.toList()
             val itemIndex = allItems.indexOf(item)
-            
+
             // Remove immediately from UI
             allItems = allItems.filter { it.id != item.id }
             updateFilteredItems()
-            
-            // Step 2: Call toggle API
-            val url = appConfig.buildApiUrl("account", "wishlist", "toggle")
-            val body = json.encodeToString(
-                WishlistToggleRequest.serializer(),
-                WishlistToggleRequest(
-                    itemId = item.listingId ?: item.id,
-                    listingId = item.listingId
+
+            try {
+                // Step 2: Call toggle API
+                val url = appConfig.buildApiUrl("account", "wishlist", "toggle")
+                val body = json.encodeToString(
+                    WishlistToggleRequest.serializer(),
+                    WishlistToggleRequest(
+                        itemId = item.listingId ?: item.id,
+                        listingId = item.listingId
+                    )
                 )
-            )
-            
-            val result = apiClient.post(url, body, includeAuth = true)
-            
-            // Step 3: Handle result
-            when (result) {
-                is ApiResult.Success -> {
-                    val toggleResponse = parseToggleResponse(result.data)
-                    
-                    // If API returns liked=true, the item was NOT removed (unexpected)
-                    if (toggleResponse?.liked == true) {
-                        Timber.w("Item was not removed as expected, restoring")
+
+                val result = apiClient.post(url, body, includeAuth = true)
+
+                // Step 3: Handle result
+                when (result) {
+                    is ApiResult.Success -> {
+                        val toggleResponse = parseToggleResponse(result.data)
+
+                        // If API returns liked=true, the item was NOT removed (unexpected)
+                        if (toggleResponse?.liked == true) {
+                            Timber.w("Item was not removed as expected, restoring")
+                            restoreItem(originalItems, itemIndex, item)
+                            _toastMessages.send("Could not remove item. Please try again.")
+                        } else {
+                            // Successfully removed
+                            Timber.d("Item successfully removed from wishlist")
+                            _toastMessages.send("Removed from favorites")
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        // API failed, restore item
+                        Timber.e("Failed to remove item: ${result.error.message}")
                         restoreItem(originalItems, itemIndex, item)
-                        _toastMessages.send("Could not remove item. Please try again.")
-                    } else {
-                        // Successfully removed
-                        Timber.d("Item successfully removed from wishlist")
-                        _toastMessages.send("Removed from favorites")
+                        _toastMessages.send("Failed to remove item. Please try again.")
                     }
                 }
-                is ApiResult.Failure -> {
-                    // API failed, restore item
-                    Timber.e("Failed to remove item: ${result.error.message}")
-                    restoreItem(originalItems, itemIndex, item)
-                    _toastMessages.send("Failed to remove item. Please try again.")
-                }
+            } catch (e: Exception) {
+                Timber.e(e, "Unexpected error removing wishlist item")
+                restoreItem(originalItems, itemIndex, item)
+                _toastMessages.send("Failed to remove item. Please try again.")
             }
         }
     }
@@ -151,38 +158,50 @@ class WishlistViewModel @Inject constructor(
     private fun filterItems(items: List<WishlistItem>, filter: WishlistFilter): List<WishlistItem> {
         return when (filter) {
             WishlistFilter.ALL -> items
-            WishlistFilter.SPACES -> items.filter { it.type == "time-based" || it.type == "room-stay" }
-            WishlistFilter.GEAR -> items.filter { it.type == "hourly-gear" || it.type == "gear" }
+            WishlistFilter.SPACES -> items.filter { it.type == "room-stay" || it.type == "room_stays" }
+            WishlistFilter.ITEMS -> items.filter { it.type == "time-based" || it.type == "hourly-gear" || it.type == "gear" }
+            WishlistFilter.SERVICES -> items.filter { it.type == "service" || it.type == "split-stay" }
         }
     }
     
     private fun loadWishlist() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, isRefreshing = true, error = null) }
-            
-            val url = appConfig.buildApiUrl("account", "wishlist")
-            
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val items = parseWishlistResponse(result.data)
-                    allItems = items
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            filteredItems = filterItems(items, it.selectedFilter),
-                            error = null
-                        )
+
+            try {
+                val url = appConfig.buildApiUrl("account", "wishlist")
+
+                when (val result = apiClient.get(url, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        val items = parseWishlistResponse(result.data)
+                        allItems = items
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                filteredItems = filterItems(items, it.selectedFilter),
+                                error = null
+                            )
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isRefreshing = false,
+                                error = result.error.message
+                            )
+                        }
                     }
                 }
-                is ApiResult.Failure -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = result.error.message
-                        )
-                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Unexpected error loading wishlist")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = "An unexpected error occurred"
+                    )
                 }
             }
         }
@@ -198,11 +217,19 @@ class WishlistViewModel @Inject constructor(
             val obj = element.jsonObject
             
             // Find items array in common locations
-            val itemsArray = obj["data"]?.jsonArray
+            // Backend wraps via helper.sendSuccess: { data: { items: [...] } }
+            // Check data-as-object first to avoid jsonArray throwing on an object
+            val dataElement = obj["data"]
+            val itemsArray = when {
+                dataElement is JsonObject -> {
+                    dataElement["items"]?.jsonArray
+                        ?: dataElement["wishlist"]?.jsonArray
+                }
+                dataElement is kotlinx.serialization.json.JsonArray -> dataElement
+                else -> null
+            }
                 ?: obj["items"]?.jsonArray
                 ?: obj["wishlist"]?.jsonArray
-                ?: (obj["data"] as? JsonObject)?.get("items")?.jsonArray
-                ?: (obj["data"] as? JsonObject)?.get("wishlist")?.jsonArray
                 ?: return emptyList()
             
             itemsArray.mapNotNull { item ->
@@ -227,7 +254,8 @@ class WishlistViewModel @Inject constructor(
                         title = listingData["name"]?.jsonPrimitive?.content
                             ?: listingData["title"]?.jsonPrimitive?.content
                             ?: "Item",
-                        imageUrl = listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                        imageUrl = listingData["coverUrl"]?.jsonPrimitive?.content
+                            ?: listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
                             ?: listingData["image"]?.jsonPrimitive?.content
                             ?: listingData["cover_image"]?.jsonPrimitive?.content
                             ?: listingData["coverImage"]?.jsonPrimitive?.content
@@ -235,9 +263,9 @@ class WishlistViewModel @Inject constructor(
                         location = listingData["location"]?.let { loc ->
                             when (loc) {
                                 is JsonObject -> loc["city"]?.jsonPrimitive?.content
-                                else -> loc.jsonPrimitive.content
+                                else -> try { loc.jsonPrimitive.content } catch (_: Exception) { null }
                             }
-                        },
+                        } ?: listingData["city"]?.jsonPrimitive?.content,
                         price = parsePrice(listingData),
                         rating = listingData["rating"]?.jsonPrimitive?.doubleOrNull,
                         type = type
@@ -371,7 +399,8 @@ data class WishlistItem(
 enum class WishlistFilter(val displayName: String) {
     ALL("All"),
     SPACES("Spaces"),
-    GEAR("Gear")
+    ITEMS("Items"),
+    SERVICES("Services")
 }
 
 /**

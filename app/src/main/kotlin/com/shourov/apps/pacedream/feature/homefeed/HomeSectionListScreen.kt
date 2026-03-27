@@ -75,17 +75,26 @@ class HomeSectionListViewModel @Inject constructor(
 
     fun refresh(section: HomeSectionKey) {
         viewModelScope.launch {
-            isRefreshing = true
-            page1 = 1
-            load(section, reset = true)
-            isRefreshing = false
+            try {
+                isRefreshing = true
+                page1 = 1
+                load(section, reset = true)
+            } catch (_: Exception) {
+                errorMessage = "Something went wrong. Pull to refresh."
+            } finally {
+                isRefreshing = false
+            }
         }
     }
 
     fun loadMore(section: HomeSectionKey) {
         if (!hasMore) return
         viewModelScope.launch {
-            load(section, reset = false)
+            try {
+                load(section, reset = false)
+            } catch (_: Exception) {
+                errorMessage = "Failed to load more"
+            }
         }
     }
 
@@ -119,10 +128,10 @@ class HomeSectionListViewModel @Inject constructor(
                 // so separate them by subcategory (same logic as HomeFeedViewModel).
                 val filtered = when (section) {
                     HomeSectionKey.SERVICES -> res.data.filter {
-                        it.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS
+                        isServiceListing(it)
                     }
                     HomeSectionKey.SPACES -> res.data.filter {
-                        it.subCategory?.lowercase() !in SERVICE_SUBCATEGORY_IDS
+                        !isServiceListing(it)
                     }
                     else -> res.data
                 }
@@ -140,8 +149,19 @@ class HomeSectionListViewModel @Inject constructor(
     companion object {
         private val SERVICE_SUBCATEGORY_IDS = setOf(
             "home_help", "moving_help", "cleaning_organizing", "everyday_help",
-            "fitness", "learning", "creative",
+            "fitness", "learning", "creative", "other_service",
         )
+
+        private val SERVICE_SHARE_CATEGORIES = setOf(
+            "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
+            "FITNESS", "LEARNING", "CREATIVE", "OTHER_SERVICE",
+        )
+
+        private fun isServiceListing(card: HomeCard): Boolean {
+            if (card.shareCategory?.uppercase() in SERVICE_SHARE_CATEGORIES) return true
+            if (card.subCategory?.lowercase() in SERVICE_SUBCATEGORY_IDS) return true
+            return false
+        }
     }
 }
 
@@ -209,7 +229,7 @@ fun HomeSectionListScreen(
                                     .data(item.imageUrl?.takeIf { it.isNotBlank() })
                                     .crossfade(200)
                                     .build(),
-                                contentDescription = item.title,
+                                contentDescription = item.title.ifBlank { "Listing" },
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .width(100.dp)
@@ -226,7 +246,7 @@ fun HomeSectionListScreen(
                                 verticalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = item.title,
+                                    text = item.title.ifBlank { "Listing" },
                                     style = PaceDreamTypography.Headline,
                                     color = PaceDreamColors.TextPrimary,
                                     fontWeight = FontWeight.SemiBold,
@@ -240,7 +260,7 @@ fun HomeSectionListScreen(
                                         maxLines = 1
                                     )
                                 }
-                                item.priceText?.let {
+                                item.priceText?.takeIf { it.isNotBlank() }?.let {
                                     Text(
                                         text = it,
                                         style = PaceDreamTypography.Callout,

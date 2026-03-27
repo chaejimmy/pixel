@@ -14,6 +14,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -58,11 +60,23 @@ fun HomeScreen(
     onListingClick: (HomeListingItem) -> Unit,
     onSearchClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
-    onCategoryFilterClick: (String) -> Unit = {}
+    onCategoryFilterClick: (String) -> Unit = {},
+    onShowAuthSheet: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     val selectedCategoryFilter = uiState.selectedCategory
 
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is HomeViewModel.Effect.ShowAuthRequired -> onShowAuthSheet()
+                is HomeViewModel.Effect.ShowToast -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -106,6 +120,14 @@ fun HomeScreen(
                 }
             }
 
+            // ── Extended Categories (iOS parity) ──
+            item {
+                ExtendedCategoriesSection(
+                    onCategoryClick = onCategoryClick,
+                    modifier = Modifier.padding(top = 32.dp)
+                )
+            }
+
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
@@ -114,8 +136,10 @@ fun HomeScreen(
                         subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
                         items = uiState.filteredHourlySpaces,
                         isLoading = uiState.isLoadingHourlySpaces,
+                        favoriteIds = uiState.favoriteListingIds,
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -129,23 +153,27 @@ fun HomeScreen(
                         subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
                         items = uiState.filteredRentGear,
                         isLoading = uiState.isLoadingRentGear,
+                        favoriteIds = uiState.favoriteListingIds,
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
             }
 
-            // ── Services ──
+            // ── Services (2-column vertical grid — iOS parity) ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
-                    ListingSection(
+                    ServicesGridSection(
                         title = "Services",
                         subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
-                        items = uiState.filteredSplitStays,
+                        items = uiState.filteredSplitStays.take(10),
                         isLoading = uiState.isLoadingSplitStays,
-                        onViewAllClick = { onSectionViewAll("split-stays") },
+                        favoriteIds = uiState.favoriteListingIds,
+                        onViewAllClick = { onSectionViewAll("services") },
                         onItemClick = onListingClick,
+                        onFavoriteClick = { viewModel.toggleFavorite(it) },
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -177,14 +205,6 @@ fun HomeScreen(
                 )
             }
 
-            // ── FAQ & Community (Website parity) ──
-            item {
-                FaqAndCommunitySection(
-                    onContactSupport = { /* TODO: open support */ },
-                    modifier = Modifier.padding(top = 32.dp)
-                )
-            }
-
             // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
                 item {
@@ -197,6 +217,11 @@ fun HomeScreen(
                 }
             }
         }
+    }
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.align(Alignment.BottomCenter)
+    )
     }
 }
 
@@ -410,12 +435,17 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Marketplace-aligned categories matching PaceDream's product structure
+    // Category chips matching iOS defaultWebCategoryChips order
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-        Triple("Spaces", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
-        Triple("Items", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
-        Triple("Services", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business)
+        Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
+        Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
+        Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
+        Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
+        Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+        Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
+        Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
+        Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
     )
 
     Column(modifier = modifier) {
@@ -497,17 +527,17 @@ private fun CategoryTab(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Quick Categories Row (iOS parity: horizontal chip row with gradient icons)
+// Extended Categories Section (iOS parity: horizontal chip row with gradient icons)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun QuickCategoriesRow(
+private fun ExtendedCategoriesSection(
     onCategoryClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
-            title = "Explore Categories",
+            title = "Categories",
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -594,9 +624,14 @@ private data class CategoryCardData(
 
 private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
-        CategoryCardData("Spaces", PaceDreamIcons.Home, Color(0xFF3B82F6)),
-        CategoryCardData("Items", PaceDreamIcons.Storage, Color(0xFF10B981)),
-        CategoryCardData("Services", PaceDreamIcons.Business, Color(0xFF8B5CF6))
+        CategoryCardData("Rest Room", PaceDreamIcons.Wc, Color(0xFF3B82F6)),
+        CategoryCardData("Time-Based", PaceDreamIcons.Schedule, Color(0xFF5527D7)),
+        CategoryCardData("Parking", PaceDreamIcons.LocalParking, Color(0xFFF59E0B)),
+        CategoryCardData("Items", PaceDreamIcons.Build, Color(0xFF10B981)),
+        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, Color(0xFFEC4899)),
+        CategoryCardData("Meeting Rooms", PaceDreamIcons.MeetingRoom, Color(0xFF8B5CF6)),
+        CategoryCardData("Workspace", PaceDreamIcons.Laptop, Color(0xFF5527D7)),
+        CategoryCardData("Storage", PaceDreamIcons.Storage, Color(0xFF10B981))
     )
 }
 
@@ -713,8 +748,10 @@ private fun ListingSection(
     subtitle: String,
     items: List<HomeListingItem>,
     isLoading: Boolean,
+    favoriteIds: Set<String>,
     onViewAllClick: () -> Unit,
     onItemClick: (HomeListingItem) -> Unit,
+    onFavoriteClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -742,8 +779,347 @@ private fun ListingSection(
                 items(items) { item ->
                     ListingCard(
                         item = item,
-                        onClick = { onItemClick(item) }
+                        isFavorite = item.id in favoriteIds,
+                        onClick = { onItemClick(item) },
+                        onFavoriteClick = { onFavoriteClick(item.id) }
                     )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Services Grid Section (iOS parity: 2-column vertical grid)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ServicesGridSection(
+    title: String,
+    subtitle: String,
+    items: List<HomeListingItem>,
+    isLoading: Boolean,
+    favoriteIds: Set<String>,
+    onViewAllClick: () -> Unit,
+    onItemClick: (HomeListingItem) -> Unit,
+    onFavoriteClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = title,
+            subtitle = subtitle,
+            onViewAllClick = onViewAllClick,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        if (isLoading) {
+            // 2-column shimmer grid (4 skeleton cards)
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                for (row in 0 until 2) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
+                        Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
+                    }
+                }
+            }
+        } else {
+            // 2-column listing grid
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val rows = items.chunked(2)
+                for (rowItems in rows) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        for (item in rowItems) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                GridListingCard(
+                                    item = item,
+                                    isFavorite = item.id in favoriteIds,
+                                    onClick = { onItemClick(item) },
+                                    onFavoriteClick = { onFavoriteClick(item.id) }
+                                )
+                            }
+                        }
+                        // If odd number of items, add empty spacer for alignment
+                        if (rowItems.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GridShimmerCard() {
+    val transition = rememberInfiniteTransition(label = "gridShimmer")
+    val shimmerX = transition.animateFloat(
+        initialValue = -300f,
+        targetValue = 900f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "gridShimmerX"
+    )
+
+    val shimmerBrush = Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFF0F0F0),
+            Color(0xFFE0E0E0),
+            Color(0xFFF0F0F0)
+        ),
+        start = Offset(shimmerX.value, 0f),
+        end = Offset(shimmerX.value + 300f, 0f)
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White,
+        shadowElevation = 2.dp
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.LG,
+                            topEnd = PaceDreamRadius.LG
+                        )
+                    )
+                    .background(shimmerBrush)
+            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(shimmerBrush)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(shimmerBrush)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GridListingCard(
+    item: HomeListingItem,
+    isFavorite: Boolean = false,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit = {}
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "gridCardScale"
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .shadow(
+                elevation = if (isPressed) 10.dp else 4.dp,
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White
+    ) {
+        Column {
+            // Image area — 4:3 aspect ratio
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(4f / 3f)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.LG,
+                            topEnd = PaceDreamRadius.LG
+                        )
+                    )
+            ) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // Subtle bottom scrim for legibility
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.20f)
+                                )
+                            )
+                        )
+                )
+
+                // Type badge (top-left)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
+                    color = Color.White.copy(alpha = 0.95f)
+                ) {
+                    Text(
+                        text = "Service",
+                        style = DSTypo.Caption2.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+
+                // Heart button (top-right)
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(30.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.30f),
+                    onClick = onFavoriteClick
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+
+            // Content area below image
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = item.title,
+                    style = DSTypo.Caption.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 18.sp
+                    ),
+                    color = Color(0xFF111827),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                item.location?.let { location ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Gray400,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = location.replace(Regex(",(?!\\s)"), ", "),
+                            style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
+                            color = Color(0xFF6B7280),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item.price?.let { price ->
+                        Text(
+                            text = price,
+                            style = DSTypo.Caption.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = PaceDreamColors.Primary
+                            )
+                        )
+                    }
+                    item.rating?.let { ratingVal ->
+                        if (ratingVal > 0.0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "%.1f".format(ratingVal),
+                                    style = DSTypo.Caption2.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = Color(0xFF374151)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -758,9 +1134,12 @@ private fun ListingSection(
 @Composable
 private fun ListingCard(
     item: HomeListingItem,
-    onClick: () -> Unit
+    isFavorite: Boolean = false,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit = {}
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = tween(durationMillis = 120),
@@ -777,16 +1156,11 @@ private fun ListingCard(
                 ambientColor = Color.Black.copy(alpha = 0.06f),
                 spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
             )
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = Color.White
     ) {
@@ -858,13 +1232,14 @@ private fun ListingCard(
                         .padding(12.dp)
                         .size(34.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.30f)
+                    color = Color.Black.copy(alpha = 0.30f),
+                    onClick = onFavoriteClick
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = "Add to favorites",
-                            tint = Color.White,
+                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1531,228 +1906,6 @@ private fun StepCard(
 // FAQ & Community Section (Website parity: expandable FAQ + support card)
 // ─────────────────────────────────────────────────────────────────────────────
 
-private data class FaqItem(val question: String, val answer: String)
-
-private fun getFaqItems(): List<FaqItem> = listOf(
-    FaqItem(
-        "What is PaceDream?",
-        "PaceDream is a marketplace where you can rent spaces, borrow items, and book services — only for the time you need them."
-    ),
-    FaqItem(
-        "How do I book a space or item?",
-        "Browse listings on our platform, select what you need, choose your dates and times, and complete the booking. It's that simple!"
-    ),
-    FaqItem(
-        "How does pricing work?",
-        "Pricing varies by listing and is set by the host. You'll see the hourly, daily, or per-use rate on each listing page before you book."
-    ),
-    FaqItem(
-        "Is my payment secure?",
-        "Yes! We use Stripe for all transactions, ensuring your payment information is always encrypted and secure."
-    ),
-    FaqItem(
-        "How do I become a host?",
-        "Switch to Host mode from your profile, then create a listing by adding photos, setting your price, and describing what you're offering."
-    ),
-    FaqItem(
-        "What if I need to cancel?",
-        "You can cancel your booking from the Bookings tab. Cancellation policies vary by listing — check the listing details for specifics."
-    )
-)
-
-@Composable
-private fun FaqAndCommunitySection(
-    onContactSupport: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        // Section header
-        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-            Text(
-                text = "Frequently Asked Questions",
-                style = DSTypo.Title3.copy(
-                    fontFamily = paceDreamDisplayFontFamily,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Color(0xFF1A1A1A)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Everything you need to know about PaceDream",
-                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
-                color = PaceDreamColors.Gray500
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // FAQ accordion
-        val faqItems = getFaqItems()
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
-            faqItems.forEachIndexed { index, faq ->
-                FaqAccordionItem(faq = faq)
-                if (index < faqItems.size - 1) {
-                    HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = PaceDreamColors.Gray100
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Get in Touch card (Website parity: purple gradient card with support buttons)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            color = Color.Transparent
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF5527D7),
-                                Color(0xFF4F46E5)
-                            ),
-                            start = Offset.Zero,
-                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                        ),
-                        RoundedCornerShape(PaceDreamRadius.LG)
-                    )
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Text(
-                        text = "Get in Touch",
-                        style = DSTypo.Title3.copy(
-                            fontFamily = paceDreamDisplayFontFamily,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Have questions or need help? Our support team is here for you.",
-                        style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Message Support button
-                    Button(
-                        onClick = onContactSupport,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White
-                        ),
-                        contentPadding = PaddingValues(vertical = 14.dp)
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Chat,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Message Support",
-                            style = DSTypo.Callout.copy(
-                                fontFamily = paceDreamFontFamily,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = PaceDreamColors.Primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Send Email button
-                    OutlinedButton(
-                        onClick = { /* TODO: open email */ },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
-                        ),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
-                        contentPadding = PaddingValues(vertical = 14.dp)
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Email,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Send us an Email",
-                            style = DSTypo.Callout.copy(
-                                fontFamily = paceDreamFontFamily,
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FaqAccordionItem(faq: FaqItem) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { isExpanded = !isExpanded }
-            )
-            .padding(vertical = 14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = faq.question,
-                style = DSTypo.Callout.copy(
-                    fontFamily = paceDreamFontFamily,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = Color(0xFF1A1A1A),
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = if (isExpanded) PaceDreamIcons.ExpandLess else PaceDreamIcons.ExpandMore,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = PaceDreamColors.Gray400,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        AnimatedVisibility(visible = isExpanded) {
-            Text(
-                text = faq.answer,
-                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
-                color = PaceDreamColors.Gray500,
-                modifier = Modifier.padding(top = 8.dp, end = 28.dp)
-            )
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shimmer Loading Card (iOS parity: skeleton with shimmer animation)
@@ -1909,15 +2062,3 @@ private fun EmptyState(
     }
 }
 
-/**
- * Home listing item model
- */
-data class HomeListingItem(
-    val id: String,
-    val title: String,
-    val imageUrl: String?,
-    val location: String?,
-    val price: String?,
-    val rating: Double?,
-    val type: String
-)

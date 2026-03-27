@@ -150,7 +150,7 @@ class BookingTabRepository @Inject constructor(
         // Try to extract pagination info
         val total = when (root) {
             is JsonObject -> {
-                val data = root["data"]?.jsonObject ?: root
+                val data = (root["data"] as? JsonObject) ?: root
                 data["total"]?.jsonPrimitive?.int
                     ?: data["totalCount"]?.jsonPrimitive?.int
                     ?: data["count"]?.jsonPrimitive?.int
@@ -160,7 +160,7 @@ class BookingTabRepository @Inject constructor(
 
         val hasMore = when (root) {
             is JsonObject -> {
-                val data = root["data"]?.jsonObject ?: root
+                val data = (root["data"] as? JsonObject) ?: root
                 data["hasMore"]?.jsonPrimitive?.boolean
                     ?: (total != null && bookings.size < total)
             }

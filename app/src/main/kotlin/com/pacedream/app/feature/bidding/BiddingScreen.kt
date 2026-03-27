@@ -177,22 +177,32 @@ class BiddingViewModel @Inject constructor(
 
     fun createBid(request: CreateBidRequest) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true) }
-            when (repository.createBid(request)) {
-                is ApiResult.Success -> {
-                    _uiState.update { it.copy(showCreateSheet = false, isSubmitting = false) }
-                    loadBids()
+            try {
+                _uiState.update { it.copy(isSubmitting = true) }
+                when (repository.createBid(request)) {
+                    is ApiResult.Success -> {
+                        _uiState.update { it.copy(showCreateSheet = false, isSubmitting = false) }
+                        loadBids()
+                    }
+                    is ApiResult.Failure -> _uiState.update { it.copy(isSubmitting = false, error = "Failed to create bid") }
                 }
-                is ApiResult.Failure -> _uiState.update { it.copy(isSubmitting = false, error = "Failed to create bid") }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to create bid")
+                _uiState.update { it.copy(isSubmitting = false, error = "Failed to create bid") }
             }
         }
     }
 
     fun withdrawBid(bidId: String) {
         viewModelScope.launch {
-            when (repository.withdrawBid(bidId)) {
-                is ApiResult.Success -> loadBids()
-                is ApiResult.Failure -> _uiState.update { it.copy(error = "Failed to withdraw bid") }
+            try {
+                when (repository.withdrawBid(bidId)) {
+                    is ApiResult.Success -> loadBids()
+                    is ApiResult.Failure -> _uiState.update { it.copy(error = "Failed to withdraw bid") }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to withdraw bid")
+                _uiState.update { it.copy(error = "Failed to withdraw bid") }
             }
         }
     }

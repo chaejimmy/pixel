@@ -106,16 +106,20 @@ fun HomeFeedScreen(
             return
         }
         scope.launch {
-            val wasFavorited = favoriteIds.contains(listingId)
-            when (val res = viewModel.toggleFavorite(listingId)) {
-                is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                is ApiResult.Failure -> {
-                    if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                        onShowAuthSheet()
-                    } else {
-                        snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+            try {
+                val wasFavorited = favoriteIds.contains(listingId)
+                when (val res = viewModel.toggleFavorite(listingId)) {
+                    is ApiResult.Success -> snackbarHostState.showSnackbar(if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                    is ApiResult.Failure -> {
+                        if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                            onShowAuthSheet()
+                        } else {
+                            snackbarHostState.showSnackbar(res.error.message ?: "Failed to save")
+                        }
                     }
                 }
+            } catch (_: Exception) {
+                snackbarHostState.showSnackbar("Failed to save")
             }
         }
     }
@@ -386,19 +390,14 @@ private fun CategoryFilterTabs(
     val categories = remember {
         listOf(
             Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-            Triple("Entire Home", PaceDreamIcons.HomeOutlined, PaceDreamIcons.Home),
-            Triple("Private Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
             Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
             Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
-            Triple("Meeting Room", PaceDreamIcons.BusinessOutlined, PaceDreamIcons.Business),
-            Triple("Workspace", PaceDreamIcons.LaptopOutlined, PaceDreamIcons.Laptop),
-            Triple("EV Parking", PaceDreamIcons.ElectricCarOutlined, PaceDreamIcons.ElectricCar),
-            Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-            Triple("Short Stay", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
-            Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
+            Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
+            Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
+            Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+            Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
             Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
-            Triple("Luxury Room", PaceDreamIcons.StarOutlined, PaceDreamIcons.Star),
-            Triple("Storage", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
+            Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
         )
     }
 

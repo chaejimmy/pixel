@@ -32,6 +32,10 @@ class ListingWishlistRepository @Inject constructor(
         when (tryListingId) {
             is ApiResult.Success -> return ApiResult.Success(parseWishlistToggleLike(tryListingId.data, defaultLiked = true))
             is ApiResult.Failure -> {
+                // A 400 during add likely means "already in wishlist" - treat as success
+                if (isAlreadyInWishlistError(tryListingId.error)) {
+                    return ApiResult.Success(ToggleResult(isFavorite = true))
+                }
                 if (!isLikelyContractMismatch(tryListingId.error)) {
                     return ApiResult.Failure(tryListingId.error)
                 }
@@ -42,6 +46,10 @@ class ListingWishlistRepository @Inject constructor(
         when (tryPropertyId) {
             is ApiResult.Success -> return ApiResult.Success(parseWishlistToggleLike(tryPropertyId.data, defaultLiked = true))
             is ApiResult.Failure -> {
+                // A 400 during add likely means "already in wishlist" - treat as success
+                if (isAlreadyInWishlistError(tryPropertyId.error)) {
+                    return ApiResult.Success(ToggleResult(isFavorite = true))
+                }
                 if (!isLikelyContractMismatch(tryPropertyId.error)) {
                     return ApiResult.Failure(tryPropertyId.error)
                 }
@@ -112,13 +120,25 @@ class ListingWishlistRepository @Inject constructor(
         }
     }
 
+    /**
+     * Returns true if the error is a 400 that likely means the item is already
+     * in the wishlist. In an add context this should be treated as success,
+     * NOT as a contract mismatch that falls through to the toggle endpoint
+     * (which would remove the item).
+     */
+    private fun isAlreadyInWishlistError(error: ApiError): Boolean {
+        return when (error) {
+            is ApiError.ServerError -> error.code == 400
+            else -> false
+        }
+    }
+
     private fun isLikelyContractMismatch(error: ApiError): Boolean {
         // Treat missing endpoints / schema mismatches as contract mismatch.
         return when (error) {
             is ApiError.NotFound -> true
-            is ApiError.ServerError -> error.code == 400 || error.code == 404
+            is ApiError.ServerError -> error.code == 404
             else -> false
         }
     }
 }
-

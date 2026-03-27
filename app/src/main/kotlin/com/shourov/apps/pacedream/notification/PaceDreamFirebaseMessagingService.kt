@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.json.JSONObject
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -67,26 +68,45 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        try {
+            handleMessage(remoteMessage)
+        } catch (e: Exception) {
+            Timber.e(e, "FCM onMessageReceived crashed, swallowed to prevent service death")
+        }
+    }
+
+    private fun handleMessage(remoteMessage: RemoteMessage) {
         Timber.d("FCM message received from: %s", remoteMessage.from)
 
-        val data = remoteMessage.data
-        val hasDataPayload = data.isNotEmpty()
+        val rawData = remoteMessage.data
+        val hasDataPayload = rawData.isNotEmpty()
         val hasNotificationPayload = remoteMessage.notification != null
 
         Timber.d(
             "FCM payload: hasData=%s, hasNotification=%s, type=%s",
-            hasDataPayload, hasNotificationPayload, data["type"] ?: "unknown"
+            hasDataPayload, hasNotificationPayload, rawData["type"] ?: "unknown"
         )
+
+        // OneSignal wraps custom data inside a "custom" JSON key with an "a" (additional data)
+        // sub-object. Flatten it into the top-level map so NotificationData.fromMap() can parse it.
+        val data = flattenOneSignalData(rawData)
 
         if (hasDataPayload) {
             // Parse structured notification data (iOS parity)
             val notificationData = NotificationData.fromMap(data)
 
-            // Merge title/body from notification payload if data payload lacks them
-            val mergedData = if (hasNotificationPayload) {
+            // Merge title/body from notification payload if data payload lacks them.
+            // Also pull from OneSignal's "alert"/"title" keys which live at the top level.
+            val mergedData = if (hasNotificationPayload || notificationData.title == null || notificationData.message == null) {
                 notificationData.copy(
-                    title = notificationData.title ?: remoteMessage.notification?.title,
-                    message = notificationData.message ?: remoteMessage.notification?.body
+                    title = notificationData.title
+                        ?: remoteMessage.notification?.title
+                        ?: data["title"]
+                        ?: data["alert_title"],
+                    message = notificationData.message
+                        ?: remoteMessage.notification?.body
+                        ?: data["alert"]
+                        ?: data["body"]
                 )
             } else {
                 notificationData
@@ -119,8 +139,40 @@ class PaceDreamFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Timber.d("FCM token refreshed")
-        sendTokenToServer(token)
+        try {
+            Timber.d("FCM token refreshed")
+            sendTokenToServer(token)
+        } catch (e: Exception) {
+            Timber.e(e, "FCM onNewToken crashed, swallowed to prevent service death")
+        }
+    }
+
+    /**
+     * Flatten OneSignal's nested data format into a flat map.
+     *
+     * OneSignal sends custom data as:
+     *   { "custom": "{\"a\":{\"type\":\"booking_confirmed\",\"bookingId\":\"123\"},\"i\":\"notif-id\"}", "alert": "...", "title": "..." }
+     *
+     * This extracts the "a" (additional data) sub-object and merges it into the top-level map
+     * so that NotificationData.fromMap() can read keys like "type", "bookingId", etc.
+     */
+    private fun flattenOneSignalData(data: Map<String, String>): Map<String, String> {
+        val customJson = data["custom"] ?: return data
+        return try {
+            val custom = JSONObject(customJson)
+            val additional = custom.optJSONObject("a") ?: return data
+            val merged = data.toMutableMap()
+            additional.keys().forEach { key ->
+                // Only add if not already present at top level (top-level takes precedence)
+                if (!merged.containsKey(key)) {
+                    merged[key] = additional.optString(key, "")
+                }
+            }
+            merged
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to parse OneSignal custom data")
+            data
+        }
     }
 
     /**

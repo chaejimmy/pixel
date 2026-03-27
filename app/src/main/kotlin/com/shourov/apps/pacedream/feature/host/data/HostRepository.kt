@@ -43,8 +43,12 @@ class HostRepository @Inject constructor(
         var hadFailure = false
         Timber.d("Loading host dashboard: bookings, listings, overview, payout state, eligibility")
 
-        // Track whether we got 401s (expected for non-host accounts)
-        var got401 = false
+        // Track whether we got non-host responses (401, 403, 404 with "not found")
+        // These are expected for users who haven't created a host profile yet.
+        var gotNonHostResponse = false
+
+        /** Returns true if the HTTP code indicates a non-host account (not a real failure). */
+        fun isNonHostCode(code: Int): Boolean = code == 401 || code == 403 || code == 404
 
         val bookingsDeferred = async {
             try {
@@ -55,9 +59,9 @@ class HostRepository @Inject constructor(
                     Timber.d("Loaded ${bookings.size} host bookings")
                     bookings
                 } else {
-                    if (response.code() == 401 || response.code() == 403) {
-                        Timber.d("Host bookings returned ${response.code()} — user is likely not a host")
-                        got401 = true
+                    if (isNonHostCode(response.code())) {
+                        Timber.d("Host bookings returned ${response.code()} — user may not have a host profile")
+                        gotNonHostResponse = true
                     } else {
                         Timber.w("Host bookings failed [${response.code()}]")
                         hadFailure = true
@@ -81,9 +85,9 @@ class HostRepository @Inject constructor(
                     Timber.d("Loaded ${listings.size} host listings")
                     listings
                 } else {
-                    if (response.code() == 401 || response.code() == 403) {
-                        Timber.d("Host listings returned ${response.code()} — user is likely not a host")
-                        got401 = true
+                    if (isNonHostCode(response.code())) {
+                        Timber.d("Host listings returned ${response.code()} — user may not have a host profile")
+                        gotNonHostResponse = true
                     } else {
                         Timber.w("Host listings failed [${response.code()}]")
                         hadFailure = true
@@ -105,9 +109,9 @@ class HostRepository @Inject constructor(
                     Timber.d("Dashboard overview loaded")
                     response.body()
                 } else {
-                    if (response.code() == 401 || response.code() == 403) {
+                    if (isNonHostCode(response.code())) {
                         Timber.d("Dashboard overview returned ${response.code()} — non-host account")
-                        got401 = true
+                        gotNonHostResponse = true
                     } else {
                         Timber.w("Dashboard overview failed [${response.code()}]")
                         hadFailure = true
@@ -147,12 +151,12 @@ class HostRepository @Inject constructor(
         val payoutState = payoutDeferred.await()
         val payoutEligibility = eligibilityDeferred.await()
 
-        // iOS parity: 401/403 on host-only endpoints for non-host accounts is NOT a failure.
-        // Treat as empty data with no error message — matches iOS HostDataStore behavior
+        // iOS parity: 401/403/404 on host-only endpoints for users without a host profile
+        // is NOT a failure. Treat as empty data with no error message — matches iOS behavior
         // where non-host users simply see empty state, not error banners.
         val primaryDataFailed = hadFailure && bookings.isEmpty() && listings.isEmpty()
         val errorMessage = when {
-            got401 && !hadFailure && bookings.isEmpty() && listings.isEmpty() ->
+            gotNonHostResponse && !hadFailure && bookings.isEmpty() && listings.isEmpty() ->
                 null  // Non-host user: show empty state, not error
             primaryDataFailed ->
                 "Couldn't load host data. Pull to refresh."
@@ -311,7 +315,12 @@ class HostRepository @Inject constructor(
     // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
 
     suspend fun resolvePayoutState(): PayoutConnectionState {
-        val response = hostApiService.getPayoutStatus()
+        val response = try {
+            hostApiService.getPayoutStatus()
+        } catch (e: Exception) {
+            Timber.e(e, "resolvePayoutState: failed to fetch payout status")
+            return PayoutConnectionState.NOT_CONNECTED
+        }
         if (!response.isSuccessful) return PayoutConnectionState.NOT_CONNECTED
 
         val body = response.body() ?: return PayoutConnectionState.NOT_CONNECTED

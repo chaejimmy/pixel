@@ -76,7 +76,7 @@ fun SettingsPaymentMethodsScreen(
     val publishableKey = remember { StripePublishableKeyProvider.getPublishableKey() }
     val isStripeConfigured = !publishableKey.isNullOrBlank()
 
-    val paymentSheet = rememberPaymentSheet(
+    val paymentSheet = rememberPaymentSheetOrNull(
         onResult = { result ->
             when (result) {
                 is PaymentSheetResult.Completed -> {
@@ -102,10 +102,14 @@ fun SettingsPaymentMethodsScreen(
 
     LaunchedEffect(publishableKey, context) {
         if (isStripeConfigured && publishableKey != null) {
-            PaymentConfiguration.init(
-                context = context,
-                publishableKey = publishableKey
-            )
+            try {
+                PaymentConfiguration.init(
+                    context = context,
+                    publishableKey = publishableKey
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to initialize Stripe PaymentConfiguration")
+            }
         } else {
             Timber.w("Stripe publishable key is missing; disabling Add Card.")
         }
@@ -128,15 +132,26 @@ fun SettingsPaymentMethodsScreen(
         isStripeConfigured = isStripeConfigured,
         onAddCardClick = {
             scope.launch {
+                if (paymentSheet == null) {
+                    snackbarHostState.showSnackbar("Payment is not available in this context.")
+                    return@launch
+                }
                 when (val result = viewModel.createSetupIntent()) {
                     is com.pacedream.app.core.network.ApiResult.Success -> {
                         val clientSecret = result.data
-                        paymentSheet.presentWithSetupIntent(
-                            clientSecret,
-                            PaymentSheet.Configuration(
-                                merchantDisplayName = "PaceDream"
+                        try {
+                            paymentSheet.presentWithSetupIntent(
+                                clientSecret,
+                                PaymentSheet.Configuration(
+                                    merchantDisplayName = "PaceDream"
+                                )
                             )
-                        )
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to present PaymentSheet")
+                            snackbarHostState.showSnackbar(
+                                "Unable to open payment form. Please try again."
+                            )
+                        }
                     }
                     is com.pacedream.app.core.network.ApiResult.Failure -> {
                         snackbarHostState.showSnackbar(
@@ -523,14 +538,22 @@ object StripePublishableKeyProvider {
 }
 
 @Composable
-private fun rememberPaymentSheet(
+private fun rememberPaymentSheetOrNull(
     onResult: (PaymentSheetResult) -> Unit
-): PaymentSheet {
+): PaymentSheet? {
     val context = LocalContext.current
     val activity = context as? androidx.activity.ComponentActivity
-        ?: throw IllegalStateException("PaymentSheet requires a ComponentActivity context")
+    if (activity == null) {
+        Timber.w("PaymentSheet requires a ComponentActivity context; payment features disabled.")
+        return null
+    }
     return remember(activity) {
-        PaymentSheet(activity, onResult)
+        try {
+            PaymentSheet(activity, onResult)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to create PaymentSheet")
+            null
+        }
     }
 }
 

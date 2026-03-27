@@ -62,7 +62,12 @@ fun ThreadScreen(
     // Scroll to bottom when new messages arrive
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+            try {
+                val targetIndex = (uiState.messages.size - 1).coerceAtLeast(0)
+                listState.animateScrollToItem(targetIndex)
+            } catch (e: Exception) {
+                // Scroll can fail if list layout changes concurrently
+            }
         }
     }
     
@@ -71,7 +76,7 @@ fun ThreadScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        uiState.participantAvatar?.let { avatar ->
+                        uiState.participantAvatar?.takeIf { it.isNotBlank() }?.let { avatar ->
                             AsyncImage(
                                 model = avatar,
                                 contentDescription = null,
@@ -336,6 +341,7 @@ private fun MessageBubble(
             ) {
                 // iOS PR #207 parity: display inline image/video attachments
                 message.attachments.forEach { attachment ->
+                    if (attachment.url.isBlank()) return@forEach
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

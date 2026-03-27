@@ -93,7 +93,7 @@ class ProfileViewModel @Inject constructor(
 
     private suspend fun fetchWishlistCount() {
         val url = appConfig.buildApiUrl("account", "wishlist")
-        when (val result = apiClient.get(url)) {
+        when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 val count = try {
                     val root = Json.parseToJsonElement(result.data).jsonObject
@@ -114,7 +114,7 @@ class ProfileViewModel @Inject constructor(
 
     private suspend fun fetchBookingsCount() {
         val url = appConfig.buildApiUrl("bookings", "mine")
-        when (val result = apiClient.get(url)) {
+        when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 val count = try {
                     val root = Json.parseToJsonElement(result.data).jsonObject

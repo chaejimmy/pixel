@@ -16,8 +16,9 @@
 
 package com.shourov.apps.pacedream.feature.home.data.repository
 
+import com.shourov.apps.pacedream.feature.home.data.dto.listings.isServiceListing
+import com.shourov.apps.pacedream.feature.home.data.dto.listings.toSplitStayModel
 import com.shourov.apps.pacedream.feature.home.data.dto.retned_gears.toRentedGearModel
-import com.shourov.apps.pacedream.feature.home.data.dto.split_stays.toSplitStayModel
 import com.shourov.apps.pacedream.feature.home.data.dto.time_based_deals.toRoomModel
 import com.shourov.apps.pacedream.feature.home.data.remote.HomeApiService
 import com.shourov.apps.pacedream.feature.home.domain.repository.HomeRepository
@@ -51,12 +52,16 @@ class HomeRepositoryImpl(
     }.flowOn(dispatcher)
 
     override suspend fun getSplitStays() = flow {
-        val response = homeApiService.getSplitStays()
-        if (response.status) {
-            val splitStays = response.data.map {
-                it.toSplitStayModel()
-            }
-            emit(splitStays)
-        } else throw Throwable(response.message)
+        // iOS parity: fetch from /v1/listings?shareType=USE and filter for service categories
+        // client-side, matching HomeService.swift fetchHomeSection(.services) logic.
+        val response = homeApiService.getListings(shareType = "USE", page = 1, limit = 24)
+        if (response.isSuccessful) {
+            val services = response.allListings
+                .filter { it.isServiceListing() }
+                .map { it.toSplitStayModel() }
+            emit(services)
+        } else {
+            throw Throwable(response.message ?: "Failed to load services")
+        }
     }.flowOn(dispatcher)
 }

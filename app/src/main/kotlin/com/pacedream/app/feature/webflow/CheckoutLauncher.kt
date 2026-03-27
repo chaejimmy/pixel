@@ -133,12 +133,18 @@ class CheckoutLauncher @Inject constructor(
             val customTabsIntent = CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
-            
+
             customTabsIntent.launchUrl(context, Uri.parse(url))
             Timber.d("Launched checkout: $url")
         } catch (e: Exception) {
-            Timber.e(e, "Failed to launch Custom Tabs")
-            throw e
+            Timber.e(e, "Failed to launch Custom Tabs, trying fallback browser")
+            try {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            } catch (e2: Exception) {
+                Timber.e(e2, "Failed to open checkout URL in any browser")
+            }
         }
     }
     

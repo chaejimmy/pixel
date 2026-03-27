@@ -256,7 +256,7 @@ private fun HostIdentityCard(
                     .background(PaceDreamColors.Gray100),
                 contentAlignment = Alignment.Center
             ) {
-                if (userAvatar != null) {
+                if (userAvatar?.takeIf { it.isNotBlank() } != null) {
                     AsyncImage(
                         model = userAvatar,
                         contentDescription = userName,

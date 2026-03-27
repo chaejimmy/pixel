@@ -120,26 +120,45 @@ class HostEarningsViewModel @Inject constructor(
                     )
                 }
                 .onFailure { exception ->
-                    Timber.e(exception, "[Earnings] Dashboard load failed")
+                    Timber.e(exception, "[Earnings] Dashboard load failed: ${exception.javaClass.simpleName}: ${exception.message}")
 
                     val rawMessage = exception.message ?: ""
-                    val isAuthError = rawMessage.contains("token", ignoreCase = true) ||
-                        rawMessage.contains("auth", ignoreCase = true) ||
-                        rawMessage.contains("unauthorized", ignoreCase = true) ||
+                    val isAuthError = rawMessage.contains("unauthorized", ignoreCase = true) ||
                         rawMessage.contains("401")
 
-                    val screenState = if (isAuthError) {
-                        EarningsScreenState.SessionExpired
-                    } else {
-                        val userMessage = when {
-                            rawMessage.contains("network", ignoreCase = true) ||
-                            rawMessage.contains("connect", ignoreCase = true) ||
-                            rawMessage.contains("timeout", ignoreCase = true) ->
-                                "Network error. Check your connection and try again."
-                            else ->
-                                "Couldn't load earnings data. Pull to refresh."
+                    // iOS parity: when the dashboard endpoint fails with a business
+                    // error (host profile not found, no stripe account, 404, etc.),
+                    // show the "Set up payouts" screen instead of an error.
+                    // iOS falls back to connectionState = .notConnected when
+                    // dashboard is nil, which renders the Stripe setup CTA.
+                    val isBusinessError = rawMessage.contains("not found", ignoreCase = true) ||
+                        rawMessage.contains("no host", ignoreCase = true) ||
+                        rawMessage.contains("no stripe", ignoreCase = true) ||
+                        rawMessage.contains("not a host", ignoreCase = true) ||
+                        rawMessage.contains("profile", ignoreCase = true) ||
+                        rawMessage.contains("HTTP 404") ||
+                        rawMessage.contains("HTTP 403")
+
+                    val screenState = when {
+                        isAuthError -> EarningsScreenState.SessionExpired
+                        isBusinessError -> EarningsScreenState.StripeNotConnected
+                        else -> {
+                            val userMessage = when {
+                                exception is java.net.UnknownHostException ->
+                                    "No internet connection. Check your network."
+                                exception is java.net.SocketTimeoutException ->
+                                    "Request timed out. The server may be starting up — try again."
+                                exception is java.net.ConnectException ->
+                                    "Could not connect to server. Try again."
+                                exception is java.io.IOException ||
+                                rawMessage.contains("network", ignoreCase = true) ||
+                                rawMessage.contains("timeout", ignoreCase = true) ->
+                                    "Network error. Check your connection and try again."
+                                else ->
+                                    rawMessage.ifBlank { "Couldn't load earnings data. Pull to refresh." }
+                            }
+                            EarningsScreenState.Error(userMessage)
                         }
-                        EarningsScreenState.Error(userMessage)
                     }
 
                     _earningsUiState.value = _earningsUiState.value.copy(

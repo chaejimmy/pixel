@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
+import com.shourov.apps.pacedream.feature.host.navigation.HostNavigationDestinations
 import com.shourov.apps.pacedream.feature.host.navigation.HostNavigationGraph
 import com.shourov.apps.pacedream.feature.host.presentation.components.HostBottomNavigation
 
@@ -59,7 +60,11 @@ fun HostModeScreen(
                 onSignOut = onSignOut,
                 onNavigateToProperty = onNavigateToProperty,
                 onNavigateToBooking = onNavigateToBooking,
-                onNavigateToAddListing = onNavigateToAddListing,
+                onNavigateToAddListing = {
+                    navController.navigate(HostNavigationDestinations.ADD_LISTING) {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToEditListing = onNavigateToEditListing,
                 onNavigateToAnalytics = onNavigateToAnalytics,
                 onNavigateToWithdraw = onNavigateToWithdraw

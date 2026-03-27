@@ -41,7 +41,11 @@ fun PaceDreamApp(
     LaunchedEffect(pendingDeepLink) {
         pendingDeepLink?.let { deepLinkResult ->
             activity?.consumePendingDeepLink()
-            appState.handleDeepLink(deepLinkResult)
+            try {
+                appState.handleDeepLink(deepLinkResult)
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "Failed to handle deep link: $deepLinkResult")
+            }
         }
     }
     
@@ -53,22 +57,28 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
             },
             onNavigateToProperty = { propertyId ->
-                appState.navController.navigate("listing_details/$propertyId")
+                try { appState.navController.navigate("listing_details/$propertyId") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to property failed: $propertyId") }
             },
             onNavigateToBooking = { bookingId ->
-                appState.navController.navigate("booking_details/$bookingId")
+                try { appState.navController.navigate("booking_details/$bookingId") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to booking failed: $bookingId") }
             },
             onNavigateToAddListing = {
-                appState.navController.navigate("add_listing")
+                try { appState.navController.navigate("add_listing") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to add listing failed") }
             },
             onNavigateToEditListing = { listingId ->
-                appState.navController.navigate("edit_listing/$listingId")
+                try { appState.navController.navigate("edit_listing/$listingId") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to edit listing failed: $listingId") }
             },
             onNavigateToAnalytics = {
-                appState.navController.navigate("host_analytics")
+                try { appState.navController.navigate("host_analytics") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to analytics failed") }
             },
             onNavigateToWithdraw = {
-                appState.navController.navigate("withdraw_earnings")
+                try { appState.navController.navigate("withdraw_earnings") }
+                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to withdraw failed") }
             }
         )
     } else {

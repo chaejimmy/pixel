@@ -51,7 +51,12 @@ class HostProfileViewModel @Inject constructor(
     private fun loadHostData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = hostRepository.loadDashboard()
+            val result = try {
+                hostRepository.loadDashboard()
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false) }
+                return@launch
+            }
             _uiState.update {
                 it.copy(
                     activeListingsCount = result.overview?.activeListings

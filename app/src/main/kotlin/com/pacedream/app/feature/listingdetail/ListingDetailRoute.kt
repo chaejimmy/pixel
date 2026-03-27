@@ -43,11 +43,13 @@ fun ListingDetailRoute(
                     }
                 }
                 is ListingDetailViewModel.Effect.Share -> {
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, effect.text)
+                    runCatching {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, effect.text)
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share"))
                     }
-                    context.startActivity(Intent.createChooser(shareIntent, "Share"))
                 }
                 is ListingDetailViewModel.Effect.NavigateToThread -> {
                     onNavigateToThread(effect.threadId)

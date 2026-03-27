@@ -44,43 +44,57 @@ class CategoryResultsViewModel @Inject constructor(
     }
 
     private suspend fun loadMoreInternal(reset: Boolean) {
-        val current = _state.value
-        val nextPage = if (reset) 1 else current.page1 + 1
-        _state.update { it.copy(isLoading = reset, isLoadingMore = !reset, errorMessage = null) }
+        try {
+            val current = _state.value
+            val nextPage = if (reset) 1 else current.page1 + 1
+            _state.update { it.copy(isLoading = reset, isLoadingMore = !reset, errorMessage = null) }
 
-        val res = repo.categoryResults(
-            page1 = nextPage,
-            limit = current.limit,
-            shareType = current.shareType,
-            category = current.category,
-            city = current.city,
-            sort = current.sort
-        )
+            val res = repo.categoryResults(
+                page1 = nextPage,
+                limit = current.limit,
+                shareType = current.shareType,
+                category = current.category,
+                city = current.city,
+                sort = current.sort
+            )
 
-        when (res) {
-            is ApiResult.Success -> {
-                _state.update { s ->
-                    val merged = if (reset) res.data.items else (s.items + res.data.items)
-                    s.copy(
-                        items = merged,
-                        page1 = nextPage,
-                        hasMore = res.data.hasMore,
-                        isLoading = false,
-                        isLoadingMore = false,
-                        errorMessage = null
-                    )
+            when (res) {
+                is ApiResult.Success -> {
+                    _state.update { s ->
+                        val merged = if (reset) res.data.items else (s.items + res.data.items)
+                        s.copy(
+                            items = merged,
+                            page1 = nextPage,
+                            hasMore = res.data.hasMore,
+                            isLoading = false,
+                            isLoadingMore = false,
+                            errorMessage = null
+                        )
+                    }
+                }
+                is ApiResult.Failure -> {
+                    _state.update { s ->
+                        val hasPrior = s.items.isNotEmpty()
+                        s.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            hasMore = false,
+                            errorMessage = if (hasPrior) null else (res.error.message ?: "Failed to load"),
+                        )
+                    }
                 }
             }
-            is ApiResult.Failure -> {
-                _state.update { s ->
-                    val hasPrior = s.items.isNotEmpty()
-                    s.copy(
-                        isLoading = false,
-                        isLoadingMore = false,
-                        hasMore = false,
-                        errorMessage = if (hasPrior) null else (res.error.message ?: "Failed to load"),
-                    )
-                }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _state.update { s ->
+                val hasPrior = s.items.isNotEmpty()
+                s.copy(
+                    isLoading = false,
+                    isLoadingMore = false,
+                    hasMore = false,
+                    errorMessage = if (hasPrior) null else (e.message ?: "Failed to load"),
+                )
             }
         }
     }

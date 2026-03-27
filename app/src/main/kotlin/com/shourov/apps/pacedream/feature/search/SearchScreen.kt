@@ -88,7 +88,13 @@ import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import com.pacedream.app.core.location.LocationService
 import com.pacedream.app.core.location.LocationServiceEntryPoint
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
@@ -150,7 +156,7 @@ private fun mapCategoryToBackend(cat: String): String {
     return categoryMap[cat] ?: cat.lowercase().replace(" ", "_")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
@@ -166,6 +172,8 @@ fun SearchScreen(
     var inlineBannerMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     // Sort state
     var selectedSort by remember { mutableStateOf("relevance") }
@@ -269,7 +277,9 @@ fun SearchScreen(
                     modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM)
                 )
 
-                // Enhanced Search Bar
+                // Enhanced Search Bar with collapse support
+                var isSearchBarExpanded by remember { mutableStateOf(true) }
+                val hasResults = state.phase == SearchPhase.Success || state.phase == SearchPhase.LoadingMore
                 var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.SPACES) }
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
                 var whereQuery by remember { mutableStateOf(state.query) }
@@ -284,84 +294,145 @@ fun SearchScreen(
                     }
                 }
 
-                com.pacedream.app.feature.search.EnhancedSearchBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { tab ->
-                        selectedTab = tab
-                        val shareType = when (tab) {
-                            com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
-                            com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
-                            com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
-                        }
-                        viewModel.updateSearchParams(shareType = shareType)
-                    },
-                    whatQuery = whatQuery,
-                    onWhatQueryChange = {
-                        whatQuery = it
-                        viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
-                    },
-                    whereQuery = whereQuery,
-                    onWhereQueryChange = {
-                        whereQuery = it
-                        viewModel.onQueryChanged(it)
-                        viewModel.updateSearchParams(city = it.takeIf { it.isNotBlank() })
-                    },
-                    selectedDate = selectedDateDisplay,
-                    onDateClick = openDatePicker,
-                    onUseMyLocation = {
-                        if (!locationService.hasLocationPermission()) {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
+                // Collapsed search summary bar - tap to expand
+                if (hasResults && !isSearchBarExpanded) {
+                    Surface(
+                        onClick = { isSearchBarExpanded = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        color = PaceDreamColors.Card,
+                        tonalElevation = 1.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Search,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
-                        } else {
-                            scope.launch {
-                                val location = locationService.getCurrentLocation()
-                                if (location != null) {
-                                    val address = locationService.getAddressFromLocation(
-                                        location.latitude,
-                                        location.longitude
-                                    )
-                                    if (address != null) {
-                                        whereQuery = address
-                                        viewModel.onQueryChanged(address)
-                                        viewModel.updateSearchParams(city = address)
-                                        inlineBannerMessage = ("Location set: $address")
-                                    } else {
-                                        inlineBannerMessage = ("Could not determine address")
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Text(
+                                text = buildString {
+                                    if (whatQuery.isNotBlank()) append(whatQuery)
+                                    if (whereQuery.isNotBlank()) {
+                                        if (isNotBlank()) append(" · ")
+                                        append(whereQuery)
                                     }
-                                } else {
-                                    inlineBannerMessage = ("Location unavailable")
-                                }
-                            }
+                                    if (isEmpty()) append("Search")
+                                },
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                PaceDreamIcons.ExpandMore,
+                                contentDescription = "Expand search",
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                    },
-                    onSearchClick = {
-                        viewModel.updateSearchParams(
-                            shareType = when (selectedTab) {
+                    }
+                }
+
+                // Full search bar - animated expand/collapse
+                AnimatedVisibility(
+                    visible = !hasResults || isSearchBarExpanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    com.pacedream.app.feature.search.EnhancedSearchBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { tab ->
+                            selectedTab = tab
+                            val shareType = when (tab) {
                                 com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
                                 com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
                                 com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
-                            },
-                            whatQuery = whatQuery.takeIf { it.isNotBlank() },
-                            city = whereQuery.takeIf { it.isNotBlank() },
-                            startDate = selectedDateISO,
-                            endDate = selectedDateISO
-                        )
-                        viewModel.submitSearch()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
-                )
+                            }
+                            viewModel.updateSearchParams(shareType = shareType)
+                        },
+                        whatQuery = whatQuery,
+                        onWhatQueryChange = {
+                            whatQuery = it
+                            viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
+                        },
+                        whereQuery = whereQuery,
+                        onWhereQueryChange = {
+                            whereQuery = it
+                            viewModel.onQueryChanged(it)
+                            viewModel.updateSearchParams(city = it.takeIf { it.isNotBlank() })
+                        },
+                        selectedDate = selectedDateDisplay,
+                        onDateClick = openDatePicker,
+                        onUseMyLocation = {
+                            if (!locationService.hasLocationPermission()) {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            } else {
+                                scope.launch {
+                                    val location = locationService.getCurrentLocation()
+                                    if (location != null) {
+                                        val address = locationService.getAddressFromLocation(
+                                            location.latitude,
+                                            location.longitude
+                                        )
+                                        if (address != null) {
+                                            whereQuery = address
+                                            viewModel.onQueryChanged(address)
+                                            viewModel.updateSearchParams(city = address)
+                                            inlineBannerMessage = ("Location set: $address")
+                                        } else {
+                                            inlineBannerMessage = ("Could not determine address")
+                                        }
+                                    } else {
+                                        inlineBannerMessage = ("Location unavailable")
+                                    }
+                                }
+                            }
+                        },
+                        onSearchClick = {
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
+                            isSearchBarExpanded = false
+                            viewModel.updateSearchParams(
+                                shareType = when (selectedTab) {
+                                    com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
+                                    com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
+                                    com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
+                                },
+                                whatQuery = whatQuery.takeIf { it.isNotBlank() },
+                                city = whereQuery.takeIf { it.isNotBlank() },
+                                startDate = selectedDateISO,
+                                endDate = selectedDateISO
+                            )
+                            viewModel.submitSearch()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+                    )
+                }
 
                 // Autocomplete suggestions
                 if (state.suggestions.isNotEmpty() && state.query.length >= 2 && state.phase == SearchPhase.Idle) {
                     SuggestionsList(
                         suggestions = state.suggestions,
                         onClick = { suggestion ->
+                            keyboardController?.hide()
+                            focusManager.clearFocus()
                             whereQuery = suggestion.value
                             viewModel.onQueryChanged(suggestion.value)
                             viewModel.submitSearch()
