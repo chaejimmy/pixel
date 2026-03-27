@@ -35,6 +35,26 @@ class HomeFeedRepositoryExtendedTest {
         repo = HomeFeedRepository(apiClient = apiClient, appConfig = appConfig, json = json)
     }
 
+    @Test
+    fun `parseListingsToCards prefers listingId over _id for wishlist parity`() {
+        val body = """
+            {
+              "listings": [
+                {
+                  "_id": "mongo-room-1",
+                  "listingId": "wishlist-key-99",
+                  "title": "Studio",
+                  "city": "SF",
+                  "price": "50"
+                }
+              ]
+            }
+        """.trimIndent()
+        val cards = repo.parseListingsToCards(body)
+        assertEquals(1, cards.size)
+        assertEquals("wishlist-key-99", cards.first().id)
+    }
+
     // ── Response shapes ─────────────────────────────────────────────
 
     @Test

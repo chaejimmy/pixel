@@ -112,7 +112,13 @@ class HomeFeedRepository @Inject constructor(
     private fun parseCard(el: JsonElement): HomeCard? {
         return try {
             val obj = el as? JsonObject ?: return null
-            val id = obj["_id"].stringOrNull()
+            // Match wishlist GET mapping (listingId.ifBlank { id }): prefer the same identifiers
+            // the backend uses for POST /wishlists/toggle { propertyId }, so favorites survive refresh.
+            val id = obj["listingId"].stringOrNull()
+                ?: obj["listing_id"].stringOrNull()
+                ?: obj["propertyId"].stringOrNull()
+                ?: obj["property_id"].stringOrNull()
+                ?: obj["_id"].stringOrNull()
                 ?: obj["id"].stringOrNull()
                 ?: return null
 

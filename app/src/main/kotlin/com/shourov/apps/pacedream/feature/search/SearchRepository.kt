@@ -268,9 +268,12 @@ class SearchRepository @Inject constructor(
 
     private fun parseSearchItem(el: JsonElement): SearchResultItem? = try {
         val obj = el as? JsonObject ?: return null
-        val id = obj["_id"].stringOrNull()
+        val id = obj["listingId"].stringOrNull()
+            ?: obj["listing_id"].stringOrNull()
+            ?: obj["propertyId"].stringOrNull()
+            ?: obj["property_id"].stringOrNull()
+            ?: obj["_id"].stringOrNull()
             ?: obj["id"].stringOrNull()
-            ?: obj["listingId"].stringOrNull()
             ?: return null
 
         val title = obj["title"].stringOrNull()

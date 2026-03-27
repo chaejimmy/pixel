@@ -11,6 +11,7 @@ import com.shourov.apps.pacedream.feature.wishlist.data.WishlistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import timber.log.Timber
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,6 +83,8 @@ class HomeFeedViewModel @Inject constructor(
             try {
                 wishlistRepository.changes.collectLatest {
                     if (authSession.authState.value != AuthState.Unauthenticated) {
+                        // Let the server reflect the toggle before GET; avoids stale wishlist wiping UI.
+                        delay(400)
                         refreshFavorites()
                     }
                 }
