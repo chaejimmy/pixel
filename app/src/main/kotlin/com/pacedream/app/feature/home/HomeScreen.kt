@@ -961,7 +961,7 @@ private fun GridListingCard(
                 spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
             )
             .clickable(
-                interactionSource = interactionSource,
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             ),
@@ -1157,7 +1157,7 @@ private fun ListingCard(
                 spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
             )
             .clickable(
-                interactionSource = interactionSource,
+                interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             ),
