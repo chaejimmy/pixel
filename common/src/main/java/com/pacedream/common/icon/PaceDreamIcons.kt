@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.ElectricCar
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.Laptop
@@ -47,10 +48,12 @@ import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Wc
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddHome
@@ -272,6 +275,7 @@ object PaceDreamIcons {
     val DateRangeOutlined: ImageVector = Icons.Outlined.DateRange
     val AccessTime: ImageVector = Icons.Rounded.AccessTime
     val Schedule: ImageVector = Icons.Rounded.Schedule
+    val ScheduleOutlined: ImageVector = Icons.Outlined.Schedule
     val ViewDay: ImageVector = Icons.Rounded.ViewDay
 
     // ── Auth & Security ─────────────────────────────────────────
@@ -308,10 +312,12 @@ object PaceDreamIcons {
 
     // ── Amenities ───────────────────────────────────────────────
     val Wifi: ImageVector = Icons.Rounded.Wifi
+    val WifiOutlined: ImageVector = Icons.Outlined.Wifi
     val LocalParking: ImageVector = Icons.Rounded.LocalParking
     val LocalParkingOutlined: ImageVector = Icons.Outlined.LocalParking
     val Pool: ImageVector = Icons.Rounded.Pool
     val FitnessCenter: ImageVector = Icons.Rounded.FitnessCenter
+    val FitnessCenterOutlined: ImageVector = Icons.Outlined.FitnessCenter
     val Kitchen: ImageVector = Icons.Rounded.Kitchen
     val Air: ImageVector = Icons.Rounded.Air
     val Tv: ImageVector = Icons.Rounded.Tv
