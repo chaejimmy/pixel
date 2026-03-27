@@ -120,12 +120,9 @@ class HostEarningsViewModel @Inject constructor(
                     )
                 }
                 .onFailure { exception ->
-                    Timber.e(exception, "[Earnings] Dashboard load failed")
+                    Timber.e(exception, "[Earnings] Dashboard load failed: ${exception.javaClass.simpleName}: ${exception.message}")
 
                     val rawMessage = exception.message ?: ""
-                    // Only treat explicit 401/unauthorized as auth errors.
-                    // Avoid false positives from words like "token" or "auth"
-                    // appearing in unrelated server messages.
                     val isAuthError = rawMessage.contains("unauthorized", ignoreCase = true) ||
                         rawMessage.contains("401")
 
@@ -133,14 +130,20 @@ class HostEarningsViewModel @Inject constructor(
                         EarningsScreenState.SessionExpired
                     } else {
                         val userMessage = when {
+                            exception is java.net.UnknownHostException ->
+                                "No internet connection. Check your network."
+                            exception is java.net.SocketTimeoutException ->
+                                "Request timed out. The server may be starting up — try again."
+                            exception is java.net.ConnectException ->
+                                "Could not connect to server. Try again."
+                            exception is java.io.IOException ||
                             rawMessage.contains("network", ignoreCase = true) ||
-                            rawMessage.contains("timeout", ignoreCase = true) ||
-                            exception is java.net.UnknownHostException ||
-                            exception is java.net.SocketTimeoutException ||
-                            exception is java.io.IOException ->
+                            rawMessage.contains("timeout", ignoreCase = true) ->
                                 "Network error. Check your connection and try again."
+                            rawMessage.startsWith("HTTP ") ->
+                                "Server error ($rawMessage). Pull to refresh."
                             else ->
-                                "Couldn't load earnings data. Pull to refresh."
+                                rawMessage.ifBlank { "Couldn't load earnings data. Pull to refresh." }
                         }
                         EarningsScreenState.Error(userMessage)
                     }

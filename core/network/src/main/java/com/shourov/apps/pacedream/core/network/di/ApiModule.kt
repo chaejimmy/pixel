@@ -70,6 +70,8 @@ object ApiModule {
                 val requestBuilder = chain.request().newBuilder()
                 if (!token.isNullOrBlank()) {
                     requestBuilder.header("Authorization", "Bearer $token")
+                    // iOS parity: backend also checks X-Access-Token for host/payout endpoints
+                    requestBuilder.header("X-Access-Token", token)
                 }
                 chain.proceed(requestBuilder.build())
             })
