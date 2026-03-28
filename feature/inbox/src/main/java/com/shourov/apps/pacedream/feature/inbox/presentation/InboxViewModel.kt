@@ -17,7 +17,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -49,7 +48,7 @@ class InboxViewModel @Inject constructor(
     private var nextCursor: String? = null
     
     init {
-        checkAuthAndLoad()
+        observeAuthState()
     }
     
     /**
@@ -65,25 +64,27 @@ class InboxViewModel @Inject constructor(
         }
     }
     
-    private fun checkAuthAndLoad() {
+    /**
+     * Continuously observe auth state so the screen reacts immediately
+     * when the user logs in (no app restart required).
+     */
+    private fun observeAuthState() {
         viewModelScope.launch {
-            // Wait for auth to settle if it hasn't initialized yet (avoids race with Unknown state)
-            val state = authSession.authState.value
-            val resolvedState = if (state == AuthState.Unknown) {
-                authSession.authState.first { it != AuthState.Unknown }
-            } else {
-                state
+            authSession.authState.collect { state ->
+                Timber.d("InboxVM: authState changed → $state")
+                when (state) {
+                    AuthState.Authenticated -> {
+                        val userId = authSession.currentUser.value?.id
+                        Timber.d("InboxVM: authenticated — userId=${userId ?: "(null)"}, mode=${currentMode.apiValue}")
+                        nextCursor = null
+                        loadThreadsAndCounts()
+                    }
+                    AuthState.Unauthenticated -> {
+                        _uiState.value = InboxUiState.RequiresAuth
+                    }
+                    else -> { /* Unknown — wait for auth to settle */ }
+                }
             }
-
-            if (resolvedState == AuthState.Unauthenticated) {
-                _uiState.value = InboxUiState.RequiresAuth
-                return@launch
-            }
-
-            val userId = authSession.currentUser.value?.id
-            Timber.d("InboxViewModel: checkAuthAndLoad — userId=${userId ?: "(null)"}, mode=${currentMode.apiValue}")
-
-            loadThreadsAndCounts()
         }
     }
     

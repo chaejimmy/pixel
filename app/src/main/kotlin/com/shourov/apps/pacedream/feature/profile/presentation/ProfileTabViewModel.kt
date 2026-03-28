@@ -56,17 +56,18 @@ class ProfileTabViewModel @Inject constructor(
         authSession.currentUser,
         _isRefreshing
     ) { authState, user, refreshing ->
+        Timber.d("ProfileTabVM: auth state changed → $authState, user=${user?.id}")
         when (authState) {
             is AuthState.Unauthenticated -> {
-                Timber.d("[HostMode] ProfileTab: unauthenticated → Locked")
+                Timber.d("ProfileTabVM: unauthenticated → Locked")
                 ProfileTabUiState.Locked
             }
             else -> {
                 if (user == null) {
-                    Timber.d("[HostMode] ProfileTab: authenticated but user=null → Loading")
+                    Timber.d("ProfileTabVM: authenticated but user=null → Loading")
                     ProfileTabUiState.Loading(refreshing = refreshing)
                 } else {
-                    Timber.d("[HostMode] ProfileTab: authenticated user=${user.id}, isHost=${user.isHost}")
+                    Timber.d("ProfileTabVM: authenticated user=${user.id}, isHost=${user.isHost}")
                     ProfileTabUiState.Authenticated(user = user, refreshing = refreshing)
                 }
             }
