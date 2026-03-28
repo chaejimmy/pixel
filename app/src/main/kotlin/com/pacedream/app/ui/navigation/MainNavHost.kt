@@ -55,7 +55,7 @@ import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
 import com.pacedream.app.feature.collections.CollectionsScreen
-import com.pacedream.app.feature.roommate.RoommateFinderScreen
+// RoommateFinderScreen hidden for v1 release — no backend API available yet
 import com.shourov.apps.pacedream.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
 import com.pacedream.app.feature.webflow.BookingConfirmationScreen
@@ -129,10 +129,7 @@ fun MainNavHost(
                 composable(NavRoutes.HOME) {
                     HomeScreen(
                         onSectionViewAll = { sectionType ->
-                            when (sectionType) {
-                                "roommate" -> navController.navigate(NavRoutes.ROOMMATE_FINDER)
-                                else -> navController.navigate(NavRoutes.homeSectionList(sectionType))
-                            }
+                            navController.navigate(NavRoutes.homeSectionList(sectionType))
                         },
                         onListingClick = { item ->
                             navController.currentBackStackEntry?.savedStateHandle?.apply {
@@ -437,18 +434,7 @@ fun MainNavHost(
                     )
                 }
 
-                // Roommate Finder Screen
-                composable(NavRoutes.ROOMMATE_FINDER) {
-                    RoommateFinderScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onListingClick = { listingId ->
-                            navController.currentBackStackEntry?.savedStateHandle?.apply {
-                                set("listing_initial_type", "split-stay")
-                            }
-                            navController.navigate(NavRoutes.listingDetail(listingId))
-                        }
-                    )
-                }
+                // Roommate Finder — hidden for v1 release (no backend API)
 
                 // Identity Verification Screen
                 composable(NavRoutes.IDENTITY_VERIFICATION) {
@@ -459,16 +445,32 @@ fun MainNavHost(
 
                 // Host Home - uses real backend-driven dashboard
                 composable(NavRoutes.HOST_HOME) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
                     com.shourov.apps.pacedream.feature.host.presentation.HostDashboardScreenWithViewModel(
-                        onAddListingClick = {},
+                        onAddListingClick = {
+                            android.widget.Toast.makeText(context, "Create listing coming soon", android.widget.Toast.LENGTH_SHORT).show()
+                        },
                         onListingClick = { listingId ->
                             navController.navigate(NavRoutes.listingDetail(listingId))
                         },
                         onBookingClick = { bookingId ->
                             navController.navigate(NavRoutes.bookingDetail(bookingId))
                         },
-                        onEarningsClick = {},
-                        onAnalyticsClick = {}
+                        onEarningsClick = {
+                            android.widget.Toast.makeText(context, "Payouts coming soon", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        onAnalyticsClick = {
+                            android.widget.Toast.makeText(context, "Analytics coming soon", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        onSwitchToGuestMode = {
+                            navController.navigate(NavRoutes.HOME) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
                     )
                 }
 

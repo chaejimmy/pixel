@@ -15,11 +15,11 @@ import com.shourov.apps.pacedream.core.ui.otp.OtpScreen
 @Composable
 fun OTPVerification() {
     OtpScreen(
-        otpValue = "1234",
+        otpValue = "",
         onOtpModified = { otp, isComplete ->
             // todo
         },
-        userPhoneNumber = "+1 123 456 7890",
+        userPhoneNumber = "",
         onHaveNotReceivedOtp = {
             // todo
         },

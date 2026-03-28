@@ -127,7 +127,7 @@ private fun parseAttachmentsJson(json: String?): List<MessageAttachment> {
             i = objEnd + 1
         }
     } catch (e: Exception) {
-        android.util.Log.w("MessageEntity", "Failed to parse attachments JSON", e)
+        // Non-fatal: return partial result on malformed attachment JSON
     }
     return result
 }
