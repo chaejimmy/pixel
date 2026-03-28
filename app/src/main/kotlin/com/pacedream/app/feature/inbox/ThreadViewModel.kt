@@ -242,6 +242,47 @@ class ThreadViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Block or unblock the opponent in this thread.
+     * Calls POST /v1/inbox/threads/:id/block { block: true/false }
+     * Web parity with ThreadView.tsx.
+     */
+    fun toggleBlock(block: Boolean) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isBlockLoading = true, blockError = null) }
+
+                val url = appConfig.buildApiUrl("inbox", "threads", threadId, "block")
+                val body = """{"block": $block}"""
+
+                when (val result = apiClient.post(url, body, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        _uiState.update {
+                            it.copy(isBlockLoading = false, isBlocked = block, blockError = null)
+                        }
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to ${if (block) "block" else "unblock"} user: ${result.error.message}")
+                        _uiState.update {
+                            it.copy(
+                                isBlockLoading = false,
+                                blockError = result.error.message ?: "Failed to ${if (block) "block" else "unblock"} user"
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to ${if (block) "block" else "unblock"} user")
+                _uiState.update {
+                    it.copy(
+                        isBlockLoading = false,
+                        blockError = e.message ?: "An unexpected error occurred"
+                    )
+                }
+            }
+        }
+    }
+
     private fun loadMessages() {
         viewModelScope.launch {
             try {
@@ -438,12 +479,16 @@ class ThreadViewModel @Inject constructor(
             val listingName = listing?.get("name")?.jsonPrimitive?.content
                 ?: listing?.get("title")?.jsonPrimitive?.content
 
+            // Check if the opponent is blocked (web parity)
+            val isBlocked = data["isBlocked"]?.jsonPrimitive?.booleanOrNull ?: false
+
             _uiState.update {
                 it.copy(
                     participantName = participantName,
                     participantAvatar = participantAvatar,
                     participantId = participantId,
-                    listingName = listingName
+                    listingName = listingName,
+                    isBlocked = isBlocked
                 )
             }
         } catch (e: Exception) {
@@ -498,7 +543,11 @@ data class ThreadUiState(
     val sendError: String? = null,
     // iOS PR #207 parity: attachment support
     val attachmentsEnabled: Boolean = false,
-    val attachmentDisabledReason: String? = null
+    val attachmentDisabledReason: String? = null,
+    // Block/unblock feature (web parity)
+    val isBlocked: Boolean = false,
+    val isBlockLoading: Boolean = false,
+    val blockError: String? = null
 )
 
 /**

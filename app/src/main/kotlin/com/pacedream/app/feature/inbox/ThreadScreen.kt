@@ -54,6 +54,8 @@ fun ThreadScreen(
     var messageText by remember { mutableStateOf("") }
     var showReportSheet by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showBlockConfirm by remember { mutableStateOf(false) }
+    var showUnblockConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(threadId) {
         viewModel.loadThread(threadId)
@@ -123,7 +125,23 @@ fun ThreadScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Report / Block") },
+                                text = {
+                                    Text(
+                                        if (uiState.isBlocked) "Unblock user"
+                                        else "Block user"
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    if (uiState.isBlocked) {
+                                        showUnblockConfirm = true
+                                    } else {
+                                        showBlockConfirm = true
+                                    }
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Report") },
                                 onClick = {
                                     showMenu = false
                                     showReportSheet = true
@@ -136,22 +154,31 @@ fun ThreadScreen(
             )
         },
         bottomBar = {
-            MessageInputBar(
-                text = messageText,
-                onTextChange = { messageText = it },
-                onSendClick = {
-                    if (messageText.isNotBlank()) {
-                        viewModel.sendMessage(messageText)
-                        messageText = ""
+            if (uiState.isBlocked) {
+                // Blocked state: show unblock bar instead of message input
+                BlockedBar(
+                    participantName = uiState.participantName.ifEmpty { "this user" },
+                    isLoading = uiState.isBlockLoading,
+                    onUnblockClick = { showUnblockConfirm = true }
+                )
+            } else {
+                MessageInputBar(
+                    text = messageText,
+                    onTextChange = { messageText = it },
+                    onSendClick = {
+                        if (messageText.isNotBlank()) {
+                            viewModel.sendMessage(messageText)
+                            messageText = ""
+                        }
+                    },
+                    isSending = uiState.isSending,
+                    attachmentsEnabled = uiState.attachmentsEnabled,
+                    attachmentDisabledReason = uiState.attachmentDisabledReason,
+                    onMediaSelected = { uri ->
+                        viewModel.sendMediaFromUri(uri)
                     }
-                },
-                isSending = uiState.isSending,
-                attachmentsEnabled = uiState.attachmentsEnabled,
-                attachmentDisabledReason = uiState.attachmentDisabledReason,
-                onMediaSelected = { uri ->
-                    viewModel.sendMediaFromUri(uri)
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         Box(
@@ -226,6 +253,104 @@ fun ThreadScreen(
             repository = viewModel.accountSettingsRepository,
             onDismiss = { showReportSheet = false }
         )
+    }
+
+    // Block confirmation dialog
+    if (showBlockConfirm) {
+        AlertDialog(
+            onDismissRequest = { showBlockConfirm = false },
+            title = { Text("Block user?") },
+            text = {
+                Text(
+                    "You will no longer be able to send or receive messages from ${uiState.participantName.ifEmpty { "this user" }}."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBlockConfirm = false
+                        viewModel.toggleBlock(true)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Block")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBlockConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Unblock confirmation dialog
+    if (showUnblockConfirm) {
+        AlertDialog(
+            onDismissRequest = { showUnblockConfirm = false },
+            title = { Text("Unblock user?") },
+            text = {
+                Text(
+                    "You will be able to send and receive messages from ${uiState.participantName.ifEmpty { "this user" }} again."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUnblockConfirm = false
+                        viewModel.toggleBlock(false)
+                    }
+                ) {
+                    Text("Unblock")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnblockConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun BlockedBar(
+    participantName: String,
+    isLoading: Boolean,
+    onUnblockClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "You have blocked $participantName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                onClick = onUnblockClick,
+                enabled = !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Unblock")
+            }
+        }
     }
 }
 
