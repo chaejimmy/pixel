@@ -51,7 +51,7 @@ class WishlistViewModel @Inject constructor(
     private var currentFilter = WishlistFilter.ALL
     
     init {
-        checkAuthAndLoad()
+        observeAuthState()
     }
     
     /**
@@ -68,16 +68,22 @@ class WishlistViewModel @Inject constructor(
     }
     
     /**
-     * Check authentication and load wishlist
+     * Continuously observe auth state so the screen reacts immediately
+     * when the user logs in (no app restart required).
      */
-    private fun checkAuthAndLoad() {
+    private fun observeAuthState() {
         viewModelScope.launch {
-            if (authSession.authState.value == AuthState.Unauthenticated) {
-                _uiState.value = WishlistUiState.RequiresAuth
-                return@launch
+            authSession.authState.collect { state ->
+                Timber.d("WishlistVM: authState changed → $state")
+                when (state) {
+                    AuthState.Authenticated -> loadWishlist()
+                    AuthState.Unauthenticated -> {
+                        _uiState.value = WishlistUiState.RequiresAuth
+                        fullItemsList = emptyList()
+                    }
+                    else -> { /* Unknown — wait for auth to settle */ }
+                }
             }
-            
-            loadWishlist()
         }
     }
     

@@ -9,8 +9,10 @@ import com.auth0.android.result.Credentials
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import com.shourov.apps.pacedream.core.network.auth.AuthSession as LegacyAuthSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +53,8 @@ class SessionManager @Inject constructor(
     private val tokenStorage: TokenStorage,
     private val appConfig: AppConfig,
     private val authRepository: AuthRepository,
-    private val json: Json
+    private val json: Json,
+    private val legacyAuthSession: LegacyAuthSession
 ) {
 
     /**
@@ -63,8 +66,27 @@ class SessionManager @Inject constructor(
         data class Error(val message: String) : AuthActionResult()
     }
     
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    /**
+     * Sync the legacy AuthSession (core/network) after login so that all
+     * production screens observing its authState see the change immediately.
+     *
+     * The two auth systems share the same EncryptedSharedPreferences file.
+     * Tokens are already persisted by the time this runs — we just need
+     * to tell the legacy layer to re-read them and update its in-memory
+     * StateFlows.
+     */
+    private fun syncLegacyAuthSession() {
+        scope.launch {
+            Timber.d("SessionManager: syncing legacy AuthSession after login")
+            legacyAuthSession.refreshProfile()
+            Timber.d("SessionManager: legacy AuthSession synced — authState=${legacyAuthSession.authState.value}")
+        }
+    }
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -182,8 +204,12 @@ class SessionManager @Inject constructor(
                                 )
 
                                 if (exchangeResult) {
+                                    Timber.d("SessionManager: Auth0 token exchange succeeded, emitting Authenticated")
                                     _authState.value = AuthState.Authenticated
-                                    bootstrap()
+                                    // Fetch user profile in background so the UI updates immediately
+                                    scope.launch { bootstrap() }
+                                    // Sync legacy AuthSession so all production screens update
+                                    syncLegacyAuthSession()
                                     continuation.resume(AuthActionResult.Success)
                                 } else {
                                     continuation.resume(AuthActionResult.Error("Failed to exchange Auth0 tokens"))
@@ -217,12 +243,18 @@ class SessionManager @Inject constructor(
      * No Authorization header.
      */
     suspend fun loginWithEmailPassword(email: String, password: String): Result<Unit> {
+        Timber.d("SessionManager: loginWithEmailPassword starting")
         val result = authRepository.emailLogin(email, password)
         return when (result) {
             is ApiResult.Success -> {
                 if (parseAndStoreEmailToken(result.data)) {
+                    Timber.d("SessionManager: token persisted, emitting Authenticated")
                     _authState.value = AuthState.Authenticated
-                    bootstrap()
+                    // Fetch user profile in background so the UI updates immediately
+                    scope.launch { bootstrap() }
+                    // Sync legacy AuthSession so all production screens update
+                    syncLegacyAuthSession()
+                    Timber.d("SessionManager: login success returned to caller")
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Invalid response from server"))
@@ -243,12 +275,18 @@ class SessionManager @Inject constructor(
         firstName: String,
         lastName: String
     ): Result<Unit> {
+        Timber.d("SessionManager: registerWithEmailPassword starting")
         val result = authRepository.emailSignup(email, firstName, lastName, password)
         return when (result) {
             is ApiResult.Success -> {
                 if (parseAndStoreEmailToken(result.data)) {
+                    Timber.d("SessionManager: token persisted, emitting Authenticated")
                     _authState.value = AuthState.Authenticated
-                    bootstrap()
+                    // Fetch user profile in background so the UI updates immediately
+                    scope.launch { bootstrap() }
+                    // Sync legacy AuthSession so all production screens update
+                    syncLegacyAuthSession()
+                    Timber.d("SessionManager: registration success returned to caller")
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Invalid response from server"))
@@ -284,7 +322,7 @@ class SessionManager @Inject constructor(
      * Sign out - clear all tokens and state
      */
     fun signOut() {
-        Timber.d("Signing out")
+        Timber.d("SessionManager: signOut — clearing tokens and state")
         try {
             tokenStorage.clearAll()
         } catch (e: Exception) {
@@ -292,6 +330,9 @@ class SessionManager @Inject constructor(
         }
         _currentUser.value = null
         _authState.value = AuthState.Unauthenticated
+        // Sync legacy AuthSession so screens observing old system also update
+        legacyAuthSession.signOut()
+        Timber.d("SessionManager: signOut complete — both auth systems cleared")
     }
     
     /**

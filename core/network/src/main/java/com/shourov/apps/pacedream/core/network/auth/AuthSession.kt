@@ -96,16 +96,20 @@ class AuthSession constructor(
      */
     suspend fun refreshProfile() {
         try {
+            Timber.d("AuthSession: refreshProfile — checking tokens")
             if (!tokenStorage.hasTokens()) {
+                Timber.d("AuthSession: refreshProfile — no tokens, setting Unauthenticated")
                 _authState.value = AuthState.Unauthenticated
                 _currentUser.value = null
                 return
             }
             // Keep authenticated immediately; bootstrap will handle 401 via refresh/signout.
             if (_authState.value != AuthState.Authenticated) {
+                Timber.d("AuthSession: refreshProfile — tokens found, emitting Authenticated (was ${_authState.value})")
                 _authState.value = AuthState.Authenticated
             }
             bootstrap()
+            Timber.d("AuthSession: refreshProfile complete — user=${_currentUser.value?.id}")
         } catch (e: Exception) {
             Timber.e(e, "Failed to refresh profile")
         }

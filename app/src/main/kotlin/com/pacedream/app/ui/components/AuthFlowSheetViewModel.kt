@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 enum class AuthFlowMode { Chooser, SignIn, SignUp }
@@ -134,16 +135,20 @@ class AuthFlowSheetViewModel @Inject constructor(
             _uiState.update { it.copy(isEmailLoading = true, error = null) }
 
             try {
+                Timber.d("AuthFlowSheet: loginWithEmail starting")
                 val result = sessionManager.loginWithEmailPassword(email, password)
                 result.fold(
                     onSuccess = {
+                        Timber.d("AuthFlowSheet: login success received, dismissing sheet")
                         _uiState.update { it.copy(isEmailLoading = false, success = true) }
                     },
                     onFailure = { e ->
+                        Timber.e(e, "AuthFlowSheet: login failed")
                         _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
                     }
                 )
             } catch (e: Exception) {
+                Timber.e(e, "AuthFlowSheet: login exception")
                 _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
             }
         }
@@ -159,6 +164,7 @@ class AuthFlowSheetViewModel @Inject constructor(
             _uiState.update { it.copy(isEmailLoading = true, error = null) }
 
             try {
+                Timber.d("AuthFlowSheet: signUpWithEmail starting")
                 val result = sessionManager.registerWithEmailPassword(
                     email = email,
                     password = password,
@@ -168,13 +174,16 @@ class AuthFlowSheetViewModel @Inject constructor(
 
                 result.fold(
                     onSuccess = {
+                        Timber.d("AuthFlowSheet: signup success received, dismissing sheet")
                         _uiState.update { it.copy(isEmailLoading = false, success = true) }
                     },
                     onFailure = { e ->
+                        Timber.e(e, "AuthFlowSheet: signup failed")
                         _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
                     }
                 )
             } catch (e: Exception) {
+                Timber.e(e, "AuthFlowSheet: signup exception")
                 _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
             }
         }

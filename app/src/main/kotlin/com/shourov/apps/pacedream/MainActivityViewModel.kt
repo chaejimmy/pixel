@@ -33,6 +33,7 @@ class MainActivityViewModel @Inject constructor(
     private fun checkAuthenticationStatus() {
         viewModelScope.launch {
             authSession.authState.collectLatest { state ->
+                Timber.d("MainActivityVM: authState changed → $state")
                 _isAuthenticated.value = state == AuthState.Authenticated
             }
         }

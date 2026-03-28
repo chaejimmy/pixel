@@ -55,7 +55,7 @@ class BookingTabViewModel @Inject constructor(
     private val statusConfigs = mutableMapOf<String, BookingStatusConfig>()
 
     init {
-        checkAuthAndLoad()
+        observeAuthState()
     }
 
     fun onEvent(event: BookingTabEvent) {
@@ -77,19 +77,30 @@ class BookingTabViewModel @Inject constructor(
         }
     }
 
-    private fun checkAuthAndLoad() {
+    /**
+     * Continuously observe auth state so the screen reacts immediately
+     * when the user logs in (no app restart required).
+     */
+    private fun observeAuthState() {
         viewModelScope.launch {
-            try {
-                if (authSession.authState.value == AuthState.Unauthenticated) {
-                    _uiState.value = BookingTabUiState.RequiresAuth
-                    return@launch
+            authSession.authState.collect { state ->
+                Timber.d("BookingTabVM: authState changed → $state")
+                when (state) {
+                    AuthState.Authenticated -> {
+                        try {
+                            loadAllBookings()
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to load bookings after auth change")
+                            _uiState.value = BookingTabUiState.Error(
+                                e.message ?: "Failed to load bookings"
+                            )
+                        }
+                    }
+                    AuthState.Unauthenticated -> {
+                        _uiState.value = BookingTabUiState.RequiresAuth
+                    }
+                    else -> { /* Unknown — wait for auth to settle */ }
                 }
-                loadAllBookings()
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to check auth and load bookings")
-                _uiState.value = BookingTabUiState.Error(
-                    e.message ?: "Failed to load bookings"
-                )
             }
         }
     }
