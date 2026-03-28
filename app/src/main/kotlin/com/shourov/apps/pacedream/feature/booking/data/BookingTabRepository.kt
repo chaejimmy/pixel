@@ -59,18 +59,32 @@ class BookingTabRepository @Inject constructor(
         limit: Int = 20,
         offset: Int = 0
     ): ApiResult<BookingsResult> {
-        // For host role, use single endpoint
+        // For host role, try /bookings/host (primary) then /account/bookings?role=host (fallback)
         if (role == BookingRole.HOST) {
-            return fetchFromUrl(
-                appConfig.buildApiUrlWithQuery(
-                    "account", "bookings",
-                    queryParams = mapOf(
-                        "role" to role.apiValue,
-                        "limit" to limit.toString(),
-                        "offset" to offset.toString()
-                    )
+            val primaryUrl = appConfig.buildApiUrlWithQuery(
+                "bookings", "host",
+                queryParams = mapOf(
+                    "limit" to limit.toString(),
+                    "offset" to offset.toString()
                 )
             )
+            val primaryResult = fetchFromUrl(primaryUrl)
+            if (primaryResult is ApiResult.Success && primaryResult.data.bookings.isNotEmpty()) {
+                return primaryResult
+            }
+            // Fallback to account/bookings?role=host
+            val fallbackUrl = appConfig.buildApiUrlWithQuery(
+                "account", "bookings",
+                queryParams = mapOf(
+                    "role" to role.apiValue,
+                    "limit" to limit.toString(),
+                    "offset" to offset.toString()
+                )
+            )
+            val fallbackResult = fetchFromUrl(fallbackUrl)
+            if (fallbackResult is ApiResult.Success) return fallbackResult
+            // Return primary result (may be empty success or failure)
+            return primaryResult
         }
 
         // For renter role, try multiple routes (iOS parity)
@@ -207,6 +221,7 @@ class BookingTabRepository @Inject constructor(
             ?: obj["property_id"]?.jsonPrimitive?.content
             ?: obj["listingId"]?.jsonPrimitive?.content
             ?: obj["listing_id"]?.jsonPrimitive?.content
+            ?: extractNestedString(obj, "listing", "id")
             ?: ""
 
         val propertyName = obj["propertyName"]?.jsonPrimitive?.content
@@ -219,15 +234,18 @@ class BookingTabRepository @Inject constructor(
             ?: ""
 
         val propertyImage = obj["coverImage"]?.jsonPrimitive?.content
+            ?: obj["coverUrl"]?.jsonPrimitive?.content
             ?: obj["image"]?.jsonPrimitive?.content
             ?: obj["thumbnail"]?.jsonPrimitive?.content
             ?: extractNestedString(obj, "listing", "coverImage")
+            ?: extractNestedString(obj, "listing", "imageUrl")
             ?: extractNestedString(obj, "listing", "image")
             ?: extractNestedString(obj, "property", "image")
             ?: extractNestedFirstImage(obj, "listing", "images")
             ?: extractNestedFirstImage(obj, "listing", "galleryImages")
 
-        val location = obj["location"]?.jsonPrimitive?.content
+        // Server may send location as a string OR as an object { city, state }
+        val location = extractLocationString(obj)
             ?: extractNestedString(obj, "listing", "city")
             ?: extractNestedString(obj, "listing", "location")
             ?: extractNestedString(obj, "property", "city")
@@ -249,6 +267,7 @@ class BookingTabRepository @Inject constructor(
             ?: obj["start_date"]?.jsonPrimitive?.content
             ?: obj["checkIn"]?.jsonPrimitive?.content
             ?: obj["check_in"]?.jsonPrimitive?.content
+            ?: obj["start"]?.jsonPrimitive?.content
             ?: obj["from"]?.jsonPrimitive?.content
             ?: ""
 
@@ -256,11 +275,14 @@ class BookingTabRepository @Inject constructor(
             ?: obj["end_date"]?.jsonPrimitive?.content
             ?: obj["checkOut"]?.jsonPrimitive?.content
             ?: obj["check_out"]?.jsonPrimitive?.content
+            ?: obj["end"]?.jsonPrimitive?.content
             ?: obj["to"]?.jsonPrimitive?.content
             ?: ""
 
         val totalPrice = obj["totalPrice"]?.jsonPrimitive?.doubleOrNull
             ?: obj["total_price"]?.jsonPrimitive?.doubleOrNull
+            ?: obj["priceTotal"]?.jsonPrimitive?.doubleOrNull
+            ?: obj["total"]?.jsonPrimitive?.doubleOrNull
             ?: obj["amount"]?.jsonPrimitive?.doubleOrNull
             ?: obj["price"]?.jsonPrimitive?.doubleOrNull
             ?: 0.0
@@ -298,6 +320,27 @@ class BookingTabRepository @Inject constructor(
             guestCount = guestCount,
             createdAt = createdAt
         )
+    }
+
+    /**
+     * Extract location from a field that may be a plain string or an object { city, state }.
+     */
+    private fun extractLocationString(obj: JsonObject): String? {
+        val locElement = obj["location"] ?: return null
+        return try {
+            // Try as plain string first
+            locElement.jsonPrimitive.content.takeIf { it.isNotBlank() && it != "null" }
+        } catch (_: Exception) {
+            // It's an object — extract city/state and combine
+            try {
+                val locObj = locElement.jsonObject
+                val city = locObj["city"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() && it != "null" }
+                val state = locObj["state"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() && it != "null" }
+                listOfNotNull(city, state).joinToString(", ").takeIf { it.isNotBlank() }
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 
     private fun extractNestedString(obj: JsonObject, parentKey: String, childKey: String): String? {
