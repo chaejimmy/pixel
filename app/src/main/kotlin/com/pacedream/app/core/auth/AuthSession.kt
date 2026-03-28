@@ -11,6 +11,7 @@ import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,6 +64,8 @@ class SessionManager @Inject constructor(
         data class Error(val message: String) : AuthActionResult()
     }
     
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
     
@@ -183,7 +186,8 @@ class SessionManager @Inject constructor(
 
                                 if (exchangeResult) {
                                     _authState.value = AuthState.Authenticated
-                                    bootstrap()
+                                    // Fetch user profile in background so the UI updates immediately
+                                    scope.launch { bootstrap() }
                                     continuation.resume(AuthActionResult.Success)
                                 } else {
                                     continuation.resume(AuthActionResult.Error("Failed to exchange Auth0 tokens"))
@@ -222,7 +226,8 @@ class SessionManager @Inject constructor(
             is ApiResult.Success -> {
                 if (parseAndStoreEmailToken(result.data)) {
                     _authState.value = AuthState.Authenticated
-                    bootstrap()
+                    // Fetch user profile in background so the UI updates immediately
+                    scope.launch { bootstrap() }
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Invalid response from server"))
@@ -248,7 +253,8 @@ class SessionManager @Inject constructor(
             is ApiResult.Success -> {
                 if (parseAndStoreEmailToken(result.data)) {
                     _authState.value = AuthState.Authenticated
-                    bootstrap()
+                    // Fetch user profile in background so the UI updates immediately
+                    scope.launch { bootstrap() }
                     Result.success(Unit)
                 } else {
                     Result.failure(Exception("Invalid response from server"))
