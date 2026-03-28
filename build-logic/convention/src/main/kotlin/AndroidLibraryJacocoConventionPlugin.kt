@@ -12,8 +12,9 @@ class AndroidLibraryJacocoConventionPlugin : Plugin<Project> {
             val androidExtension = extensions.getByType<LibraryExtension>()
 
             androidExtension.buildTypes.configureEach {
-                enableAndroidTestCoverage = true
-                enableUnitTestCoverage = true
+                val isRelease = name == "release"
+                enableAndroidTestCoverage = !isRelease
+                enableUnitTestCoverage = !isRelease
             }
 
             configureJacoco(extensions.getByType<LibraryAndroidComponentsExtension>())
