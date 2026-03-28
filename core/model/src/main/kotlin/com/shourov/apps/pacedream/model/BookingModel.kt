@@ -12,7 +12,20 @@ enum class BookingStatus {
     
     companion object {
         fun fromString(status: String?): BookingStatus {
-            return entries.find { it.name.equals(status, ignoreCase = true) } ?: PENDING
+            if (status.isNullOrBlank()) return PENDING
+            // Direct enum match
+            entries.find { it.name.equals(status, ignoreCase = true) }?.let { return it }
+            // Map server-side status variants to enum values
+            val s = status.lowercase()
+            return when {
+                s == "accepted" || s == "confirmed" -> CONFIRMED
+                s == "declined" || s == "rejected" -> REJECTED
+                s.contains("cancel") || s.contains("refund") -> CANCELLED
+                s == "completed" || s.contains("finish") -> COMPLETED
+                s == "created" || s == "pending_host" || s == "requires_capture" ||
+                    s.contains("pending") || s.contains("await") || s == "ongoing" -> PENDING
+                else -> PENDING
+            }
         }
     }
 }

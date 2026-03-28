@@ -355,6 +355,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onBookingClick = { bookingId ->
                                         navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
                                     },
+                                    onNewBookingClick = {
+                                        // Navigate to Home tab to explore spaces (iOS parity)
+                                        TabRouter.switchTo(DashboardDestination.HOME)
+                                    },
                                     onShowAuthSheet = { showAuthSheet = true }
                                 )
 
