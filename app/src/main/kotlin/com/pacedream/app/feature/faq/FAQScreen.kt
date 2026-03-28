@@ -48,16 +48,12 @@ fun FAQScreen(
                 answer = "Last-Minute Deals offer discounted rates on available spaces that haven't been booked. These deals are perfect for spontaneous needs and can save you 20-40% off regular prices. Deals are updated in real-time and can be booked instantly for immediate use."
             ),
             FAQItem(
-                question = "How does the Roommate Finder work?",
-                answer = "Our Roommate Finder helps you connect with potential roommates. You can post listings for available rooms or search for roommates based on preferences like location, budget, lifestyle, and move-in dates. The platform facilitates safe connections with verified users."
-            ),
-            FAQItem(
                 question = "How do I send a proposal to a host?",
                 answer = "On any listing detail page, tap the 'Propose' button to send a custom proposal to the host. You can include your preferred price, duration, and a message explaining your needs. The host will review and respond through the messaging system."
             ),
             FAQItem(
                 question = "Is there a cancellation policy?",
-                answer = "Yes, we have flexible cancellation policies. Most hourly rentals allow free cancellation up to 2 hours before the scheduled time. For roommate arrangements, cancellation policies are set by the host and clearly displayed in the listing details."
+                answer = "Yes, we have flexible cancellation policies. Most hourly rentals allow free cancellation up to 2 hours before the scheduled time. Cancellation policies are set by the host and clearly displayed in the listing details."
             ),
             FAQItem(
                 question = "What is the cleaning fee?",

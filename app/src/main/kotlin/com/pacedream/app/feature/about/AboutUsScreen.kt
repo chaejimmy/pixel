@@ -128,16 +128,12 @@ fun AboutUsScreen(
                             description = "Rent restrooms, meeting rooms, nap pods, study rooms, workspaces, and parking spots by the hour."
                         )
                         AboutFeatureItem(
-                            title = "Find Roommates",
-                            description = "Post listings or search for roommates by location, budget, lifestyle, and move-in dates."
+                            title = "Items",
+                            description = "Rent equipment and gear by the hour — cameras, sports gear, tech, tools, and more."
                         )
                         AboutFeatureItem(
-                            title = "Last-Minute Deals",
-                            description = "Save 20-40% on available spaces with real-time pricing and instant booking."
-                        )
-                        AboutFeatureItem(
-                            title = "Gear Rentals",
-                            description = "Rent equipment and gear by the hour for your adventures."
+                            title = "Services",
+                            description = "Book help when you need it — cleaning, moving, fitness, and more."
                         )
                         AboutFeatureItem(
                             title = "Become a Host",

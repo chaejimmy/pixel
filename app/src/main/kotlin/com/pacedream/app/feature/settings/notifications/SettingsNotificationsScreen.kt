@@ -212,7 +212,7 @@ fun SettingsNotificationsScreen(
                 Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
                     ModernToggleRow(
                         title = "Friend requests",
-                        description = "Notifications for friend and roommate requests",
+                        description = "Notifications for friend requests",
                         icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
                         iconColor = PaceDreamColors.Info,
                         checked = uiState.friendRequestNotifications,

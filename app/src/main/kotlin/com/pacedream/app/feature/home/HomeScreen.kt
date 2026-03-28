@@ -93,7 +93,7 @@ fun HomeScreen(
                 HeroHeaderSection(
                     heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
-                    onFilterClick = { /* TODO: Open filters */ },
+                    onFilterClick = onSearchClick,
                     onNotificationClick = {}
                 )
             }
@@ -306,13 +306,7 @@ private fun HeroHeaderSection(
                                 )
                             }
                         }
-                        // Unread badge (iOS parity: small blue dot indicator)
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(PaceDreamColors.Primary, CircleShape)
-                                .align(Alignment.TopEnd)
-                        )
+                        // Unread badge hidden for v1 — no notification count API yet
                     }
                 }
 

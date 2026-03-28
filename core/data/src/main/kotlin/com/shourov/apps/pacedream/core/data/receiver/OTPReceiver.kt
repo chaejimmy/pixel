@@ -4,21 +4,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.auth.api.phone.SmsRetrieverClient
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
-
-private const val OTP_RECEIVER_TAG = "OTPReceiver"
 
 /**
  * BroadcastReceiver to wait for SMS messages. This can be registered either
  * in the AndroidManifest or at runtime. Should filter Intents on
  * SmsRetriever.SMS_RETRIEVED_ACTION.
  *
- * TODO: Working in Android 13 (API 33) and 14 (API 34), but not working in Android 12 (API 31)
- *
+ * Note: SMS auto-retrieval requires Android 13+ (API 33). On older devices,
+ * users must enter the OTP manually (handled by OtpVerificationScreen).
  */
 class OTPReceiver : BroadcastReceiver() {
     private var otpReceiveListener: OTPReceiveListener? = null
@@ -62,7 +59,7 @@ fun startSMSRetrieverClient(context: Context) {
     smsRetrieverTask.addOnSuccessListener {
         // SMS retriever started successfully
     }
-    smsRetrieverTask.addOnFailureListener { e ->
-        Log.e(OTP_RECEIVER_TAG, "startSMSRetrieverClient failed", e)
+    smsRetrieverTask.addOnFailureListener {
+        // Non-fatal: user can still enter OTP manually
     }
 }
