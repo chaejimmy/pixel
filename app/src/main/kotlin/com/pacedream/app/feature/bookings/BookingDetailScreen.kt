@@ -64,6 +64,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 fun BookingDetailScreen(
     onBack: () -> Unit,
     onContactHost: (String) -> Unit = {},
+    onWriteReview: (bookingId: String, listingId: String, title: String, location: String, status: String) -> Unit = { _, _, _, _, _ -> },
     viewModel: BookingDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -147,6 +148,41 @@ fun BookingDetailScreen(
 
                         // ── Pricing Card (matching iOS) ──
                         PricingCard(booking = booking)
+
+                        // ── Write Review Button (for completed bookings) ──
+                        if (booking.status == BookingStatus.COMPLETED) {
+                            Button(
+                                onClick = {
+                                    onWriteReview(
+                                        booking.id,
+                                        booking.listingId ?: "",
+                                        booking.propertyName,
+                                        booking.propertyLocation,
+                                        booking.statusLabel
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(PaceDreamButtonHeight.MD),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PaceDreamColors.Primary
+                                ),
+                                shape = RoundedCornerShape(PaceDreamRadius.MD)
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(PaceDreamSpacing.SM))
+                                Text(
+                                    "Write a Review",
+                                    style = PaceDreamTypography.Button,
+                                    color = Color.White
+                                )
+                            }
+                        }
 
                         // ── Cancel Button (matching iOS) ──
                         if (booking.status != BookingStatus.CANCELLED && booking.status != BookingStatus.COMPLETED) {

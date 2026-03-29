@@ -49,14 +49,17 @@ object NavRoutes {
     const val BOOKING_CANCELLED = "booking/cancelled"
     const val BOOKING_DETAIL = "bookingDetail/{bookingId}"
 
+    // Write Review (from completed bookings)
+    const val WRITE_REVIEW = "writeReview/{bookingId}"
+
     // Native booking flow (Listing Detail → ReserveSheet → Checkout → Confirmation)
     const val CHECKOUT = "checkout/{listingId}"
     const val CONFIRMATION = "confirmation/{bookingId}"
-    
+
     // Deep link routes
     const val DEEP_LINK_BOOKING_SUCCESS = "booking-success"
     const val DEEP_LINK_BOOKING_CANCELLED = "booking-cancelled"
-    
+
     // Helper functions for parameterized routes
     fun homeSectionList(sectionType: String) = "home/section/$sectionType"
     fun listingDetail(listingId: String) = "listing/$listingId"
@@ -65,6 +68,7 @@ object NavRoutes {
     fun wishlistItemDetail(itemId: String) = "wishlist/item/$itemId"
     fun confirmation(bookingId: String) = "confirmation/$bookingId"
     fun checkout(listingId: String) = "checkout/$listingId"
+    fun writeReview(bookingId: String) = "writeReview/$bookingId"
 
 }
 
