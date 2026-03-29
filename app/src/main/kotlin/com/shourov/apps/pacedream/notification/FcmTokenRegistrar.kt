@@ -61,6 +61,16 @@ class FcmTokenRegistrar @Inject constructor(
         }
     }
 
+    /**
+     * Force re-registration on next call by clearing the dedup state.
+     * Called after login to ensure the backend has the device registered
+     * for the current user, even if a previous attempt was marked as done.
+     */
+    fun clearRegistrationCache() {
+        fcmTokenStore.reset()
+        Timber.d("FCM registration cache cleared — next registerCurrentToken() will re-register")
+    }
+
     private suspend fun sendTokenToServer(token: String) {
         if (!tokenStorage.hasTokens()) {
             Timber.d("Skipping FCM token registration: user not authenticated")
@@ -115,25 +125,42 @@ class FcmTokenRegistrar @Inject constructor(
                     sandbox = if (BuildConfig.DEBUG) true else null
                 )
             )
-            when (val result = apiClient.post(url, body, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    Timber.d("FCM token registered with server via /push-devices")
-                    fcmTokenStore.markRegistered(token, tokenStorage.userId)
+            // Retry up to 3 times with exponential backoff. The initial
+            // registration fires during app startup when the network may not
+            // be ready yet (cold start, airplane-mode toggle, etc.).
+            val retryDelays = listOf(0L, 2000L, 5000L)
+            var registered = false
+
+            for ((attempt, retryDelay) in retryDelays.withIndex()) {
+                if (retryDelay > 0) delay(retryDelay)
+
+                when (val result = apiClient.post(url, body, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        Timber.d("FCM token registered with server via /push-devices (attempt ${attempt + 1})")
+                        fcmTokenStore.markRegistered(token, tokenStorage.userId)
+                        registered = true
+                        break
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.w("POST /push-devices failed (attempt ${attempt + 1}): ${result.error.message}")
+                    }
                 }
-                is ApiResult.Failure -> {
-                    val legacyUrl = appConfig.buildApiUrl("notifications", "register-device")
-                    val legacyBody = json.encodeToString(
-                        LegacyRegisterDeviceRequest.serializer(),
-                        LegacyRegisterDeviceRequest(token = token, platform = "android")
-                    )
-                    when (val legacyResult = apiClient.post(legacyUrl, legacyBody, includeAuth = true)) {
-                        is ApiResult.Success -> {
-                            Timber.d("FCM token registered via legacy endpoint")
-                            fcmTokenStore.markRegistered(token, tokenStorage.userId)
-                        }
-                        is ApiResult.Failure -> {
-                            Timber.e("Failed to register FCM token: ${legacyResult.error.message}")
-                        }
+            }
+
+            // If primary endpoint failed after retries, try legacy endpoint once
+            if (!registered) {
+                val legacyUrl = appConfig.buildApiUrl("notifications", "register-device")
+                val legacyBody = json.encodeToString(
+                    LegacyRegisterDeviceRequest.serializer(),
+                    LegacyRegisterDeviceRequest(token = token, platform = "android")
+                )
+                when (val legacyResult = apiClient.post(legacyUrl, legacyBody, includeAuth = true)) {
+                    is ApiResult.Success -> {
+                        Timber.d("FCM token registered via legacy endpoint")
+                        fcmTokenStore.markRegistered(token, tokenStorage.userId)
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.e("Failed to register FCM token after all retries: ${legacyResult.error.message}")
                     }
                 }
             }

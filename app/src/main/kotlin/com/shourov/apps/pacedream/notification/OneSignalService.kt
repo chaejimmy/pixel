@@ -241,5 +241,16 @@ class OneSignalService @Inject constructor(
                 Timber.e(e2, "[OneSignalService] login() failed after retry for $userId")
             }
         }
+
+        // Request POST_NOTIFICATIONS permission (Android 13+) after login.
+        // Without this, the OneSignal subscription stays "not subscribed" and
+        // all push notifications silently fail with "All included players are
+        // not subscribed". Must be called after login() so OneSignal can
+        // associate the permission grant with the correct external user ID.
+        if (!OneSignal.Notifications.permission) {
+            Timber.d("[OneSignalService] Push permission not granted, requesting...")
+            val granted = OneSignal.Notifications.requestPermission(false)
+            Timber.d("[OneSignalService] Push permission %s", if (granted) "granted" else "denied")
+        }
     }
 }

@@ -96,6 +96,10 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             authSession.currentUser.collect { user ->
                 if (user != null && user.id.isNotBlank()) {
                     oneSignalService.setExternalUserId(user.id)
+                    // Clear dedup cache so the device always re-registers after
+                    // login. This fixes the case where a previous registration
+                    // was marked as done but the backend lost the PushDevice record.
+                    fcmTokenRegistrar.clearRegistrationCache()
                     fcmTokenRegistrar.registerCurrentToken()
                 } else {
                     oneSignalService.setExternalUserId(null)
