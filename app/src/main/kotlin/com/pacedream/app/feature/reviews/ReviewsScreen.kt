@@ -660,7 +660,7 @@ private fun WriteReviewSheet(
             Spacer(Modifier.height(PaceDreamSpacing.LG))
             Button(
                 onClick = { onSubmit(rating, comment) },
-                enabled = rating > 0 && comment.isNotBlank(),
+                enabled = rating > 0,
                 modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.MD),
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
                 shape = RoundedCornerShape(PaceDreamRadius.Round)

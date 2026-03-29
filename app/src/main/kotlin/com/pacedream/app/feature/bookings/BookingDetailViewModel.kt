@@ -64,6 +64,7 @@ data class BookingDetail(
     val propertyName: String,
     val propertyLocation: String,
     val propertyImageUrl: String?,
+    val listingId: String? = null,
     val checkInDate: String,
     val checkInTime: String?,
     val checkOutDate: String,
@@ -145,6 +146,7 @@ class BookingDetailViewModel @Inject constructor(
             propertyName = handle.get<String>("cached_title") ?: "Booking",
             propertyLocation = handle.get<String>("cached_location") ?: "",
             propertyImageUrl = handle.get<String>("cached_imageUrl")?.takeIf { it.isNotBlank() },
+            listingId = handle.get<String>("cached_listingId"),
             checkInDate = handle.get<String>("cached_checkInDate") ?: "",
             checkInTime = handle.get<String>("cached_checkInTime"),
             checkOutDate = handle.get<String>("cached_checkOutDate") ?: "",
@@ -314,6 +316,9 @@ class BookingDetailViewModel @Inject constructor(
             val host = obj["host"]?.asObjOrNull() ?: listing?.get("host")?.asObjOrNull()
             val location = listing?.get("location")?.asObjOrNull()
 
+            val parsedListingId = listing?.str("_id", "id")
+                ?: obj.str("listingId", "listing_id", "propertyId", "property_id")
+
             val pricing = obj["pricing"]?.asObjOrNull()
 
             val title = obj.str("title", "listingTitle", "listing_title")
@@ -382,6 +387,7 @@ class BookingDetailViewModel @Inject constructor(
                 propertyName = title,
                 propertyLocation = displayLocation,
                 propertyImageUrl = imageUrl,
+                listingId = parsedListingId,
                 checkInDate = checkInDisplay,
                 checkInTime = checkInTimeDisplay ?: obj.str("checkInTime", "startTime"),
                 checkOutDate = checkOutDisplay,

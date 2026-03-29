@@ -55,6 +55,7 @@ import com.pacedream.app.feature.settings.preferences.SettingsPreferencesScreen
 import com.pacedream.app.feature.settings.security.SettingsLoginSecurityScreen
 import com.pacedream.app.feature.about.AboutUsScreen
 import com.pacedream.app.feature.collections.CollectionsScreen
+import com.pacedream.app.feature.reviews.WriteReviewScreen
 // RoommateFinderScreen hidden for v1 release — no backend API available yet
 import com.shourov.apps.pacedream.feature.search.SearchScreen
 import com.pacedream.app.feature.webflow.BookingCancelledScreen
@@ -257,6 +258,7 @@ fun MainNavHost(
                                     set("cached_hostId", item.hostId)
                                     set("cached_verificationPin", item.verificationPin)
                                     set("cached_pinStatus", item.pinStatus)
+                                    set("cached_listingId", item.listingId)
                                 }
                                 navController.navigate(NavRoutes.bookingDetail(item.id))
                             }
@@ -729,7 +731,7 @@ fun MainNavHost(
                         "cached_checkInTime", "cached_checkOutDate", "cached_checkOutTime",
                         "cached_guestCount", "cached_nightsCount", "cached_referenceId",
                         "cached_hostName", "cached_hostAvatarUrl", "cached_hostId",
-                        "cached_verificationPin", "cached_pinStatus"
+                        "cached_verificationPin", "cached_pinStatus", "cached_listingId"
                     ).forEach { key ->
                         prevHandle?.get<String>(key)?.let { currHandle[key] = it }
                     }
@@ -738,7 +740,34 @@ fun MainNavHost(
                         onBack = { navController.popBackStack() },
                         onContactHost = { hostId ->
                             navController.navigate(NavRoutes.threadDetail(hostId))
+                        },
+                        onWriteReview = { bookingId, listingId, title, location, status ->
+                            navController.currentBackStackEntry?.savedStateHandle?.apply {
+                                set("listingId", listingId)
+                                set("bookingTitle", title)
+                                set("bookingLocation", location)
+                                set("bookingStatus", status)
+                            }
+                            navController.navigate(NavRoutes.writeReview(bookingId))
                         }
+                    )
+                }
+
+                // Write Review Screen
+                composable(
+                    route = NavRoutes.WRITE_REVIEW,
+                    arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    // Transfer review context from previous screen
+                    val prevHandle = navController.previousBackStackEntry?.savedStateHandle
+                    val currHandle = backStackEntry.savedStateHandle
+                    listOf("listingId", "bookingTitle", "bookingLocation", "bookingStatus").forEach { key ->
+                        prevHandle?.get<String>(key)?.let { currHandle[key] = it }
+                    }
+
+                    WriteReviewScreen(
+                        onBack = { navController.popBackStack() },
+                        onReviewSubmitted = { navController.popBackStack() }
                     )
                 }
             }

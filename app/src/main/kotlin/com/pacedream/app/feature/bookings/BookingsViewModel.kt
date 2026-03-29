@@ -79,6 +79,7 @@ data class BookingListItem(
     val isCancelable: Boolean = false,
     val guestName: String? = null,
     // Raw fields for detail screen fallback
+    val listingId: String? = null,
     val checkInDate: String? = null,
     val checkInTime: String? = null,
     val checkOutDate: String? = null,
@@ -369,6 +370,9 @@ class BookingsViewModel @Inject constructor(
         val host = obj["host"]?.asObjectOrNull() ?: listing?.get("host")?.asObjectOrNull()
         val location = listing?.get("location")?.asObjectOrNull()
 
+        val parsedListingId = listing?.str("_id", "id")
+            ?: obj.str("listingId", "listing_id", "propertyId", "property_id")
+
         val title = obj.str("title", "listingTitle", "listing_title")
             ?: listing?.str("title", "name")
             ?: "Booking"
@@ -429,6 +433,7 @@ class BookingsViewModel @Inject constructor(
             perNightPrice = perNight,
             nightsCount = nightsCount,
             isCancelable = isCancelable,
+            listingId = parsedListingId,
             checkInDate = checkInRaw ?: startRaw,
             checkInTime = obj.str("checkInTime", "startTime"),
             checkOutDate = checkOutRaw ?: endRaw,
