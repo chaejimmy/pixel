@@ -285,7 +285,8 @@ class BookingTabViewModel @Inject constructor(
     }
 
     fun onAuthCompleted() {
-        checkAuthAndLoad()
+        // No-op: observeAuthState() now handles this automatically.
+        // Kept for API compatibility with callers.
     }
 
     companion object {

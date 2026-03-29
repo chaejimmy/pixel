@@ -253,7 +253,8 @@ class InboxViewModel @Inject constructor(
      * Called when auth is completed
      */
     fun onAuthCompleted() {
-        checkAuthAndLoad()
+        // No-op: observeAuthState() now handles this automatically.
+        // Kept for API compatibility with callers.
     }
 
     /**
