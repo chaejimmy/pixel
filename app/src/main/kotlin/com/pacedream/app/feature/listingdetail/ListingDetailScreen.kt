@@ -63,6 +63,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -2306,13 +2308,21 @@ private fun MapPreviewCard(
         val mapsEnabled = mapsKey.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
-            val cameraPositionState = rememberCameraPositionState()
-            androidx.compose.runtime.LaunchedEffect(mapCoordinate.latitude, mapCoordinate.longitude) {
-                cameraPositionState.position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
             }
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(isLiteMode = true),
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = false,
+                    zoomGesturesEnabled = false,
+                    scrollGesturesEnabled = false,
+                    tiltGesturesEnabled = false,
+                    rotationGesturesEnabled = false,
+                    mapToolbarEnabled = false
+                )
             ) {
                 Marker(
                     state = MarkerState(position = mapCoordinate),
@@ -2320,26 +2330,27 @@ private fun MapPreviewCard(
                 )
             }
         } else if (mapCoordinate != null && !mapsEnabled) {
-            // Static map fallback using OpenStreetMap tile image when no Google Maps key
+            // Static map fallback using OpenStreetMap embed when no Google Maps key
             Box(modifier = Modifier.fillMaxSize()) {
-                val staticMapUrl = "https://staticmap.openstreetmap.de/staticmap.php" +
-                    "?center=${mapCoordinate.latitude},${mapCoordinate.longitude}" +
-                    "&zoom=15&size=600x400&maptype=mapnik" +
-                    "&markers=${mapCoordinate.latitude},${mapCoordinate.longitude},red-pushpin"
-                AsyncImage(
-                    model = staticMapUrl,
-                    contentDescription = "Map location",
-                    contentScale = ContentScale.Crop,
+                val lat = mapCoordinate.latitude
+                val lng = mapCoordinate.longitude
+                // Build a small bounding box around the coordinate for the embed
+                val delta = 0.005
+                val bbox = "${lng - delta},${lat - delta},${lng + delta},${lat + delta}"
+                val embedUrl = "https://www.openstreetmap.org/export/embed.html" +
+                    "?bbox=$bbox&layer=mapnik&marker=$lat,$lng"
+                val context = LocalContext.current
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = {
+                        android.webkit.WebView(context).apply {
+                            settings.javaScriptEnabled = true
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            loadUrl(embedUrl)
+                        }
+                    },
                     modifier = Modifier.fillMaxSize()
-                )
-                // Location pin overlay in center
-                Icon(
-                    PaceDreamIcons.LocationOn,
-                    contentDescription = null,
-                    tint = Color(0xFFEF4444),
-                    modifier = Modifier
-                        .size(36.dp)
-                        .align(Alignment.Center)
                 )
             }
         } else {
