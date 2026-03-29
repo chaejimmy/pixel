@@ -62,6 +62,7 @@ import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.*
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.GoogleMapOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -2314,7 +2315,8 @@ private fun MapPreviewCard(
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(isLiteMode = true),
+                googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
+                properties = MapProperties(),
                 uiSettings = MapUiSettings(
                     zoomControlsEnabled = false,
                     zoomGesturesEnabled = false,
