@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -59,7 +60,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
-import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
@@ -76,6 +77,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.mutableDoubleStateOf
 import com.shourov.apps.pacedream.R
@@ -1971,85 +1973,146 @@ private fun WriteReviewSheet(
 ) {
     var rating by remember { mutableDoubleStateOf(0.0) }
     var comment by remember { mutableStateOf("") }
-    var cleanlinessRating by remember { mutableDoubleStateOf(0.0) }
-    var accuracyRating by remember { mutableDoubleStateOf(0.0) }
-    var communicationRating by remember { mutableDoubleStateOf(0.0) }
-    var locationRating by remember { mutableDoubleStateOf(0.0) }
-    var checkInRating by remember { mutableDoubleStateOf(0.0) }
-    var valueRating by remember { mutableDoubleStateOf(0.0) }
 
-    BottomSheetHeader(title = "Write a Review", onClose = onClose)
+    BottomSheetHeader(title = "Leave a Review", onClose = onClose)
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        // Overall rating
-        Text("Overall Rating", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Spacer(modifier = Modifier.height(8.dp))
-        StarRatingInput(
-            rating = rating,
-            onRatingChanged = { rating = it },
-            starSize = 36.dp
+
+        // Prompt
+        Text(
+            "How was your experience?",
+            style = PaceDreamTypography.Title3,
+            fontWeight = FontWeight.SemiBold,
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Star rating — larger, centered
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            content = {
+                Spacer(Modifier.weight(1f))
+                for (star in 1..5) {
+                    Icon(
+                        if (star <= rating.toInt()) PaceDreamIcons.Star else PaceDreamIcons.StarOutlined,
+                        contentDescription = "Rate $star star${if (star > 1) "s" else ""}",
+                        tint = if (star <= rating.toInt()) PaceDreamColors.StarRating
+                        else PaceDreamColors.TextTertiary,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clickable { rating = star.toDouble() }
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+            }
+        )
+
+        // Rating label
+        val ratingLabel = when (rating.toInt()) {
+            1 -> "Poor"
+            2 -> "Fair"
+            3 -> "Good"
+            4 -> "Very Good"
+            5 -> "Excellent"
+            else -> ""
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = ratingLabel,
+            style = PaceDreamTypography.Callout,
+            fontWeight = FontWeight.Medium,
+            color = if (rating > 0) PaceDreamColors.Primary else Color.Transparent,
+            modifier = Modifier.height(24.dp)
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Category ratings
-        Text("Rate Categories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        CategoryRatingInput("Cleanliness", cleanlinessRating) { cleanlinessRating = it }
-        CategoryRatingInput("Accuracy", accuracyRating) { accuracyRating = it }
-        CategoryRatingInput("Communication", communicationRating) { communicationRating = it }
-        CategoryRatingInput("Location", locationRating) { locationRating = it }
-        CategoryRatingInput("Check-in", checkInRating) { checkInRating = it }
-        CategoryRatingInput("Value", valueRating) { valueRating = it }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Comment
-        Text("Your Review", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        // Comment (optional)
+        Text(
+            "Write a review (optional)",
+            style = PaceDreamTypography.Body,
+            fontWeight = FontWeight.Medium,
+            color = PaceDreamColors.TextPrimary,
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = comment,
-            onValueChange = { comment = it },
-            label = { Text("Share your experience...") },
+            onValueChange = { if (it.length <= 2000) comment = it },
+            placeholder = { Text("Share your experience...", color = PaceDreamColors.TextTertiary) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .heightIn(min = 100.dp, max = 140.dp),
+            textStyle = PaceDreamTypography.Body.copy(color = PaceDreamColors.TextPrimary),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = PaceDreamColors.Primary,
+                unfocusedBorderColor = PaceDreamColors.Divider,
+                cursorColor = PaceDreamColors.Primary
+            ),
             maxLines = 5
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Your review helps others make better decisions.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "${comment.length}/2000",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        val hasCategoryRatings = listOf(
-            cleanlinessRating, accuracyRating, communicationRating,
-            locationRating, checkInRating, valueRating
-        ).any { it > 0 }
-
+        // Submit button
         Button(
-            onClick = {
-                val catRatings = if (hasCategoryRatings) CategoryRatings(
-                    cleanliness = cleanlinessRating.takeIf { it > 0 },
-                    accuracy = accuracyRating.takeIf { it > 0 },
-                    communication = communicationRating.takeIf { it > 0 },
-                    location = locationRating.takeIf { it > 0 },
-                    checkIn = checkInRating.takeIf { it > 0 },
-                    value = valueRating.takeIf { it > 0 }
-                ) else null
-                onSubmit(rating, comment, catRatings)
-            },
-            enabled = rating > 0 && comment.isNotBlank() && !isSubmitting,
-            modifier = Modifier.fillMaxWidth()
+            onClick = { onSubmit(rating, comment.trim(), null) },
+            enabled = rating > 0 && !isSubmitting,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(PaceDreamButtonHeight.MD),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PaceDreamColors.Primary,
+                disabledContainerColor = PaceDreamColors.Divider
+            ),
+            shape = RoundedCornerShape(PaceDreamRadius.MD)
         ) {
             if (isSubmitting) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp),
+                    color = Color.White,
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Submitting...",
+                    style = PaceDreamTypography.Button,
+                    color = Color.White
+                )
+            } else {
+                Text(
+                    "Submit Review",
+                    style = PaceDreamTypography.Button,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (rating > 0) Color.White else PaceDreamColors.TextTertiary
+                )
             }
-            Text("Submit Review")
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -2062,10 +2125,10 @@ private fun StarRatingInput(
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for (star in 1..5) {
             Icon(
-                PaceDreamIcons.Star,
+                if (star <= rating.toInt()) PaceDreamIcons.Star else PaceDreamIcons.StarOutlined,
                 contentDescription = "Rate $star stars",
-                tint = if (star <= rating.toInt()) Color(0xFFFFB400)
-                else MaterialTheme.colorScheme.outlineVariant,
+                tint = if (star <= rating.toInt()) PaceDreamColors.StarRating
+                else PaceDreamColors.TextTertiary,
                 modifier = Modifier
                     .size(starSize)
                     .clickable { onRatingChanged(star.toDouble()) }
@@ -2074,31 +2137,6 @@ private fun StarRatingInput(
     }
 }
 
-@Composable
-private fun CategoryRatingInput(
-    label: String,
-    rating: Double,
-    onRatingChanged: (Double) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.width(110.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        StarRatingInput(
-            rating = rating,
-            onRatingChanged = onRatingChanged,
-            starSize = 22.dp
-        )
-    }
-}
 
 private fun formatReviewDate(dateString: String): String {
     return try {
