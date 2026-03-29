@@ -246,17 +246,12 @@ class HostRepository @Inject constructor(
         return try {
             val response = hostApiService.createListing(request)
             if (response.isSuccessful) {
-                val body = response.body()
-                if (body != null) {
-                    // Ensure we have an ID even if the response used _id
-                    val resolvedId = body.id.ifEmpty {
-                        extractListingId(response) ?: ""
-                    }
-                    Result.success(if (resolvedId.isNotEmpty() && body.id.isEmpty()) body.copy(id = resolvedId) else body)
+                val json = response.body()
+                if (json != null) {
+                    val property = parseCreateListingResponse(json, request)
+                    Result.success(property)
                 } else {
-                    // iOS parity: try to extract listing ID from raw response body
-                    val rawId = extractListingId(response)
-                    Result.success(Property(id = rawId ?: "", title = request.title))
+                    Result.success(Property(id = "", title = request.title))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
@@ -274,14 +269,86 @@ class HostRepository @Inject constructor(
     }
 
     /**
-     * iOS parity: extract listing ID from response trying multiple JSON paths.
-     * iOS tries: _id, id, data._id, data.id, data.listing._id, data.listing.id, listing._id, listing.id
+     * Parse the create listing response which is wrapped by the backend:
+     * { action, code, status, data: { listing, listingId, id, _id, ... }, message }
+     *
+     * iOS parity: tries multiple JSON paths for the listing ID:
+     * _id, id, listingId, data._id, data.id, data.listingId,
+     * data.listing._id, data.listing.id, listing._id, listing.id
      */
-    private fun extractListingId(response: retrofit2.Response<Property>): String? {
-        return try {
-            // The response body is already parsed, try the raw string if available
-            null // In Retrofit, the body is already consumed; ID should be in the Property
-        } catch (_: Exception) { null }
+    private fun parseCreateListingResponse(json: JsonElement, request: CreateListingRequest): Property {
+        if (!json.isJsonObject) {
+            Timber.w("createListing response is not a JSON object, returning fallback")
+            return Property(id = "", title = request.title)
+        }
+
+        val root = json.asJsonObject
+
+        // Try to extract listing ID from multiple paths (iOS parity)
+        val listingId = extractIdFromPaths(root)
+        val title = extractTitleFromPaths(root) ?: request.title
+
+        Timber.d("createListing parsed: id=$listingId, title=$title")
+        return Property(id = listingId, title = title)
+    }
+
+    /**
+     * Extract listing ID from backend response trying multiple JSON paths.
+     * Backend wraps response: { data: { listingId, id, _id, listing: { _id, id } } }
+     */
+    private fun extractIdFromPaths(root: JsonObject): String {
+        // Top-level ID fields
+        val topLevel = root.getStringOrNull("id")
+            ?: root.getStringOrNull("_id")
+            ?: root.getStringOrNull("listingId")
+        if (!topLevel.isNullOrBlank()) return topLevel
+
+        // Inside "data" wrapper
+        val data = root.getAsJsonObject("data")
+        if (data != null) {
+            val dataId = data.getStringOrNull("id")
+                ?: data.getStringOrNull("_id")
+                ?: data.getStringOrNull("listingId")
+            if (!dataId.isNullOrBlank()) return dataId
+
+            // Inside "data.listing"
+            val listing = data.getAsJsonObject("listing")
+            if (listing != null) {
+                val listingId = listing.getStringOrNull("id")
+                    ?: listing.getStringOrNull("_id")
+                if (!listingId.isNullOrBlank()) return listingId
+            }
+        }
+
+        // Inside top-level "listing"
+        val listing = root.getAsJsonObject("listing")
+        if (listing != null) {
+            val listingId = listing.getStringOrNull("id")
+                ?: listing.getStringOrNull("_id")
+            if (!listingId.isNullOrBlank()) return listingId
+        }
+
+        return ""
+    }
+
+    private fun extractTitleFromPaths(root: JsonObject): String? {
+        root.getStringOrNull("title")?.let { return it }
+        root.getAsJsonObject("data")?.let { data ->
+            data.getStringOrNull("title")?.let { return it }
+            data.getAsJsonObject("listing")?.getStringOrNull("title")?.let { return it }
+        }
+        root.getAsJsonObject("listing")?.getStringOrNull("title")?.let { return it }
+        return null
+    }
+
+    private fun JsonObject.getStringOrNull(key: String): String? {
+        val el = get(key) ?: return null
+        return if (el.isJsonPrimitive && el.asJsonPrimitive.isString) el.asString else null
+    }
+
+    private fun JsonObject.getAsJsonObject(key: String): JsonObject? {
+        val el = get(key) ?: return null
+        return if (el.isJsonObject) el.asJsonObject else null
     }
 
     suspend fun updateListing(id: String, listing: Property): Result<Property> {
