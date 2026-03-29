@@ -51,6 +51,8 @@ fun NavGraphBuilder.HostNavigationGraph(
             onBookingClick = onNavigateToBooking,
             onEarningsClick = onNavigateToWithdraw,
             onAnalyticsClick = onNavigateToAnalytics,
+            onViewAllBookings = { navController.navigate(HostScreen.Bookings.route) { launchSingleTop = true } },
+            onViewAllListings = { navController.navigate(HostScreen.Listings.route) { launchSingleTop = true } },
             onSwitchToGuestMode = onSwitchToGuestMode,
             onSignOut = onSignOut
         )
@@ -180,7 +182,11 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
+                // Pop back to listings and navigate to the new listing detail if we have a valid ID
                 navController.popBackStack()
+                if (listingId.isNotBlank() && listingId != "created") {
+                    onNavigateToProperty(listingId)
+                }
             }
         )
     }
@@ -204,6 +210,9 @@ fun NavGraphBuilder.HostNavigationGraph(
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
                 navController.popBackStack()
+                if (listingId.isNotBlank() && listingId != "created") {
+                    onNavigateToProperty(listingId)
+                }
             }
         )
     }
