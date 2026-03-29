@@ -244,7 +244,8 @@ class WishlistViewModel @Inject constructor(
      * Called when auth is completed (from auth sheet)
      */
     fun onAuthCompleted() {
-        checkAuthAndLoad()
+        // No-op: observeAuthState() now handles this automatically.
+        // Kept for API compatibility with callers.
     }
 }
 
