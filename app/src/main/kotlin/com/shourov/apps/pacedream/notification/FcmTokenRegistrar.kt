@@ -72,13 +72,18 @@ class FcmTokenRegistrar @Inject constructor(
     }
 
     private suspend fun sendTokenToServer(token: String) {
-        if (!tokenStorage.hasTokens()) {
-            Timber.d("Skipping FCM token registration: user not authenticated")
+        val hasTokens = tokenStorage.hasTokens()
+        val userId = tokenStorage.userId
+        Timber.d("[FcmTokenRegistrar] sendTokenToServer: hasTokens=%s userId=%s token=%s...",
+            hasTokens, userId, token.take(10))
+
+        if (!hasTokens) {
+            Timber.w("[FcmTokenRegistrar] Skipping FCM registration: user not authenticated (no auth tokens)")
             return
         }
 
-        if (fcmTokenStore.isAlreadyRegistered(token, tokenStorage.userId)) {
-            Timber.d("FCM token already registered for this user, skipping")
+        if (fcmTokenStore.isAlreadyRegistered(token, userId)) {
+            Timber.d("[FcmTokenRegistrar] FCM token already registered for userId=%s, skipping", userId)
             return
         }
 
@@ -114,6 +119,9 @@ class FcmTokenRegistrar @Inject constructor(
             } else {
                 Timber.w("Registering FCM token without OneSignal subscriptionId (backend will register server-side)")
             }
+
+            Timber.d("[FcmTokenRegistrar] Posting to /push-devices: fcmToken=%s... onesignalId=%s userId=%s",
+                token.take(10), onesignalId, userId)
 
             val body = json.encodeToString(
                 RegisterDeviceRequest.serializer(),

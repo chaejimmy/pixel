@@ -79,15 +79,20 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
 
         // iOS parity: bootstrap session on app start if tokens exist.
         // Do not block app startup; protected actions can still gate via AuthFlowSheet.
+        // Register FCM token AFTER auth is initialized so tokenStorage.hasTokens()
+        // returns true. Previously registerCurrentToken() ran before initialize()
+        // completed, causing the registration to be skipped for returning users.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             authSession.initialize()
             sessionManager.initialize()
-        }
 
-        // Register FCM token with backend. OneSignal owns the FirebaseMessagingService
-        // (via manifest merger), so we retrieve the token explicitly here instead of
-        // relying on onNewToken(). Safe to call on every launch; deduplicates internally.
-        fcmTokenRegistrar.registerCurrentToken()
+            // Now that auth tokens are loaded from storage, register FCM token.
+            // OneSignal owns the FirebaseMessagingService (via manifest merger),
+            // so we retrieve the token explicitly here instead of relying on
+            // onNewToken(). Safe to call on every launch; deduplicates internally.
+            Timber.d("[App] Auth initialized, registering FCM token")
+            fcmTokenRegistrar.registerCurrentToken()
+        }
 
         // iOS parity: bind OneSignal external user ID when user is authenticated.
         // Mirrors iOS OneSignalService.setExternalUserId() called after auth.
@@ -95,6 +100,7 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             authSession.currentUser.collect { user ->
                 if (user != null && user.id.isNotBlank()) {
+                    Timber.d("[App] User authenticated (id=%s), binding OneSignal + FCM", user.id)
                     oneSignalService.setExternalUserId(user.id)
                     // Clear dedup cache so the device always re-registers after
                     // login. This fixes the case where a previous registration
