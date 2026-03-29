@@ -40,11 +40,16 @@ class InboxViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow<InboxUiState>(InboxUiState.Loading)
     val uiState: StateFlow<InboxUiState> = _uiState.asStateFlow()
-    
+
     private val _navigation = Channel<InboxNavigation>(Channel.BUFFERED)
     val navigation = _navigation.receiveAsFlow()
-    
-    private var currentMode = InboxMode.GUEST
+
+    private val _currentMode = MutableStateFlow(InboxMode.GUEST)
+    val currentMode: StateFlow<InboxMode> = _currentMode.asStateFlow()
+
+    private val _unreadCounts = MutableStateFlow(UnreadCounts(0, 0))
+    val unreadCounts: StateFlow<UnreadCounts> = _unreadCounts.asStateFlow()
+
     private var nextCursor: String? = null
     
     init {
@@ -75,7 +80,7 @@ class InboxViewModel @Inject constructor(
                 when (state) {
                     AuthState.Authenticated -> {
                         val userId = authSession.currentUser.value?.id
-                        Timber.d("InboxVM: authenticated — userId=${userId ?: "(null)"}, mode=${currentMode.apiValue}")
+                        Timber.d("InboxVM: authenticated — userId=${userId ?: "(null)"}, mode=${_currentMode.value.apiValue}")
                         nextCursor = null
                         loadThreadsAndCounts()
                     }
@@ -106,12 +111,12 @@ class InboxViewModel @Inject constructor(
     }
     
     private suspend fun loadThreadsAndCounts() {
-        Timber.d("InboxViewModel: loadThreadsAndCounts START — mode=${currentMode.apiValue}")
+        Timber.d("InboxViewModel: loadThreadsAndCounts START — mode=${_currentMode.value.apiValue}")
         try {
             // Load threads and unread counts in parallel
             val threadsDeferred = viewModelScope.async {
                 inboxRepository.getThreads(
-                    mode = currentMode.apiValue,
+                    mode = _currentMode.value.apiValue,
                     limit = 20,
                     cursor = null
                 )
@@ -129,6 +134,7 @@ class InboxViewModel @Inject constructor(
                 is ApiResult.Success -> unreadResult.data
                 is ApiResult.Failure -> UnreadCounts(0, 0)
             }
+            _unreadCounts.value = unreadCounts
 
             // Handle threads result
             when (threadsResult) {
@@ -144,7 +150,7 @@ class InboxViewModel @Inject constructor(
                     } else {
                         _uiState.value = InboxUiState.Success(
                             threads = threadsResult.data.threads,
-                            mode = currentMode,
+                            mode = _currentMode.value,
                             unreadCounts = unreadCounts,
                             isRefreshing = false,
                             hasMore = hasMore
@@ -179,12 +185,12 @@ class InboxViewModel @Inject constructor(
         val cursor = nextCursor?.takeIf { it.isNotBlank() && it != "null" } ?: return
         if (_uiState.value !is InboxUiState.Success) return
 
-        Timber.d("InboxViewModel: loadMore START — cursor=$cursor, mode=${currentMode.apiValue}")
+        Timber.d("InboxViewModel: loadMore START — cursor=$cursor, mode=${_currentMode.value.apiValue}")
 
         viewModelScope.launch {
             try {
                 val result = inboxRepository.getThreads(
-                    mode = currentMode.apiValue,
+                    mode = _currentMode.value.apiValue,
                     limit = 20,
                     cursor = cursor
                 )
@@ -214,9 +220,9 @@ class InboxViewModel @Inject constructor(
     }
     
     private fun onModeChanged(mode: InboxMode) {
-        if (mode == currentMode) return
-        
-        currentMode = mode
+        if (mode == _currentMode.value) return
+
+        _currentMode.value = mode
         nextCursor = null
         _uiState.value = InboxUiState.Loading
         

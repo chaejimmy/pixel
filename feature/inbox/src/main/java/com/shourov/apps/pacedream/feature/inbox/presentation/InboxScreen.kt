@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -78,6 +80,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.inbox.model.InboxEvent
+import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
 import androidx.lifecycle.Lifecycle
@@ -96,6 +99,8 @@ fun InboxScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentMode by viewModel.currentMode.collectAsStateWithLifecycle()
+    val unreadCounts by viewModel.unreadCounts.collectAsStateWithLifecycle()
     val loadMoreRequestedForSize = remember { mutableIntStateOf(-1) }
 
     // Refresh threads when returning from a thread (ON_RESUME)
@@ -164,11 +169,19 @@ fun InboxScreen(
         },
         containerColor = PaceDreamColors.Background
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Guest/Host mode toggle — matches iOS MessagingView
+            ModeToggle(
+                selectedMode = currentMode,
+                guestUnreadCount = unreadCounts.guestUnread,
+                hostUnreadCount = unreadCounts.hostUnread,
+                onModeSelected = { viewModel.onEvent(InboxEvent.ModeChanged(it)) }
+            )
+
             AnimatedContent(
                 targetState = uiState,
                 transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
@@ -714,6 +727,99 @@ private fun InboxSkeletonList(
                                 .shimmerEffect()
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Guest/Host mode toggle with unread badges — matches iOS MessagingView segmented control
+ */
+@Composable
+private fun ModeToggle(
+    selectedMode: InboxMode,
+    guestUnreadCount: Int,
+    hostUnreadCount: Int,
+    onModeSelected: (InboxMode) -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(bottom = PaceDreamSpacing.SM),
+        shape = RoundedCornerShape(12.dp),
+        color = PaceDreamColors.Gray100,
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            ModeButton(
+                label = "Guest",
+                badgeCount = guestUnreadCount,
+                isActive = selectedMode == InboxMode.GUEST,
+                onClick = { onModeSelected(InboxMode.GUEST) },
+                modifier = Modifier.weight(1f)
+            )
+            ModeButton(
+                label = "Host",
+                badgeCount = hostUnreadCount,
+                isActive = selectedMode == InboxMode.HOST,
+                onClick = { onModeSelected(InboxMode.HOST) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeButton(
+    label: String,
+    badgeCount: Int,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = if (isActive) Color.White else Color.Transparent,
+        shadowElevation = if (isActive) 1.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = PaceDreamTypography.Subheadline,
+                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium,
+                color = if (isActive) PaceDreamColors.TextPrimary
+                       else PaceDreamColors.TextSecondary
+            )
+            if (badgeCount > 0) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = PaceDreamColors.Error,
+                            shape = CircleShape
+                        )
+                        .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = badgeCount.toString(),
+                        style = PaceDreamTypography.Caption,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
         }
