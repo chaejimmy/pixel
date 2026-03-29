@@ -1,7 +1,7 @@
 package com.shourov.apps.pacedream
 
 import android.content.Intent
-import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +18,7 @@ import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
+import com.shourov.apps.pacedream.notification.OneSignalService
 import com.shourov.apps.pacedream.ui.PaceDreamApp
 import com.shourov.apps.pacedream.ui.rememberPaceDreamAppState
 import com.pacedream.common.composables.theme.PaceDreamTheme
@@ -47,6 +48,9 @@ class MainActivity : ComponentActivity() {
      */
     @Inject
     lateinit var hostModeManager: HostModeManager
+
+    @Inject
+    lateinit var oneSignalService: OneSignalService
 
     val viewModel: MainActivityViewModel by viewModels()
     
@@ -86,6 +90,13 @@ class MainActivity : ComponentActivity() {
                 // Protected actions should present the AuthFlowSheet modally.
                 PaceDreamApp(appState)
             }
+        }
+
+        // Request POST_NOTIFICATIONS permission on Android 13+ (API 33).
+        // Without this prompt, notifications are silently dropped because the
+        // permission defaults to denied. OneSignal handles the system dialog.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            oneSignalService.requestPermission()
         }
     }
 
