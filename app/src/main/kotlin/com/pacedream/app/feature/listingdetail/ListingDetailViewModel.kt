@@ -318,7 +318,7 @@ class ListingDetailViewModel @Inject constructor(
         // First, try to use direct coordinates if available
         val lat = loc.latitude
         val lng = loc.longitude
-        if (lat != null && lng != null) {
+        if (lat != null && lng != null && !(lat == 0.0 && lng == 0.0)) {
             Timber.d("Using direct coordinates: lat=$lat, lng=$lng")
             _uiState.update { it.copy(mapCoordinate = LatLng(lat, lng), isGeocoding = false) }
             return

@@ -118,13 +118,37 @@ class ListingDetailRepository @Inject constructor(
 
             val locationObj = listing["location"]?.asObjectOrNull()
                 ?: listing["address"]?.asObjectOrNull()
+
+            // Extract coordinates: try explicit lat/lng fields first, then GeoJSON coordinates array [lng, lat]
+            var parsedLat = locationObj?.double("latitude", "lat") ?: listing.double("latitude", "lat")
+            var parsedLng = locationObj?.double("longitude", "lng", "lon") ?: listing.double("longitude", "lng", "lon")
+
+            // Fallback: GeoJSON coordinates array [longitude, latitude]
+            if (parsedLat == null || parsedLng == null) {
+                val coords = locationObj?.get("coordinates")?.asArrayOrNull()
+                if (coords != null && coords.size >= 2) {
+                    val geoLng = coords[0].jsonPrimitive.doubleOrNull
+                    val geoLat = coords[1].jsonPrimitive.doubleOrNull
+                    if (geoLat != null && geoLng != null) {
+                        parsedLat = geoLat
+                        parsedLng = geoLng
+                    }
+                }
+            }
+
+            // Treat (0, 0) as missing coordinates (web parity)
+            if (parsedLat == 0.0 && parsedLng == 0.0) {
+                parsedLat = null
+                parsedLng = null
+            }
+
             val location = ListingLocation(
                 city = listing.string("city") ?: locationObj?.string("city"),
                 state = listing.string("state") ?: locationObj?.string("state", "region"),
                 address = listing.string("address")
                     ?: locationObj?.string("address", "street_address", "streetAddress", "full"),
-                latitude = locationObj?.double("latitude", "lat") ?: listing.double("latitude", "lat"),
-                longitude = locationObj?.double("longitude", "lng", "lon") ?: listing.double("longitude", "lng", "lon"),
+                latitude = parsedLat,
+                longitude = parsedLng,
                 country = locationObj?.string("country") ?: listing.string("country"),
                 zipCode = locationObj?.string("zipCode", "zip_code", "postalCode", "postal_code") ?: listing.string("zipCode", "zip_code"),
                 neighborhood = locationObj?.string("neighborhood", "neighbourhood", "area") ?: listing.string("neighborhood")
