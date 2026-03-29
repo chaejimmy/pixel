@@ -2272,7 +2272,7 @@ private fun SectionLocation(
         ) {
             Text("Where you'll be", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
-            TextButton(onClick = onOpenInMaps, enabled = location?.fullAddress != null || location?.cityState != null) {
+            TextButton(onClick = onOpenInMaps, enabled = mapCoordinate != null || location?.fullAddress != null || location?.cityState != null) {
                 Text("Open in Maps")
             }
         }
@@ -2281,12 +2281,24 @@ private fun SectionLocation(
 
         MapPreviewCard(
             mapCoordinate = mapCoordinate,
-            isGeocoding = isGeocoding
+            isGeocoding = isGeocoding,
+            onTap = onOpenInMaps
         )
 
-        location?.fullAddress?.let { addr ->
+        // Show location text below the map
+        val displayAddress = location?.fullAddress ?: location?.cityState
+        if (displayAddress != null) {
             Spacer(modifier = Modifier.height(10.dp))
-            Text(addr, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    PaceDreamIcons.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(displayAddress, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -2294,18 +2306,21 @@ private fun SectionLocation(
 @Composable
 private fun MapPreviewCard(
     mapCoordinate: LatLng?,
-    isGeocoding: Boolean
+    isGeocoding: Boolean,
+    onTap: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
+            .height(200.dp)
+            .then(if (mapCoordinate != null) Modifier.clickable(onClick = onTap) else Modifier),
         shape = RoundedCornerShape(16.dp)
     ) {
-        val mapsKey = stringResource(R.string.google_maps_key)
-        val mapsEnabled = mapsKey.isNotBlank()
+        val mapsKeyRes = runCatching { stringResource(R.string.google_maps_key) }.getOrDefault("")
+        val mapsEnabled = mapsKeyRes.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
+            // Interactive Google Map when API key is configured
             val cameraPositionState = rememberCameraPositionState()
             androidx.compose.runtime.LaunchedEffect(mapCoordinate.latitude, mapCoordinate.longitude) {
                 cameraPositionState.position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
@@ -2319,30 +2334,58 @@ private fun MapPreviewCard(
                     title = "Location"
                 )
             }
-        } else if (mapCoordinate != null && !mapsEnabled) {
-            // Static map fallback using OpenStreetMap tile image when no Google Maps key
+        } else if (mapCoordinate != null) {
+            // Static map tile when no Google Maps API key.
+            // Uses OpenStreetMap's static map service with a pin marker.
             Box(modifier = Modifier.fillMaxSize()) {
-                val staticMapUrl = "https://staticmap.openstreetmap.de/staticmap.php" +
-                    "?center=${mapCoordinate.latitude},${mapCoordinate.longitude}" +
-                    "&zoom=15&size=600x400&maptype=mapnik" +
-                    "&markers=${mapCoordinate.latitude},${mapCoordinate.longitude},red-pushpin"
+                val lat = mapCoordinate.latitude
+                val lng = mapCoordinate.longitude
+                // Primary: OpenStreetMap static map
+                val staticMapUrl =
+                    "https://staticmap.openstreetmap.de/staticmap.php" +
+                        "?center=$lat,$lng" +
+                        "&zoom=14&size=600x300&maptype=mapnik" +
+                        "&markers=$lat,$lng,red-pushpin"
+
+                val context = LocalContext.current
                 AsyncImage(
-                    model = staticMapUrl,
+                    model = ImageRequest.Builder(context)
+                        .data(staticMapUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = "Map location",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Location pin overlay in center
+
+                // Red pin overlay in center (always visible, even if tile loads slowly)
                 Icon(
                     PaceDreamIcons.LocationOn,
                     contentDescription = null,
                     tint = Color(0xFFEF4444),
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .align(Alignment.Center)
                 )
+
+                // "Tap to open" hint at bottom
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color.Black.copy(alpha = 0.6f)
+                ) {
+                    Text(
+                        text = "Tap to open in Maps",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
         } else {
+            // No coordinates available - show placeholder with geocoding state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
