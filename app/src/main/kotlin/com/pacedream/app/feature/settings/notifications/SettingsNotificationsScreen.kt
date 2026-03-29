@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -289,31 +290,36 @@ fun SettingsNotificationsScreen(
                 }
             }
 
-            // Save Button
-            Button(
-                onClick = { viewModel.save() },
-                enabled = !uiState.isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = PaceDreamSpacing.SM),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary
-                ),
-                contentPadding = PaddingValues(vertical = 14.dp)
-            ) {
-                if (uiState.isLoading) {
+            // Auto-save status indicator
+            if (uiState.isLoading) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = PaceDreamSpacing.SM),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(18.dp),
-                        color = PaceDreamColors.OnPrimary
+                        modifier = Modifier.size(16.dp),
+                        color = PaceDreamColors.Primary
+                    )
+                    Spacer(modifier = Modifier.size(PaceDreamSpacing.SM))
+                    Text(
+                        "Saving...",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
                     )
                 }
+            } else if (uiState.successMessage != null) {
                 Text(
-                    "Save Changes",
-                    style = PaceDreamTypography.Button
+                    text = "Settings saved",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.Success,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = PaceDreamSpacing.SM),
+                    textAlign = TextAlign.Center
                 )
             }
 

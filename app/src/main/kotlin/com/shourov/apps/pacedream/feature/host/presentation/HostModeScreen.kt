@@ -10,6 +10,7 @@ import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.host.navigation.HostNavigationDestinations
 import com.shourov.apps.pacedream.feature.host.navigation.HostNavigationGraph
+import com.shourov.apps.pacedream.feature.host.navigation.HostScreen
 import com.shourov.apps.pacedream.feature.host.presentation.components.HostBottomNavigation
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,8 +67,16 @@ fun HostModeScreen(
                     }
                 },
                 onNavigateToEditListing = onNavigateToEditListing,
-                onNavigateToAnalytics = onNavigateToAnalytics,
-                onNavigateToWithdraw = onNavigateToWithdraw
+                onNavigateToAnalytics = {
+                    navController.navigate(HostScreen.Analytics.route) {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToWithdraw = {
+                    navController.navigate(HostScreen.Earnings.route) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }

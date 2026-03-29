@@ -7,6 +7,8 @@ import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import com.pacedream.app.feature.settings.AccountSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,6 +52,8 @@ class SettingsNotificationsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(NotificationsUiState(isLoading = true))
     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
+
+    private var autoSaveJob: Job? = null
 
     init {
         load()
@@ -101,46 +105,68 @@ class SettingsNotificationsViewModel @Inject constructor(
 
     fun toggleEmailGeneral() {
         _uiState.update { it.copy(emailGeneral = !it.emailGeneral) }
+        debouncedSave()
     }
 
     fun togglePushGeneral() {
         _uiState.update { it.copy(pushGeneral = !it.pushGeneral) }
+        debouncedSave()
     }
 
     fun toggleMessageNotifications() {
         _uiState.update { it.copy(messageNotifications = !it.messageNotifications) }
+        debouncedSave()
     }
 
     fun toggleBookingUpdates() {
         _uiState.update { it.copy(bookingUpdates = !it.bookingUpdates) }
+        debouncedSave()
     }
 
     fun toggleBookingAlerts() {
         _uiState.update { it.copy(bookingAlerts = !it.bookingAlerts) }
+        debouncedSave()
     }
 
     fun toggleMarketingPromotions() {
         _uiState.update { it.copy(marketingPromotions = !it.marketingPromotions) }
+        debouncedSave()
     }
 
     fun toggleReviewNotifications() {
         _uiState.update { it.copy(reviewNotifications = !it.reviewNotifications) }
+        debouncedSave()
     }
 
     fun toggleFriendRequestNotifications() {
         _uiState.update { it.copy(friendRequestNotifications = !it.friendRequestNotifications) }
+        debouncedSave()
     }
 
     fun toggleSystemNotifications() {
         _uiState.update { it.copy(systemNotifications = !it.systemNotifications) }
+        debouncedSave()
     }
 
     fun toggleSmsNotifications() {
         _uiState.update { it.copy(smsNotifications = !it.smsNotifications) }
+        debouncedSave()
     }
 
     fun toggleQuietHours() {
         _uiState.update { it.copy(quietHoursEnabled = !it.quietHoursEnabled) }
+        debouncedSave()
+    }
+
+    /**
+     * Debounce save so rapid toggle changes are batched into a single API call.
+     */
+    private fun debouncedSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = viewModelScope.launch {
+            delay(500L)
+            save()
+        }
     }
 
     fun save() {

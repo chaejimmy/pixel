@@ -305,7 +305,9 @@ fun CreateListingScreen(
                     publishedCoverUrl = effect.coverUrl
                     draftStore.clear() // iOS parity: clear draft on success
                     phase = "success"
-                    onPublishSuccess(effect.listingId)
+                    // Don't call onPublishSuccess here — let the success screen
+                    // display first so the user sees the confirmation. The CTAs
+                    // on the success screen handle navigation.
                 }
                 is CreateListingViewModel.Effect.PublishError -> {
                     publishError = effect.message
@@ -355,9 +357,15 @@ fun CreateListingScreen(
             listingId = publishedListingId,
             title = publishedTitle,
             coverUrl = publishedCoverUrl,
-            onViewListing = { /* TODO: navigate to listing detail */ },
-            onGoToMyListings = onBackClick,
-            onBackToHome = onBackClick,
+            onViewListing = {
+                onPublishSuccess(publishedListingId)
+            },
+            onGoToMyListings = {
+                onPublishSuccess(publishedListingId)
+            },
+            onBackToHome = {
+                onPublishSuccess(publishedListingId)
+            },
         )
     }
 }
