@@ -244,26 +244,39 @@ class HostRepository @Inject constructor(
 
     suspend fun createListing(request: CreateListingRequest): Result<Property> {
         return try {
+            Timber.d(
+                "createListing: POST /listings — type=%s sub=%s title='%s' price=%.2f pricing_type=%s " +
+                    "images=%d address='%s' available=%s availability=%s",
+                request.listing_type, request.subCategory, request.title, request.price,
+                request.pricing_type, request.images?.size ?: 0, request.address ?: "",
+                request.available, request.availability != null,
+            )
             val response = hostApiService.createListing(request)
             if (response.isSuccessful) {
                 val json = response.body()
                 if (json != null) {
                     val property = parseCreateListingResponse(json, request)
+                    Timber.d("createListing success: id=%s", property.id)
                     Result.success(property)
                 } else {
                     Result.success(Property(id = "", title = request.title))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
+                Timber.w(
+                    "createListing failed: HTTP %d — %s",
+                    response.code(), errorBody?.take(500),
+                )
                 val errorMsg = try {
                     val json = Json.parseToJsonElement(errorBody ?: "")
                     json.jsonObject["message"]?.jsonPrimitive?.content
                         ?: json.jsonObject["error"]?.jsonPrimitive?.content
+                        ?: json.jsonObject["details"]?.jsonPrimitive?.content
                 } catch (_: Exception) { null }
                 Result.failure(Exception(errorMsg ?: "Failed to create listing: ${response.code()}"))
             }
         } catch (e: Exception) {
-            Timber.e(e, "createListing failed")
+            Timber.e(e, "createListing failed with exception")
             Result.failure(e)
         }
     }

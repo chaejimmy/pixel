@@ -93,6 +93,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.feature.host.data.AvailabilityPayload
+import com.shourov.apps.pacedream.feature.host.data.DetailsPayload
 import com.shourov.apps.pacedream.feature.host.data.CreateListingDraftStore
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
@@ -243,18 +244,12 @@ private fun getAllowedPricingUnits(
 }
 
 /**
- * Whether a subcategory requires the schedule/availability step – iOS parity.
- * iOS: ListingDraft.needsSchedule
+ * Whether a subcategory needs the schedule/availability step.
+ * Web parity: the website ALWAYS shows the availability step (step 4) for all listing types.
+ * Split listings are the only exception — they don't have time-based scheduling.
  */
-private fun needsSchedule(listingMode: ListingMode, subCategory: String): Boolean {
-    val sc = subCategory.lowercase()
-    // Services never need the schedule step
-    if (sc in SERVICE_IDS) return false
-    return when (listingMode) {
-        ListingMode.SHARE -> sc in listOf("restroom", "nap_pod", "meeting_room", "gym")
-        ListingMode.BORROW -> sc in listOf("camera", "sports_gear", "tech", "instrument", "tools", "games", "toys", "micromobility", "others")
-        ListingMode.SPLIT -> false
-    }
+private fun needsSchedule(listingMode: ListingMode, @Suppress("UNUSED_PARAMETER") subCategory: String): Boolean {
+    return listingMode != ListingMode.SPLIT
 }
 
 // Duration options matching iOS (minutes)
@@ -858,6 +853,7 @@ private fun CreateListingWizardScreen(
         return when (step) {
             0 -> {
                 if (title.isBlank()) return "Title is required."
+                if (title.trim().length < 10) return "Title must be at least 10 characters."
                 null
             }
             1 -> {
@@ -866,14 +862,13 @@ private fun CreateListingWizardScreen(
                 } else {
                     basePrice.toDoubleOrNull() ?: 0.0
                 }
-                if (price <= 0) return "Price must be greater than 0."
-                // iOS parity: require at least 1 photo for non-split listings
+                if (price < 1.0) return "Price must be at least \$1."
+                // Require at least 1 photo for non-split listings
                 if (listingMode != ListingMode.SPLIT && selectedImageUris.isEmpty() && uploadedImageUrls.isEmpty()) {
                     return "Add at least 1 photo."
                 }
                 if (listingMode != ListingMode.SPLIT) {
                     if (address.isBlank()) return "Address is required."
-                    if (city.isBlank() || state.isBlank()) return "City and state are required."
                 }
                 null
             }
@@ -997,13 +992,32 @@ private fun CreateListingWizardScreen(
                                     when (val result = imageUploadService.uploadImage(context, uri)) {
                                         is ApiResult.Success -> imageUrls.add(result.data)
                                         is ApiResult.Failure -> {
-                                            // iOS fallback: encode as base64 data URL
+                                            // Fallback: compress and encode as base64 data URL
                                             try {
                                                 val stream = context.contentResolver.openInputStream(uri)
-                                                val bytes = stream?.readBytes()
+                                                val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
                                                 stream?.close()
-                                                if (bytes != null) {
-                                                    val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                                                if (bitmap != null) {
+                                                    // Compress: max 1024px, JPEG 70% quality (matches website: 1024px, 0.7 quality)
+                                                    val maxDim = 1024
+                                                    val ratio = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                                                        minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height)
+                                                    } else 1f
+                                                    val scaled = if (ratio < 1f) {
+                                                        android.graphics.Bitmap.createScaledBitmap(
+                                                            bitmap,
+                                                            (bitmap.width * ratio).toInt().coerceAtLeast(1),
+                                                            (bitmap.height * ratio).toInt().coerceAtLeast(1),
+                                                            true,
+                                                        )
+                                                    } else bitmap
+                                                    val baos = java.io.ByteArrayOutputStream()
+                                                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, baos)
+                                                    if (scaled !== bitmap) scaled.recycle()
+                                                    bitmap.recycle()
+                                                    val compressedBytes = baos.toByteArray()
+                                                    timber.log.Timber.d("Image fallback: compressed to ${compressedBytes.size} bytes")
+                                                    val b64 = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
                                                     imageUrls.add("data:image/jpeg;base64,$b64")
                                                 }
                                             } catch (e: Exception) {
@@ -1025,11 +1039,66 @@ private fun CreateListingWizardScreen(
                                 basePrice.toDoubleOrNull() ?: 0.0
                             }
 
-                            // iOS parity: summary is first 150 chars of description
+                            // Web parity: summary maps to description
                             val trimmedDesc = description.trim()
-                            val summary = if (trimmedDesc.isNotBlank()) {
-                                trimmedDesc.take(150)
+                            val summary = trimmedDesc.ifBlank { null }
+
+                            // Web parity: pricing_type uses unit value (hour/day/week/month)
+                            val pricingMode = selectedPricingUnit.value
+
+                            // Web parity: build prices map { hour: X, day: 0, month: 0 }
+                            val pricesMap = mutableMapOf<String, Double>()
+                            pricesMap["hour"] = if (pricingMode == "hour") resolvedPrice else 0.0
+                            pricesMap["day"] = if (pricingMode == "day") resolvedPrice else 0.0
+                            pricesMap["month"] = if (pricingMode == "month") resolvedPrice else 0.0
+
+                            // Web parity: always build availability, even for non-schedule listings
+                            val availabilityPayload = if (hasSchedule) {
+                                when (selectedPricingUnit) {
+                                    PricingUnit.DAY, PricingUnit.WEEK -> AvailabilityPayload(
+                                        start_time = checkinTime,
+                                        end_time = checkoutTime,
+                                        available_days = selectedDays.toList().ifEmpty { listOf(1, 2, 3, 4, 5) },
+                                        timezone = timezone,
+                                        instant_booking = false,
+                                    )
+                                    else -> AvailabilityPayload(
+                                        start_time = startTime,
+                                        end_time = endTime,
+                                        available_days = if (selectedPricingUnit == PricingUnit.MONTH) null
+                                            else selectedDays.toList().ifEmpty { listOf(1, 2, 3, 4, 5) },
+                                        timezone = timezone,
+                                        instant_booking = false,
+                                    )
+                                }
+                            } else {
+                                // Web parity: non-schedule listings still send default availability
+                                AvailabilityPayload(
+                                    start_time = "09:00",
+                                    end_time = "17:00",
+                                    available_days = listOf(1, 2, 3, 4, 5),
+                                    timezone = timezone,
+                                    instant_booking = false,
+                                )
+                            }
+
+                            // Web parity: location includes street (address), city, state, country
+                            val locationPayload = if (listingMode != ListingMode.SPLIT) {
+                                LocationPayload(
+                                    street = address,
+                                    city = city,
+                                    state = state,
+                                    country = "US",
+                                    latitude = if (locationLat != 0.0) locationLat else null,
+                                    longitude = if (locationLng != 0.0) locationLng else null,
+                                )
                             } else null
+
+                            timber.log.Timber.d(
+                                "CreateListing: type=%s sub=%s price=%.2f pricingMode=%s images=%d address=%s city=%s state=%s",
+                                listingMode.backendValue, subCategory, resolvedPrice,
+                                pricingMode, imageUrls.size, address, city, state,
+                            )
 
                             val request = CreateListingRequest(
                                 listing_type = listingMode.backendValue,
@@ -1038,28 +1107,30 @@ private fun CreateListingWizardScreen(
                                 description = trimmedDesc.ifBlank { null },
                                 summary = summary,
                                 price = resolvedPrice,
-                                pricing_type = selectedPricingUnit.backendPricingType,
+                                pricing_type = pricingMode,
                                 pricing = PricingPayload(
                                     base_price = resolvedPrice,
-                                    unit = selectedPricingUnit.value,
-                                    pricing_type = selectedPricingUnit.backendPricingType,
+                                    unit = pricingMode,
                                     currency = "USD",
-                                    frequency = selectedPricingUnit.backendFrequency,
                                 ),
+                                prices = pricesMap,
                                 address = if (listingMode != ListingMode.SPLIT) address else null,
                                 amenities = amenities.ifEmpty { null },
+                                details = DetailsPayload(
+                                    features = amenities.toList(),
+                                    reviewCount = 0,
+                                ),
                                 images = imageUrls.ifEmpty { null },
-                                location = if (listingMode != ListingMode.SPLIT && city.isNotBlank()) {
-                                    LocationPayload(lat = locationLat, lng = locationLng, city = city, state = state)
+                                location = locationPayload,
+                                available = true,
+                                durations = if (pricingMode == "hour") {
+                                    selectedDurations.toList().ifEmpty { listOf(60, 120) }
                                 } else null,
-                                durations = if (hasSchedule) selectedDurations.toList() else null,
-                                availability = if (hasSchedule) AvailabilityPayload(
-                                    start_time = startTime,
-                                    end_time = endTime,
-                                    available_days = selectedDays.toList(),
-                                    timezone = timezone,
-                                    instant_booking = false,
-                                ) else null,
+                                minStay = if (pricingMode == "day" || pricingMode == "week") minStay else null,
+                                maxStay = if (pricingMode == "day" || pricingMode == "week") maxStay else null,
+                                minMonths = if (pricingMode == "month") minMonths else null,
+                                availableFrom = if (pricingMode == "month") availableFrom.ifBlank { null } else null,
+                                availability = availabilityPayload,
                                 shareType = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
                                 share_type = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
                                 totalCost = totalCost.toDoubleOrNull(),
@@ -1273,11 +1344,20 @@ private fun BasicsStep(
         FormSection(title = "Title") {
             OutlinedTextField(
                 value = title,
-                onValueChange = onTitleChange,
+                onValueChange = { if (it.length <= 100) onTitleChange(it) },
                 label = { Text("Give it a clear, searchable title", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
+                supportingText = {
+                    val len = title.trim().length
+                    val color = when {
+                        len == 0 -> PaceDreamColors.TextSecondary
+                        len < 10 -> PaceDreamColors.Error
+                        else -> PaceDreamColors.TextSecondary
+                    }
+                    Text("${len}/100 characters (min 10)", style = PaceDreamTypography.Caption2, color = color)
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
@@ -1290,12 +1370,16 @@ private fun BasicsStep(
         FormSection(title = "Description") {
             OutlinedTextField(
                 value = description,
-                onValueChange = onDescriptionChange,
+                onValueChange = { if (it.length <= 2000) onDescriptionChange(it) },
                 label = { Text("Describe your listing", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 8,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
+                supportingText = {
+                    val len = description.trim().length
+                    Text("${len}/2000 characters", style = PaceDreamTypography.Caption2, color = PaceDreamColors.TextSecondary)
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.HostAccent,
                     unfocusedBorderColor = PaceDreamColors.Border,
@@ -1631,6 +1715,9 @@ private fun PhotosLocationPricingStep(
                             style = PaceDreamTypography.Callout,
                             color = PaceDreamColors.TextTertiary,
                         )
+                    },
+                    supportingText = {
+                        Text("Minimum \$1.00", style = PaceDreamTypography.Caption2, color = PaceDreamColors.TextSecondary)
                     },
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = OutlinedTextFieldDefaults.colors(
