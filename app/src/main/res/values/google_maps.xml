@@ -7,6 +7,6 @@
       the Gradle resValue override replaces this empty fallback at build time.
       This empty default ensures the build succeeds even without a key configured.
     -->
-    <string name="google_maps_key" translatable="false"></string>
+    <string name="google_maps_key" translatable="false">AIzaSyDzjIBl_l5jFRyHuuSEB_T78MIepZ-YKos</string>
 </resources>
 
