@@ -34,6 +34,17 @@ class SignInViewModel @Inject constructor(
             _uiState.value = state.copy(error = "Email and password are required")
             return
         }
+        // Website parity: basic email format validation
+        val emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$".toRegex()
+        if (!emailRegex.matches(state.email.trim())) {
+            _uiState.value = state.copy(error = "Please enter a valid email address")
+            return
+        }
+        // Website parity: password minimum 6 characters
+        if (state.password.length < 6) {
+            _uiState.value = state.copy(error = "Password must be at least 6 characters")
+            return
+        }
 
         _uiState.value = state.copy(isLoading = true, error = null)
 

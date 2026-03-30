@@ -62,5 +62,7 @@ private fun NotificationResponse.toAppNotification() = AppNotification(
     body = body,
     type = type,
     isRead = isRead,
-    createdAt = createdAt
+    createdAt = createdAt,
+    deepLink = deepLink,
+    data = notificationData
 )

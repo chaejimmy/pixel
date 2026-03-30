@@ -26,14 +26,14 @@ class PhoneEntryViewModel @Inject constructor(
     val uiState: StateFlow<PhoneEntryUiState> = _uiState.asStateFlow()
     
     /**
-     * Validate phone number format (E.164)
+     * Validate phone number format.
+     * Website parity: currently US/Canada only (+1 followed by 10 digits).
      */
     fun validatePhone(phone: String): Boolean {
-        // E.164 format: + followed by 1-15 digits
-        val regex = "^\\+[1-9]\\d{1,14}$".toRegex()
-        return regex.matches(phone)
+        val usCanadaRegex = "^\\+1\\d{10}$".toRegex()
+        return usCanadaRegex.matches(phone)
     }
-    
+
     /**
      * Update phone number and validate
      */
@@ -42,7 +42,14 @@ class PhoneEntryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             phoneNumber = phone,
             isValidPhone = isValid,
-            phoneError = if (isValid) null else "Invalid phone number format"
+            phoneError = if (!isValid && phone.isNotBlank()) {
+                // Website parity: specific message for non-US/CA numbers
+                if (phone.startsWith("+1") || phone.startsWith("1")) {
+                    "Please enter a valid US or Canada phone number"
+                } else {
+                    "Phone verification is currently available in the United States and Canada only."
+                }
+            } else null
         )
     }
     

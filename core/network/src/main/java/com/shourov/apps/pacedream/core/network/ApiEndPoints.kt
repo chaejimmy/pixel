@@ -20,6 +20,13 @@ object ApiEndPoints {
     const val AUTH_REFRESH_TOKEN = "auth/refresh-token"
     const val AUTH_AUTH0_CALLBACK = "auth/auth0/callback"
     const val AUTH_LOGOUT = "auth/logout"
+    // Website parity: 3-step OTP signup flow
+    const val AUTH_SIGNUP_INITIATE = "auth/signup/initiate"
+    const val AUTH_SIGNUP_VERIFY_EMAIL_OTP = "auth/signup/verify-email-otp"
+    const val AUTH_SIGNUP_VERIFY_SMS_OTP = "auth/signup/verify-sms-otp"
+    const val AUTH_SIGNUP_SEND_SMS_OTP = "auth/signup/send-sms-otp"
+    const val AUTH_SIGNUP_COMPLETE = "auth/signup/complete"
+    const val AUTH_SIGNUP_COMPLETE_MOBILE = "auth/signup/complete-mobile"
 
     // ── User / Account ────────────────────────────────────
     const val ACCOUNT_ME = "account/me"

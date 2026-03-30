@@ -164,6 +164,7 @@ data class NotificationResponse(
     @SerializedName("event") val event: String = "",
     @SerializedName("readAt") val readAt: String? = null,
     @SerializedName("deepLink") val deepLink: String? = null,
+    @SerializedName("data") val notificationData: Map<String, String>? = null,
     @SerializedName("status") val status: String = "",
     @SerializedName("createdAt") val createdAt: String = ""
 ) {

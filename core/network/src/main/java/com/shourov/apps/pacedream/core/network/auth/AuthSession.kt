@@ -268,23 +268,34 @@ class AuthSession constructor(
     }
 
     /**
-     * Update user profile after account setup
+     * Update user profile after account setup.
+     * Website parity: sends firstName, lastName, dob, gender, hobbiesInterests,
+     * bio, occupation, and other profile fields via PUT /user/profile.
      */
     suspend fun updateProfile(
         firstName: String,
         lastName: String,
         dateOfBirth: Long? = null,
-        interests: Set<String> = emptySet()
+        interests: Set<String> = emptySet(),
+        gender: String? = null,
+        bio: String? = null,
+        occupation: String? = null
     ): Result<Unit> {
         val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
 
-        val url = appConfig.buildApiUrl("account", "update")
-
+        // Website uses PUT /user/profile — try that first, fall back to /account/update
         val profileData = buildMap {
             if (firstName.isNotBlank()) put("firstName", firstName)
             if (lastName.isNotBlank()) put("lastName", lastName)
-            dateOfBirth?.let { put("dateOfBirth", it.toString()) }
-            if (interests.isNotEmpty()) put("interests", interests.joinToString(","))
+            dateOfBirth?.let {
+                // Website sends ISO date string for dob
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                put("dob", sdf.format(java.util.Date(it)))
+            }
+            if (interests.isNotEmpty()) put("hobbiesInterests", interests.joinToString(","))
+            if (!gender.isNullOrBlank()) put("gender", gender)
+            if (!bio.isNullOrBlank()) put("bio", bio)
+            if (!occupation.isNullOrBlank()) put("occupation", occupation)
         }
 
         val body = json.encodeToString(
@@ -292,7 +303,17 @@ class AuthSession constructor(
             profileData
         )
 
-        val result = client.post(url, body, includeAuth = true)
+        // Primary: PUT /user/profile (matches website)
+        val primaryUrl = appConfig.buildApiUrl("user", "profile")
+        val primary = client.put(primaryUrl, body, includeAuth = true)
+        if (primary is ApiResult.Success) {
+            refreshProfile()
+            return Result.success(Unit)
+        }
+
+        // Fallback: POST /account/update (legacy)
+        val fallbackUrl = appConfig.buildApiUrl("account", "update")
+        val result = client.post(fallbackUrl, body, includeAuth = true)
 
         return when (result) {
             is ApiResult.Success -> {
@@ -420,7 +441,8 @@ class AuthSession constructor(
     }
     
     /**
-     * Register with email and password
+     * Register with email and password (legacy direct endpoint).
+     * Kept for backwards compatibility; prefer the 3-step OTP flow below.
      */
     suspend fun registerWithEmailPassword(
         email: String,
@@ -429,7 +451,7 @@ class AuthSession constructor(
         lastName: String
     ): Result<Unit> {
         val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
-        
+
         val url = appConfig.buildApiUrl("auth", "signup", "email")
         val body = json.encodeToString(
             EmailRegisterRequest.serializer(),
@@ -440,9 +462,9 @@ class AuthSession constructor(
                 lastName = lastName
             )
         )
-        
+
         val result = client.post(url, body, includeAuth = false)
-        
+
         return when (result) {
             is ApiResult.Success -> {
                 if (parseAndStoreTokens(result.data)) {
@@ -456,6 +478,121 @@ class AuthSession constructor(
             is ApiResult.Failure -> {
                 Result.failure(Exception(result.error.message ?: "Registration failed"))
             }
+        }
+    }
+
+    // ── Website parity: 3-step OTP signup flow ──────────────────
+
+    /**
+     * Step 1: Initiate email signup - sends verification code.
+     * Website: POST /auth/signup/initiate { email }
+     */
+    suspend fun initiateEmailSignup(email: String): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "initiate")
+        val body = """{"email":"$email"}"""
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> Result.success(Unit)
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Failed to send verification code"))
+        }
+    }
+
+    /**
+     * Step 1 (mobile): Send SMS OTP for mobile signup.
+     * Website: POST /auth/signup/send-sms-otp { mobile }
+     */
+    suspend fun initiateMobileSignup(mobile: String): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "send-sms-otp")
+        val body = """{"mobile":"$mobile"}"""
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> Result.success(Unit)
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Failed to send SMS code"))
+        }
+    }
+
+    /**
+     * Step 2: Verify email OTP code.
+     * Website: POST /auth/signup/verify-email-otp { email, code }
+     */
+    suspend fun verifyEmailSignupOtp(email: String, code: String): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "verify-email-otp")
+        val body = """{"email":"$email","code":"$code"}"""
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> Result.success(Unit)
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Invalid verification code"))
+        }
+    }
+
+    /**
+     * Step 2 (mobile): Verify SMS OTP code.
+     * Website: POST /auth/signup/verify-sms-otp { mobile, otp }
+     */
+    suspend fun verifySmsSignupOtp(mobile: String, otp: String): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "verify-sms-otp")
+        val body = """{"mobile":"$mobile","otp":"$otp"}"""
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> Result.success(Unit)
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Invalid verification code"))
+        }
+    }
+
+    /**
+     * Step 3: Complete email signup with user form data.
+     * Website: POST /auth/signup/complete { email, firstName, lastName, password, ... }
+     */
+    suspend fun completeEmailSignup(
+        email: String,
+        password: String,
+        firstName: String,
+        lastName: String
+    ): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "complete")
+        val body = json.encodeToString(
+            EmailRegisterRequest.serializer(),
+            EmailRegisterRequest(email = email, password = password, firstName = firstName, lastName = lastName)
+        )
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> {
+                if (parseAndStoreTokens(result.data)) {
+                    _authState.value = AuthState.Authenticated
+                    bootstrap()
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Invalid response from server"))
+                }
+            }
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Signup failed"))
+        }
+    }
+
+    /**
+     * Step 3 (mobile): Complete mobile signup.
+     * Website: POST /auth/signup/complete-mobile { mobile, firstName, lastName, password, ... }
+     */
+    suspend fun completeMobileSignup(
+        mobile: String,
+        password: String,
+        firstName: String,
+        lastName: String
+    ): Result<Unit> {
+        val client = apiClient ?: return Result.failure(Exception("API client not initialized"))
+        val url = appConfig.buildApiUrl("auth", "signup", "complete-mobile")
+        val body = """{"mobile":"$mobile","password":"$password","firstName":"$firstName","lastName":"$lastName"}"""
+        return when (val result = client.post(url, body, includeAuth = false)) {
+            is ApiResult.Success -> {
+                if (parseAndStoreTokens(result.data)) {
+                    _authState.value = AuthState.Authenticated
+                    bootstrap()
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Invalid response from server"))
+                }
+            }
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Signup failed"))
         }
     }
     
