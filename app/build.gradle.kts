@@ -62,14 +62,10 @@ android {
         buildConfigField("String", "CLOUDINARY_UPLOAD_PRESET",
             "\"${secretsProps.getProperty("CLOUDINARY_UPLOAD_PRESET", "")}\"")
 
-        // Google Maps API key – injected as a resource value so the manifest
-        // meta-data picks it up via @string/google_maps_key.  The static XML
-        // resource serves as a safe empty fallback when no key is configured.
-        val mapsKey = (project.findProperty("googleMapsApiKey") as? String)
-            ?: secretsProps.getProperty("GOOGLE_MAPS_API_KEY", "")
-        if (mapsKey.isNotBlank()) {
-            resValue("string", "google_maps_key", mapsKey)
-        }
+        // Google Maps API key – provided via the static XML resource
+        // (app/src/main/res/values/google_maps.xml) which the manifest
+        // meta-data picks up via @string/google_maps_key.
+        // NOTE: resValue is not used because resvalues build feature is disabled.
     }
 
     signingConfigs {
