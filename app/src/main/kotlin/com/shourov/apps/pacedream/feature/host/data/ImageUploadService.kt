@@ -227,12 +227,12 @@ class ImageUploadService @Inject constructor(
     }
 
     companion object {
-        // iOS parity: CloudinaryUploader dimensions and quality targets
-        private const val MAX_DIMENSION = 1280          // Path A: Cloudinary upload
-        private const val MAX_DIMENSION_RETRY = 1024    // Retry on 413
-        private const val JPEG_QUALITY = 80             // Path A quality
-        private const val JPEG_QUALITY_RETRY = 60       // Retry quality
-        private const val MAX_BYTES_CLOUDINARY = 460_800 // ~450KB (iOS target)
-        private const val MAX_BYTES_FALLBACK = 204_800   // ~200KB (iOS fallback)
+        // Web parity: website compresses to 1024px max, 0.7 quality JPEG
+        private const val MAX_DIMENSION = 1024          // Match website canvas.toDataURL dimensions
+        private const val MAX_DIMENSION_RETRY = 800     // Retry on 413
+        private const val JPEG_QUALITY = 70             // Match website 0.7 quality
+        private const val JPEG_QUALITY_RETRY = 50       // Retry quality
+        private const val MAX_BYTES_CLOUDINARY = 460_800 // ~450KB target
+        private const val MAX_BYTES_FALLBACK = 204_800   // ~200KB fallback
     }
 }

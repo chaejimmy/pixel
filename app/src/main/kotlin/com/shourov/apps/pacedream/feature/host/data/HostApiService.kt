@@ -534,12 +534,20 @@ data class PaginatedTransactionsResponse(
     val limit: Int = 20
 )
 
-// ── Listing Creation (iOS parity) ───────────────────────────────
+// ── Listing Creation (web parity) ───────────────────────────────
 
 /**
  * Request body for creating a listing.
- * Matches the iOS ListingsPublisherService payload structure (web parity).
- * Endpoint: POST /listings (same as iOS)
+ * Matches the website ListingWizard payload structure for full web parity.
+ * Endpoint: POST /listings
+ *
+ * Key fields the backend requires:
+ *   - title (non-empty)
+ *   - price (>= $1)
+ *   - availability (always sent, even for non-schedule listings)
+ *   - available = true
+ *   - location with street, city, state, country
+ *   - prices map and details object (website sends these)
  */
 data class CreateListingRequest(
     val listing_type: String,
@@ -550,13 +558,25 @@ data class CreateListingRequest(
     val price: Double,
     val pricing_type: String,
     val pricing: PricingPayload,
+    // Website sends a prices map: { hour: X, day: Y, month: Z }
+    val prices: Map<String, Double>? = null,
     val address: String? = null,
     val amenities: List<String>? = null,
+    // Website sends a details object with features and reviewCount
+    val details: DetailsPayload? = null,
     val images: List<String>? = null,
     val location: LocationPayload? = null,
+    // Website always marks listings as available
+    val available: Boolean = true,
     val durations: List<Int>? = null,
+    // Top-level stay/month fields (website sends these alongside availability)
+    val minStay: Int? = null,
+    val maxStay: Int? = null,
+    val minMonths: Int? = null,
+    val availableFrom: String? = null,
+    // Always sent (website sends availability even for non-schedule listings)
     val availability: AvailabilityPayload? = null,
-    // Split-specific fields (iOS parity)
+    // Split-specific fields
     val shareType: String? = null,
     val share_type: String? = null,
     val splitType: String? = null,
@@ -573,25 +593,42 @@ data class CreateListingRequest(
 data class PricingPayload(
     val base_price: Double,
     val unit: String,
-    val pricing_type: String,
     val currency: String = "USD",
-    val frequency: String,
 )
 
 /**
- * Location payload matching iOS: uses lat/lng (not latitude/longitude).
+ * Details payload matching website: { features: [...], reviewCount: 0 }
+ */
+data class DetailsPayload(
+    val features: List<String> = emptyList(),
+    val reviewCount: Int = 0,
+)
+
+/**
+ * Location payload matching website format.
+ * Website sends: { street, city, state, country }.
+ * Backend also reads lat/lng for geocoding.
  */
 data class LocationPayload(
-    val lat: Double = 0.0,
-    val lng: Double = 0.0,
+    val street: String = "",
     val city: String = "",
     val state: String = "",
+    val country: String = "US",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 data class AvailabilityPayload(
     val start_time: String = "09:00",
     val end_time: String = "17:00",
-    val available_days: List<Int> = listOf(1, 2, 3, 4, 5),
+    val available_days: List<Int>? = listOf(1, 2, 3, 4, 5),
     val timezone: String = "America/New_York",
     val instant_booking: Boolean = false,
+    val dateRange: DateRangePayload? = null,
+    val blocks: List<String> = emptyList(),
+)
+
+data class DateRangePayload(
+    val startDate: String? = null,
+    val endDate: String? = null,
 )
