@@ -252,9 +252,6 @@ private fun needsSchedule(listingMode: ListingMode, @Suppress("UNUSED_PARAMETER"
     return listingMode != ListingMode.SPLIT
 }
 
-// Duration options matching iOS (minutes)
-private val DURATION_OPTIONS_MINUTES = listOf(15, 30, 60, 90, 120)
-
 private val DAY_LABELS = listOf(
     "Sun" to 0, "Mon" to 1, "Tue" to 2, "Wed" to 3, "Thu" to 4, "Fri" to 5, "Sat" to 6
 )
@@ -1223,7 +1220,31 @@ private fun CreateListingWizardScreen(
                             if (amenities.contains(name)) amenities.remove(name)
                             else amenities.add(name)
                         },
-                        onPricingUnitChange = { selectedPricingUnit = it },
+                        onPricingUnitChange = { newUnit ->
+                            val oldUnit = selectedPricingUnit
+                            selectedPricingUnit = newUnit
+                            // Clear incompatible state when switching pricing modes
+                            if (oldUnit != newUnit) {
+                                when (oldUnit) {
+                                    PricingUnit.HOUR -> {
+                                        selectedDurations.clear()
+                                        startTime = "09:00"
+                                        endTime = "17:00"
+                                    }
+                                    PricingUnit.DAY, PricingUnit.WEEK -> {
+                                        minStay = 1
+                                        maxStay = 7
+                                        checkinTime = "15:00"
+                                        checkoutTime = "11:00"
+                                        selectedDays.clear()
+                                    }
+                                    PricingUnit.MONTH -> {
+                                        minMonths = 1
+                                        availableFrom = ""
+                                    }
+                                }
+                            }
+                        },
                         onLocationLatLngChange = { lat, lng ->
                             locationLat = lat
                             locationLng = lng
