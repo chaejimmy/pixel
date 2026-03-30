@@ -62,6 +62,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -283,6 +284,8 @@ fun CreateListingScreen(
     imageUploadService: ImageUploadService? = null,
     onBackClick: () -> Unit = {},
     onPublishSuccess: (String) -> Unit = {},
+    onGoToMyListings: () -> Unit = {},
+    onBackToHome: () -> Unit = {},
     onPublishListing: (CreateListingRequest) -> Unit = {},
     viewModel: CreateListingViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
@@ -347,17 +350,23 @@ fun CreateListingScreen(
             },
             onBackClick = { phase = "entry" },
         )
-        "wizard" -> CreateListingWizardScreen(
-            listingMode = selectedMode,
-            subCategory = selectedSubCategory,
-            imageUploadService = imageUploadService,
-            draftStore = draftStore,
-            onBackClick = { phase = "subcategory" },
-            onPublishListing = { request ->
-                publishError = null
-                viewModel.publishListing(request)
-            },
-        )
+        "wizard" -> {
+            val vmPublishing by viewModel.isPublishing.collectAsState()
+            CreateListingWizardScreen(
+                listingMode = selectedMode,
+                subCategory = selectedSubCategory,
+                imageUploadService = imageUploadService,
+                draftStore = draftStore,
+                onBackClick = { phase = "subcategory" },
+                onPublishListing = { request ->
+                    publishError = null
+                    viewModel.publishListing(request)
+                },
+                isApiPublishing = vmPublishing,
+                publishError = publishError,
+                onClearPublishError = { publishError = null },
+            )
+        }
         "success" -> PublishSuccessScreen(
             listingId = publishedListingId,
             title = publishedTitle,
@@ -365,12 +374,8 @@ fun CreateListingScreen(
             onViewListing = {
                 onPublishSuccess(publishedListingId)
             },
-            onGoToMyListings = {
-                onPublishSuccess(publishedListingId)
-            },
-            onBackToHome = {
-                onPublishSuccess(publishedListingId)
-            },
+            onGoToMyListings = onGoToMyListings,
+            onBackToHome = onBackToHome,
         )
     }
 }
@@ -770,6 +775,9 @@ private fun CreateListingWizardScreen(
     draftStore: CreateListingDraftStore? = null,
     onBackClick: () -> Unit,
     onPublishListing: (CreateListingRequest) -> Unit,
+    isApiPublishing: Boolean = false,
+    publishError: String? = null,
+    onClearPublishError: () -> Unit = {},
 ) {
     val hasSchedule = needsSchedule(listingMode, subCategory)
     val steps = if (hasSchedule) {
@@ -798,6 +806,8 @@ private fun CreateListingWizardScreen(
     var address by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
+    var locationLat by remember { mutableStateOf(0.0) }
+    var locationLng by remember { mutableStateOf(0.0) }
     var basePrice by remember { mutableStateOf("") }
     val amenities = remember { mutableStateListOf<String>() }
 
@@ -823,14 +833,24 @@ private fun CreateListingWizardScreen(
     var availableFrom by remember { mutableStateOf("") }
 
     var validationMessage by remember { mutableStateOf<String?>(null) }
-    var isPublishing by remember { mutableStateOf(false) }
     var isUploadingOverlay by remember { mutableStateOf(false) }
     var uploadProgressText by remember { mutableStateOf("") }
+
+    // Combined publishing state: uploading images locally OR waiting for API response
+    val isPublishing = isUploadingImages || isApiPublishing
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     val progress = (currentStep + 1).toFloat() / totalSteps
+
+    // Dismiss upload overlay when API call finishes (success transitions to success screen;
+    // error should dismiss overlay so user can see the error and retry)
+    LaunchedEffect(isApiPublishing, publishError) {
+        if (!isApiPublishing && isUploadingOverlay) {
+            isUploadingOverlay = false
+        }
+    }
 
     // iOS parity: validate each step.
     // iOS does NOT enforce a description minimum length — only title is required for basics.
@@ -922,9 +942,10 @@ private fun CreateListingWizardScreen(
             WizardBottomBar(
                 currentStep = currentStep,
                 totalSteps = totalSteps,
-                validationMessage = validationMessage,
+                validationMessage = validationMessage ?: publishError,
                 onBack = {
                     validationMessage = null
+                    onClearPublishError()
                     if (currentStep > 0) currentStep--
                 },
                 onNext = {
@@ -955,8 +976,8 @@ private fun CreateListingWizardScreen(
                         currentStep++
                     } else {
                         // Build payload matching iOS ListingsPublisherService
-                        isPublishing = true
                         isUploadingOverlay = true
+                        onClearPublishError()
                         scope.launch {
                             // iOS parity: upload images to Cloudinary first, fallback to base64
                             val imageUrls = mutableListOf<String>()
@@ -1029,7 +1050,7 @@ private fun CreateListingWizardScreen(
                                 amenities = amenities.ifEmpty { null },
                                 images = imageUrls.ifEmpty { null },
                                 location = if (listingMode != ListingMode.SPLIT && city.isNotBlank()) {
-                                    LocationPayload(lat = 0.0, lng = 0.0, city = city, state = state)
+                                    LocationPayload(lat = locationLat, lng = locationLng, city = city, state = state)
                                 } else null,
                                 durations = if (hasSchedule) selectedDurations.toList() else null,
                                 availability = if (hasSchedule) AvailabilityPayload(
@@ -1047,9 +1068,8 @@ private fun CreateListingWizardScreen(
                             )
                             onPublishListing(request)
                             // ViewModel handles the API call and emits success/error via effects.
-                            // isPublishing will be reset when the effect is received.
-                            isPublishing = false
-                            isUploadingOverlay = false
+                            // isPublishing is now derived from isUploadingImages || isApiPublishing,
+                            // so it stays true until the ViewModel finishes the API call.
                         }
                     }
                 },
@@ -1127,6 +1147,10 @@ private fun CreateListingWizardScreen(
                             else amenities.add(name)
                         },
                         onPricingUnitChange = { selectedPricingUnit = it },
+                        onLocationLatLngChange = { lat, lng ->
+                            locationLat = lat
+                            locationLng = lng
+                        },
                     )
                     step == 2 && hasSchedule -> ScheduleAvailabilityStep(
                         pricingUnit = selectedPricingUnit,
@@ -1337,6 +1361,7 @@ private fun PhotosLocationPricingStep(
     onTotalCostChange: (String) -> Unit,
     onToggleAmenity: (String) -> Unit,
     onPricingUnitChange: (PricingUnit) -> Unit,
+    onLocationLatLngChange: (Double, Double) -> Unit = { _, _ -> },
 ) {
     val isSplit = listingMode == ListingMode.SPLIT
 
@@ -1464,11 +1489,21 @@ private fun PhotosLocationPricingStep(
                                     .fillMaxWidth()
                                     .clickable {
                                         onAddressChange(prediction.description)
-                                        // Try to parse city/state from secondaryText
-                                        val parts = prediction.secondaryText.split(",").map { it.trim() }
-                                        if (parts.isNotEmpty()) onCityChange(parts[0])
-                                        if (parts.size >= 2) onStateChange(parts[1])
                                         addressSuggestions = emptyList()
+                                        // Fetch place details for lat/lng and parsed address components
+                                        scope.launch {
+                                            val details = placesService.getPlaceDetails(prediction.placeId)
+                                            if (details != null) {
+                                                if (details.city.isNotBlank()) onCityChange(details.city)
+                                                if (details.state.isNotBlank()) onStateChange(details.state)
+                                                onLocationLatLngChange(details.lat, details.lng)
+                                            } else {
+                                                // Fallback: parse city/state from secondaryText
+                                                val parts = prediction.secondaryText.split(",").map { it.trim() }
+                                                if (parts.isNotEmpty()) onCityChange(parts[0])
+                                                if (parts.size >= 2) onStateChange(parts[1])
+                                            }
+                                        }
                                     }
                                     .padding(
                                         horizontal = PaceDreamSpacing.MD,
@@ -2188,27 +2223,35 @@ private fun PublishSuccessScreen(
     ) {
         Spacer(modifier = Modifier.weight(1f))
 
-        // Green checkmark (iOS parity)
+        // Green checkmark with animated entrance
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .size(96.dp)
                 .clip(CircleShape)
-                .background(PaceDreamColors.Success.copy(alpha = 0.1f)),
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            PaceDreamColors.Success.copy(alpha = 0.15f),
+                            PaceDreamColors.Success.copy(alpha = 0.05f),
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 PaceDreamIcons.CheckCircle,
                 contentDescription = null,
                 tint = PaceDreamColors.Success,
-                modifier = Modifier.size(PaceDreamIconSize.XXL),
+                modifier = Modifier.size(56.dp),
             )
         }
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         Text(
-            text = "Submitted!",
+            text = "Your listing is submitted!",
             style = PaceDreamTypography.Title2,
             color = PaceDreamColors.TextPrimary,
             fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
@@ -2219,25 +2262,26 @@ private fun PublishSuccessScreen(
             modifier = Modifier.padding(horizontal = 22.dp),
         )
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-        // Under Review banner (iOS parity: orange banner with clock icon)
+        // Under Review banner
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
-                .background(Color(0xFFFFA500).copy(alpha = 0.12f))
-                .padding(14.dp),
+                .background(Color(0xFFFFA500).copy(alpha = 0.10f))
+                .border(1.dp, Color(0xFFFFA500).copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.LG))
+                .padding(16.dp),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
                 PaceDreamIcons.Schedule,
                 contentDescription = null,
                 tint = Color(0xFFFFA500),
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
             )
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = "Under Review",
                     style = PaceDreamTypography.Callout,
@@ -2245,17 +2289,18 @@ private fun PublishSuccessScreen(
                     color = PaceDreamColors.TextPrimary,
                 )
                 Text(
-                    text = "Your listing is being reviewed and will be visible once approved.",
+                    text = "Your listing is being reviewed and will be visible once approved. We\u2019ll notify you when it\u2019s live.",
                     style = PaceDreamTypography.Caption,
                     fontWeight = FontWeight.Medium,
                     color = PaceDreamColors.TextSecondary,
+                    lineHeight = PaceDreamTypography.Caption.lineHeight,
                 )
             }
         }
 
-        // Cover image preview (iOS parity)
+        // Cover image preview
         if (coverUrl != null && coverUrl.startsWith("http")) {
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             AsyncImage(
                 model = coverUrl,
                 contentDescription = "Listing cover",
@@ -2263,20 +2308,31 @@ private fun PublishSuccessScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
-                    .clip(RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG)),
             )
         }
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 3 CTAs matching iOS: View Listing, Go to My Listings, Back to Home
+        // What's next section
+        Text(
+            text = "What\u2019s next?",
+            style = PaceDreamTypography.Callout,
+            color = PaceDreamColors.TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = PaceDreamSpacing.MD),
+        )
+
+        // 3 CTAs: View Listing, Go to My Listings, Back to Home
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = PaceDreamSpacing.XL),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            // Primary: View Listing (iOS parity)
+            // Primary: View Listing
             Button(
                 onClick = onViewListing,
                 modifier = Modifier
@@ -2286,10 +2342,16 @@ private fun PublishSuccessScreen(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
+                Icon(
+                    PaceDreamIcons.Visibility,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text("View Listing", style = PaceDreamTypography.Button)
             }
 
-            // Secondary: Go to My Listings (iOS parity)
+            // Secondary: Go to My Listings
             Button(
                 onClick = onGoToMyListings,
                 modifier = Modifier
@@ -2302,6 +2364,12 @@ private fun PublishSuccessScreen(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
             ) {
+                Icon(
+                    PaceDreamIcons.ListIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     "Go to My Listings",
                     style = PaceDreamTypography.Button,
@@ -2309,11 +2377,20 @@ private fun PublishSuccessScreen(
                 )
             }
 
-            // Tertiary: Back to Home (iOS parity)
+            // Tertiary: Back to Home
             TextButton(
                 onClick = onBackToHome,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(PaceDreamButtonHeight.MD),
             ) {
+                Icon(
+                    PaceDreamIcons.Home,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     "Back to Home",
                     style = PaceDreamTypography.Button,
