@@ -65,6 +65,11 @@ class ChatViewModel @Inject constructor(
                 }
             }
 
+            // Mark messages in this chat as read
+            launch {
+                messageRepository.markChatAsReadOnServer(chatId)
+            }
+
             messageRepository.getChatMessages(chatId).collect { result ->
                 when (result) {
                     is Result.Success -> {

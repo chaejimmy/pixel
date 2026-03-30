@@ -230,6 +230,24 @@ class MessageRepository @Inject constructor(
         }
     }
 
+    /**
+     * Mark all messages in a chat as read on the server.
+     * Also updates the local database.
+     */
+    suspend fun markChatAsReadOnServer(chatId: String): Result<Unit> {
+        return try {
+            val response = apiService.markChatAsRead(mapOf("chat_id" to chatId))
+            if (response.isSuccessful) {
+                // Also update local cache
+                messageDao.markMessagesAsRead(chatId)
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            timber.log.Timber.w(e, "Failed to mark chat $chatId as read on server")
+            Result.Error(e)
+        }
+    }
+
     suspend fun refreshChatMessages(chatId: String): Result<Unit> {
         return try {
             val response = apiService.getChatMessages(chatId)

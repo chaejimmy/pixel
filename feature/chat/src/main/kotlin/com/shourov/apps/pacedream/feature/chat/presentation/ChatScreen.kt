@@ -592,10 +592,22 @@ private fun MessageInput(
             OutlinedTextField(
                 value = message,
                 onValueChange = onMessageChange,
-                placeholder = { Text("Type a message...") },
+                placeholder = {
+                    Text(
+                        "Type a message...",
+                        style = PaceDreamDesignSystem.PaceDreamTypography.Body,
+                        color = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.5f)
+                    )
+                },
                 modifier = Modifier.weight(1f),
                 maxLines = 4,
-                shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD)
+                shape = RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                    unfocusedBorderColor = PaceDreamDesignSystem.PaceDreamColors.OnSurface.copy(alpha = 0.12f),
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent
+                )
             )
 
             Spacer(modifier = Modifier.width(PaceDreamDesignSystem.PaceDreamSpacing.SM))

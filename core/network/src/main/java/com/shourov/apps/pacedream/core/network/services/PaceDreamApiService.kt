@@ -296,6 +296,11 @@ interface PaceDreamApiService {
         @Path("messageId") messageId: String
     ): Response<ApiResponse<MessageResponse>>
 
+    @PUT(ApiEndPoints.MARK_CHAT_AS_READ)
+    suspend fun markChatAsRead(
+        @Body body: Map<String, String>
+    ): Response<ApiResponse<Unit>>
+
     @GET(ApiEndPoints.CHAT_ATTACHMENT_STATUS)
     suspend fun getAttachmentStatus(
         @Path("threadId") threadId: String
