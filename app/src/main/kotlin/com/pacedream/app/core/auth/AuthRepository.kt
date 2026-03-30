@@ -47,6 +47,94 @@ class AuthRepository @Inject constructor(
         return apiClient.post(url, body, includeAuth = false)
     }
 
+    // ── Website parity: 3-step OTP signup flow ──────────────────
+
+    /**
+     * Step 1: Initiate email signup - sends verification code to email.
+     * Website: POST /auth/signup/initiate { email }
+     */
+    suspend fun initiateEmailSignup(email: String): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "initiate")
+        val body = """{"email":"$email"}"""
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
+    /**
+     * Step 1 (mobile): Send SMS OTP for mobile signup.
+     * Website: POST /auth/signup/send-sms-otp { mobile }
+     */
+    suspend fun initiateMobileSignup(mobile: String): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "send-sms-otp")
+        val body = """{"mobile":"$mobile"}"""
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
+    /**
+     * Step 2: Verify email OTP code.
+     * Website: POST /auth/signup/verify-email-otp { email, code }
+     */
+    suspend fun verifyEmailOtp(email: String, code: String): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "verify-email-otp")
+        val body = """{"email":"$email","code":"$code"}"""
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
+    /**
+     * Step 2 (mobile): Verify SMS OTP code.
+     * Website: POST /auth/signup/verify-sms-otp { mobile, otp }
+     */
+    suspend fun verifySmsOtp(mobile: String, otp: String): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "verify-sms-otp")
+        val body = """{"mobile":"$mobile","otp":"$otp"}"""
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
+    /**
+     * Step 3: Complete email signup with form data.
+     * Website: POST /auth/signup/complete { email, firstName, lastName, password, ... }
+     */
+    suspend fun completeEmailSignup(
+        email: String,
+        firstName: String,
+        lastName: String,
+        password: String
+    ): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "complete")
+        val body = json.encodeToString(
+            EmailSignupCompleteRequest.serializer(),
+            EmailSignupCompleteRequest(
+                email = email,
+                firstName = firstName,
+                lastName = lastName,
+                password = password
+            )
+        )
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
+    /**
+     * Step 3 (mobile): Complete mobile signup with form data.
+     * Website: POST /auth/signup/complete-mobile { mobile, firstName, lastName, password, ... }
+     */
+    suspend fun completeMobileSignup(
+        mobile: String,
+        firstName: String,
+        lastName: String,
+        password: String
+    ): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "signup", "complete-mobile")
+        val body = json.encodeToString(
+            MobileSignupCompleteRequest.serializer(),
+            MobileSignupCompleteRequest(
+                mobile = mobile,
+                firstName = firstName,
+                lastName = lastName,
+                password = password
+            )
+        )
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
     suspend fun auth0Callback(auth0AccessToken: String, auth0IdToken: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "auth0", "callback")
         val body = json.encodeToString(
@@ -114,5 +202,22 @@ data class EmailSignupRequest(
     val password: String,
     val dob: String? = null,
     val gender: String? = null
+)
+
+// Website parity: 3-step signup completion request models
+@Serializable
+data class EmailSignupCompleteRequest(
+    val email: String,
+    val firstName: String,
+    val lastName: String,
+    val password: String
+)
+
+@Serializable
+data class MobileSignupCompleteRequest(
+    val mobile: String,
+    val firstName: String,
+    val lastName: String,
+    val password: String
 )
 

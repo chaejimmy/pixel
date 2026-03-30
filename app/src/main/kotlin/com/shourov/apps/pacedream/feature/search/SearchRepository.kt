@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import timber.log.Timber
@@ -303,13 +304,61 @@ class SearchRepository @Inject constructor(
             ?: (obj["price"] as? JsonObject)?.get("amount")?.stringOrNull()?.let { normalizePriceText(it) }
             ?: (obj["pricing"] as? JsonObject)?.get("price")?.stringOrNull()?.let { normalizePriceText(it) }
 
+        // Website parity: additional fields from SearchCardItem
+        val reviewCount = obj["reviewCount"]?.jsonPrimitive?.intOrNull
+            ?: obj["review_count"]?.jsonPrimitive?.intOrNull
+            ?: obj["reviewsCount"]?.jsonPrimitive?.intOrNull
+
+        val category = obj["category"].stringOrNull()
+            ?: obj["core_category"].stringOrNull()
+            ?: obj["shareType"].stringOrNull()
+
+        val available = obj["available"]?.jsonPrimitive?.booleanOrNull
+            ?: obj["isAvailable"]?.jsonPrimitive?.booleanOrNull
+            ?: true
+
+        val isNew = obj["isNew"]?.jsonPrimitive?.booleanOrNull ?: false
+
+        val hostObj = obj["host"] as? JsonObject
+            ?: obj["owner"] as? JsonObject
+        val hostName = hostObj?.get("name").stringOrNull()
+            ?: hostObj?.let {
+                val fn = it["firstName"].stringOrNull() ?: it["first_name"].stringOrNull()
+                val ln = it["lastName"].stringOrNull() ?: it["last_name"].stringOrNull()
+                listOfNotNull(fn, ln).joinToString(" ").trim().ifBlank { null }
+            }
+            ?: obj["hostName"].stringOrNull()
+        val hostAvatar = hostObj?.get("avatar").stringOrNull()
+            ?: hostObj?.get("profileImage").stringOrNull()
+            ?: obj["hostAvatar"].stringOrNull()
+
+        // Collect all images for gallery
+        val images = buildList {
+            (obj["images"] as? JsonArray)?.forEach { el ->
+                el.stringOrNull()?.let { add(it) }
+            }
+            (obj["gallery"] as? JsonObject)?.let { gallery ->
+                (gallery["images"] as? JsonArray)?.forEach { el ->
+                    el.stringOrNull()?.let { add(it) }
+                }
+            }
+            imageUrl?.let { if (!contains(it)) add(0, it) }
+        }.distinct()
+
         SearchResultItem(
             id = id,
             title = title,
             location = location,
             imageUrl = imageUrl,
+            images = images,
             priceText = priceText,
-            rating = rating
+            rating = rating,
+            reviewCount = reviewCount,
+            category = category,
+            available = available,
+            isNew = isNew,
+            hostName = hostName,
+            hostAvatar = hostAvatar
         )
     } catch (e: Exception) {
         Timber.w(e, "Skipping unparseable search item")

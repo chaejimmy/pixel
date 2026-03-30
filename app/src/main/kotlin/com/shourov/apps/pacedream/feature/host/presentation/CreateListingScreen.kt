@@ -847,13 +847,19 @@ private fun CreateListingWizardScreen(
         }
     }
 
-    // iOS parity: validate each step.
-    // iOS does NOT enforce a description minimum length — only title is required for basics.
+    // Website parity: validate each step matching website's Zod schemas.
+    // Website stepBasicsSchema: title 10-100 chars, description 20-2000 chars.
     fun validateStep(step: Int): String? {
         return when (step) {
             0 -> {
                 if (title.isBlank()) return "Title is required."
                 if (title.trim().length < 10) return "Title must be at least 10 characters."
+                if (title.trim().length > 100) return "Title must be 100 characters or fewer."
+                // Website parity: description is required (20-2000 chars)
+                if (description.isNotBlank()) {
+                    if (description.trim().length < 20) return "Description must be at least 20 characters."
+                    if (description.trim().length > 2000) return "Description must be 2,000 characters or fewer."
+                }
                 null
             }
             1 -> {

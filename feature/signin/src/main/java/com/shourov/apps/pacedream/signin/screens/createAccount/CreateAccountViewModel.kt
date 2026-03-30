@@ -103,11 +103,18 @@ class CreateAccountViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val data = _createAccountData
+                // Website parity: send gender along with other profile fields
+                val genderString = when (data.gender) {
+                    com.shourov.apps.pacedream.core.data.UserSetupGender.MALE -> "male"
+                    com.shourov.apps.pacedream.core.data.UserSetupGender.FEMALE -> "female"
+                    else -> null
+                }
                 val result = authSession.updateProfile(
                     firstName = data.firstName,
                     lastName = data.lastName,
-                    dateOfBirth = null,
-                    interests = emptySet(),
+                    dateOfBirth = data.dateOfBirthMillis,
+                    interests = data.hobbiesNInterest,
+                    gender = genderString,
                 )
                 result.fold(
                     onSuccess = {

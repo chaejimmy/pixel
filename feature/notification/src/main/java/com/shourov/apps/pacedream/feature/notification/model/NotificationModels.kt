@@ -6,7 +6,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * App notification model matching iOS AppNotification
+ * App notification model matching iOS AppNotification and website NotificationItem.
+ * Website fields: _id, title, body/message, event, readAt, deepLink, data
  */
 data class AppNotification(
     val id: String,
@@ -14,7 +15,9 @@ data class AppNotification(
     val body: String,
     val type: String,
     val isRead: Boolean,
-    val createdAt: String
+    val createdAt: String,
+    val deepLink: String? = null,
+    val data: Map<String, String>? = null
 ) {
     val parsedDate: Date
         get() {
