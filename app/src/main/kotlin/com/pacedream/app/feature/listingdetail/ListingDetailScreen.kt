@@ -62,14 +62,6 @@ import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.*
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.GoogleMapOptions
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.android.gms.maps.model.CameraPosition
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyRow
@@ -2309,28 +2301,28 @@ private fun MapPreviewCard(
         val mapsEnabled = mapsKey.isNotBlank()
 
         if (mapCoordinate != null && mapsEnabled) {
-            val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(mapCoordinate, 15f)
-            }
-            GoogleMap(
+            // Use Maps Static API – works with any key that has Static Maps enabled,
+            // avoids the Maps SDK for Android dependency on the API key restrictions.
+            val lat = mapCoordinate.latitude
+            val lng = mapCoordinate.longitude
+            val staticMapUrl = "https://maps.googleapis.com/maps/api/staticmap" +
+                "?center=$lat,$lng" +
+                "&zoom=15" +
+                "&size=600x300" +
+                "&scale=2" +
+                "&markers=color:red%7C$lat,$lng" +
+                "&key=$mapsKey"
+
+            val context = LocalContext.current
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(staticMapUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Map showing location",
                 modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                googleMapOptionsFactory = { GoogleMapOptions().liteMode(true) },
-                properties = MapProperties(),
-                uiSettings = MapUiSettings(
-                    zoomControlsEnabled = false,
-                    zoomGesturesEnabled = false,
-                    scrollGesturesEnabled = false,
-                    tiltGesturesEnabled = false,
-                    rotationGesturesEnabled = false,
-                    mapToolbarEnabled = false
-                )
-            ) {
-                Marker(
-                    state = MarkerState(position = mapCoordinate),
-                    title = "Location"
-                )
-            }
+                contentScale = ContentScale.Crop
+            )
         } else if (mapCoordinate != null && !mapsEnabled) {
             // Static map fallback using OpenStreetMap embed when no Google Maps key
             Box(modifier = Modifier.fillMaxSize()) {
