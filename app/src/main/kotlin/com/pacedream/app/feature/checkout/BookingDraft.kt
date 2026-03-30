@@ -11,6 +11,11 @@ data class BookingDraft(
     val startTimeISO: String, // yyyy-MM-ddTHH:mm:ss
     val endTimeISO: String, // yyyy-MM-ddTHH:mm:ss
     val guests: Int,
+    // Website parity: granular guest breakdown matching website checkout
+    // Website sends { guests: { adults, children, infants } }
+    val adults: Int = 1,
+    val children: Int = 0,
+    val infants: Int = 0,
     val totalAmountEstimate: Double? = null
 )
 

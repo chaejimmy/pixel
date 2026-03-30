@@ -18,12 +18,16 @@ enum class BookingStatus {
             // Map server-side status variants to enum values
             val s = status.lowercase()
             return when {
-                s == "accepted" || s == "confirmed" -> CONFIRMED
+                // Website parity: 'active', 'ongoing', 'booked' → confirmed
+                s == "accepted" || s == "confirmed" || s == "active" ||
+                    s == "ongoing" || s == "booked" || s == "paid" ||
+                    s == "succeeded" || s == "captured" -> CONFIRMED
                 s == "declined" || s == "rejected" -> REJECTED
-                s.contains("cancel") || s.contains("refund") -> CANCELLED
+                s.contains("cancel") || s.contains("refund") ||
+                    s == "failed" || s == "expired" || s == "void" -> CANCELLED
                 s == "completed" || s.contains("finish") -> COMPLETED
                 s == "created" || s == "pending_host" || s == "requires_capture" ||
-                    s.contains("pending") || s.contains("await") || s == "ongoing" -> PENDING
+                    s.contains("pending") || s.contains("await") -> PENDING
                 else -> PENDING
             }
         }
