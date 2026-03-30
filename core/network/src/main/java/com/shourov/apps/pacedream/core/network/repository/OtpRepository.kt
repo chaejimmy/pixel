@@ -25,12 +25,16 @@ class OtpRepository @Inject constructor(
 ) {
     
     /**
-     * Send OTP to phone number
+     * Send OTP to phone number.
+     * Website parity: POST /auth/phone/send-otp with { mobile }.
+     * Falls back to legacy /auth/otp/send if primary fails.
      */
     suspend fun sendOTP(phone: String): Result<OtpSendResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = otpService.sendOTP(OtpSendRequest(phone))
-            
+            val request = OtpSendRequest(phone)
+            // Primary: website-parity endpoint
+            val response = otpService.sendOTP(request)
+
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body == null) {
@@ -42,15 +46,29 @@ class OtpRepository @Inject constructor(
                     Result.failure(parseError(body.error))
                 }
             } else if (response.code() == 429) {
-                // Rate limited
                 val retryAfter = response.headers()["Retry-After"]
                 Result.failure(OtpError.RateLimited(retryAfter))
             } else {
-                Result.failure(OtpError.NetworkError("Failed to send OTP"))
+                // Fallback to legacy endpoint
+                Timber.d("sendOTP: primary endpoint failed (${response.code()}), trying legacy")
+                val legacy = otpService.sendOTPLegacy(request)
+                handleSendResponse(legacy)
             }
         } catch (e: Exception) {
             Timber.e(e, "Error sending OTP")
             Result.failure(OtpError.NetworkError(e.message ?: "Network error"))
+        }
+    }
+
+    private fun handleSendResponse(response: Response<OtpSendResponse>): Result<OtpSendResponse> {
+        return if (response.isSuccessful) {
+            val body = response.body()
+            if (body != null && body.ok) Result.success(body)
+            else Result.failure(parseError(body?.error))
+        } else if (response.code() == 429) {
+            Result.failure(OtpError.RateLimited(response.headers()["Retry-After"]))
+        } else {
+            Result.failure(OtpError.NetworkError("Failed to send OTP"))
         }
     }
 

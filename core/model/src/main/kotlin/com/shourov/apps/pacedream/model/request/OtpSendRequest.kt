@@ -4,9 +4,9 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Request model for sending OTP
- * POST /auth/otp/send
+ * Website parity: POST /auth/phone/send-otp with { mobile }
  */
 data class OtpSendRequest(
-    @SerializedName("phone")
+    @SerializedName("mobile")
     val phone: String
 )
