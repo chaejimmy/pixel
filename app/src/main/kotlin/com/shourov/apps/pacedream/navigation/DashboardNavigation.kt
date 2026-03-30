@@ -105,6 +105,18 @@ fun NavGraphBuilder.DashboardNavigation(
                 val badgesViewModel = hiltViewModel<DashboardBadgesViewModel>()
                 val inboxUnread by badgesViewModel.inboxUnread.collectAsStateWithLifecycle()
 
+                // Refresh badge counts when returning from thread screens
+                val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                    val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                            badgesViewModel.refreshInboxUnread()
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+                }
+
                 // iOS-parity: allow other screens to request switching tabs.
                 LaunchedEffect(navController) {
                     TabRouter.events.collectLatest { destination ->

@@ -60,6 +60,7 @@ object ApiEndPoints {
     const val CREATE_CHAT = "chats"
     const val SEND_MESSAGE = "chats/{chatId}/messages"
     const val MARK_MESSAGE_READ = "chats/{chatId}/messages/{messageId}/read"
+    const val MARK_CHAT_AS_READ = "chat/mark-chat-as-read"
 
     // ── Notifications ─────────────────────────────────────
     const val GET_NOTIFICATIONS = "notifications"

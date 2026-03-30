@@ -204,6 +204,22 @@ class InboxRepository @Inject constructor(
     }
 
     /**
+     * Mark a thread as read on the server.
+     * POST /v1/inbox/threads/:id/read
+     */
+    suspend fun markThreadAsRead(threadId: String): ApiResult<Boolean> {
+        val url = appConfig.buildApiUrl("inbox", "threads", threadId, "read")
+
+        return when (val result = apiClient.post(url, "{}", includeAuth = true)) {
+            is ApiResult.Success -> ApiResult.Success(true)
+            is ApiResult.Failure -> {
+                Timber.e("InboxRepository: markThreadAsRead FAILED — ${result.error.message}")
+                result
+            }
+        }
+    }
+
+    /**
      * Archive a thread
      */
     suspend fun archiveThread(threadId: String): ApiResult<Boolean> {

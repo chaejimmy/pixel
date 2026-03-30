@@ -280,17 +280,31 @@ class InboxViewModel @Inject constructor(
     /**
      * Mark thread as locally read when entering a thread (matches iOS markThreadReadLocally).
      * Optimistically reduces unread count in the UI without waiting for a server round-trip.
+     * Also decrements the unread counts used by mode-toggle badges.
      */
     fun markThreadReadLocally(threadId: String) {
         val currentState = _uiState.value as? InboxUiState.Success ?: return
+        var decremented = 0
         val updated = currentState.threads.map { thread ->
             if (thread.id == threadId && thread.hasUnread) {
+                decremented = thread.unreadCount
                 thread.copy(unreadCount = 0)
             } else {
                 thread
             }
         }
-        _uiState.value = currentState.copy(threads = updated)
+        if (decremented > 0) {
+            // Optimistically reduce the mode-specific unread counter
+            val counts = _unreadCounts.value
+            val newCounts = when (_currentMode.value) {
+                InboxMode.GUEST -> counts.copy(guestUnread = (counts.guestUnread - decremented).coerceAtLeast(0))
+                InboxMode.HOST -> counts.copy(hostUnread = (counts.hostUnread - decremented).coerceAtLeast(0))
+            }
+            _unreadCounts.value = newCounts
+            _uiState.value = currentState.copy(threads = updated, unreadCounts = newCounts)
+        } else {
+            _uiState.value = currentState.copy(threads = updated)
+        }
     }
 }
 

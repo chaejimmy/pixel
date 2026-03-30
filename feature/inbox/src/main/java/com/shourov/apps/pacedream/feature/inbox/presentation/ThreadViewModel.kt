@@ -50,8 +50,22 @@ class ThreadViewModel @Inject constructor(
         if (threadId.isNotBlank()) {
             loadThreadDetails()
             loadMessages()
+            markThreadAsRead()
         } else {
             _uiState.value = ThreadDetailUiState.Error("Invalid thread ID")
+        }
+    }
+
+    /**
+     * Mark the thread as read on the server when the user opens it.
+     * Fire-and-forget: UI is updated optimistically via InboxViewModel.markThreadReadLocally.
+     */
+    private fun markThreadAsRead() {
+        viewModelScope.launch {
+            val result = inboxRepository.markThreadAsRead(threadId)
+            if (result is ApiResult.Failure) {
+                Timber.w("Failed to mark thread $threadId as read on server: ${result.error.message}")
+            }
         }
     }
 
