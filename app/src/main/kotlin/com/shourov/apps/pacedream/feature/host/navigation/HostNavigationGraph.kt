@@ -182,12 +182,21 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // Pop back to listings and navigate to the new listing detail if we have a valid ID
+                // View Listing → navigate to listing detail
                 navController.popBackStack()
                 if (listingId.isNotBlank() && listingId != "created") {
                     onNavigateToProperty(listingId)
                 }
-            }
+            },
+            onGoToMyListings = {
+                // Go to My Listings → navigate to host listings tab
+                navController.popBackStack()
+                navController.navigate(HostScreen.Listings.route) { launchSingleTop = true }
+            },
+            onBackToHome = {
+                // Back to Home → pop all the way to dashboard
+                navController.popBackStack(HostScreen.Dashboard.route, inclusive = false)
+            },
         )
     }
 
@@ -213,7 +222,14 @@ fun NavGraphBuilder.HostNavigationGraph(
                 if (listingId.isNotBlank() && listingId != "created") {
                     onNavigateToProperty(listingId)
                 }
-            }
+            },
+            onGoToMyListings = {
+                navController.popBackStack()
+                navController.navigate(HostScreen.Listings.route) { launchSingleTop = true }
+            },
+            onBackToHome = {
+                navController.popBackStack(HostScreen.Dashboard.route, inclusive = false)
+            },
         )
     }
 }
