@@ -151,8 +151,14 @@ class CheckoutViewModel @Inject constructor(
         put("startDate", draft.date)
         put("endDate", draft.date)
 
-        // Guests
-        put("guests", draft.guests)
+        // Website parity: send guests as object { adults, children, infants }
+        // AND as flat integer for backward compatibility
+        put("guests", buildJsonObject {
+            put("adults", draft.adults)
+            put("children", draft.children)
+            put("infants", draft.infants)
+        })
+        put("guestCount", draft.guests)
 
         // Amount (required by the backend)
         draft.totalAmountEstimate?.let {

@@ -230,19 +230,23 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true) }
 
-            // Fetch USE listings once and split into spaces vs services (matches website)
+            // Website parity: fetch 3 sections in parallel
+            // Section 1: Hourly Spaces (shareType=USE, non-service)
+            // Section 2: Rental Items (shareType=BORROW)
+            // Section 3: Events (shareType=SPLIT) — website shows SPLIT here, not services
             val useListingsDeferred = async { fetchUseListings() }
             val rentGearDeferred = async { fetchRentGear() }
+            val splitListingsDeferred = async { fetchSplitListings() }
 
             val useListings = useListingsDeferred.await()
             val rentGear = rentGearDeferred.await()
+            val splitListings = splitListingsDeferred.await()
 
-            // Split USE listings into spaces and services (website parity:
-            // check both shareCategory and subCategory/room_type).
-            val (spaces, services) = if (useListings.second != null) {
-                Pair(emptyList<HomeListingItem>(), emptyList<HomeListingItem>())
+            // Spaces = USE listings excluding service categories
+            val spaces = if (useListings.second != null) {
+                emptyList()
             } else {
-                useListings.first.partition { !isServiceListing(it) }
+                useListings.first.filter { !isServiceListing(it) }
             }
 
             _uiState.update {
@@ -253,10 +257,10 @@ class HomeViewModel @Inject constructor(
                     isLoadingSplitStays = false,
                     hourlySpaces = spaces,
                     rentGear = rentGear.first,
-                    splitStays = services,
+                    splitStays = splitListings.first,
                     hourlySpacesError = useListings.second,
                     rentGearError = rentGear.second,
-                    splitStaysError = useListings.second
+                    splitStaysError = splitListings.second
                 )
             }
         }
@@ -316,6 +320,36 @@ class HomeViewModel @Inject constructor(
             }
             is ApiResult.Failure -> {
                 Timber.w("Failed to fetch rent gear: ${result.error.message}")
+                Pair(emptyList(), result.error.message)
+            }
+        }
+    }
+
+    /**
+     * Website parity: Fetch SPLIT listings (Events section).
+     * Website shows shareType=SPLIT as "Events" (subscriptions, sports, cost-sharing).
+     * GET /v1/poc/listings?shareType=SPLIT&status=published&limit=24&skip_pagination=true
+     */
+    private suspend fun fetchSplitListings(): Pair<List<HomeListingItem>, String?> {
+        _uiState.update { it.copy(isLoadingSplitStays = true) }
+
+        val url = appConfig.buildApiUrl(
+            "poc", "listings",
+            queryParams = mapOf(
+                "shareType" to "SPLIT",
+                "status" to "published",
+                "limit" to "24",
+                "skip_pagination" to "true"
+            )
+        )
+
+        return when (val result = apiClient.get(url, includeAuth = false)) {
+            is ApiResult.Success -> {
+                val items = parseListingsFromResponse(result.data, "split")
+                Pair(items, null)
+            }
+            is ApiResult.Failure -> {
+                Timber.w("Failed to fetch SPLIT listings: ${result.error.message}")
                 Pair(emptyList(), result.error.message)
             }
         }
@@ -448,22 +482,22 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Normalize backend frequency strings to short display labels matching iOS.
-     * Maps backend values like "HOUR", "hourly", "daily", "MONTH" etc.
+     * Website parity: normalize backend frequency strings to display labels.
+     * Website uses full words: "hour", "day", "week", "month".
      */
     private fun formatPriceUnit(frequency: String): String {
         return when (frequency.lowercase().trim()) {
-            "hourly", "hour", "hr" -> "hr"
+            "hourly", "hour", "hr" -> "hour"
             "daily", "day" -> "day"
-            "weekly", "week", "wk" -> "wk"
-            "monthly", "month", "mo" -> "mo"
+            "weekly", "week", "wk" -> "week"
+            "monthly", "month", "mo" -> "month"
             "once" -> "total"
             else -> frequency.lowercase()
         }
     }
 
     /**
-     * Format price to match iOS format: "$12/hr" (no spaces, lowercase unit)
+     * Website parity: format price as "$12/hour" (no spaces, full unit word)
      * When unit is null, displays price without suffix (e.g. "$12")
      */
     private fun formatPrice(amount: Double, unit: String?): String {

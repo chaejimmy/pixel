@@ -4,11 +4,11 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Request model for verifying OTP
- * POST /auth/otp/check
+ * Website parity: POST /auth/phone/verify-otp with { mobile, otp }
  */
 data class OtpCheckRequest(
-    @SerializedName("phone")
+    @SerializedName("mobile")
     val phone: String,
-    @SerializedName("code")
+    @SerializedName("otp")
     val code: String
 )

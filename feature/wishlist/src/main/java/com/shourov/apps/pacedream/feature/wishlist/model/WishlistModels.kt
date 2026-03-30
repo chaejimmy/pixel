@@ -28,12 +28,13 @@ data class WishlistItem(
         }
 
     companion object {
+        /** Website parity: use full words ("hour", "day", "week", "month") */
         fun formatPriceUnit(frequency: String): String {
             return when (frequency.lowercase().trim()) {
-                "hourly", "hour", "hr" -> "hr"
+                "hourly", "hour", "hr" -> "hour"
                 "daily", "day" -> "day"
-                "weekly", "week" -> "wk"
-                "monthly", "month", "mo" -> "mo"
+                "weekly", "week", "wk" -> "week"
+                "monthly", "month", "mo" -> "month"
                 else -> frequency.lowercase()
             }
         }

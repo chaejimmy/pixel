@@ -174,15 +174,23 @@ class AuthSession constructor(
         
         val client = apiClient ?: return false
         
-        // Try primary refresh endpoint
+        // Try primary refresh endpoint (Android)
         val primaryUrl = appConfig.buildApiUrl("auth", "refresh-token")
         val body = json.encodeToString(RefreshTokenRequest.serializer(), RefreshTokenRequest(refreshToken))
-        
+
         var result = client.post(primaryUrl, body, includeAuth = false)
-        
+
         if (result is ApiResult.Failure) {
-            // Try fallback endpoint via frontend proxy
-            Timber.d("Primary refresh failed, trying fallback")
+            // Website parity: try /auth/token-proxy/refresh with { refresh_token } (snake_case)
+            Timber.d("Primary refresh failed, trying website token-proxy endpoint")
+            val webUrl = appConfig.buildApiUrl("auth", "token-proxy", "refresh")
+            val webBody = """{"refresh_token":"$refreshToken"}"""
+            result = client.post(webUrl, webBody, includeAuth = false)
+        }
+
+        if (result is ApiResult.Failure) {
+            // Final fallback: frontend proxy
+            Timber.d("Token-proxy refresh failed, trying frontend proxy")
             val fallbackUrl = appConfig.buildFrontendUrl("api", "proxy", "auth", "refresh-token")
             result = client.post(fallbackUrl, body, includeAuth = false)
         }
@@ -866,6 +874,6 @@ data class EmailRegisterRequest(
 @Serializable
 data class ForgotPasswordEmailRequest(
     val email: String,
-    val method: String = "email"
+    val method: String = "custom_email" // Website parity: "custom_email" not "email"
 )
 

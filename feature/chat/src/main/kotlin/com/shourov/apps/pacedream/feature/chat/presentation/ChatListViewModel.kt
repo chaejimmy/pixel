@@ -91,11 +91,21 @@ class ChatListViewModel @Inject constructor(
                 lastMessage?.senderId ?: ""
             }
 
+            // Website parity: extract real user name from message data when available
+            val otherUserName = sortedMessages
+                .firstOrNull { it.senderId != currentUserId }
+                ?.let { it.userName?.takeIf { n -> n.isNotBlank() } }
+                ?: otherUserId.takeIf { it.isNotBlank() }
+                ?: "Unknown"
+            val otherUserAvatar = sortedMessages
+                .firstOrNull { it.senderId != currentUserId }
+                ?.profilePic?.takeIf { it.isNotBlank() }
+
             ChatItem(
                 chatId = chatId,
                 otherUserId = otherUserId,
-                otherUserName = "User $otherUserId",
-                otherUserAvatar = null,
+                otherUserName = otherUserName,
+                otherUserAvatar = otherUserAvatar,
                 lastMessage = lastMessage?.displayText ?: "",
                 lastMessageTime = lastMessage?.timestamp ?: "",
                 unreadCount = messageList.count { !it.isRead && it.receiverId == currentUserId }
