@@ -8,4 +8,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface LocationServiceEntryPoint {
     fun locationService(): LocationService
+    fun placesAutocompleteService(): PlacesAutocompleteService
 }

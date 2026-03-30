@@ -97,10 +97,15 @@ import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.data.ListingDraftData
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
+import com.pacedream.app.core.location.LocationServiceEntryPoint
+import com.pacedream.app.core.location.PlacePrediction
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.shourov.apps.pacedream.feature.host.data.PricingPayload
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.model.PricingUnit
-import kotlinx.coroutines.launch
 import java.util.TimeZone
 
 /**
@@ -1410,9 +1415,31 @@ private fun PhotosLocationPricingStep(
 
         // Location
         FormSection(title = if (isSplit) "Location (optional)" else "Location") {
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+            val placesService = remember {
+                EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    LocationServiceEntryPoint::class.java
+                ).placesAutocompleteService()
+            }
+            var addressSuggestions by remember { mutableStateOf<List<PlacePrediction>>(emptyList()) }
+            var addressJob by remember { mutableStateOf<Job?>(null) }
+
             OutlinedTextField(
                 value = address,
-                onValueChange = onAddressChange,
+                onValueChange = { newAddr ->
+                    onAddressChange(newAddr)
+                    addressJob?.cancel()
+                    if (newAddr.trim().length >= 3) {
+                        addressJob = scope.launch {
+                            delay(300)
+                            addressSuggestions = placesService.getAddressAutocompletePredictions(newAddr.trim())
+                        }
+                    } else {
+                        addressSuggestions = emptyList()
+                    }
+                },
                 label = { Text("Search address\u2026", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -1422,6 +1449,60 @@ private fun PhotosLocationPricingStep(
                     unfocusedBorderColor = PaceDreamColors.Border,
                 ),
             )
+            // Address autocomplete suggestions
+            if (addressSuggestions.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Column {
+                        addressSuggestions.forEach { prediction ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAddressChange(prediction.description)
+                                        // Try to parse city/state from secondaryText
+                                        val parts = prediction.secondaryText.split(",").map { it.trim() }
+                                        if (parts.isNotEmpty()) onCityChange(parts[0])
+                                        if (parts.size >= 2) onStateChange(parts[1])
+                                        addressSuggestions = emptyList()
+                                    }
+                                    .padding(
+                                        horizontal = PaceDreamSpacing.MD,
+                                        vertical = PaceDreamSpacing.SM
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.LocationOn,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.TextSecondary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = prediction.mainText,
+                                        style = PaceDreamTypography.Callout,
+                                        fontWeight = FontWeight.Medium,
+                                        color = PaceDreamColors.TextPrimary,
+                                    )
+                                    if (prediction.secondaryText.isNotBlank()) {
+                                        Text(
+                                            text = prediction.secondaryText,
+                                            style = PaceDreamTypography.Caption,
+                                            color = PaceDreamColors.TextSecondary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
