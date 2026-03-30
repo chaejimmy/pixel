@@ -88,6 +88,10 @@ import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import com.pacedream.app.core.location.LocationService
 import com.pacedream.app.core.location.LocationServiceEntryPoint
+import com.pacedream.app.core.location.PlacePrediction
+import com.pacedream.app.core.location.PlacesAutocompleteService
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -182,12 +186,16 @@ fun SearchScreen(
     // Category filter state
     var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
 
-    val locationService = remember {
+    val entryPoint = remember {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
             LocationServiceEntryPoint::class.java
-        ).locationService()
+        )
     }
+    val locationService = remember { entryPoint.locationService() }
+    val placesService = remember { entryPoint.placesAutocompleteService() }
+    var placeSuggestions by remember { mutableStateOf<List<PlacePrediction>>(emptyList()) }
+    var placesJob by remember { mutableStateOf<Job?>(null) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -366,10 +374,27 @@ fun SearchScreen(
                             viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
                         },
                         whereQuery = whereQuery,
-                        onWhereQueryChange = {
-                            whereQuery = it
-                            viewModel.onQueryChanged(it)
-                            viewModel.updateSearchParams(city = it.takeIf { it.isNotBlank() })
+                        onWhereQueryChange = { newQuery ->
+                            whereQuery = newQuery
+                            viewModel.onQueryChanged(newQuery)
+                            viewModel.updateSearchParams(city = newQuery.takeIf { it.isNotBlank() })
+                            // Fetch place autocomplete suggestions
+                            placesJob?.cancel()
+                            if (newQuery.trim().length >= 2) {
+                                placesJob = scope.launch {
+                                    delay(300)
+                                    placeSuggestions = placesService.getAutocompletePredictions(newQuery.trim())
+                                }
+                            } else {
+                                placeSuggestions = emptyList()
+                            }
+                        },
+                        placeSuggestions = placeSuggestions,
+                        onPlaceSuggestionClick = { prediction ->
+                            whereQuery = prediction.description
+                            placeSuggestions = emptyList()
+                            viewModel.onQueryChanged(prediction.description)
+                            viewModel.updateSearchParams(city = prediction.mainText)
                         },
                         selectedDate = selectedDateDisplay,
                         onDateClick = openDatePicker,

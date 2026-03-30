@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pacedream.app.core.location.PlacePrediction
 import com.pacedream.common.composables.components.DatePicker as CommonDatePicker
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
@@ -46,6 +47,8 @@ fun EnhancedSearchBar(
     onDateClick: () -> Unit,
     onUseMyLocation: () -> Unit,
     onSearchClick: () -> Unit,
+    placeSuggestions: List<PlacePrediction> = emptyList(),
+    onPlaceSuggestionClick: (PlacePrediction) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -115,6 +118,54 @@ fun EnhancedSearchBar(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // Place autocomplete suggestions
+            if (placeSuggestions.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    color = PaceDreamColors.Surface,
+                    tonalElevation = 2.dp
+                ) {
+                    Column {
+                        placeSuggestions.forEach { prediction ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onPlaceSuggestionClick(prediction) }
+                                    .padding(
+                                        horizontal = PaceDreamSpacing.MD,
+                                        vertical = PaceDreamSpacing.SM
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.LocationOn,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.TextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = prediction.mainText,
+                                        style = PaceDreamTypography.Callout,
+                                        fontWeight = FontWeight.Medium,
+                                        color = PaceDreamColors.TextPrimary
+                                    )
+                                    if (prediction.secondaryText.isNotBlank()) {
+                                        Text(
+                                            text = prediction.secondaryText,
+                                            style = PaceDreamTypography.Caption,
+                                            color = PaceDreamColors.TextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
