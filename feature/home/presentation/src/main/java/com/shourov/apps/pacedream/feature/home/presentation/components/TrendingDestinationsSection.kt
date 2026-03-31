@@ -43,7 +43,7 @@ fun TrendingDestinationsSection(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Section header — uses shared component for consistency
         SectionHeader(
@@ -55,12 +55,12 @@ fun TrendingDestinationsSection(
         // 2-column grid
         val displayDestinations = destinations.take(6)
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             for (i in displayDestinations.indices step 2) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     TrendingDestinationCard(
                         destination = displayDestinations[i],
@@ -91,7 +91,7 @@ private fun TrendingDestinationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val height = if (isLarge) 200.dp else 150.dp
+    val height = if (isLarge) 170.dp else 130.dp
 
     Box(
         modifier = modifier

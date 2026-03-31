@@ -148,7 +148,7 @@ fun EnhancedDashboardContent(
 
         // ── 3. Explore by Category ──────────────────────────────────────
         item {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             BrowseByTypeSection(
                 roomsState = roomsState,
                 gearsState = gearsState,
@@ -161,7 +161,7 @@ fun EnhancedDashboardContent(
 
         // ── 4. Trending Destinations ────────────────────────────────────
         item {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             val destinations = buildTrendingDestinations(roomsState, gearsState)
             if (destinations.isNotEmpty()) {
@@ -202,7 +202,7 @@ fun EnhancedDashboardContent(
 
         // Bottom padding for tab bar
         item {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -273,35 +273,46 @@ private fun FeaturedListingsSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 24.dp),
+                .padding(top = 16.dp),
         ) {
-            // Section header
+            // Section header with helper text
             SectionHeader(
                 title = featured.title,
                 subtitle = featured.subtitle,
+                helperText = "Popular near you",
                 onViewAllClick = { onViewAllClick(featured.sectionKey) },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Error banner
             if (!featured.error.isNullOrEmpty() && !featured.isLoading) {
                 SectionWarningBanner(
                     message = featured.error,
                     onRetry = featured.onRetry,
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp),
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Content row
+            // Content row - dynamically size cards when few items
+            val itemCount = when {
+                hasRooms -> roomsState.rooms.size
+                hasGears -> gearsState.rentedGears.size
+                hasServices -> splitStaysState.splitStays.size
+                else -> 0
+            }
+            // When only 1-2 items, use wider cards to avoid empty feeling
+            val useWideCards = itemCount in 1..2
+
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (featured.isLoading) {
                     items(3) { PaceDreamShimmerCard() }
                 } else {
+                    val wideModifier = if (useWideCards) Modifier.width(280.dp) else Modifier
                     when {
                         hasRooms -> items(
                             roomsState.rooms.take(10),
@@ -316,7 +327,8 @@ private fun FeaturedListingsSection(
                                 imageUrl = room.gallery.images.firstOrNull(),
                                 isFavorite = favoriteIds.contains(room.id),
                                 onFavoriteClick = { onFavoriteClick(room.id) },
-                                onClick = { onPropertyClick(room.id) }
+                                onClick = { onPropertyClick(room.id) },
+                                modifier = wideModifier,
                             )
                         }
                         hasGears -> items(
@@ -332,7 +344,8 @@ private fun FeaturedListingsSection(
                                 imageUrl = gear.images?.firstOrNull(),
                                 isFavorite = favoriteIds.contains(gear.id),
                                 onFavoriteClick = { onFavoriteClick(gear.id) },
-                                onClick = { onPropertyClick(gear.id) }
+                                onClick = { onPropertyClick(gear.id) },
+                                modifier = wideModifier,
                             )
                         }
                         hasServices -> items(
@@ -359,7 +372,8 @@ private fun FeaturedListingsSection(
                                 imageUrl = stay.images?.firstOrNull(),
                                 isFavorite = favoriteIds.contains(stayId),
                                 onFavoriteClick = { onFavoriteClick(stayId) },
-                                onClick = { onPropertyClick(stayId) }
+                                onClick = { onPropertyClick(stayId) },
+                                modifier = wideModifier,
                             )
                         }
                     }
@@ -370,16 +384,20 @@ private fun FeaturedListingsSection(
 }
 
 /**
- * Reusable section header with title, subtitle, and View All action.
+ * Reusable section header with title, subtitle, helper text, and View All action.
  */
 @Composable
 fun SectionHeader(
     title: String,
     subtitle: String? = null,
+    helperText: String? = null,
     onViewAllClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.padding(horizontal = 24.dp)) {
+    Column(
+        modifier = modifier.padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -387,7 +405,7 @@ fun SectionHeader(
         ) {
             Text(
                 text = title,
-                style = PaceDreamTypography.Title2,
+                style = PaceDreamTypography.Title3,
                 color = PaceDreamTextPrimary,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f, fill = false),
@@ -395,15 +413,15 @@ fun SectionHeader(
             if (onViewAllClick != null) {
                 TextButton(
                     onClick = onViewAllClick,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         Text(
                             text = "View All",
-                            style = PaceDreamTypography.Callout,
+                            style = PaceDreamTypography.Footnote,
                             color = PaceDreamPrimary,
                             fontWeight = FontWeight.Medium,
                         )
@@ -411,7 +429,7 @@ fun SectionHeader(
                             imageVector = PaceDreamIcons.ChevronRight,
                             contentDescription = null,
                             tint = PaceDreamPrimary,
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(14.dp),
                         )
                     }
                 }
@@ -420,8 +438,16 @@ fun SectionHeader(
         if (subtitle != null) {
             Text(
                 text = subtitle,
-                style = PaceDreamTypography.Footnote,
+                style = PaceDreamTypography.Caption,
                 color = PaceDreamTextSecondary,
+            )
+        }
+        if (helperText != null) {
+            Text(
+                text = helperText,
+                style = PaceDreamTypography.Caption2,
+                color = PaceDreamPrimary.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
             )
         }
     }

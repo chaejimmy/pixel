@@ -1,7 +1,10 @@
 package com.shourov.apps.pacedream.feature.home.presentation.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -66,22 +70,24 @@ fun QuickChipsSection(
 ) {
     var selectedChip by remember { mutableStateOf<String?>(null) }
 
-    Row(
-        modifier = modifier
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        marketplaceCategories.forEach { chip ->
-            val isSelected = selectedChip == chip.key
-            CategoryChip(
-                data = chip,
-                isSelected = isSelected,
-                onClick = {
-                    selectedChip = if (selectedChip == chip.key) null else chip.key
-                    onChipClick(chip.key)
-                },
-            )
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            marketplaceCategories.forEach { chip ->
+                val isSelected = selectedChip == chip.key
+                CategoryChip(
+                    data = chip,
+                    isSelected = isSelected,
+                    onClick = {
+                        selectedChip = if (selectedChip == chip.key) null else chip.key
+                        onChipClick(chip.key)
+                    },
+                )
+            }
         }
     }
 }
@@ -92,53 +98,82 @@ private fun CategoryChip(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) data.accentColor else Color.White,
-        animationSpec = tween(200),
-        label = "chipBg",
-    )
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) Color.White else PaceDreamTextPrimary,
         animationSpec = tween(200),
         label = "chipContent",
     )
+    val elevation by animateDpAsState(
+        targetValue = if (isSelected) 6.dp else 0.dp,
+        animationSpec = tween(200),
+        label = "chipElev",
+    )
+
+    val chipShape = RoundedCornerShape(14.dp)
 
     Surface(
         onClick = onClick,
-        color = bgColor,
-        shape = RoundedCornerShape(16.dp),
-        shadowElevation = if (isSelected) 4.dp else 1.dp,
-        border = if (isSelected) null else ButtonDefaults.outlinedButtonBorder.copy(
-            brush = Brush.horizontalGradient(
-                listOf(
-                    data.accentColor.copy(alpha = 0.25f),
-                    data.accentColor.copy(alpha = 0.25f),
-                )
-            )
-        ),
+        color = Color.Transparent,
+        shape = chipShape,
+        shadowElevation = elevation,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
+            modifier = Modifier
+                .clip(chipShape)
+                .then(
+                    if (isSelected) {
+                        Modifier.background(
+                            Brush.horizontalGradient(
+                                listOf(data.accentColor, data.accentColor.copy(alpha = 0.85f))
+                            )
+                        )
+                    } else {
+                        Modifier
+                            .background(PaceDreamSurface)
+                            .border(
+                                width = 1.dp,
+                                color = data.accentColor.copy(alpha = 0.18f),
+                                shape = chipShape,
+                            )
+                    }
+                )
         ) {
-            Icon(
-                imageVector = data.icon,
-                contentDescription = null,
-                tint = if (isSelected) Color.White else data.accentColor,
-                modifier = Modifier.size(18.dp),
-            )
-            Column {
-                Text(
-                    text = data.title,
-                    style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold),
-                    color = contentColor,
-                )
-                Text(
-                    text = data.description,
-                    style = PaceDreamTypography.Caption2,
-                    color = if (isSelected) Color.White.copy(alpha = 0.8f) else PaceDreamTextSecondary,
-                )
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Icon container with accent background when unselected
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isSelected) Color.White.copy(alpha = 0.2f)
+                            else data.accentColor.copy(alpha = 0.1f)
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = data.icon,
+                        contentDescription = null,
+                        tint = if (isSelected) Color.White else data.accentColor,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = data.title,
+                        style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold),
+                        color = contentColor,
+                    )
+                    Text(
+                        text = data.description,
+                        style = PaceDreamTypography.Caption2,
+                        color = if (isSelected) Color.White.copy(alpha = 0.8f)
+                        else PaceDreamTextSecondary,
+                    )
+                }
             }
         }
     }

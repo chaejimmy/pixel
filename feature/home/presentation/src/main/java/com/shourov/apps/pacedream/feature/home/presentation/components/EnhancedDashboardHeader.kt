@@ -84,7 +84,7 @@ fun EnhancedDashboardHeader(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(240.dp)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
@@ -99,7 +99,7 @@ fun EnhancedDashboardHeader(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(240.dp)
                     .paint(
                         painterResource(id = R.drawable.bg_dashboard_header),
                         contentScale = ContentScale.FillBounds,
@@ -111,7 +111,7 @@ fun EnhancedDashboardHeader(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(240.dp)
                     .background(Color(0xFF4F46E5).copy(alpha = 0.4f))
             )
 
@@ -136,10 +136,10 @@ fun EnhancedDashboardHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        top = 56.dp,
-                        start = 24.dp,
-                        end = 24.dp,
-                        bottom = 24.dp,
+                        top = 52.dp,
+                        start = 20.dp,
+                        end = 20.dp,
+                        bottom = 20.dp,
                     ),
             ) {
                 // Top row: Profile + Notification
@@ -210,17 +210,17 @@ fun EnhancedDashboardHeader(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Tagline matching iOS "Find your perfect stay!"
                 Text(
                     text = stringResource(R.string.feature_home_find_your_perfect_stay),
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White.copy(alpha = 0.9f),
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Prominent search bar matching iOS ProminentSearchBar.swift
                 // White pill with shadow, search icon, placeholder, filter button
@@ -228,15 +228,15 @@ fun EnhancedDashboardHeader(
                     onClick = onSearchClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(48.dp),
                     color = Color.White,
                     shape = RoundedCornerShape(999.dp),
-                    shadowElevation = 12.dp,
+                    shadowElevation = 8.dp,
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(

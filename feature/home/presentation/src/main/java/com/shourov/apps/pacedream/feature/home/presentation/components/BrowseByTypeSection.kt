@@ -118,22 +118,23 @@ fun BrowseByTypeSection(
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Section header — uses the shared SectionHeader component
         SectionHeader(
             title = "Explore by Category",
             subtitle = "Browse spaces, items, and services near you",
+            helperText = "Available today",
         )
 
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.XL))
                 .background(PaceDreamGray100)
-                .padding(4.dp),
+                .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             HomeBrowseType.entries.forEach { type ->
@@ -146,20 +147,12 @@ fun BrowseByTypeSection(
             }
         }
 
-        // Type description
-        Text(
-            text = selectedType.subtitle,
-            style = PaceDreamTypography.Caption,
-            color = PaceDreamTextSecondary,
-            modifier = Modifier.padding(horizontal = 24.dp),
-        )
-
-        // Subcategory chips
+        // Subcategory chips (description merged into chips row)
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             selectedType.subcategories.forEach { sub ->
                 SubcategoryChip(
@@ -184,19 +177,19 @@ fun BrowseByTypeSection(
         }
 
         if (isLoading || hasContent) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // View All sub-header
                 if (hasContent) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
+                            .padding(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = selectedType.displayTitle,
-                            style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                            style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold),
                             color = PaceDreamTextPrimary,
                         )
                         TextButton(
@@ -209,22 +202,22 @@ fun BrowseByTypeSection(
                                     }
                                 )
                             },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 Text(
                                     text = "View All",
-                                    style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.Medium),
+                                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Medium),
                                     color = selectedType.gradientColors.first(),
                                 )
                                 Icon(
                                     imageVector = PaceDreamIcons.ChevronRight,
                                     contentDescription = null,
                                     tint = selectedType.gradientColors.first(),
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(12.dp),
                                 )
                             }
                         }
@@ -233,8 +226,8 @@ fun BrowseByTypeSection(
 
                 // Listing cards — unified card width and structure
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     if (isLoading) {
                         items(3) {
@@ -321,16 +314,16 @@ private fun UnifiedListingCard(
 ) {
     Column(
         modifier = Modifier
-            .width(172.dp)
+            .width(156.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.MD))
             .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // Image — fixed aspect ratio with rounded corners
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(108.dp)
                 .clip(RoundedCornerShape(PaceDreamRadius.MD))
                 .background(PaceDreamGray100),
         ) {
@@ -424,7 +417,7 @@ private fun BrowseTypePill(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 12.dp),
+            .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -465,19 +458,19 @@ private fun SubcategoryChip(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Icon(
                 imageVector = subcategory.icon,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(13.dp),
             )
             Text(
                 text = subcategory.title,
-                style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Medium),
+                style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.Medium),
                 color = PaceDreamTextPrimary,
             )
         }
@@ -491,33 +484,33 @@ private fun SubcategoryChip(
 @Composable
 private fun BrowseInlineSkeletonCard() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
-                .width(172.dp)
-                .height(120.dp)
+                .width(156.dp)
+                .height(108.dp)
                 .clip(RoundedCornerShape(PaceDreamRadius.MD))
                 .background(PaceDreamGray100)
         )
         Box(
             modifier = Modifier
-                .width(140.dp)
-                .height(12.dp)
+                .width(130.dp)
+                .height(11.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(PaceDreamGray100)
         )
         Box(
             modifier = Modifier
-                .width(100.dp)
-                .height(10.dp)
+                .width(90.dp)
+                .height(9.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(PaceDreamGray100)
         )
         Box(
             modifier = Modifier
-                .width(80.dp)
-                .height(12.dp)
+                .width(70.dp)
+                .height(11.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(PaceDreamGray100)
         )

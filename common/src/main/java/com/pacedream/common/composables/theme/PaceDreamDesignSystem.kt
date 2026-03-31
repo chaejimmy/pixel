@@ -171,9 +171,9 @@ object PaceDreamCategoryPill {
 object PaceDreamPropertyCard {
     val Elevation = 0.dp  // iOS 26: no shadow, use glass material instead
     val CornerRadius = PaceDreamRadius.LG // 16dp concentric
-    val ImageHeight = 200.dp
+    val ImageHeight = 160.dp
     val ContentPadding = PaddingValues(
-        horizontal = PaceDreamSpacing.MD,
+        horizontal = PaceDreamSpacing.SM2,
         vertical = PaceDreamSpacing.SM
     )
 }
