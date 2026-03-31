@@ -573,7 +573,7 @@ class HostRepository @Inject constructor(
     }
 
     private fun parsePropertyArray(arr: JsonArray): List<Property> {
-        return try {
+        val properties = try {
             gson.fromJson<List<Property>>(arr, propertyListType) ?: emptyList()
         } catch (e: Exception) {
             Timber.e(e, "Gson parsing failed for listings array, trying element-by-element")
@@ -585,7 +585,25 @@ class HostRepository @Inject constructor(
                 }
             }
         }
+        // iOS parity: fill in status from alternative fields ("state", "published" boolean)
+        // when Gson didn't pick it up from "status" or "listingStatus".
+        return properties.mapIndexed { index, property ->
+            if (property.status != null) return@mapIndexed property
+            val element = arr.getOrNull(index)
+            if (element == null || !element.isJsonObject) return@mapIndexed property
+            val obj = element.asJsonObject
+            val fallbackStatus = obj.getStringOrNull("state")
+                ?: obj.get("published")?.let { pub ->
+                    if (pub.isJsonPrimitive && pub.asJsonPrimitive.isBoolean) {
+                        if (pub.asBoolean) "published" else "draft"
+                    } else null
+                }
+            if (fallbackStatus != null) property.copy(status = fallbackStatus) else property
+        }
     }
+
+    private fun JsonArray.getOrNull(index: Int): JsonElement? =
+        if (index in 0 until size()) get(index) else null
 
     // ── Listing body builder (explicit Map to bypass Gson data-class issues) ──
 

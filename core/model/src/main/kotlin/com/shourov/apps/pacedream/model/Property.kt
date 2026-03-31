@@ -42,12 +42,39 @@ data class Property(
     val amenities: List<String> = emptyList(),
     val isAvailable: Boolean = true,
     val propertyType: String = "",
+    /** Listing status from API: "published", "active", "pending_review", "rejected", "draft", etc. (iOS parity) */
+    @SerializedName(value = "status", alternate = ["listingStatus"])
+    val status: String? = null,
     val bedrooms: Int = 0,
     val bathrooms: Int = 0,
     val maxGuests: Int = 1,
     val createdAt: String = "",
     val updatedAt: String = ""
-)
+) {
+    // ── Status helpers (iOS parity: HostListingSummary) ──────────
+
+    val isPendingReview: Boolean get() {
+        val s = (status ?: "").trim().lowercase()
+        return s == "pending_review"
+    }
+
+    val isActiveStatus: Boolean get() {
+        val s = (status ?: "").trim().lowercase()
+        return s in listOf("published", "active", "true") || (s.isEmpty() && isAvailable)
+    }
+
+    val isRejected: Boolean get() {
+        val s = (status ?: "").trim().lowercase()
+        return s == "rejected"
+    }
+
+    val displayStatus: String get() = when {
+        isPendingReview -> "Under Review"
+        isActiveStatus -> "Active"
+        isRejected -> "Rejected"
+        else -> status?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+    }
+}
 
 data class PropertyLocation(
     val city: String = "",
