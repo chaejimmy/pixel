@@ -127,7 +127,8 @@ fun CheckoutScreen(
                             // PaceDream brand appearance
                             appearance = PaymentSheet.Appearance(
                                 shapes = PaymentSheet.Shapes(
-                                    cornerRadiusDp = 12f
+                                    cornerRadiusDp = 12f,
+                                    borderStrokeWidthDp = 0.5f
                                 )
                             )
                         )
