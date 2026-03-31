@@ -82,11 +82,11 @@ fun HomeScreen(
         onRefresh = { viewModel.refresh() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFF8F8FA))
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
@@ -124,84 +124,89 @@ fun HomeScreen(
             item {
                 ExtendedCategoriesSection(
                     onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(top = 20.dp)
+                    modifier = Modifier.padding(top = 16.dp)
                 )
             }
 
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
                 item {
-                    ListingSection(
-                        title = "Spaces",
-                        subtitle = "Find flexible spaces — restrooms, meeting rooms, parking, and more",
-                        items = uiState.filteredHourlySpaces,
-                        isLoading = uiState.isLoadingHourlySpaces,
-                        favoriteIds = uiState.favoriteListingIds,
-                        onViewAllClick = { onSectionViewAll("hourly-spaces") },
-                        onItemClick = onListingClick,
-                        onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 24.dp)
-                    )
+                    SectionSurface {
+                        ListingSection(
+                            title = "Spaces",
+                            subtitle = "Popular nearby",
+                            items = uiState.filteredHourlySpaces,
+                            isLoading = uiState.isLoadingHourlySpaces,
+                            favoriteIds = uiState.favoriteListingIds,
+                            onViewAllClick = { onSectionViewAll("hourly-spaces") },
+                            onItemClick = onListingClick,
+                            onFavoriteClick = { viewModel.toggleFavorite(it) },
+                        )
+                    }
                 }
             }
 
             // ── Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
                 item {
-                    ListingSection(
-                        title = "Items",
-                        subtitle = "Rent what you need — cameras, sports gear, tech, tools, and more",
-                        items = uiState.filteredRentGear,
-                        isLoading = uiState.isLoadingRentGear,
-                        favoriteIds = uiState.favoriteListingIds,
-                        onViewAllClick = { onSectionViewAll("rent-gear") },
-                        onItemClick = onListingClick,
-                        onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 24.dp)
-                    )
+                    SectionSurface {
+                        ListingSection(
+                            title = "Items",
+                            subtitle = "Available now",
+                            items = uiState.filteredRentGear,
+                            isLoading = uiState.isLoadingRentGear,
+                            favoriteIds = uiState.favoriteListingIds,
+                            onViewAllClick = { onSectionViewAll("rent-gear") },
+                            onItemClick = onListingClick,
+                            onFavoriteClick = { viewModel.toggleFavorite(it) },
+                        )
+                    }
                 }
             }
 
             // ── Services (2-column vertical grid — iOS parity) ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
                 item {
-                    ServicesGridSection(
-                        title = "Services",
-                        subtitle = "Book help when you need it — cleaning, moving, fitness, and more",
-                        items = uiState.filteredSplitStays.take(10),
-                        isLoading = uiState.isLoadingSplitStays,
-                        favoriteIds = uiState.favoriteListingIds,
-                        onViewAllClick = { onSectionViewAll("services") },
-                        onItemClick = onListingClick,
-                        onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 24.dp)
-                    )
+                    SectionSurface {
+                        ServicesGridSection(
+                            title = "Services",
+                            subtitle = "Book help when you need it",
+                            items = uiState.filteredSplitStays.take(10),
+                            isLoading = uiState.isLoadingSplitStays,
+                            favoriteIds = uiState.favoriteListingIds,
+                            onViewAllClick = { onSectionViewAll("services") },
+                            onItemClick = onListingClick,
+                            onFavoriteClick = { viewModel.toggleFavorite(it) },
+                        )
+                    }
                 }
             }
 
             // ── Browse by Type Section (Marketplace taxonomy) ──
             item {
-                BrowseByTypeSection(
-                    onTypeTap = { type -> onCategoryClick(type) },
-                    onSubcategoryTap = { _, subcategory -> onCategoryClick(subcategory) },
-                    modifier = Modifier.padding(top = 24.dp)
-                )
+                SectionSurface {
+                    BrowseByTypeSection(
+                        onTypeTap = { type -> onCategoryClick(type) },
+                        onSubcategoryTap = { _, subcategory -> onCategoryClick(subcategory) },
+                    )
+                }
             }
 
             // ── Trending Destinations (iOS parity) ──
             item {
-                TrendingDestinationsSection(
-                    onDestinationTap = { destination -> onCategoryClick(destination) },
-                    onViewAllTap = { onSectionViewAll("destinations") },
-                    modifier = Modifier.padding(top = 24.dp)
-                )
+                SectionSurface {
+                    TrendingDestinationsSection(
+                        onDestinationTap = { destination -> onCategoryClick(destination) },
+                        onViewAllTap = { onSectionViewAll("destinations") },
+                    )
+                }
             }
 
             // ── 3 Steps CTA (iOS parity) ──
             item {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
-                    modifier = Modifier.padding(top = 24.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
@@ -226,6 +231,27 @@ fun HomeScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Section Surface — white card on neutral background, consistent vertical rhythm
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SectionSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        color = Color.White,
+    ) {
+        Box(modifier = Modifier.padding(vertical = 16.dp)) {
+            content()
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hero Header Section (iOS parity: gradient hero with overlapping search bar)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -239,13 +265,13 @@ private fun HeroHeaderSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(290.dp)
+            .height(270.dp)
     ) {
         // Gradient background (matches iOS HeroHeader purple gradient)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(255.dp)
+                .height(238.dp)
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
@@ -312,26 +338,17 @@ private fun HeroHeaderSection(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Main headline (iOS parity)
+                // Main headline
                 Text(
-                    text = "Find spaces, items, and services — only for the time you need.",
-                    style = DSTypo.Title1.copy(
+                    text = "Rent spaces, items & services\nfor just the time you need.",
+                    style = DSTypo.Title2.copy(
                         fontFamily = paceDreamDisplayFontFamily,
-                        fontSize = 28.sp,
-                        letterSpacing = (-0.3).sp
+                        letterSpacing = (-0.3).sp,
+                        lineHeight = 28.sp
                     ),
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Spaces \u00B7 Items \u00B7 Services",
-                    style = DSTypo.Subheadline.copy(
-                        fontFamily = paceDreamFontFamily,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
@@ -687,22 +704,23 @@ private fun SectionHeader(
         ) {
             Text(
                 text = title,
-                style = DSTypo.Title2.copy(
+                style = DSTypo.Title3.copy(
                     fontFamily = paceDreamDisplayFontFamily,
-                    letterSpacing = (-0.3).sp
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.2).sp
                 ),
                 color = Color(0xFF1A1A1A),
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (onViewAllClick != null) {
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 TextButton(
                     onClick = onViewAllClick,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "View All",
-                        style = DSTypo.Subheadline.copy(
+                        style = DSTypo.Caption.copy(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.SemiBold
                         ),
@@ -713,13 +731,12 @@ private fun SectionHeader(
                         imageVector = PaceDreamIcons.ChevronRight,
                         contentDescription = null,
                         tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
         }
         if (subtitle != null) {
-            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
                 style = DSTypo.Caption.copy(
@@ -763,7 +780,7 @@ private fun ListingSection(
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(3) { ShimmerCard() }
+                items(3) { ShimmerCard(modifier = Modifier.fillParentMaxWidth(0.62f)) }
             }
         } else when {
             // Single item: full-width featured card layout
@@ -808,7 +825,8 @@ private fun ListingSection(
                             item = item,
                             isFavorite = item.id in favoriteIds,
                             onClick = { onItemClick(item) },
-                            onFavoriteClick = { onFavoriteClick(item.id) }
+                            onFavoriteClick = { onFavoriteClick(item.id) },
+                            modifier = Modifier.fillParentMaxWidth(0.62f),
                         )
                     }
                 }
@@ -1239,7 +1257,12 @@ private fun GridListingCard(
                     color = Color.White.copy(alpha = 0.95f)
                 ) {
                     Text(
-                        text = "Service",
+                        text = when (item.type) {
+                            "time-based" -> "Space"
+                            "gear" -> "Item"
+                            "split-stay" -> "Service"
+                            else -> item.type.replaceFirstChar { it.uppercase() }
+                        },
                         style = DSTypo.Caption2.copy(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.Bold,
@@ -1362,7 +1385,8 @@ private fun ListingCard(
     item: HomeListingItem,
     isFavorite: Boolean = false,
     onClick: () -> Unit,
-    onFavoriteClick: () -> Unit = {}
+    onFavoriteClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -1373,8 +1397,8 @@ private fun ListingCard(
     )
 
     Surface(
-        modifier = Modifier
-            .width(240.dp)
+        modifier = modifier
+            .widthIn(min = 200.dp)
             .scale(scale)
             .shadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
@@ -1391,11 +1415,11 @@ private fun ListingCard(
         color = Color.White
     ) {
         Column {
-            // Image area — 4:3 aspect ratio
+            // Image area — 4:3 aspect ratio for consistent proportions
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(170.dp)
+                    .aspectRatio(4f / 3f)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
@@ -1414,13 +1438,13 @@ private fun ListingCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(40.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.20f)
+                                    Color.Black.copy(alpha = 0.18f)
                                 )
                             )
                         )
@@ -1430,7 +1454,7 @@ private fun ListingCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(12.dp),
+                        .padding(10.dp),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
                     color = Color.White.copy(alpha = 0.95f)
                 ) {
@@ -1447,7 +1471,7 @@ private fun ListingCard(
                             letterSpacing = 0.3.sp
                         ),
                         color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                     )
                 }
 
@@ -1455,8 +1479,8 @@ private fun ListingCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .size(34.dp),
+                        .padding(10.dp)
+                        .size(32.dp),
                     shape = CircleShape,
                     color = Color.Black.copy(alpha = 0.30f),
                     onClick = onFavoriteClick
@@ -1466,7 +1490,7 @@ private fun ListingCard(
                             imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                             tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -1474,12 +1498,7 @@ private fun ListingCard(
 
             // Content area below image
             Column(
-                modifier = Modifier.padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    top = 10.dp,
-                    bottom = 10.dp
-                )
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
             ) {
                 // Title — primary emphasis
                 Text(
@@ -1631,22 +1650,11 @@ private fun BrowseByTypeSection(
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Section header
-        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-            Text(
-                text = "Browse by Type",
-                style = DSTypo.Title3.copy(
-                    fontFamily = paceDreamDisplayFontFamily,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = Color(0xFF1A1A1A)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Explore spaces, items, and services near you",
-                style = DSTypo.Footnote.copy(fontFamily = paceDreamFontFamily),
-                color = PaceDreamColors.Gray500
-            )
-        }
+        SectionHeader(
+            title = "Browse by Type",
+            subtitle = "Explore spaces, items, and services",
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -1840,7 +1848,7 @@ private fun TrendingDestinationsSection(
             onViewAllClick = onViewAllTap,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         val destinations = getTrendingDestinations()
         Column(
@@ -1990,40 +1998,39 @@ private fun ThreeStepsCTASection(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = PaceDreamColors.Card,
-        shadowElevation = 4.dp
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 32.dp),
+            modifier = Modifier.padding(vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             Text(
                 text = "3 Steps Away",
-                style = DSTypo.Title2.copy(
+                style = DSTypo.Title3.copy(
                     fontFamily = paceDreamDisplayFontFamily,
-                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 color = Color(0xFF1A1A1A),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "From your next affordable rental",
-                style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
+                style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
                 color = PaceDreamColors.Gray500,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Steps
             Column(
-                modifier = Modifier.padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 steps.forEachIndexed { index, step ->
                     StepCard(
@@ -2033,20 +2040,20 @@ private fun ThreeStepsCTASection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // CTA Button
             Button(
                 onClick = onGetStarted,
                 modifier = Modifier
-                    .widthIn(max = 280.dp)
+                    .widthIn(max = 260.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                shape = RoundedCornerShape(14.dp),
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
-                contentPadding = PaddingValues(vertical = 14.dp)
+                contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text(
                     text = "Get Started",
@@ -2138,7 +2145,7 @@ private fun StepCard(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ShimmerCard() {
+private fun ShimmerCard(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "shimmer")
     val shimmerX = transition.animateFloat(
         initialValue = -300f,
@@ -2161,7 +2168,7 @@ private fun ShimmerCard() {
     )
 
     Surface(
-        modifier = Modifier.width(240.dp),
+        modifier = modifier.widthIn(min = 200.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = Color.White,
         shadowElevation = 2.dp
@@ -2170,7 +2177,7 @@ private fun ShimmerCard() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(170.dp)
+                    .aspectRatio(4f / 3f)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
