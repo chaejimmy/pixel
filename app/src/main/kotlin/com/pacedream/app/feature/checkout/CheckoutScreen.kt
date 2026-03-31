@@ -105,8 +105,13 @@ fun CheckoutScreen(
                                 countryCode = "US",
                                 currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
                             ),
-                            // Only allow credit/debit cards and Google Pay — no bank transfers
+                            // Block ACH / bank debits / any delayed-notification payment methods.
+                            // Guest checkout should only offer Card + Google Pay.
                             allowsDelayedPaymentMethods = false,
+                            // Prioritize card (Google Pay is presented automatically when
+                            // available and googlePay config is set). Any other method types
+                            // not in this list are deprioritized / hidden.
+                            paymentMethodOrder = listOf("card"),
                             // Customer session for saved cards
                             customer = if (effect.customerId != null && effect.ephemeralKeySecret != null) {
                                 PaymentSheet.CustomerConfiguration(
@@ -218,9 +223,9 @@ fun CheckoutScreen(
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = PaceDreamSpacing.MD),
-                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
             ) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
 
                 // Listing info card
                 ListingInfoCard(draft = draft)
@@ -229,13 +234,11 @@ fun CheckoutScreen(
                 BookingDetailsCard(draft = draft)
 
                 // Price breakdown from backend quote (iOS parity: priceBreakdownCard)
+                // Early access note is integrated into the price card
                 PriceBreakdownCard(
                     quote = uiState.quote,
                     isLoadingQuote = uiState.status == CheckoutStatus.LOADING_QUOTE
                 )
-
-                // Early access note (iOS parity)
-                EarlyAccessNote()
 
                 // Cancellation policy
                 CancellationPolicyCard()
@@ -245,7 +248,7 @@ fun CheckoutScreen(
                     ErrorBanner(message = message, onRetry = { viewModel.retryQuote() })
                 }
 
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             }
 
             // Sticky bottom pay bar (iOS parity: payBar)
@@ -270,72 +273,73 @@ private fun PayBar(
     val isProcessing = status == CheckoutStatus.PROCESSING
 
     HorizontalDivider(thickness = 0.5.dp, color = PaceDreamColors.Border)
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(PaceDreamColors.Card)
-            .padding(horizontal = 20.dp, vertical = PaceDreamSpacing.MD)
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(
-                onClick = onPayClick,
-                enabled = isEnabled && !isProcessing,
+        Button(
+            onClick = onPayClick,
+            enabled = isEnabled && !isProcessing,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp)
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isProcessing) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = PaceDreamColors.OnPrimary,
-                        modifier = Modifier.size(18.dp)
+                Column {
+                    Text(
+                        "Total",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.OnPrimary.copy(alpha = 0.8f)
                     )
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
+                    if (quote != null) {
                         Text(
-                            "Total",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.OnPrimary.copy(alpha = 0.8f)
+                            formatCents(quote.totalCents, quote.currency),
+                            style = PaceDreamTypography.Headline,
+                            fontWeight = FontWeight.Bold,
+                            color = PaceDreamColors.OnPrimary
                         )
-                        if (quote != null) {
-                            Text(
-                                formatCents(quote.totalCents, quote.currency),
-                                style = PaceDreamTypography.Button,
-                                fontWeight = FontWeight.Bold,
-                                color = PaceDreamColors.OnPrimary
-                            )
-                        }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            color = PaceDreamColors.OnPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     }
                     Text(
                         text = if (isProcessing) "Processing\u2026" else "Pay",
-                        style = PaceDreamTypography.Button,
+                        style = PaceDreamTypography.Headline,
                         fontWeight = FontWeight.Bold,
                         color = PaceDreamColors.OnPrimary
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = PaceDreamIcons.Lock,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(12.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    "Secure payment powered by Stripe",
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary
-                )
-            }
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = PaceDreamIcons.Lock,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(11.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                "Secure payment powered by Stripe",
+                style = PaceDreamTypography.Caption2,
+                color = PaceDreamColors.TextTertiary
+            )
         }
     }
 }
@@ -467,7 +471,7 @@ private fun PriceBreakdownCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("Service fee", color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
-                        Row {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 "$0.00",
                                 color = PaceDreamColors.Success,
@@ -492,19 +496,45 @@ private fun PriceBreakdownCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         "Total",
                         fontWeight = FontWeight.Bold,
-                        style = PaceDreamTypography.Callout,
+                        style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.TextPrimary
                     )
                     Text(
                         formatCents(quote.totalCents, quote.currency),
                         fontWeight = FontWeight.Bold,
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.Primary
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                }
+
+                // Early access note — integrated into price card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = PaceDreamColors.Primary.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(PaceDreamRadius.SM)
+                        )
+                        .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Star,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text(
+                        "Platform fee is \$0 during early access",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
                     )
                 }
             } else if (isLoadingQuote) {
@@ -530,37 +560,6 @@ private fun PriceBreakdownCard(
                     color = PaceDreamColors.Error
                 )
             }
-        }
-    }
-}
-
-// ── Early Access Note (iOS parity) ──
-
-@Composable
-private fun EarlyAccessNote() {
-    Card(
-        shape = RoundedCornerShape(PaceDreamRadius.MD),
-        colors = CardDefaults.cardColors(
-            containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(PaceDreamSpacing.SM),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Star,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-            Text(
-                "PaceDream platform fee is currently \$0 (early access).",
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary
-            )
         }
     }
 }
