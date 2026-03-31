@@ -364,7 +364,7 @@ fun PaceDreamPropertyCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .width(200.dp)
+            .width(180.dp)
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamCard),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
@@ -614,8 +614,8 @@ fun PaceDreamShimmerCard(
 ) {
     Card(
         modifier = modifier
-            .width(200.dp)
-            .height(PaceDreamPropertyCard.ImageHeight + 100.dp)
+            .width(180.dp)
+            .height(PaceDreamPropertyCard.ImageHeight + 90.dp)
             .padding(PaceDreamSpacing.XS),
         colors = CardDefaults.cardColors(containerColor = PaceDreamGray50),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
