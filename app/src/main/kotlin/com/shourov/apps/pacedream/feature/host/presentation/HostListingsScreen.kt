@@ -226,9 +226,14 @@ fun HostListingCard(
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
                 ) {
-                    val statusColor = if (listing.isAvailable) PaceDreamColors.HostAccent else PaceDreamColors.TextSecondary
+                    val statusColor = when {
+                        listing.isPendingReview -> PaceDreamColors.Warning
+                        listing.isRejected -> PaceDreamColors.Error
+                        listing.isActiveStatus -> PaceDreamColors.HostAccent
+                        else -> PaceDreamColors.TextSecondary
+                    }
                     Text(
-                        text = if (listing.isAvailable) "Active" else "Unavailable",
+                        text = listing.displayStatus,
                         style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.SemiBold),
                         color = Color.White,
                         modifier = Modifier

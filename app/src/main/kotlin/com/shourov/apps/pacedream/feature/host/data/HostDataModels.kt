@@ -38,6 +38,9 @@ data class HostDashboardData(
 
     val activeListingsCount: Int get() = activeListings
 
+    /** iOS parity: HostDataStore.underReviewListingsCount */
+    val underReviewListingsCount: Int get() = listings.count { it.isPendingReview }
+
     val pendingRequestsCount: Int get() = bookings.count { booking ->
         isPendingStatus(booking.status)
     }
@@ -68,8 +71,12 @@ data class HostDashboardData(
             .sortedBy { parseDate(it.resolvedStart) ?: Long.MAX_VALUE }
             .take(5)
 
-    val topActiveListings: List<Property> get() =
-        listings.filter { it.isAvailable }.take(5)
+    /** iOS parity: under-review listings shown FIRST, then active */
+    val topActiveListings: List<Property> get() {
+        val underReview = listings.filter { it.isPendingReview }
+        val active = listings.filter { it.isActiveStatus }
+        return (underReview + active).take(5)
+    }
 
     // ── History events (iOS parity: DashboardEvent) ──────────
 

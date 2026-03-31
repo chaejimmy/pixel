@@ -69,7 +69,8 @@ class HostDashboardViewModel @Inject constructor(
                 userName = resolvedUserName,
                 bookings = result.bookings,
                 listings = result.listings,
-                activeListings = result.overview?.activeListings ?: result.listings.count { it.isAvailable },
+                // iOS parity: count truly active listings using status, not just isAvailable
+                activeListings = result.overview?.activeListings ?: result.listings.count { it.isActiveStatus },
                 totalBookings = result.overview?.totalBookings ?: result.bookings.size,
                 totalRevenue = result.overview?.totalRevenue ?: 0.0,
                 averageRating = result.overview?.averageRating ?: 0.0,

@@ -60,7 +60,7 @@ class HostProfileViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     activeListingsCount = result.overview?.activeListings
-                        ?: result.listings.count { p -> p.isAvailable },
+                        ?: result.listings.count { p -> p.isActiveStatus },
                     monthlyEarnings = HostDashboardData(
                         bookings = result.bookings,
                         listings = result.listings,

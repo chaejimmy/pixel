@@ -110,6 +110,7 @@ fun HostDashboardScreen(
             item {
                 SummaryCard(
                     activeListings = uiState.activeListingsCount,
+                    underReviewListings = uiState.underReviewListingsCount,
                     upcomingBookings = uiState.upcomingBookingsCount,
                     pendingRequests = uiState.pendingRequestsCount,
                     monthlyEarnings = uiState.monthlyEarnings,
@@ -255,6 +256,7 @@ private fun DashboardHeader(
 @Composable
 private fun SummaryCard(
     activeListings: Int,
+    underReviewListings: Int,
     upcomingBookings: Int,
     pendingRequests: Int,
     monthlyEarnings: Double,
@@ -274,21 +276,42 @@ private fun SummaryCard(
                     label = "Active listings",
                     modifier = Modifier.weight(1f)
                 )
-                SummaryMetric(
-                    icon = PaceDreamIcons.CalendarToday,
-                    value = "$upcomingBookings",
-                    label = "Upcoming",
-                    modifier = Modifier.weight(1f)
-                )
+                // iOS parity: show "Under review" KPI only when count > 0
+                if (underReviewListings > 0) {
+                    SummaryMetric(
+                        icon = PaceDreamIcons.Schedule,
+                        value = "$underReviewListings",
+                        label = "Under review",
+                        valueColor = PaceDreamColors.Warning,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    SummaryMetric(
+                        icon = PaceDreamIcons.CalendarToday,
+                        value = "$upcomingBookings",
+                        label = "Upcoming",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Row(modifier = Modifier.fillMaxWidth()) {
-                SummaryMetric(
-                    icon = PaceDreamIcons.Schedule,
-                    value = "$pendingRequests",
-                    label = "Pending",
-                    modifier = Modifier.weight(1f)
-                )
+                // When under-review KPI displaced Upcoming above, show Upcoming here
+                if (underReviewListings > 0) {
+                    SummaryMetric(
+                        icon = PaceDreamIcons.CalendarToday,
+                        value = "$upcomingBookings",
+                        label = "Upcoming",
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    SummaryMetric(
+                        icon = PaceDreamIcons.Schedule,
+                        value = "$pendingRequests",
+                        label = "Pending",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 SummaryMetric(
                     icon = PaceDreamIcons.AttachMoney,
                     value = "$${String.format("%.0f", monthlyEarnings)}",
@@ -305,7 +328,8 @@ private fun SummaryMetric(
     icon: ImageVector,
     value: String,
     label: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    valueColor: Color = PaceDreamColors.TextPrimary
 ) {
     Row(
         modifier = modifier,
@@ -330,7 +354,7 @@ private fun SummaryMetric(
             Text(
                 text = value,
                 style = PaceDreamTypography.Title3,
-                color = PaceDreamColors.TextPrimary,
+                color = valueColor,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -712,6 +736,7 @@ private fun YourListingsSection(
                         location = "${listing.location.city}, ${listing.location.state}",
                         price = "$${listing.pricing.basePrice.toInt()}/${listing.pricing.unit.ifBlank { "hr" }}",
                         imageUrl = listing.images.firstOrNull() ?: "",
+                        statusText = listing.displayStatus,
                         onClick = { onListingClick(listing.id) },
                     )
                 }
@@ -726,6 +751,7 @@ private fun ListingMiniCard(
     location: String,
     price: String,
     imageUrl: String = "",
+    statusText: String = "",
     onClick: () -> Unit,
 ) {
     Card(
@@ -783,14 +809,51 @@ private fun ListingMiniCard(
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = price,
-                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
-                    color = PaceDreamColors.HostAccent
-                )
+                // iOS parity: price + status badge row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = price,
+                        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
+                        color = PaceDreamColors.HostAccent
+                    )
+                    if (statusText.isNotBlank()) {
+                        ListingStatusBadge(status = statusText)
+                    }
+                }
             }
         }
     }
+}
+
+/** iOS parity: StatusBadge for listing status with color-coded styling */
+@Composable
+private fun ListingStatusBadge(status: String) {
+    val lower = status.lowercase()
+    val (bgColor, fgColor) = when {
+        lower.contains("review") || lower.contains("pending") ->
+            PaceDreamColors.Warning.copy(alpha = 0.16f) to PaceDreamColors.Warning
+        lower.contains("reject") ->
+            PaceDreamColors.Error.copy(alpha = 0.14f) to PaceDreamColors.Error
+        lower.contains("active") || lower.contains("publish") ->
+            PaceDreamColors.HostAccent.copy(alpha = 0.14f) to PaceDreamColors.HostAccent
+        else ->
+            Color.Gray.copy(alpha = 0.14f) to PaceDreamColors.TextSecondary
+    }
+    Text(
+        text = status,
+        style = PaceDreamTypography.Caption.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp
+        ),
+        color = fgColor,
+        modifier = Modifier
+            .background(bgColor, shape = RoundedCornerShape(50))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
