@@ -611,6 +611,7 @@ data class DetailsPayload(
  */
 data class LocationPayload(
     val street: String = "",
+    val street_address: String = "",
     val city: String = "",
     val state: String = "",
     val country: String = "US",

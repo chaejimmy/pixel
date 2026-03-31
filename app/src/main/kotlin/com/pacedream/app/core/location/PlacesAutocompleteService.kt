@@ -86,13 +86,19 @@ class PlacesAutocompleteService @Inject constructor(
     }
 
     /**
-     * Address autocomplete using geocode type for broader results.
-     * Returns addresses, streets, and geocoded locations so users get
+     * Address autocomplete using the `address` type for street-level results.
+     * Falls back to `geocode` type if no results found, giving users
      * suggestions as soon as they start typing.
      */
     suspend fun getAddressAutocompletePredictions(
         query: String
-    ): List<PlacePrediction> = getAutocompletePredictions(query, types = "geocode")
+    ): List<PlacePrediction> {
+        // Try address type first for precise street-level results
+        val addressResults = getAutocompletePredictions(query, types = "address")
+        if (addressResults.isNotEmpty()) return addressResults
+        // Fall back to geocode type for broader results (cities, neighborhoods)
+        return getAutocompletePredictions(query, types = "geocode")
+    }
 
     /**
      * Fetch place details (lat/lng and address components) for a selected prediction.
