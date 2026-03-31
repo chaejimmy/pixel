@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
-import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import com.shourov.apps.pacedream.core.data.repository.BookingRepository as CoreBookingRepository
+import com.shourov.apps.pacedream.model.BookingModel
+import com.shourov.apps.pacedream.model.BookingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,31 +17,56 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 import timber.log.Timber
 import javax.inject.Inject
 
+/**
+ * Checkout status matching iOS CheckoutStatus enum.
+ */
+enum class CheckoutStatus {
+    IDLE,
+    LOADING_QUOTE,
+    READY,
+    PROCESSING,
+    SUCCEEDED,
+    FAILED
+}
+
 data class CheckoutUiState(
     val draft: BookingDraft? = null,
-    val isSubmitting: Boolean = false,
+    val status: CheckoutStatus = CheckoutStatus.IDLE,
     val errorMessage: String? = null,
-    val paymentCompleted: Boolean = false
+    // Quote-based pricing from backend (iOS parity)
+    val quote: QuoteResponse? = null,
+    // PaymentSheet configuration from backend
+    val paymentSheetConfig: PaymentSheetConfig? = null,
+    val publishableKey: String? = null,
+    // Booking result
+    val bookingId: String? = null
 )
 
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
-    private val json: Json
+    private val json: Json,
+    private val nativePaymentRepository: NativePaymentRepository,
+    private val coreBookingRepository: CoreBookingRepository
 ) : ViewModel() {
 
     sealed class Effect {
         data class NavigateToConfirmation(val bookingId: String) : Effect()
-        data class LaunchStripeCheckout(val checkoutUrl: String) : Effect()
+        /**
+         * Tells the UI to present Stripe PaymentSheet with the given config.
+         * The UI layer creates the PaymentSheet instance (requires Activity context).
+         */
+        data class PresentPaymentSheet(
+            val clientSecret: String,
+            val publishableKey: String,
+            val merchantDisplayName: String,
+            val customerId: String?,
+            val ephemeralKeySecret: String?
+        ) : Effect()
     }
 
     private val _uiState = MutableStateFlow(CheckoutUiState())
@@ -48,157 +75,197 @@ class CheckoutViewModel @Inject constructor(
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    /** Stored client secret to extract PaymentIntent ID after payment */
+    private var currentClientSecret: String? = null
+
     fun setDraft(draft: BookingDraft) {
         _uiState.update { it.copy(draft = draft, errorMessage = null) }
+        fetchQuote(draft)
     }
 
-    fun submitBooking() {
-        val draft = _uiState.value.draft ?: return
-        // Guard: prevent duplicate submissions
-        if (_uiState.value.isSubmitting || _uiState.value.paymentCompleted) return
+    // ── Step 1: Fetch Quote (iOS parity: NativeCheckoutViewModel.fetchQuote) ──
+
+    private fun fetchQuote(draft: BookingDraft) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
+            _uiState.update { it.copy(status = CheckoutStatus.LOADING_QUOTE, errorMessage = null) }
 
-            val body = buildBookingBody(draft).toString()
-            val urls = buildBookingUrls(draft)
-
-            var finalResult: ApiResult<String>? = null
-            for (url in urls) {
-                val result = apiClient.post(url, body, includeAuth = true)
-                if (result is ApiResult.Success) {
-                    finalResult = result
-                    break
-                }
-                if (result is ApiResult.Failure && result.error !is ApiError.NotFound) {
-                    finalResult = result
-                    break
-                }
-                finalResult = result
+            val bookingType = when (draft.listingType) {
+                "gear" -> "gear"
+                "split-stay" -> "splitstay"
+                else -> "timebased"
             }
 
-            when (finalResult) {
+            when (val result = nativePaymentRepository.createQuote(
+                listingId = draft.listingId,
+                bookingType = bookingType,
+                startTime = draft.startTimeISO,
+                endTime = draft.endTimeISO,
+                quantity = draft.guests
+            )) {
                 is ApiResult.Success -> {
-                    // iOS parity: backend may return a checkoutUrl (Stripe) or a direct booking ID.
-                    val checkoutUrl = parseCheckoutUrl(finalResult.data)
-                    val bookingId = parseBookingId(finalResult.data)
-
-                    when {
-                        !checkoutUrl.isNullOrBlank() -> {
-                            // Stripe checkout flow (matches iOS WebFlow)
-                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null, paymentCompleted = true) }
-                            _effects.send(Effect.LaunchStripeCheckout(checkoutUrl))
-                        }
-                        !bookingId.isNullOrBlank() -> {
-                            // Direct booking created
-                            _uiState.update { it.copy(isSubmitting = false, errorMessage = null, paymentCompleted = true) }
-                            _effects.send(Effect.NavigateToConfirmation(bookingId))
-                        }
-                        else -> {
-                            _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }
-                        }
+                    _uiState.update {
+                        it.copy(
+                            status = CheckoutStatus.READY,
+                            quote = result.data,
+                            errorMessage = null
+                        )
                     }
                 }
                 is ApiResult.Failure -> {
-                    _uiState.update { it.copy(isSubmitting = false, errorMessage = finalResult.error.message ?: "Failed to create booking.") }
-                }
-                null -> {
-                    _uiState.update { it.copy(isSubmitting = false, errorMessage = "Failed to create booking.") }
+                    Timber.e("Quote failed: ${result.error.message}")
+                    _uiState.update {
+                        it.copy(
+                            status = CheckoutStatus.FAILED,
+                            errorMessage = result.error.message
+                        )
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Build the ordered list of booking URLs to try based on listing type.
-     *
-     * Backend endpoints (matching iOS / CheckoutLauncher):
-     *   time-based → POST /v1/properties/bookings/timebased
-     *   gear       → POST /v1/gear-rentals/book
-     *   fallback   → POST /v1/bookings
-     */
-    private fun buildBookingUrls(draft: BookingDraft): List<okhttp3.HttpUrl> {
-        val typeSpecific = when (draft.listingType) {
-            "time-based" -> listOf(
-                appConfig.buildApiUrl("properties", "bookings", "timebased")
-            )
-            "gear" -> listOf(
-                appConfig.buildApiUrl("gear-rentals", "book")
-            )
-            "split-stay" -> listOf(
-                appConfig.buildApiUrl("roommate", "book")
-            )
-            else -> emptyList()
-        }
-        return typeSpecific + listOf(appConfig.buildApiUrl("bookings"))
-    }
+    // ── Step 2: Create PaymentIntent & Present Sheet ──
 
-    private fun buildBookingBody(draft: BookingDraft) = buildJsonObject {
-        // Listing / item identifier – use the key the endpoint expects
-        put("itemId", draft.listingId)
-        put("listingId", draft.listingId)
-        put("listing_id", draft.listingId)
-        put("property_id", draft.listingId)
-        put("gearId", draft.listingId)
+    fun submitPayment() {
+        val quote = _uiState.value.quote ?: return
+        if (_uiState.value.status == CheckoutStatus.PROCESSING ||
+            _uiState.value.status == CheckoutStatus.SUCCEEDED) return
 
-        // Time window
-        put("date", draft.date)
-        put("startTimeISO", draft.startTimeISO)
-        put("endTimeISO", draft.endTimeISO)
-        put("startTime", draft.startTimeISO)
-        put("endTime", draft.endTimeISO)
-        put("start_time", draft.startTimeISO)
-        put("end_time", draft.endTimeISO)
-        put("startDate", draft.date)
-        put("endDate", draft.date)
+        viewModelScope.launch {
+            _uiState.update { it.copy(status = CheckoutStatus.PROCESSING, errorMessage = null) }
 
-        // Website parity: send guests as object { adults, children, infants }
-        // AND as flat integer for backward compatibility
-        put("guests", buildJsonObject {
-            put("adults", draft.adults)
-            put("children", draft.children)
-            put("infants", draft.infants)
-        })
-        put("guestCount", draft.guests)
+            // Create PaymentIntent on backend
+            when (val result = nativePaymentRepository.createPaymentIntent(quote.quoteId)) {
+                is ApiResult.Success -> {
+                    val config = result.data
 
-        // Amount (required by the backend)
-        draft.totalAmountEstimate?.let {
-            put("amount", it)
-            put("totalAmountEstimate", it)
-            put("total_amount_estimate", it)
-        }
-    }
+                    // Resolve Stripe publishable key
+                    val stripeKey = nativePaymentRepository.resolvePublishableKey(config)
+                    if (stripeKey.isNullOrBlank()) {
+                        _uiState.update {
+                            it.copy(
+                                status = CheckoutStatus.FAILED,
+                                errorMessage = "Stripe is not configured. Please try again later."
+                            )
+                        }
+                        return@launch
+                    }
 
-    /**
-     * Parse checkout URL from backend response (iOS parity: Stripe checkout flow).
-     */
-    private fun parseCheckoutUrl(responseBody: String): String? {
-        return try {
-            val root = json.parseToJsonElement(responseBody).jsonObject
-            val data = (root["data"] as? JsonObject) ?: root
-            data["checkoutUrl"]?.jsonPrimitive?.content
-                ?: data["checkout_url"]?.jsonPrimitive?.content
-                ?: data["url"]?.jsonPrimitive?.content
-        } catch (_: Exception) {
-            null
+                    // Store for later extraction of PI ID
+                    currentClientSecret = config.paymentIntentClientSecret
+
+                    _uiState.update {
+                        it.copy(
+                            paymentSheetConfig = config,
+                            publishableKey = stripeKey
+                        )
+                    }
+
+                    // Tell UI to present PaymentSheet
+                    _effects.send(
+                        Effect.PresentPaymentSheet(
+                            clientSecret = config.paymentIntentClientSecret,
+                            publishableKey = stripeKey,
+                            merchantDisplayName = config.merchantDisplayName,
+                            customerId = config.customerId,
+                            ephemeralKeySecret = config.ephemeralKeySecret
+                        )
+                    )
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("PaymentIntent creation failed: ${result.error.message}")
+                    _uiState.update {
+                        it.copy(
+                            status = CheckoutStatus.FAILED,
+                            errorMessage = result.error.message
+                        )
+                    }
+                }
+            }
         }
     }
 
-    private fun parseBookingId(responseBody: String): String? {
-        return try {
-            val root = json.parseToJsonElement(responseBody).jsonObject
-            val data = (root["data"] as? JsonObject) ?: root
-            val booking = (data["booking"] as? JsonObject) ?: data
+    // ── Step 3: Handle PaymentSheet result (called by UI) ──
 
-            booking["bookingId"]?.jsonPrimitive?.content
-                ?: booking["id"]?.jsonPrimitive?.content
-                ?: booking["_id"]?.jsonPrimitive?.content
-                ?: data["bookingId"]?.jsonPrimitive?.content
-                ?: data["id"]?.jsonPrimitive?.content
-                ?: data["_id"]?.jsonPrimitive?.content
+    fun onPaymentSheetCompleted() {
+        viewModelScope.launch {
+            confirmBookingOnBackend()
+        }
+    }
+
+    fun onPaymentSheetCancelled() {
+        // User cancelled — allow retry
+        _uiState.update { it.copy(status = CheckoutStatus.READY, errorMessage = null) }
+    }
+
+    fun onPaymentSheetFailed(errorMessage: String) {
+        _uiState.update {
+            it.copy(status = CheckoutStatus.FAILED, errorMessage = errorMessage)
+        }
+    }
+
+    // ── Step 4: Confirm booking on backend after successful payment ──
+
+    private suspend fun confirmBookingOnBackend() {
+        val clientSecret = currentClientSecret
+        val paymentIntentId = clientSecret?.let {
+            nativePaymentRepository.extractPaymentIntentId(it)
+        }
+
+        if (paymentIntentId == null) {
+            // Fallback: mark as succeeded — webhook will handle booking creation
+            Timber.w("Could not extract PaymentIntent ID; relying on webhook fallback")
+            _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED) }
+            return
+        }
+
+        when (val result = nativePaymentRepository.confirmBooking(paymentIntentId)) {
+            is ApiResult.Success -> {
+                val bookingId = result.data.booking?.id
+                if (bookingId != null) {
+                    cacheConfirmedBooking(bookingId, result.data)
+                }
+                _uiState.update {
+                    it.copy(status = CheckoutStatus.SUCCEEDED, bookingId = bookingId)
+                }
+                if (bookingId != null) {
+                    _effects.send(Effect.NavigateToConfirmation(bookingId))
+                }
+            }
+            is ApiResult.Failure -> {
+                // Payment succeeded but confirm call failed — still show success.
+                // The webhook fallback will create the booking.
+                Timber.w("confirm-booking call failed (webhook fallback): ${result.error.message}")
+                _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED) }
+            }
+        }
+    }
+
+    private suspend fun cacheConfirmedBooking(bookingId: String, response: ConfirmBookingResponse) {
+        try {
+            val data = response.booking ?: return
+            val booking = BookingModel(
+                id = bookingId,
+                propertyName = data.title ?: "",
+                startDate = data.startDate ?: "",
+                endDate = data.endDate ?: "",
+                totalPrice = data.priceTotal ?: 0.0,
+                price = (data.priceTotal ?: 0.0).toString(),
+                status = BookingStatus.fromString(data.status ?: "confirmed"),
+                bookingStatus = data.status ?: "confirmed",
+                checkInTime = data.startDate ?: "",
+                checkOutTime = data.endDate ?: "",
+                currency = "USD"
+            )
+            coreBookingRepository.cacheBooking(booking)
+            Timber.d("Cached confirmed booking $bookingId to Room")
         } catch (e: Exception) {
-            Timber.e(e, "Failed to parse booking id")
-            null
+            Timber.w(e, "Failed to cache confirmed booking to Room")
         }
+    }
+
+    fun retryQuote() {
+        val draft = _uiState.value.draft ?: return
+        fetchQuote(draft)
     }
 }
-
