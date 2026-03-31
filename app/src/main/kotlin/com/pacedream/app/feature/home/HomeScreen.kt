@@ -86,7 +86,7 @@ fun HomeScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
@@ -124,7 +124,7 @@ fun HomeScreen(
             item {
                 ExtendedCategoriesSection(
                     onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(top = 32.dp)
+                    modifier = Modifier.padding(top = 20.dp)
                 )
             }
 
@@ -140,7 +140,7 @@ fun HomeScreen(
                         onViewAllClick = { onSectionViewAll("hourly-spaces") },
                         onItemClick = onListingClick,
                         onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 32.dp)
+                        modifier = Modifier.padding(top = 24.dp)
                     )
                 }
             }
@@ -157,7 +157,7 @@ fun HomeScreen(
                         onViewAllClick = { onSectionViewAll("rent-gear") },
                         onItemClick = onListingClick,
                         onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 32.dp)
+                        modifier = Modifier.padding(top = 24.dp)
                     )
                 }
             }
@@ -174,7 +174,7 @@ fun HomeScreen(
                         onViewAllClick = { onSectionViewAll("services") },
                         onItemClick = onListingClick,
                         onFavoriteClick = { viewModel.toggleFavorite(it) },
-                        modifier = Modifier.padding(top = 32.dp)
+                        modifier = Modifier.padding(top = 24.dp)
                     )
                 }
             }
@@ -184,7 +184,7 @@ fun HomeScreen(
                 BrowseByTypeSection(
                     onTypeTap = { type -> onCategoryClick(type) },
                     onSubcategoryTap = { _, subcategory -> onCategoryClick(subcategory) },
-                    modifier = Modifier.padding(top = 32.dp)
+                    modifier = Modifier.padding(top = 24.dp)
                 )
             }
 
@@ -193,7 +193,7 @@ fun HomeScreen(
                 TrendingDestinationsSection(
                     onDestinationTap = { destination -> onCategoryClick(destination) },
                     onViewAllTap = { onSectionViewAll("destinations") },
-                    modifier = Modifier.padding(top = 32.dp)
+                    modifier = Modifier.padding(top = 24.dp)
                 )
             }
 
@@ -201,7 +201,7 @@ fun HomeScreen(
             item {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
-                    modifier = Modifier.padding(top = 32.dp)
+                    modifier = Modifier.padding(top = 24.dp)
                 )
             }
 
@@ -239,13 +239,13 @@ private fun HeroHeaderSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .height(290.dp)
     ) {
         // Gradient background (matches iOS HeroHeader purple gradient)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(280.dp)
+                .height(255.dp)
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
@@ -534,10 +534,10 @@ private fun ExtendedCategoriesSection(
             title = "Categories",
             modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(getCategoryCards()) { category ->
                 QuickCategoryChip(
@@ -719,12 +719,12 @@ private fun SectionHeader(
             }
         }
         if (subtitle != null) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subtitle,
-                style = DSTypo.Footnote.copy(
+                style = DSTypo.Caption.copy(
                     fontFamily = paceDreamFontFamily,
-                    lineHeight = 18.sp
+                    lineHeight = 16.sp
                 ),
                 color = PaceDreamColors.Gray500
             )
@@ -756,27 +756,259 @@ private fun ListingSection(
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         if (isLoading) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(4) { ShimmerCard() }
+                items(3) { ShimmerCard() }
             }
-        } else {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(items) { item ->
-                    ListingCard(
-                        item = item,
-                        isFavorite = item.id in favoriteIds,
-                        onClick = { onItemClick(item) },
-                        onFavoriteClick = { onFavoriteClick(item.id) }
+        } else when {
+            // Single item: full-width featured card layout
+            items.size == 1 -> {
+                val item = items.first()
+                FeaturedFullWidthCard(
+                    item = item,
+                    isFavorite = item.id in favoriteIds,
+                    onClick = { onItemClick(item) },
+                    onFavoriteClick = { onFavoriteClick(item.id) },
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+            // Two items: side-by-side compact grid
+            items.size == 2 -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items.forEach { item ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            GridListingCard(
+                                item = item,
+                                isFavorite = item.id in favoriteIds,
+                                onClick = { onItemClick(item) },
+                                onFavoriteClick = { onFavoriteClick(item.id) }
+                            )
+                        }
+                    }
+                }
+            }
+            // 3+ items: horizontal carousel with peek-optimized card width
+            else -> {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(items) { item ->
+                        ListingCard(
+                            item = item,
+                            isFavorite = item.id in favoriteIds,
+                            onClick = { onItemClick(item) },
+                            onFavoriteClick = { onFavoriteClick(item.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Full-width featured card for single-item sections.
+ * Uses full horizontal space so the section looks intentional, not empty.
+ */
+@Composable
+private fun FeaturedFullWidthCard(
+    item: HomeListingItem,
+    isFavorite: Boolean = false,
+    onClick: () -> Unit,
+    onFavoriteClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "featuredScale"
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .shadow(
+                elevation = if (isPressed) 10.dp else 4.dp,
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White
+    ) {
+        Column {
+            // Image — 16:9 aspect ratio for featured
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = PaceDreamRadius.LG,
+                            topEnd = PaceDreamRadius.LG
+                        )
                     )
+            ) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.20f)
+                                )
+                            )
+                        )
+                )
+
+                // Type badge
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.SM),
+                    color = Color.White.copy(alpha = 0.95f)
+                ) {
+                    Text(
+                        text = when (item.type) {
+                            "time-based" -> "Space"
+                            "gear" -> "Item"
+                            "split-stay" -> "Service"
+                            else -> item.type.replaceFirstChar { it.uppercase() }
+                        },
+                        style = DSTypo.Caption2.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                // Heart button
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(34.dp),
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.30f),
+                    onClick = onFavoriteClick
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
+                            contentDescription = null,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            // Content
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = item.title,
+                    style = DSTypo.Callout.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 20.sp
+                    ),
+                    color = Color(0xFF111827),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                item.location?.let { location ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Gray400,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = location.replace(Regex(",(?!\\s)"), ", "),
+                            style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                            color = Color(0xFF6B7280),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    item.price?.let { price ->
+                        Text(
+                            text = price,
+                            style = DSTypo.Callout.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = PaceDreamColors.Primary
+                            )
+                        )
+                    }
+                    item.rating?.let { ratingVal ->
+                        if (ratingVal > 0.0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "%.1f".format(ratingVal),
+                                    style = DSTypo.Caption.copy(
+                                        fontFamily = paceDreamFontFamily,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = Color(0xFF374151)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -807,18 +1039,18 @@ private fun ServicesGridSection(
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         if (isLoading) {
             // 2-column shimmer grid (4 skeleton cards)
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 for (row in 0 until 2) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
                         Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
@@ -829,13 +1061,13 @@ private fun ServicesGridSection(
             // 2-column listing grid
             Column(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 val rows = items.chunked(2)
                 for (rowItems in rows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         for (item in rowItems) {
                             Box(modifier = Modifier.weight(1f)) {
@@ -1142,7 +1374,7 @@ private fun ListingCard(
 
     Surface(
         modifier = Modifier
-            .width(270.dp)
+            .width(240.dp)
             .scale(scale)
             .shadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
@@ -1159,11 +1391,11 @@ private fun ListingCard(
         color = Color.White
     ) {
         Column {
-            // Image area — 4:3 aspect ratio (270 × 202)
+            // Image area — 4:3 aspect ratio
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(202.dp)
+                    .height(170.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
@@ -1243,19 +1475,19 @@ private fun ListingCard(
             // Content area below image
             Column(
                 modifier = Modifier.padding(
-                    start = 14.dp,
-                    end = 14.dp,
-                    top = 14.dp,
-                    bottom = 14.dp
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = 10.dp,
+                    bottom = 10.dp
                 )
             ) {
                 // Title — primary emphasis
                 Text(
                     text = item.title,
-                    style = DSTypo.Callout.copy(
+                    style = DSTypo.Caption.copy(
                         fontFamily = paceDreamFontFamily,
                         fontWeight = FontWeight.SemiBold,
-                        lineHeight = 20.sp
+                        lineHeight = 18.sp
                     ),
                     color = Color(0xFF111827),
                     maxLines = 2,
@@ -1264,18 +1496,18 @@ private fun ListingCard(
 
                 // Location — secondary
                 item.location?.let { location ->
-                    Spacer(modifier = Modifier.height(5.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
                             tint = PaceDreamColors.Gray400,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
-                            style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                            style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
                             color = Color(0xFF6B7280),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1284,7 +1516,7 @@ private fun ListingCard(
                 }
 
                 // Price + Rating row — bottom emphasis
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1416,7 +1648,7 @@ private fun BrowseByTypeSection(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Segmented pill selector
         Row(
@@ -1427,7 +1659,7 @@ private fun BrowseByTypeSection(
                     PaceDreamColors.Gray100,
                     RoundedCornerShape(PaceDreamRadius.XL)
                 )
-                .padding(4.dp)
+                .padding(3.dp)
         ) {
             HomeBrowseType.entries.forEach { type ->
                 BrowseTypePill(
@@ -1442,12 +1674,12 @@ private fun BrowseByTypeSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Subcategory chips
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(selectedType.subcategories) { sub ->
                 SubcategoryChip(
@@ -1608,17 +1840,17 @@ private fun TrendingDestinationsSection(
             onViewAllClick = onViewAllTap,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         val destinations = getTrendingDestinations()
         Column(
             modifier = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             for (rowIndex in 0 until (destinations.size + 1) / 2) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     for (colIndex in 0..1) {
                         val index = rowIndex * 2 + colIndex
@@ -1657,7 +1889,7 @@ private fun TrendingDestinationCard(
 
     Box(
         modifier = modifier
-            .height(if (isLarge) 200.dp else 150.dp)
+            .height(if (isLarge) 170.dp else 130.dp)
             .scale(scale)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pointerInput(Unit) {
@@ -1929,7 +2161,7 @@ private fun ShimmerCard() {
     )
 
     Surface(
-        modifier = Modifier.width(270.dp),
+        modifier = Modifier.width(240.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = Color.White,
         shadowElevation = 2.dp
@@ -1938,7 +2170,7 @@ private fun ShimmerCard() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(202.dp)
+                    .height(170.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = PaceDreamRadius.LG,
@@ -1947,7 +2179,7 @@ private fun ShimmerCard() {
                     )
                     .background(shimmerBrush)
             )
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(12.dp)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
