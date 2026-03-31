@@ -40,7 +40,9 @@ class HostRepository @Inject constructor(
     )
 
     suspend fun loadDashboard(): DashboardLoadResult = coroutineScope {
-        var hadFailure = false
+        // iOS parity: only bookings+listings failures affect the error banner.
+        // Overview/payout failures are non-critical (iOS loads them separately).
+        var hadPrimaryFailure = false
         Timber.d("Loading host dashboard: bookings, listings, overview, payout state, eligibility")
 
         // Track whether we got non-host responses (401, 403, 404 with "not found")
@@ -60,17 +62,17 @@ class HostRepository @Inject constructor(
                     bookings
                 } else {
                     if (isNonHostCode(response.code())) {
-                        Timber.d("Host bookings returned ${response.code()} — user may not have a host profile")
+                        Timber.d("Host bookings returned ${response.code()} \u2014 user may not have a host profile")
                         gotNonHostResponse = true
                     } else {
                         Timber.w("Host bookings failed [${response.code()}]")
-                        hadFailure = true
+                        hadPrimaryFailure = true
                     }
                     emptyList()
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Host bookings fetch exception")
-                hadFailure = true
+                hadPrimaryFailure = true
                 emptyList<HostBookingDTO>()
             }
         }
@@ -86,17 +88,17 @@ class HostRepository @Inject constructor(
                     listings
                 } else {
                     if (isNonHostCode(response.code())) {
-                        Timber.d("Host listings returned ${response.code()} — user may not have a host profile")
+                        Timber.d("Host listings returned ${response.code()} \u2014 user may not have a host profile")
                         gotNonHostResponse = true
                     } else {
                         Timber.w("Host listings failed [${response.code()}]")
-                        hadFailure = true
+                        hadPrimaryFailure = true
                     }
                     emptyList()
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Host listings fetch exception")
-                hadFailure = true
+                hadPrimaryFailure = true
                 emptyList<Property>()
             }
         }
@@ -110,17 +112,17 @@ class HostRepository @Inject constructor(
                     response.body()
                 } else {
                     if (isNonHostCode(response.code())) {
-                        Timber.d("Dashboard overview returned ${response.code()} — non-host account")
+                        Timber.d("Dashboard overview returned ${response.code()} \u2014 non-host account")
                         gotNonHostResponse = true
                     } else {
-                        Timber.w("Dashboard overview failed [${response.code()}]")
-                        hadFailure = true
+                        // Non-critical: don't set hadPrimaryFailure (iOS parity)
+                        Timber.w("Dashboard overview failed [${response.code()}] \u2014 non-critical")
                     }
                     null
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Dashboard overview fetch exception")
-                hadFailure = true
+                // Non-critical: don't set hadPrimaryFailure (iOS parity)
+                Timber.e(e, "Dashboard overview fetch exception \u2014 non-critical")
                 null
             }
         }
@@ -130,8 +132,8 @@ class HostRepository @Inject constructor(
                 Timber.d("Resolving payout state from /host/payouts/status")
                 resolvePayoutState()
             } catch (e: Exception) {
-                Timber.e(e, "Payout state resolution exception")
-                hadFailure = true
+                // Non-critical: don't set hadPrimaryFailure (iOS parity)
+                Timber.e(e, "Payout state resolution exception \u2014 non-critical")
                 PayoutConnectionState.NOT_CONNECTED
             }
         }
@@ -154,13 +156,13 @@ class HostRepository @Inject constructor(
         // iOS parity: 401/403/404 on host-only endpoints for users without a host profile
         // is NOT a failure. Treat as empty data with no error message — matches iOS behavior
         // where non-host users simply see empty state, not error banners.
-        val primaryDataFailed = hadFailure && bookings.isEmpty() && listings.isEmpty()
+        val primaryDataFailed = hadPrimaryFailure && bookings.isEmpty() && listings.isEmpty()
         val errorMessage = when {
-            gotNonHostResponse && !hadFailure && bookings.isEmpty() && listings.isEmpty() ->
+            gotNonHostResponse && !hadPrimaryFailure && bookings.isEmpty() && listings.isEmpty() ->
                 null  // Non-host user: show empty state, not error
             primaryDataFailed ->
                 "Couldn't load host data. Pull to refresh."
-            hadFailure ->
+            hadPrimaryFailure ->
                 "Some data couldn't load. Pull to refresh."
             else -> null
         }
@@ -171,13 +173,13 @@ class HostRepository @Inject constructor(
             overview = overview,
             payoutState = payoutState,
             payoutEligibility = payoutEligibility,
-            hadPartialFailure = hadFailure,
+            hadPartialFailure = hadPrimaryFailure,
             errorMessage = errorMessage,
             hasLoaded = true
         )
     }
 
-    // ── Bookings (iOS: HostBookingsService) ─────────────────────
+    // ── Bookings (iOS: HostBookingsService) ─────────────────
 
     suspend fun getHostBookings(): Result<List<HostBookingDTO>> {
         return try {
@@ -225,7 +227,7 @@ class HostRepository @Inject constructor(
         return updateBookingStatus(id, "declined")
     }
 
-    // ── Listings ────────────────────────────────────────────────
+    // ── Listings ────────────────────────────────────────────
 
     suspend fun getHostListings(filter: String? = null, sort: String? = null): Result<List<Property>> {
         return try {
@@ -245,7 +247,7 @@ class HostRepository @Inject constructor(
     suspend fun createListing(request: CreateListingRequest): Result<Property> {
         return try {
             Timber.d(
-                "createListing: POST /listings — type=%s sub=%s title='%s' price=%.2f pricing_type=%s " +
+                "createListing: POST /listings \u2014 type=%s sub=%s title='%s' price=%.2f pricing_type=%s " +
                     "images=%d address='%s' available=%s availability=%s",
                 request.listing_type, request.subCategory, request.title, request.price,
                 request.pricing_type, request.images?.size ?: 0, request.address ?: "",
@@ -269,7 +271,7 @@ class HostRepository @Inject constructor(
             } else {
                 val errorBody = response.errorBody()?.string()
                 Timber.w(
-                    "createListing failed: HTTP %d — %s",
+                    "createListing failed: HTTP %d \u2014 %s",
                     response.code(), errorBody,
                 )
                 val errorMsg = try {
@@ -403,7 +405,7 @@ class HostRepository @Inject constructor(
         }
     }
 
-    // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
+    // ── Payouts / Stripe Connect (iOS: PayoutsService) ────────
 
     suspend fun resolvePayoutState(): PayoutConnectionState {
         val response = try {
@@ -610,7 +612,7 @@ class HostRepository @Inject constructor(
             "currency" to r.pricing.currency,
         )
 
-        // Optional fields — only include when set
+        // Optional fields \u2014 only include when set
         r.prices?.let { body["prices"] = it }
         r.address?.let { body["address"] = it }
         r.amenities?.let { body["amenities"] = it }
