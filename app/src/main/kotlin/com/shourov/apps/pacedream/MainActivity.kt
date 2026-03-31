@@ -133,12 +133,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        lazyStats.get().isTrackingEnabled = true
+        try {
+            lazyStats.get().isTrackingEnabled = true
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to enable JankStats tracking")
+        }
     }
 
     override fun onPause() {
         super.onPause()
-        lazyStats.get().isTrackingEnabled = false
+        try {
+            lazyStats.get().isTrackingEnabled = false
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to disable JankStats tracking")
+        }
     }
 }
 

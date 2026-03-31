@@ -50,6 +50,35 @@
     static <1>$$serializer INSTANCE;
 }
 
+# ── Gson ────────────────────────────────────────────────────────────────────
+# Gson uses reflection to map JSON field names to class fields. R8 full mode
+# renames/strips fields and @SerializedName annotations, causing deserialization
+# failures and crashes in release builds.
+-keepattributes Signature
+-keepattributes *Annotation*
+
+# Keep all classes with @SerializedName-annotated fields (Gson reflection target)
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Keep Gson internals
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+
+# Keep data classes used as Retrofit response/request models (Gson deserialisation)
+-keep class com.shourov.apps.pacedream.core.network.model.** { *; }
+-keep class com.shourov.apps.pacedream.core.network.di.Rules { *; }
+-keep class com.shourov.apps.pacedream.core.network.di.RulesWrapper { *; }
+-keep class com.shourov.apps.pacedream.core.network.di.RulesWrapper$* { *; }
+-keep class com.shourov.apps.pacedream.core.network.di.RulesWrapperAdapter { *; }
+-keep class com.shourov.apps.pacedream.model.** { *; }
+-keep class com.shourov.apps.pacedream.feature.home.data.dto.** { *; }
+-keep class com.shourov.apps.pacedream.feature.home.domain.models.** { *; }
+-keep class com.shourov.apps.pacedream.feature.host.data.** { *; }
+-keep class com.shourov.apps.pacedream.model.request.** { *; }
+-keep class com.shourov.apps.pacedream.model.response.** { *; }
+
 # ── Moshi (used by core:model response types) ────────────────────────────────
 -keep,allowobfuscation,allowshrinking class com.squareup.moshi.JsonAdapter
 
@@ -60,3 +89,20 @@
 # ── Stripe SDK ───────────────────────────────────────────────────────────────
 -keep class com.stripe.android.** { *; }
 -dontwarn com.stripe.android.**
+
+# ── Retrofit interfaces (R8 full mode can strip method signatures) ──────────
+-keep,allowobfuscation,allowshrinking interface * extends retrofit2.http.*
+-keepclassmembers interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# ── OneSignal SDK ────────────────────────────────────────────────────────────
+-keep class com.onesignal.** { *; }
+-dontwarn com.onesignal.**
+
+# ── Coil (image loading) ────────────────────────────────────────────────────
+-dontwarn coil.**
+
+# ── Google Maps Compose ─────────────────────────────────────────────────────
+-keep class com.google.maps.** { *; }
+-dontwarn com.google.maps.**

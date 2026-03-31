@@ -71,11 +71,19 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             Timber.e(e, "Firebase initialization failed; continuing without Firebase services")
         }
 
-        profileVerifierLogger()
+        try {
+            profileVerifierLogger()
+        } catch (e: Exception) {
+            Timber.e(e, "ProfileVerifierLogger failed; continuing")
+        }
 
         // iOS parity: Initialize OneSignal (matches iOS setupOneSignal in AppDelegate).
         // Non-blocking; must run after Firebase init so FCM token is available.
-        oneSignalService.initialize(BuildConfig.ONESIGNAL_APP_ID)
+        try {
+            oneSignalService.initialize(BuildConfig.ONESIGNAL_APP_ID)
+        } catch (e: Exception) {
+            Timber.e(e, "OneSignal initialization failed; push notifications disabled")
+        }
 
         // iOS parity: bootstrap session on app start if tokens exist.
         // Do not block app startup; protected actions can still gate via AuthFlowSheet.
@@ -83,33 +91,41 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
         // returns true. Previously registerCurrentToken() ran before initialize()
         // completed, causing the registration to be skipped for returning users.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
-            authSession.initialize()
-            sessionManager.initialize()
+            try {
+                authSession.initialize()
+                sessionManager.initialize()
 
-            // Now that auth tokens are loaded from storage, register FCM token.
-            // OneSignal owns the FirebaseMessagingService (via manifest merger),
-            // so we retrieve the token explicitly here instead of relying on
-            // onNewToken(). Safe to call on every launch; deduplicates internally.
-            Timber.d("[App] Auth initialized, registering FCM token")
-            fcmTokenRegistrar.registerCurrentToken()
+                // Now that auth tokens are loaded from storage, register FCM token.
+                // OneSignal owns the FirebaseMessagingService (via manifest merger),
+                // so we retrieve the token explicitly here instead of relying on
+                // onNewToken(). Safe to call on every launch; deduplicates internally.
+                Timber.d("[App] Auth initialized, registering FCM token")
+                fcmTokenRegistrar.registerCurrentToken()
+            } catch (e: Exception) {
+                Timber.e(e, "Auth/FCM initialization failed; app will show unauthenticated state")
+            }
         }
 
         // iOS parity: bind OneSignal external user ID when user is authenticated.
         // Mirrors iOS OneSignalService.setExternalUserId() called after auth.
         // Also re-registers FCM token when user changes so backend has the correct mapping.
         ProcessLifecycleOwner.get().lifecycleScope.launch {
-            authSession.currentUser.collect { user ->
-                if (user != null && user.id.isNotBlank()) {
-                    Timber.d("[App] User authenticated (id=%s), binding OneSignal + FCM", user.id)
-                    oneSignalService.setExternalUserId(user.id)
-                    // Clear dedup cache so the device always re-registers after
-                    // login. This fixes the case where a previous registration
-                    // was marked as done but the backend lost the PushDevice record.
-                    fcmTokenRegistrar.clearRegistrationCache()
-                    fcmTokenRegistrar.registerCurrentToken()
-                } else {
-                    oneSignalService.setExternalUserId(null)
+            try {
+                authSession.currentUser.collect { user ->
+                    if (user != null && user.id.isNotBlank()) {
+                        Timber.d("[App] User authenticated (id=%s), binding OneSignal + FCM", user.id)
+                        oneSignalService.setExternalUserId(user.id)
+                        // Clear dedup cache so the device always re-registers after
+                        // login. This fixes the case where a previous registration
+                        // was marked as done but the backend lost the PushDevice record.
+                        fcmTokenRegistrar.clearRegistrationCache()
+                        fcmTokenRegistrar.registerCurrentToken()
+                    } else {
+                        oneSignalService.setExternalUserId(null)
+                    }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "User observation coroutine failed")
             }
         }
     }
