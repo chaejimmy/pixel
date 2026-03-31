@@ -34,9 +34,12 @@ data class HostDashboardData(
     val hasLoaded: Boolean = false,
     val error: String? = null
 ) {
-    // ── KPI computations (iOS parity: HostDataStore) ──────────
+    // ── KPI computations (iOS parity: HostDataStore) ──────────────
 
-    val activeListingsCount: Int get() = activeListings
+    val activeListingsCount: Int get() = if (activeListings > 0) activeListings else listings.count { it.isActive }
+
+    /** iOS parity: HostDataStore.underReviewListingsCount */
+    val underReviewListingsCount: Int get() = listings.count { it.isPendingReview }
 
     val pendingRequestsCount: Int get() = bookings.count { booking ->
         isPendingStatus(booking.status)
@@ -68,10 +71,14 @@ data class HostDashboardData(
             .sortedBy { parseDate(it.resolvedStart) ?: Long.MAX_VALUE }
             .take(5)
 
-    val topActiveListings: List<Property> get() =
-        listings.filter { it.isAvailable }.take(5)
+    /** iOS parity: topVisibleListings — show under-review first, then active */
+    val topActiveListings: List<Property> get() {
+        val underReview = listings.filter { it.isPendingReview }
+        val active = listings.filter { it.isActive }
+        return (underReview + active).take(5)
+    }
 
-    // ── History events (iOS parity: DashboardEvent) ──────────
+    // ── History events (iOS parity: DashboardEvent) ────────────
 
     data class DashboardEvent(
         val id: String,
@@ -109,7 +116,7 @@ data class HostDashboardData(
                     DashboardEvent(
                         id = "confirmed-${booking.id}",
                         title = paymentTitle,
-                        subtitle = "$listingTitle • $${String.format("%.0f", displayAmount)}",
+                        subtitle = "$listingTitle \u2022 $${String.format("%.0f", displayAmount)}",
                         createdAt = created
                     )
                 }
@@ -119,7 +126,7 @@ data class HostDashboardData(
         .sortedByDescending { it.createdAt }
         .take(6)
 
-    // ── Helpers ──────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────
 
     private fun isPendingStatus(status: String?): Boolean {
         val s = (status ?: "").trim().lowercase()
@@ -147,7 +154,7 @@ enum class PayoutConnectionState {
     NOT_CONNECTED
 }
 
-// ── Quick Action Item ───────────────────────────────────────────
+// ── Quick Action Item ─────────────────────────────────────────
 
 data class QuickAction(
     val title: String,
@@ -175,7 +182,7 @@ data class HostEarningsData(
     val loginUrl: String? = null
 )
 
-// ── Host Listings UI State ──────────────────────────────────────
+// ── Host Listings UI State ──────────────────────────────────
 
 data class HostListingsData(
     val listings: List<Property> = emptyList(),
@@ -185,7 +192,7 @@ data class HostListingsData(
     val error: String? = null
 )
 
-// ── Host Bookings UI State (iOS parity: segments) ───────────────
+// ── Host Bookings UI State (iOS parity: segments) ───────────
 
 data class HostBookingsData(
     val totalBookings: Int = 0,
@@ -209,7 +216,7 @@ enum class ListingSortOption {
     DATE_NEWEST, DATE_OLDEST, PRICE_HIGH_LOW, PRICE_LOW_HIGH, RATING_HIGH_LOW
 }
 
-// ── Date parsing utility ────────────────────────────────────────
+// ── Date parsing utility ────────────────────────────────────
 
 fun parseDate(dateString: String?): Long? {
     if (dateString.isNullOrBlank()) return null
