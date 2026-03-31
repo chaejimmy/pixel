@@ -1122,8 +1122,8 @@ private fun CreateListingWizardScreen(
                                 listing_type = listingMode.backendValue,
                                 subCategory = subCategory,
                                 title = title.trim(),
-                                description = trimmedDesc.ifBlank { null },
-                                summary = summary,  // never null — falls back to title
+                                description = trimmedDesc,
+                                summary = summary,  // never empty — falls back to title
                                 price = resolvedPrice,
                                 pricing_type = pricingMode,
                                 pricing = PricingPayload(
