@@ -1618,16 +1618,28 @@ private fun PhotosLocationPricingStep(
                                         addressSuggestions = emptyList()
                                         // Fetch place details for lat/lng and parsed address components
                                         scope.launch {
-                                            val details = placesService.getPlaceDetails(prediction.placeId)
-                                            if (details != null) {
-                                                if (details.city.isNotBlank()) onCityChange(details.city)
-                                                if (details.state.isNotBlank()) onStateChange(details.state)
-                                                onLocationLatLngChange(details.lat, details.lng)
-                                            } else {
-                                                // Fallback: parse city/state from secondaryText
-                                                val parts = prediction.secondaryText.split(",").map { it.trim() }
-                                                if (parts.isNotEmpty()) onCityChange(parts[0])
-                                                if (parts.size >= 2) onStateChange(parts[1])
+                                            if (prediction.placeId.isNotBlank()) {
+                                                // Google Places result — fetch full details
+                                                val details = placesService.getPlaceDetails(prediction.placeId)
+                                                if (details != null) {
+                                                    if (details.city.isNotBlank()) onCityChange(details.city)
+                                                    if (details.state.isNotBlank()) onStateChange(details.state)
+                                                    onLocationLatLngChange(details.lat, details.lng)
+                                                    return@launch
+                                                }
+                                            }
+                                            // Device geocoder result or fallback — parse from secondaryText
+                                            val parts = prediction.secondaryText.split(",").map { it.trim() }
+                                            if (parts.isNotEmpty()) onCityChange(parts[0])
+                                            if (parts.size >= 2) onStateChange(parts[1])
+                                            // Try to get lat/lng via device geocoder
+                                            val locationService = EntryPointAccessors.fromApplication(
+                                                context.applicationContext,
+                                                LocationServiceEntryPoint::class.java
+                                            ).locationService()
+                                            val coords = locationService.getLocationFromAddress(prediction.description)
+                                            if (coords != null) {
+                                                onLocationLatLngChange(coords.first, coords.second)
                                             }
                                         }
                                     }

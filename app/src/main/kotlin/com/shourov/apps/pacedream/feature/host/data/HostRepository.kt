@@ -251,7 +251,12 @@ class HostRepository @Inject constructor(
                 request.pricing_type, request.images?.size ?: 0, request.address ?: "",
                 request.available, request.availability != null,
             )
-            val response = hostApiService.createListing(request)
+            // Build request body as Map to guarantee field names survive serialization.
+            // Gson data class serialization can drop fields in release builds (R8 obfuscation)
+            // or with certain Kotlin data class configurations.
+            val body = buildCreateListingBody(request)
+            Timber.d("createListing body keys: %s", body.keys.joinToString())
+            val response = hostApiService.createListing(body)
             if (response.isSuccessful) {
                 val json = response.body()
                 if (json != null) {
@@ -580,6 +585,82 @@ class HostRepository @Inject constructor(
                 }
             }
         }
+    }
+
+    // ── Listing body builder (explicit Map to bypass Gson data-class issues) ──
+
+    private fun buildCreateListingBody(r: CreateListingRequest): Map<String, Any> {
+        val body = mutableMapOf<String, Any>(
+            "listing_type" to r.listing_type,
+            "subCategory" to r.subCategory,
+            "title" to r.title,
+            "price" to r.price,
+            "pricing_type" to r.pricing_type,
+            "available" to r.available,
+        )
+
+        // Always include description & summary (backend RentableItem requires summary)
+        body["description"] = r.description
+        body["summary"] = r.summary.ifBlank { r.title }
+
+        // Pricing object
+        body["pricing"] = mapOf(
+            "base_price" to r.pricing.base_price,
+            "unit" to r.pricing.unit,
+            "currency" to r.pricing.currency,
+        )
+
+        // Optional fields — only include when set
+        r.prices?.let { body["prices"] = it }
+        r.address?.let { body["address"] = it }
+        r.amenities?.let { body["amenities"] = it }
+        r.details?.let {
+            body["details"] = mapOf(
+                "features" to it.features,
+                "reviewCount" to it.reviewCount,
+            )
+        }
+        r.images?.let { body["images"] = it }
+        r.location?.let {
+            body["location"] = mutableMapOf<String, Any>(
+                "street" to it.street,
+                "street_address" to it.street_address,
+                "city" to it.city,
+                "state" to it.state,
+                "country" to it.country,
+            ).apply {
+                it.latitude?.let { lat -> put("latitude", lat) }
+                it.longitude?.let { lng -> put("longitude", lng) }
+            }
+        }
+        r.durations?.let { body["durations"] = it }
+        r.minStay?.let { body["minStay"] = it }
+        r.maxStay?.let { body["maxStay"] = it }
+        r.minMonths?.let { body["minMonths"] = it }
+        r.availableFrom?.let { body["availableFrom"] = it }
+        r.availability?.let {
+            body["availability"] = mutableMapOf<String, Any>(
+                "start_time" to it.start_time,
+                "end_time" to it.end_time,
+                "timezone" to it.timezone,
+                "instant_booking" to it.instant_booking,
+            ).apply {
+                it.available_days?.let { days -> put("available_days", days) }
+            }
+        }
+        // Split-specific fields
+        r.shareType?.let { body["shareType"] = it }
+        r.share_type?.let { body["share_type"] = it }
+        r.splitType?.let { body["splitType"] = it }
+        r.totalCost?.let { body["totalCost"] = it }
+        r.checkInDate?.let { body["checkInDate"] = it }
+        r.checkOutDate?.let { body["checkOutDate"] = it }
+        r.hotelName?.let { body["hotelName"] = it }
+        r.roomType?.let { body["roomType"] = it }
+        r.deadlineAt?.let { body["deadlineAt"] = it }
+        r.requirements?.let { body["requirements"] = it }
+
+        return body
     }
 
     // ── Revenue (iOS: HostDashboardService.getRevenue) ──────────
