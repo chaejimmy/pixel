@@ -36,15 +36,15 @@ object GlobalExceptionHandler {
                 return@setDefaultUncaughtExceptionHandler
             }
 
-            // For the main thread: if the exception happens during Compose rendering
-            // or click handlers, we log and attempt to keep the process alive.
-            // For background threads: log only.
+            // Background thread crashes: log but don't kill the app.
+            // Main thread crashes: also attempt to swallow to prevent "app has a bug"
+            // system dialog. Fatal errors (OOM etc.) are already forwarded above.
             if (thread.name == "main") {
-                // Forward to default handler (Crashlytics) which will record the crash
-                // but the process will restart cleanly
-                defaultHandler?.uncaughtException(thread, throwable)
+                Timber.e(throwable, "Non-fatal main thread crash, swallowed to prevent app termination")
+                // Do NOT forward to default handler - this prevents the system
+                // "app has a bug" dialog and force-close. The app may be in a
+                // partially broken state but won't hard-crash for the user.
             } else {
-                // Background thread crash - log but don't kill the app
                 Timber.e(throwable, "Non-fatal background thread crash on ${thread.name}, swallowed")
             }
         }

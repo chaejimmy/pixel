@@ -22,36 +22,45 @@ class TokenStorage @Inject constructor(
     
     private val encryptedPrefs: SharedPreferences by lazy {
         try {
-            val masterKey = MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-
-            EncryptedSharedPreferences.create(
-                context,
-                PREFS_NAME,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
+            createEncryptedPrefs()
         } catch (e: Exception) {
             Timber.e(e, "Failed to create encrypted prefs, deleting corrupt prefs and retrying")
-            // Delete potentially corrupt encrypted prefs file and retry once
-            context.deleteSharedPreferences(PREFS_NAME)
+            // Delete potentially corrupt encrypted prefs file and retry once.
+            // Also clear the AndroidKeyStore master key to recover from keystore corruption
+            // (common on Samsung/Huawei after OTA updates or cache clears).
+            try { context.deleteSharedPreferences(PREFS_NAME) } catch (_: Exception) {}
             try {
-                val masterKey = MasterKey.Builder(context)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
-                EncryptedSharedPreferences.create(
-                    context,
-                    PREFS_NAME,
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                )
+                clearMasterKeyFromKeyStore()
+            } catch (_: Exception) {}
+            try {
+                createEncryptedPrefs()
             } catch (retryException: Exception) {
                 Timber.e(retryException, "EncryptedSharedPreferences retry also failed, falling back to plain SharedPreferences")
                 context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
             }
+        }
+    }
+
+    private fun createEncryptedPrefs(): SharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    private fun clearMasterKeyFromKeyStore() {
+        try {
+            val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore")
+            keyStore.load(null)
+            keyStore.deleteEntry("_androidx_security_master_key_")
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to clear master key from AndroidKeyStore")
         }
     }
     
