@@ -7,6 +7,8 @@ import com.pacedream.app.core.network.ApiResult
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import timber.log.Timber
@@ -115,6 +117,10 @@ class NativePaymentRepository @Inject constructor(
         val url = appConfig.buildApiUrl("payments", "native", "payment-intent")
         val body = buildJsonObject {
             put("quote_id", quoteId)
+            // Only allow card payments (Google Pay uses the card rail in Stripe).
+            // This prevents the backend from enabling ACH / US bank account / bank
+            // transfer methods on the PaymentIntent for guest checkout.
+            put("payment_method_types", buildJsonArray { add(JsonPrimitive("card")) })
         }.toString()
 
         return when (val result = apiClient.post(url, body, includeAuth = true)) {

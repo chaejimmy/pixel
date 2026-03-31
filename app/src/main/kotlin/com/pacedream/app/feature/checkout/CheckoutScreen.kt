@@ -105,8 +105,13 @@ fun CheckoutScreen(
                                 countryCode = "US",
                                 currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
                             ),
-                            // Only allow credit/debit cards and Google Pay — no bank transfers
+                            // Block ACH / bank debits / any delayed-notification payment methods.
+                            // Guest checkout should only offer Card + Google Pay.
                             allowsDelayedPaymentMethods = false,
+                            // Prioritize card (Google Pay is presented automatically when
+                            // available and googlePay config is set). Any other method types
+                            // not in this list are deprioritized / hidden.
+                            paymentMethodOrder = listOf("card"),
                             // Customer session for saved cards
                             customer = if (effect.customerId != null && effect.ephemeralKeySecret != null) {
                                 PaymentSheet.CustomerConfiguration(
