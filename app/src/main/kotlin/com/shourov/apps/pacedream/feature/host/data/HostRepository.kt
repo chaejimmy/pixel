@@ -265,15 +265,21 @@ class HostRepository @Inject constructor(
                 val errorBody = response.errorBody()?.string()
                 Timber.w(
                     "createListing failed: HTTP %d — %s",
-                    response.code(), errorBody?.take(500),
+                    response.code(), errorBody,
                 )
                 val errorMsg = try {
                     val json = Json.parseToJsonElement(errorBody ?: "")
                     json.jsonObject["message"]?.jsonPrimitive?.content
                         ?: json.jsonObject["error"]?.jsonPrimitive?.content
                         ?: json.jsonObject["details"]?.jsonPrimitive?.content
+                        ?: json.jsonObject["data"]?.let { data ->
+                            try {
+                                data.jsonObject["message"]?.jsonPrimitive?.content
+                                    ?: data.jsonObject["error"]?.jsonPrimitive?.content
+                            } catch (_: Exception) { null }
+                        }
                 } catch (_: Exception) { null }
-                Result.failure(Exception(errorMsg ?: "Failed to create listing: ${response.code()}"))
+                Result.failure(Exception(errorMsg ?: "Failed to create listing (HTTP ${response.code()}). Please check all fields and try again."))
             }
         } catch (e: Exception) {
             Timber.e(e, "createListing failed with exception")
