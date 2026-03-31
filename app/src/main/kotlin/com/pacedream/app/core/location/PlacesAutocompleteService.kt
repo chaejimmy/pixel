@@ -77,28 +77,68 @@ class PlacesAutocompleteService @Inject constructor(
     }
 
     /**
-     * Address autocomplete using the backend proxy.
-     * Tries 'address' type first for street-level results,
-     * then falls back to 'geocode' for broader results.
+     * Address autocomplete with multi-layer fallback:
+     * 1. Backend proxy (server-side Google API key)
+     * 2. Direct Google Places API (client-side key)
+     * 3. Android device Geocoder (always works, no API key needed)
      */
     suspend fun getAddressAutocompletePredictions(
         query: String
     ): List<PlacePrediction> {
-        if (query.length < 2) return emptyList()
+        if (query.length < 3) return emptyList()
 
-        // Try backend proxy with address type
-        val backendAddress = getAutocompleteFromBackend(query, "address")
-        if (backendAddress.isNotEmpty()) return backendAddress
+        // Try backend proxy
+        val backendResults = getAutocompleteFromBackend(query, "address")
+        if (backendResults.isNotEmpty()) return backendResults
+        val backendGeo = getAutocompleteFromBackend(query, "geocode")
+        if (backendGeo.isNotEmpty()) return backendGeo
 
-        // Try backend proxy with geocode type (broader)
-        val backendGeocode = getAutocompleteFromBackend(query, "geocode")
-        if (backendGeocode.isNotEmpty()) return backendGeocode
+        // Try direct Google Places API
+        if (apiKey.isNotBlank()) {
+            val googleResults = getAutocompleteFromGoogle(query, "address")
+            if (googleResults.isNotEmpty()) return googleResults
+            val googleGeo = getAutocompleteFromGoogle(query, "geocode")
+            if (googleGeo.isNotEmpty()) return googleGeo
+        }
 
-        // Fallback: direct Google Places API
-        if (apiKey.isBlank()) return emptyList()
-        val googleAddress = getAutocompleteFromGoogle(query, "address")
-        if (googleAddress.isNotEmpty()) return googleAddress
-        return getAutocompleteFromGoogle(query, "geocode")
+        // Fallback: Android device Geocoder (always works, no API key needed)
+        return getAddressFromDeviceGeocoder(query)
+    }
+
+    /**
+     * Use Android's built-in Geocoder to find addresses.
+     * Works without any API key — uses the device's location services.
+     */
+    private suspend fun getAddressFromDeviceGeocoder(
+        query: String
+    ): List<PlacePrediction> = withContext(Dispatchers.IO) {
+        try {
+            val geocoder = android.location.Geocoder(context, java.util.Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocationName(query, 5) ?: return@withContext emptyList()
+            addresses.mapNotNull { addr ->
+                val lines = (0..addr.maxAddressLineIndex).mapNotNull { addr.getAddressLine(it) }
+                val fullAddress = lines.joinToString(", ")
+                if (fullAddress.isBlank()) return@mapNotNull null
+                val mainText = addr.getAddressLine(0) ?: fullAddress
+                val city = addr.locality ?: addr.subAdminArea ?: ""
+                val state = addr.adminArea ?: ""
+                val secondary = listOfNotNull(
+                    city.takeIf { it.isNotBlank() },
+                    state.takeIf { it.isNotBlank() },
+                    addr.countryName?.takeIf { it.isNotBlank() }
+                ).joinToString(", ")
+                PlacePrediction(
+                    placeId = "", // Device geocoder doesn't have placeIds
+                    description = fullAddress,
+                    mainText = mainText,
+                    secondaryText = secondary
+                )
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Device Geocoder failed for query: $query")
+            emptyList()
+        }
     }
 
     /**
@@ -198,10 +238,10 @@ class PlacesAutocompleteService @Inject constructor(
 
     /**
      * Fetch place details (lat/lng and address components) for a selected prediction.
-     * Tries backend proxy first, then falls back to direct Google API.
+     * Tries backend proxy first, then direct Google API, then device geocoder.
      */
     suspend fun getPlaceDetails(placeId: String): PlaceDetails? = withContext(Dispatchers.IO) {
-        if (placeId.isBlank()) return@withContext null
+        if (placeId.isBlank()) return@withContext null // Device geocoder results have no placeId
 
         // Try backend proxy first
         val backendResult = getPlaceDetailsFromBackend(placeId)

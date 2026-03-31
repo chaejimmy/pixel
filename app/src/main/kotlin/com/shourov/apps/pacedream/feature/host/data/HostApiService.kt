@@ -57,7 +57,7 @@ interface HostApiService {
     ): Response<JsonElement>
 
     @POST(ApiEndPoints.CREATE_LISTING)
-    suspend fun createListing(@Body listing: CreateListingRequest): Response<JsonElement>
+    suspend fun createListing(@Body listing: Map<String, @JvmSuppressWildcards Any>): Response<JsonElement>
 
     @PUT(ApiEndPoints.HOST_UPDATE_LISTING)
     suspend fun updateListing(
