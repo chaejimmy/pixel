@@ -872,6 +872,9 @@ private fun CreateListingWizardScreen(
                 }
                 if (listingMode != ListingMode.SPLIT) {
                     if (address.isBlank()) return "Address is required."
+                    if (city.isBlank() && !address.contains(",")) {
+                        return "Please select an address from the suggestions for accurate location."
+                    }
                 }
                 null
             }
@@ -1043,8 +1046,10 @@ private fun CreateListingWizardScreen(
                             }
 
                             // Web parity: summary maps to description
+                            // Backend RentableItem schema requires summary (non-empty).
+                            // Fall back to title to prevent 400 validation error.
                             val trimmedDesc = description.trim()
-                            val summary = trimmedDesc.ifBlank { null }
+                            val summary = trimmedDesc.ifBlank { title.trim() }
 
                             // Web parity: pricing_type uses unit value (hour/day/week/month)
                             val pricingMode = selectedPricingUnit.value
@@ -1086,11 +1091,21 @@ private fun CreateListingWizardScreen(
                             }
 
                             // Web parity: location includes street (address), city, state, country
+                            // Parse city/state from address string as fallback when not set by autocomplete
+                            val resolvedCity = city.ifBlank {
+                                val parts = address.split(",").map { it.trim() }
+                                if (parts.size >= 2) parts[parts.size - 2] else ""
+                            }
+                            val resolvedState = state.ifBlank {
+                                val parts = address.split(",").map { it.trim() }
+                                if (parts.size >= 3) parts.last().split(" ").firstOrNull() ?: "" else ""
+                            }
                             val locationPayload = if (listingMode != ListingMode.SPLIT) {
                                 LocationPayload(
                                     street = address,
-                                    city = city,
-                                    state = state,
+                                    street_address = address,
+                                    city = resolvedCity,
+                                    state = resolvedState,
                                     country = "US",
                                     latitude = if (locationLat != 0.0) locationLat else null,
                                     longitude = if (locationLng != 0.0) locationLng else null,
@@ -1108,7 +1123,7 @@ private fun CreateListingWizardScreen(
                                 subCategory = subCategory,
                                 title = title.trim(),
                                 description = trimmedDesc.ifBlank { null },
-                                summary = summary,
+                                summary = summary,  // never null — falls back to title
                                 price = resolvedPrice,
                                 pricing_type = pricingMode,
                                 pricing = PricingPayload(
