@@ -69,7 +69,7 @@ class HostDashboardViewModel @Inject constructor(
                 userName = resolvedUserName,
                 bookings = result.bookings,
                 listings = result.listings,
-                activeListings = result.overview?.activeListings ?: result.listings.count { it.isAvailable },
+                activeListings = result.overview?.activeListings ?: result.listings.count { it.isActive },
                 totalBookings = result.overview?.totalBookings ?: result.bookings.size,
                 totalRevenue = result.overview?.totalRevenue ?: 0.0,
                 averageRating = result.overview?.averageRating ?: 0.0,
