@@ -1,7 +1,5 @@
 package com.pacedream.app.feature.checkout
 
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,21 +32,28 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamElevation
-import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import timber.log.Timber
+import java.text.NumberFormat
+import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +66,27 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // Create PaymentSheet instance (requires ComponentActivity)
+    val activity = context as? androidx.activity.ComponentActivity
+    val paymentSheet = remember(activity) {
+        activity?.let { act ->
+            try {
+                PaymentSheet(act) { result ->
+                    when (result) {
+                        is PaymentSheetResult.Completed -> viewModel.onPaymentSheetCompleted()
+                        is PaymentSheetResult.Canceled -> viewModel.onPaymentSheetCancelled()
+                        is PaymentSheetResult.Failed -> viewModel.onPaymentSheetFailed(
+                            result.error.localizedMessage ?: "Payment failed. Please try again."
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to create PaymentSheet")
+                null
+            }
+        }
+    }
+
     LaunchedEffect(draft) {
         viewModel.setDraft(draft)
     }
@@ -68,25 +94,62 @@ fun CheckoutScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is CheckoutViewModel.Effect.NavigateToConfirmation -> onConfirmSuccess(effect.bookingId)
-                is CheckoutViewModel.Effect.LaunchStripeCheckout -> {
-                    runCatching {
-                        val customTabsIntent = CustomTabsIntent.Builder()
-                            .setShowTitle(true)
-                            .build()
-                        customTabsIntent.launchUrl(context, Uri.parse(effect.checkoutUrl))
+                is CheckoutViewModel.Effect.NavigateToConfirmation -> {
+                    onConfirmSuccess(effect.bookingId)
+                }
+                is CheckoutViewModel.Effect.PresentPaymentSheet -> {
+                    if (paymentSheet == null) {
+                        viewModel.onPaymentSheetFailed("Payment is not available in this context.")
+                        return@collect
+                    }
+                    try {
+                        // Initialize Stripe with the resolved publishable key
+                        PaymentConfiguration.init(context, effect.publishableKey)
+
+                        // Configure PaymentSheet with Google Pay (iOS parity: Apple Pay)
+                        val config = PaymentSheet.Configuration(
+                            merchantDisplayName = effect.merchantDisplayName,
+                            // Enable Google Pay (Android equivalent of iOS Apple Pay)
+                            googlePay = PaymentSheet.GooglePayConfiguration(
+                                environment = PaymentSheet.GooglePayConfiguration.Environment.Production,
+                                countryCode = "US",
+                                currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
+                            ),
+                            // Only allow credit/debit cards and Google Pay — no bank transfers
+                            allowsDelayedPaymentMethods = false,
+                            // Customer session for saved cards
+                            customer = if (effect.customerId != null && effect.ephemeralKeySecret != null) {
+                                PaymentSheet.CustomerConfiguration(
+                                    id = effect.customerId,
+                                    ephemeralKeySecret = effect.ephemeralKeySecret
+                                )
+                            } else null,
+                            // PaceDream brand appearance
+                            appearance = PaymentSheet.Appearance(
+                                shapes = PaymentSheet.Shapes(
+                                    cornerRadiusDp = 12f
+                                )
+                            )
+                        )
+
+                        paymentSheet.presentWithPaymentIntent(
+                            effect.clientSecret,
+                            config
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to present PaymentSheet")
+                        viewModel.onPaymentSheetFailed(
+                            e.localizedMessage ?: "Unable to open payment form. Please try again."
+                        )
                     }
                 }
             }
         }
     }
 
-    // If payment already completed (e.g., user returned from Stripe), show a minimal
-    // holding state instead of the checkout form to prevent accidental re-payment.
-    if (uiState.paymentCompleted) {
-        Scaffold(
-            containerColor = PaceDreamColors.Background
-        ) { padding ->
+    // Post-payment success state (iOS parity: NativeCheckoutView.successContent)
+    if (uiState.status == CheckoutStatus.SUCCEEDED) {
+        Scaffold(containerColor = PaceDreamColors.Background) { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -94,13 +157,45 @@ fun CheckoutScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularProgressIndicator(color = PaceDreamColors.Primary)
+                Icon(
+                    imageVector = PaceDreamIcons.CheckCircle,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Success,
+                    modifier = Modifier.size(64.dp)
+                )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 Text(
-                    "Completing your booking…",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary
+                    "Payment Successful",
+                    style = PaceDreamTypography.Title2,
+                    fontWeight = FontWeight.Bold,
+                    color = PaceDreamColors.TextPrimary
                 )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                Text(
+                    "Your booking has been confirmed.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                if (uiState.bookingId != null) {
+                    Button(
+                        onClick = { uiState.bookingId?.let(onConfirmSuccess) },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp)
+                    ) {
+                        Text("View Booking", style = PaceDreamTypography.Button, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    CircularProgressIndicator(color = PaceDreamColors.Primary, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        "Finalizing your booking\u2026",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
             }
         }
         return
@@ -109,7 +204,7 @@ fun CheckoutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Checkout", style = PaceDreamTypography.Headline) },
+                title = { Text("Confirm & Pay", style = PaceDreamTypography.Headline) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
@@ -136,120 +231,126 @@ fun CheckoutScreen(
             ) {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
-                // Listing info card with type icon
+                // Listing info card
                 ListingInfoCard(draft = draft)
 
                 // Booking summary card
-                Card(
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                    elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(PaceDreamSpacing.MD),
-                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-                    ) {
-                        Text(
-                            "Booking details",
-                            style = PaceDreamTypography.Callout,
-                            fontWeight = FontWeight.SemiBold,
-                            color = PaceDreamColors.TextPrimary
-                        )
-                        HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
-                        SummaryRow("Date", draft.date)
-                        SummaryRow("Check-in", formatTimeDisplay(draft.startTimeISO))
-                        SummaryRow("Check-out", formatTimeDisplay(draft.endTimeISO))
-                        SummaryRow("Guests", "${draft.guests} guest${if (draft.guests != 1) "s" else ""}")
-                    }
-                }
+                BookingDetailsCard(draft = draft)
 
-                // Price breakdown
-                draft.totalAmountEstimate?.let { total ->
-                    PriceBreakdownCard(total = total)
-                }
+                // Price breakdown from backend quote (iOS parity: priceBreakdownCard)
+                PriceBreakdownCard(
+                    quote = uiState.quote,
+                    isLoadingQuote = uiState.status == CheckoutStatus.LOADING_QUOTE
+                )
+
+                // Early access note (iOS parity)
+                EarlyAccessNote()
 
                 // Cancellation policy
                 CancellationPolicyCard()
 
-                // Inline error banner (iOS parity: inline, not snackbar)
-                uiState.errorMessage?.let {
-                    Card(
-                        shape = RoundedCornerShape(PaceDreamRadius.LG),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.ErrorContainer)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(PaceDreamSpacing.MD),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Warning,
-                                contentDescription = null,
-                                tint = PaceDreamColors.Error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                            Text(
-                                it.removePrefix("Server error 200: "),
-                                color = PaceDreamColors.OnErrorContainer,
-                                style = PaceDreamTypography.Callout,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
+                // Error banner
+                uiState.errorMessage?.let { message ->
+                    ErrorBanner(message = message, onRetry = { viewModel.retryQuote() })
                 }
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             }
 
-            // Sticky bottom bar with pay button
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = PaceDreamColors.Border
+            // Sticky bottom pay bar (iOS parity: payBar)
+            PayBar(
+                quote = uiState.quote,
+                status = uiState.status,
+                onPayClick = { viewModel.submitPayment() }
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PaceDreamColors.Card)
-                    .padding(horizontal = 20.dp, vertical = PaceDreamSpacing.MD)
+        }
+    }
+}
+
+// ── Pay Bar (iOS parity: NativeCheckoutView.payBar) ──
+
+@Composable
+private fun PayBar(
+    quote: QuoteResponse?,
+    status: CheckoutStatus,
+    onPayClick: () -> Unit
+) {
+    val isEnabled = status == CheckoutStatus.READY && quote != null
+    val isProcessing = status == CheckoutStatus.PROCESSING
+
+    HorizontalDivider(thickness = 0.5.dp, color = PaceDreamColors.Border)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PaceDreamColors.Card)
+            .padding(horizontal = 20.dp, vertical = PaceDreamSpacing.MD)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Button(
+                onClick = onPayClick,
+                enabled = isEnabled && !isProcessing,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
-                        onClick = { viewModel.submitBooking() },
-                        enabled = !uiState.isSubmitting,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                        contentPadding = PaddingValues(vertical = 16.dp)
-                    ) {
-                        if (uiState.isSubmitting) {
-                            CircularProgressIndicator(
-                                strokeWidth = 2.dp,
-                                color = PaceDreamColors.OnPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        }
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = PaceDreamColors.OnPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
                         Text(
-                            text = if (uiState.isSubmitting) "Confirming…"
-                            else draft.totalAmountEstimate?.let { "Pay $${String.format("%.2f", it)}" }
-                                ?: "Confirm Booking",
-                            style = PaceDreamTypography.Button,
-                            fontWeight = FontWeight.Bold
+                            "Total",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.OnPrimary.copy(alpha = 0.8f)
                         )
+                        if (quote != null) {
+                            Text(
+                                formatCents(quote.totalCents, quote.currency),
+                                style = PaceDreamTypography.Button,
+                                fontWeight = FontWeight.Bold,
+                                color = PaceDreamColors.OnPrimary
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Text(
-                        "You won't be charged yet",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary
+                        text = if (isProcessing) "Processing\u2026" else "Pay",
+                        style = PaceDreamTypography.Button,
+                        fontWeight = FontWeight.Bold,
+                        color = PaceDreamColors.OnPrimary
                     )
                 }
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = PaceDreamIcons.Lock,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "Secure payment powered by Stripe",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary
+                )
             }
         }
     }
 }
 
-/** Listing image + type card at top of checkout */
+// ── Listing Info Card ──
+
 @Composable
 private fun ListingInfoCard(draft: BookingDraft) {
     Card(
@@ -302,7 +403,7 @@ private fun ListingInfoCard(draft: BookingDraft) {
                     color = PaceDreamColors.TextSecondary
                 )
                 Text(
-                    text = "${formatTimeDisplay(draft.startTimeISO)} – ${formatTimeDisplay(draft.endTimeISO)}",
+                    text = "${formatTimeDisplay(draft.startTimeISO)} \u2013 ${formatTimeDisplay(draft.endTimeISO)}",
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextTertiary
                 )
@@ -311,24 +412,10 @@ private fun ListingInfoCard(draft: BookingDraft) {
     }
 }
 
-private fun formatDateDisplay(dateStr: String): String {
-    return try {
-        val parts = dateStr.split("-")
-        if (parts.size == 3) {
-            val month = when (parts[1].toInt()) {
-                1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"
-                5 -> "May"; 6 -> "Jun"; 7 -> "Jul"; 8 -> "Aug"
-                9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
-                else -> parts[1]
-            }
-            "$month ${parts[2].toInt()}, ${parts[0]}"
-        } else dateStr
-    } catch (_: Exception) { dateStr }
-}
+// ── Booking Details Card ──
 
-/** Price breakdown with subtotal, service fee, total */
 @Composable
-private fun PriceBreakdownCard(total: Double) {
+private fun BookingDetailsCard(draft: BookingDraft) {
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
@@ -339,37 +426,156 @@ private fun PriceBreakdownCard(total: Double) {
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Text(
-                "Price details",
+                "Schedule",
                 style = PaceDreamTypography.Callout,
                 fontWeight = FontWeight.SemiBold,
                 color = PaceDreamColors.TextPrimary
             )
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
-            SummaryRow("Subtotal", "$${String.format("%.2f", total)}")
-            SummaryRow("Service fee", "$0.00")
+            SummaryRow("Date", formatDateDisplay(draft.date))
+            SummaryRow("Start", formatTimeDisplay(draft.startTimeISO))
+            SummaryRow("End", formatTimeDisplay(draft.endTimeISO))
+            SummaryRow("Guests", "${draft.guests} guest${if (draft.guests != 1) "s" else ""}")
+        }
+    }
+}
+
+// ── Price Breakdown Card (iOS parity: uses backend quote) ──
+
+@Composable
+private fun PriceBreakdownCard(
+    quote: QuoteResponse?,
+    isLoadingQuote: Boolean
+) {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+    ) {
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Text(
+                "Price breakdown",
+                style = PaceDreamTypography.Callout,
+                fontWeight = FontWeight.SemiBold,
+                color = PaceDreamColors.TextPrimary
+            )
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+
+            if (quote != null) {
+                SummaryRow("Price", formatCents(quote.baseAmountCents, quote.currency))
+
+                if (quote.serviceFeeCents > 0) {
+                    SummaryRow("Service fee", formatCents(quote.serviceFeeCents, quote.currency))
+                } else {
+                    // Early access: service fee waived (iOS parity)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Service fee", color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
+                        Row {
+                            Text(
+                                "$0.00",
+                                color = PaceDreamColors.Success,
+                                style = PaceDreamTypography.Callout,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Waived",
+                                color = PaceDreamColors.Success.copy(alpha = 0.8f),
+                                style = PaceDreamTypography.Caption
+                            )
+                        }
+                    }
+                }
+
+                if (quote.taxCents > 0) {
+                    SummaryRow("Tax", formatCents(quote.taxCents, quote.currency))
+                }
+
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Total",
+                        fontWeight = FontWeight.Bold,
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                    Text(
+                        formatCents(quote.totalCents, quote.currency),
+                        fontWeight = FontWeight.Bold,
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.Primary
+                    )
+                }
+            } else if (isLoadingQuote) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = PaceDreamColors.Primary
+                    )
+                    Text(
+                        "Calculating price\u2026",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
+            } else {
                 Text(
-                    "Total",
-                    fontWeight = FontWeight.Bold,
+                    "Unable to calculate price",
                     style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextPrimary
-                )
-                Text(
-                    "$${String.format("%.2f", total)}",
-                    fontWeight = FontWeight.Bold,
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.Primary
+                    color = PaceDreamColors.Error
                 )
             }
         }
     }
 }
 
-/** Cancellation policy summary */
+// ── Early Access Note (iOS parity) ──
+
+@Composable
+private fun EarlyAccessNote() {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Primary.copy(alpha = 0.06f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(PaceDreamSpacing.SM),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Star,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                "PaceDream platform fee is currently \$0 (early access).",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+    }
+}
+
+// ── Cancellation Policy Card ──
+
 @Composable
 private fun CancellationPolicyCard() {
     Card(
@@ -406,6 +612,45 @@ private fun CancellationPolicyCard() {
     }
 }
 
+// ── Error Banner (iOS parity: errorBanner) ──
+
+@Composable
+private fun ErrorBanner(message: String, onRetry: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.ErrorContainer)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = PaceDreamIcons.Warning,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Error,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                Text(
+                    message.removePrefix("Server error 200: "),
+                    color = PaceDreamColors.OnErrorContainer,
+                    style = PaceDreamTypography.Callout,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Error),
+                shape = RoundedCornerShape(PaceDreamRadius.SM),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Retry", style = PaceDreamTypography.Caption, color = PaceDreamColors.OnPrimary)
+            }
+        }
+    }
+}
+
+// ── Helpers ──
+
 @Composable
 private fun SummaryRow(label: String, value: String) {
     Row(
@@ -415,6 +660,32 @@ private fun SummaryRow(label: String, value: String) {
         Text(label, color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
         Text(value, fontWeight = FontWeight.Medium, style = PaceDreamTypography.Callout, color = PaceDreamColors.TextPrimary)
     }
+}
+
+private fun formatCents(cents: Int, currency: String): String {
+    val dollars = cents / 100.0
+    return try {
+        val formatter = NumberFormat.getCurrencyInstance()
+        formatter.currency = Currency.getInstance(currency.uppercase())
+        formatter.format(dollars)
+    } catch (_: Exception) {
+        String.format("$%.2f", dollars)
+    }
+}
+
+private fun formatDateDisplay(dateStr: String): String {
+    return try {
+        val parts = dateStr.split("-")
+        if (parts.size == 3) {
+            val month = when (parts[1].toInt()) {
+                1 -> "Jan"; 2 -> "Feb"; 3 -> "Mar"; 4 -> "Apr"
+                5 -> "May"; 6 -> "Jun"; 7 -> "Jul"; 8 -> "Aug"
+                9 -> "Sep"; 10 -> "Oct"; 11 -> "Nov"; 12 -> "Dec"
+                else -> parts[1]
+            }
+            "$month ${parts[2].toInt()}, ${parts[0]}"
+        } else dateStr
+    } catch (_: Exception) { dateStr }
 }
 
 private fun formatTimeDisplay(iso: String): String {

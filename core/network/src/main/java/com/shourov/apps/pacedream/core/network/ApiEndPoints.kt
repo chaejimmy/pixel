@@ -82,6 +82,12 @@ object ApiEndPoints {
     const val GET_PAYMENT_HISTORY = "payments/user/{userId}/history"
     const val GET_PAYMENT_METHODS = "payments/methods"
 
+    // ── Native Payments (iOS parity: NativePaymentService) ──
+    const val NATIVE_CREATE_QUOTE = "payments/native/quote"
+    const val NATIVE_PAYMENT_INTENT = "payments/native/payment-intent"
+    const val NATIVE_CONFIRM_BOOKING = "payments/native/confirm-booking"
+    const val STRIPE_CONFIG = "stripe/config"
+
     // ── Reviews ───────────────────────────────────────────
     const val GET_USER_REVIEWS = "reviews"
     const val CREATE_REVIEW = "reviews"
