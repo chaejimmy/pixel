@@ -32,7 +32,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +50,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 import timber.log.Timber
 import java.text.NumberFormat
 import java.util.Currency
@@ -66,24 +66,18 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Create PaymentSheet instance (requires ComponentActivity)
-    val activity = context as? androidx.activity.ComponentActivity
-    val paymentSheet = remember(activity) {
-        activity?.let { act ->
-            try {
-                PaymentSheet(act) { result ->
-                    when (result) {
-                        is PaymentSheetResult.Completed -> viewModel.onPaymentSheetCompleted()
-                        is PaymentSheetResult.Canceled -> viewModel.onPaymentSheetCancelled()
-                        is PaymentSheetResult.Failed -> viewModel.onPaymentSheetFailed(
-                            result.error.localizedMessage ?: "Payment failed. Please try again."
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to create PaymentSheet")
-                null
-            }
+    // Use Stripe's Compose-aware API which properly registers the
+    // ActivityResultLauncher via rememberLauncherForActivityResult.
+    // The old PaymentSheet(activity, callback) constructor requires
+    // registration before onStart(), which is too late when navigating
+    // to a Compose screen via Navigation.
+    val paymentSheet = rememberPaymentSheet { result ->
+        when (result) {
+            is PaymentSheetResult.Completed -> viewModel.onPaymentSheetCompleted()
+            is PaymentSheetResult.Canceled -> viewModel.onPaymentSheetCancelled()
+            is PaymentSheetResult.Failed -> viewModel.onPaymentSheetFailed(
+                result.error.localizedMessage ?: "Payment failed. Please try again."
+            )
         }
     }
 
@@ -98,10 +92,6 @@ fun CheckoutScreen(
                     onConfirmSuccess(effect.bookingId)
                 }
                 is CheckoutViewModel.Effect.PresentPaymentSheet -> {
-                    if (paymentSheet == null) {
-                        viewModel.onPaymentSheetFailed("Payment is not available in this context.")
-                        return@collect
-                    }
                     try {
                         // Initialize Stripe with the resolved publishable key
                         PaymentConfiguration.init(context, effect.publishableKey)
