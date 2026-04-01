@@ -97,36 +97,39 @@ fun CheckoutScreen(
                         PaymentConfiguration.init(context, effect.publishableKey)
 
                         // Configure PaymentSheet with Google Pay (iOS parity: Apple Pay)
-                        val config = PaymentSheet.Configuration(
-                            merchantDisplayName = effect.merchantDisplayName,
+                        val configBuilder = PaymentSheet.Configuration.Builder(effect.merchantDisplayName)
                             // Enable Google Pay (Android equivalent of iOS Apple Pay)
-                            googlePay = PaymentSheet.GooglePayConfiguration(
+                            .googlePay(PaymentSheet.GooglePayConfiguration(
                                 environment = PaymentSheet.GooglePayConfiguration.Environment.Production,
                                 countryCode = "US",
                                 currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
-                            ),
+                            ))
                             // Block ACH / bank debits / any delayed-notification payment methods.
                             // Guest checkout should only offer Card + Google Pay.
-                            allowsDelayedPaymentMethods = false,
+                            .allowsDelayedPaymentMethods(false)
                             // Prioritize card (Google Pay is presented automatically when
                             // available and googlePay config is set). Any other method types
                             // not in this list are deprioritized / hidden.
-                            paymentMethodOrder = listOf("card"),
-                            // Customer session for saved cards
-                            customer = if (effect.customerId != null && effect.ephemeralKeySecret != null) {
-                                PaymentSheet.CustomerConfiguration(
-                                    id = effect.customerId,
-                                    ephemeralKeySecret = effect.ephemeralKeySecret
-                                )
-                            } else null,
+                            .paymentMethodOrder(listOf("card"))
                             // PaceDream brand appearance
-                            appearance = PaymentSheet.Appearance(
+                            .appearance(PaymentSheet.Appearance(
                                 shapes = PaymentSheet.Shapes(
                                     cornerRadiusDp = 12f,
                                     borderStrokeWidthDp = 0.5f
                                 )
+                            ))
+
+                        // Customer session for saved cards
+                        if (effect.customerId != null && effect.ephemeralKeySecret != null) {
+                            configBuilder.customer(
+                                PaymentSheet.CustomerConfiguration(
+                                    id = effect.customerId,
+                                    ephemeralKeySecret = effect.ephemeralKeySecret
+                                )
                             )
-                        )
+                        }
+
+                        val config = configBuilder.build()
 
                         paymentSheet.presentWithPaymentIntent(
                             effect.clientSecret,
