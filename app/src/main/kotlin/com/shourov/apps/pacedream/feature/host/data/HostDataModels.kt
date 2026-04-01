@@ -32,52 +32,16 @@ data class HostDashboardData(
     // UI state
     val isLoading: Boolean = false,
     val hasLoaded: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    // ── Pre-calculated fields to avoid UI thread jank ──
+    val monthlyEarnings: Double = 0.0,
+    val underReviewListingsCount: Int = 0,
+    val pendingRequestsCount: Int = 0,
+    val upcomingBookingsCount: Int = 0,
+    val topUpcomingBookings: List<HostBookingDTO> = emptyList(),
+    val topActiveListings: List<Property> = emptyList(),
+    val recentEvents: List<DashboardEvent> = emptyList()
 ) {
-    // ── KPI computations (iOS parity: HostDataStore) ──────────
-
-    val activeListingsCount: Int get() = activeListings
-
-    /** iOS parity: HostDataStore.underReviewListingsCount */
-    val underReviewListingsCount: Int get() = listings.count { it.isPendingReview }
-
-    val pendingRequestsCount: Int get() = bookings.count { booking ->
-        isPendingStatus(booking.status)
-    }
-
-    val upcomingBookingsCount: Int get() = bookings.count { booking ->
-        isConfirmedBooking(booking) && isUpcoming(booking)
-    }
-
-    val monthlyEarnings: Double get() {
-        val cal = java.util.Calendar.getInstance()
-        val currentMonth = cal.get(java.util.Calendar.MONTH)
-        val currentYear = cal.get(java.util.Calendar.YEAR)
-
-        return bookings.filter { isConfirmedBooking(it) }
-            .mapNotNull { booking ->
-                val created = parseDate(booking.createdAt) ?: return@mapNotNull null
-                cal.timeInMillis = created
-                if (cal.get(java.util.Calendar.MONTH) == currentMonth &&
-                    cal.get(java.util.Calendar.YEAR) == currentYear) {
-                    // iOS parity: use hostEarnings (net) when available, fall back to total
-                    booking.resolvedHostEarnings ?: booking.resolvedTotal
-                } else null
-            }.sum()
-    }
-
-    val topUpcomingBookings: List<HostBookingDTO> get() =
-        bookings.filter { isConfirmedBooking(it) && isUpcoming(it) }
-            .sortedBy { parseDate(it.resolvedStart) ?: Long.MAX_VALUE }
-            .take(5)
-
-    /** iOS parity: under-review listings shown FIRST, then active */
-    val topActiveListings: List<Property> get() {
-        val underReview = listings.filter { it.isPendingReview }
-        val active = listings.filter { it.isActiveStatus }
-        return (underReview + active).take(5)
-    }
-
     // ── History events (iOS parity: DashboardEvent) ──────────
 
     data class DashboardEvent(
@@ -86,65 +50,107 @@ data class HostDashboardData(
         val subtitle: String,
         val createdAt: Long
     )
+}
 
-    val recentEvents: List<DashboardEvent> get() =
-        bookings.mapNotNull { booking ->
+/** 
+ * Computes dashboard summaries - iOS parity: HostDataStore.
+ * Must be called from a background thread to avoid ANR.
+ */
+fun computeDashboardData(
+    data: HostDashboardData,
+    bookings: List<HostBookingDTO>,
+    listings: List<Property>
+): HostDashboardData {
+    val cal = java.util.Calendar.getInstance()
+    val currentMonth = cal.get(java.util.Calendar.MONTH)
+    val currentYear = cal.get(java.util.Calendar.YEAR)
+
+    val monthlyEarnings = bookings.filter { isConfirmedBooking(it) }
+        .mapNotNull { booking ->
             val created = parseDate(booking.createdAt) ?: return@mapNotNull null
-            val statusLower = (booking.status ?: "").lowercase()
-            val listingTitle = booking.resolvedListingTitle
-            val guest = booking.resolvedGuestName
+            cal.timeInMillis = created
+            if (cal.get(java.util.Calendar.MONTH) == currentMonth &&
+                cal.get(java.util.Calendar.YEAR) == currentYear) {
+                booking.resolvedHostEarnings ?: booking.resolvedTotal
+            } else null
+        }.sum()
 
-            when {
-                isPendingStatus(booking.status) -> DashboardEvent(
-                    id = "pending-${booking.id}",
-                    title = "New booking request",
-                    subtitle = "$guest requested $listingTitle",
+    val underReviewListingsCount = listings.count { it.isPendingReview }
+    val pendingRequestsCount = bookings.count { isPendingStatus(it.status) }
+    val upcomingBookingsCount = bookings.count { isConfirmedBooking(it) && isUpcoming(it) }
+
+    val topUpcomingBookings = bookings.filter { isConfirmedBooking(it) && isUpcoming(it) }
+        .sortedBy { parseDate(it.resolvedStart) ?: Long.MAX_VALUE }
+        .take(5)
+
+    val underReviewListings = listings.filter { it.isPendingReview }
+    val activeListings = listings.filter { it.isActiveStatus }
+    val topActiveListings = (underReviewListings + activeListings).take(5)
+
+    val recentEvents = bookings.mapNotNull { booking ->
+        val created = parseDate(booking.createdAt) ?: return@mapNotNull null
+        val statusLower = (booking.status ?: "").lowercase()
+        val listingTitle = booking.resolvedListingTitle
+        val guest = booking.resolvedGuestName
+
+        when {
+            isPendingStatus(booking.status) -> HostDashboardData.DashboardEvent(
+                id = "pending-${booking.id}",
+                title = "New booking request",
+                subtitle = "$guest requested $listingTitle",
+                createdAt = created
+            )
+            isConfirmedBooking(booking) && (statusLower.contains("confirm") ||
+                statusLower.contains("book") || statusLower.contains("active") ||
+                statusLower.contains("accept")) -> {
+                val paymentTitle = when (booking.resolvedPayoutStatus?.lowercase()) {
+                    "transferred" -> "Payment received"
+                    "blocked" -> "Payout on hold"
+                    else -> "Earning pending"
+                }
+                val displayAmount = booking.resolvedHostEarnings ?: booking.resolvedTotal
+                HostDashboardData.DashboardEvent(
+                    id = "confirmed-${booking.id}",
+                    title = paymentTitle,
+                    subtitle = "$listingTitle • $${String.format("%.0f", displayAmount)}",
                     createdAt = created
                 )
-                // iOS parity: show confirmed AND past bookings in history
-                isConfirmedBooking(booking) && (statusLower.contains("confirm") ||
-                    statusLower.contains("book") || statusLower.contains("active") ||
-                    statusLower.contains("accept")) -> {
-                    // iOS parity: use payoutStatus to determine label
-                    val paymentTitle = when (booking.resolvedPayoutStatus?.lowercase()) {
-                        "transferred" -> "Payment received"
-                        "blocked" -> "Payout on hold"
-                        else -> "Earning pending"
-                    }
-                    // iOS parity: use hostEarnings (net) when available
-                    val displayAmount = booking.resolvedHostEarnings ?: booking.resolvedTotal
-                    DashboardEvent(
-                        id = "confirmed-${booking.id}",
-                        title = paymentTitle,
-                        subtitle = "$listingTitle • $${String.format("%.0f", displayAmount)}",
-                        createdAt = created
-                    )
-                }
-                else -> null
             }
+            else -> null
         }
-        .sortedByDescending { it.createdAt }
-        .take(6)
+    }.sortedByDescending { it.createdAt }.take(6)
 
-    // ── Helpers ──────────────────────────────────────────────
+    return data.copy(
+        bookings = bookings,
+        listings = listings,
+        monthlyEarnings = monthlyEarnings,
+        underReviewListingsCount = underReviewListingsCount,
+        pendingRequestsCount = pendingRequestsCount,
+        upcomingBookingsCount = upcomingBookingsCount,
+        topUpcomingBookings = topUpcomingBookings,
+        topActiveListings = topActiveListings,
+        recentEvents = recentEvents
+    )
+}
 
-    private fun isPendingStatus(status: String?): Boolean {
-        val s = (status ?: "").trim().lowercase()
-        if (s.isEmpty()) return false
-        if (s.contains("pending")) return true
-        return s == "requires_capture" || s == "created" || s == "pending_host"
-    }
+// ── Helpers ──────────────────────────────────────────────
 
-    private fun isConfirmedBooking(booking: HostBookingDTO): Boolean {
-        val s = (booking.status ?: "").trim().lowercase()
-        return s.contains("confirm") || s.contains("accept") ||
-            s.contains("active") || s == "booked"
-    }
+fun isPendingStatus(status: String?): Boolean {
+    val s = (status ?: "").trim().lowercase()
+    if (s.isEmpty()) return false
+    if (s.contains("pending")) return true
+    return s == "requires_capture" || s == "created" || s == "pending_host"
+}
 
-    private fun isUpcoming(booking: HostBookingDTO): Boolean {
-        val startMs = parseDate(booking.resolvedStart) ?: return false
-        return startMs > System.currentTimeMillis()
-    }
+fun isConfirmedBooking(booking: HostBookingDTO): Boolean {
+    val s = (booking.status ?: "").trim().lowercase()
+    return s.contains("confirm") || s.contains("accept") ||
+        s.contains("active") || s == "booked"
+}
+
+fun isUpcoming(booking: HostBookingDTO): Boolean {
+    val startMs = parseDate(booking.resolvedStart) ?: return false
+    return startMs > System.currentTimeMillis()
 }
 
 /** Payout connection state matching iOS PayoutsService.PayoutStatus.State */
@@ -218,6 +224,10 @@ enum class ListingSortOption {
 
 // ── Date parsing utility ────────────────────────────────────────
 
+// ── Date parsing utility ────────────────────────────────────────
+
+private val sdfCache = mutableMapOf<String, java.text.SimpleDateFormat>()
+
 fun parseDate(dateString: String?): Long? {
     if (dateString.isNullOrBlank()) return null
     val formats = listOf(
@@ -230,8 +240,11 @@ fun parseDate(dateString: String?): Long? {
     )
     for (fmt in formats) {
         try {
-            val sdf = java.text.SimpleDateFormat(fmt, java.util.Locale.US)
-            sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            val sdf = sdfCache.getOrPut(fmt) {
+                java.text.SimpleDateFormat(fmt, java.util.Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }
+            }
             return sdf.parse(dateString)?.time
         } catch (_: Exception) { /* try next format */ }
     }

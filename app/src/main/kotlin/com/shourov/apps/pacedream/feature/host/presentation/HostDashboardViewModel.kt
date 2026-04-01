@@ -9,7 +9,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -61,30 +63,36 @@ class HostDashboardViewModel @Inject constructor(
             }
 
             // iOS parity: derive userName from personal info or overview if available
-            val resolvedUserName = _uiState.value.userName?.let { current ->
+            val resolvedUserName = _uiState.value.userName.let { current ->
                 if (current != "Host") current else "Host"
-            } ?: "Host"
+            }
 
-            _uiState.value = _uiState.value.copy(
-                userName = resolvedUserName,
-                bookings = result.bookings,
-                listings = result.listings,
-                // iOS parity: count truly active listings using status, not just isAvailable
-                activeListings = result.overview?.activeListings ?: result.listings.count { it.isActiveStatus },
-                totalBookings = result.overview?.totalBookings ?: result.bookings.size,
-                totalRevenue = result.overview?.totalRevenue ?: 0.0,
-                averageRating = result.overview?.averageRating ?: 0.0,
-                totalReviews = result.overview?.totalReviews ?: 0,
-                occupancyRate = result.overview?.occupancyRate ?: 0.0,
-                responseRate = result.overview?.responseRate ?: 0.0,
-                pendingBookings = result.overview?.pendingBookings ?: 0,
-                payoutState = result.payoutState,
-                shouldShowPayoutSetupPrompt = result.payoutEligibility?.shouldShowPayoutSetupPrompt ?: false,
-                payoutPromptReason = result.payoutEligibility?.payoutPromptReason,
-                isLoading = false,
-                hasLoaded = result.hasLoaded,
-                error = result.errorMessage
-            )
+            // Perform expensive list computations on Default dispatcher (CPU intensive)
+            val updatedState = withContext(Dispatchers.Default) {
+                computeDashboardData(
+                    data = _uiState.value.copy(
+                        userName = resolvedUserName,
+                        activeListings = result.overview?.activeListings ?: result.listings.count { it.isActiveStatus },
+                        totalBookings = result.overview?.totalBookings ?: result.bookings.size,
+                        totalRevenue = result.overview?.totalRevenue ?: 0.0,
+                        averageRating = result.overview?.averageRating ?: 0.0,
+                        totalReviews = result.overview?.totalReviews ?: 0,
+                        occupancyRate = result.overview?.occupancyRate ?: 0.0,
+                        responseRate = result.overview?.responseRate ?: 0.0,
+                        pendingBookings = result.overview?.pendingBookings ?: 0,
+                        payoutState = result.payoutState,
+                        shouldShowPayoutSetupPrompt = result.payoutEligibility?.shouldShowPayoutSetupPrompt ?: false,
+                        payoutPromptReason = result.payoutEligibility?.payoutPromptReason,
+                        isLoading = false,
+                        hasLoaded = result.hasLoaded,
+                        error = result.errorMessage
+                    ),
+                    bookings = result.bookings,
+                    listings = result.listings
+                )
+            }
+
+            _uiState.value = updatedState
         }
     }
 
