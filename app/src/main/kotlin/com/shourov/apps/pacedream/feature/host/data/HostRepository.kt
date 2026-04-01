@@ -604,18 +604,40 @@ class HostRepository @Inject constructor(
         }
         // iOS parity: fill in status from alternative fields ("state", "published" boolean)
         // when Gson didn't pick it up from "status" or "listingStatus".
+        // Also check "approved"/"isApproved" boolean — if the listing has an active-like
+        // status but approved is explicitly false, override to "pending_review" so the
+        // dashboard correctly shows it as pending admin approval (iOS web proxy does this).
         return properties.mapIndexed { index, property ->
-            if (property.status != null) return@mapIndexed property
             val element = arr.getOrNull(index)
-            if (element == null || !element.isJsonObject) return@mapIndexed property
-            val obj = element.asJsonObject
-            val fallbackStatus = obj.getStringOrNull("state")
-                ?: obj.get("published")?.let { pub ->
-                    if (pub.isJsonPrimitive && pub.asJsonPrimitive.isBoolean) {
-                        if (pub.asBoolean) "published" else "draft"
-                    } else null
+            val obj = if (element != null && element.isJsonObject) element.asJsonObject else null
+
+            // Step 1: resolve status if missing
+            val resolved = if (property.status != null) {
+                property
+            } else if (obj != null) {
+                val fallbackStatus = obj.getStringOrNull("state")
+                    ?: obj.get("published")?.let { pub ->
+                        if (pub.isJsonPrimitive && pub.asJsonPrimitive.isBoolean) {
+                            if (pub.asBoolean) "published" else "draft"
+                        } else null
+                    }
+                if (fallbackStatus != null) property.copy(status = fallbackStatus) else property
+            } else {
+                property
+            }
+
+            // Step 2: check approved/isApproved boolean — override active-like status
+            // to "pending_review" when admin has not approved the listing yet.
+            if (obj != null && resolved.isActiveStatus) {
+                val approvedField = obj.get("approved") ?: obj.get("isApproved")
+                    ?: obj.get("is_approved") ?: obj.get("adminApproved")
+                if (approvedField != null && approvedField.isJsonPrimitive &&
+                    approvedField.asJsonPrimitive.isBoolean && !approvedField.asBoolean) {
+                    return@mapIndexed resolved.copy(status = "pending_review")
                 }
-            if (fallbackStatus != null) property.copy(status = fallbackStatus) else property
+            }
+
+            resolved
         }
     }
 
