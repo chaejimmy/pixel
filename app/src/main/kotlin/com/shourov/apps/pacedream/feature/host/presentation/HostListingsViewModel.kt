@@ -27,7 +27,10 @@ class HostListingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
-            hostRepository.getHostListings(uiState.value.selectedFilter, uiState.value.selectedSort)
+            val filter = uiState.value.selectedFilter.lowercase().takeIf { it != "all" }
+            val sort = uiState.value.selectedSort.lowercase()
+            
+            hostRepository.getHostListings(filter, sort)
                 .onSuccess { listings ->
                     _uiState.value = _uiState.value.copy(
                         listings = listings,

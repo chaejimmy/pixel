@@ -6,8 +6,10 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.shourov.apps.pacedream.model.Property
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -39,7 +41,8 @@ class HostRepository @Inject constructor(
         val hasLoaded: Boolean = true
     )
 
-    suspend fun loadDashboard(): DashboardLoadResult = coroutineScope {
+    suspend fun loadDashboard(): DashboardLoadResult = withContext(Dispatchers.IO) {
+        coroutineScope {
         var hadFailure = false
         Timber.d("Loading host dashboard: bookings, listings, overview, payout state, eligibility")
 
@@ -176,11 +179,12 @@ class HostRepository @Inject constructor(
             hasLoaded = true
         )
     }
+}
 
     // ── Bookings (iOS: HostBookingsService) ─────────────────────
 
-    suspend fun getHostBookings(): Result<List<HostBookingDTO>> {
-        return try {
+    suspend fun getHostBookings(): Result<List<HostBookingDTO>> = withContext(Dispatchers.IO) {
+        try {
             val response = hostApiService.getHostBookings()
             if (response.isSuccessful) {
                 Result.success(response.body()?.bookings ?: emptyList())
@@ -193,8 +197,8 @@ class HostRepository @Inject constructor(
         }
     }
 
-    suspend fun updateBookingStatus(id: String, status: String, reason: String? = null): Result<HostBookingDTO> {
-        return try {
+    suspend fun updateBookingStatus(id: String, status: String, reason: String? = null): Result<HostBookingDTO> = withContext(Dispatchers.IO) {
+        try {
             val response = hostApiService.updateHostBooking(id, BookingStatusUpdate(status, reason))
             if (response.isSuccessful) {
                 val body = response.body()
@@ -227,8 +231,8 @@ class HostRepository @Inject constructor(
 
     // ── Listings ────────────────────────────────────────────────
 
-    suspend fun getHostListings(filter: String? = null, sort: String? = null): Result<List<Property>> {
-        return try {
+    suspend fun getHostListings(filter: String? = null, sort: String? = null): Result<List<Property>> = withContext(Dispatchers.IO) {
+        try {
             val response = hostApiService.getHostListings(filter, sort)
             if (response.isSuccessful) {
                 val json = response.body()
@@ -242,8 +246,8 @@ class HostRepository @Inject constructor(
         }
     }
 
-    suspend fun createListing(request: CreateListingRequest): Result<Property> {
-        return try {
+    suspend fun createListing(request: CreateListingRequest): Result<Property> = withContext(Dispatchers.IO) {
+        try {
             Timber.d(
                 "createListing: POST /listings — type=%s sub=%s title='%s' price=%.2f pricing_type=%s " +
                     "images=%d address='%s' available=%s availability=%s",
@@ -683,8 +687,8 @@ class HostRepository @Inject constructor(
 
     // ── Revenue (iOS: HostDashboardService.getRevenue) ──────────
 
-    suspend fun getRevenue(period: String = "30d"): Result<HostRevenueResponse> {
-        return try {
+    suspend fun getRevenue(period: String = "30d"): Result<HostRevenueResponse> = withContext(Dispatchers.IO) {
+        try {
             val response = hostApiService.getDashboardRevenue(period)
             if (response.isSuccessful) {
                 Result.success(response.body() ?: HostRevenueResponse())

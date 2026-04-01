@@ -55,7 +55,7 @@ data class Property(
 
     val isPendingReview: Boolean get() {
         val s = (status ?: "").trim().lowercase()
-        return s == "pending_review"
+        return s == "pending_review" || s == "pending"
     }
 
     val isActiveStatus: Boolean get() {
