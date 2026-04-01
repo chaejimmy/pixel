@@ -224,9 +224,9 @@ enum class ListingSortOption {
 
 // ── Date parsing utility ────────────────────────────────────────
 
-// ── Date parsing utility ────────────────────────────────────────
-
-private val sdfCache = mutableMapOf<String, java.text.SimpleDateFormat>()
+private val threadLocalSdfCache = ThreadLocal.withInitial {
+    mutableMapOf<String, java.text.SimpleDateFormat>()
+}
 
 fun parseDate(dateString: String?): Long? {
     if (dateString.isNullOrBlank()) return null
@@ -238,9 +238,10 @@ fun parseDate(dateString: String?): Long? {
         "yyyy-MM-dd",
         "MM/dd/yyyy"
     )
+    val cache = threadLocalSdfCache.get()
     for (fmt in formats) {
         try {
-            val sdf = sdfCache.getOrPut(fmt) {
+            val sdf = cache.getOrPut(fmt) {
                 java.text.SimpleDateFormat(fmt, java.util.Locale.US).apply {
                     timeZone = java.util.TimeZone.getTimeZone("UTC")
                 }

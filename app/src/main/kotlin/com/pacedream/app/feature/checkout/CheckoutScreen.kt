@@ -675,11 +675,19 @@ private fun SummaryRow(label: String, value: String) {
     }
 }
 
+private val threadLocalCurrencyFormatter = ThreadLocal.withInitial {
+    mutableMapOf<String, NumberFormat>()
+}
+
 private fun formatCents(cents: Int, currency: String): String {
     val dollars = cents / 100.0
     return try {
-        val formatter = NumberFormat.getCurrencyInstance()
-        formatter.currency = Currency.getInstance(currency.uppercase())
+        val cache = threadLocalCurrencyFormatter.get()
+        val formatter = cache.getOrPut(currency.uppercase()) {
+            NumberFormat.getCurrencyInstance().apply {
+                this.currency = java.util.Currency.getInstance(currency.uppercase())
+            }
+        }
         formatter.format(dollars)
     } catch (_: Exception) {
         String.format("$%.2f", dollars)

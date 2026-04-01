@@ -4,6 +4,8 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -98,7 +100,9 @@ class NativePaymentRepository @Inject constructor(
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val quote = json.decodeFromString(QuoteResponse.serializer(), result.data)
+                    val quote = withContext(Dispatchers.Default) {
+                        json.decodeFromString(QuoteResponse.serializer(), result.data)
+                    }
                     ApiResult.Success(quote)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse quote response")
@@ -126,7 +130,9 @@ class NativePaymentRepository @Inject constructor(
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val config = json.decodeFromString(PaymentSheetConfig.serializer(), result.data)
+                    val config = withContext(Dispatchers.Default) {
+                        json.decodeFromString(PaymentSheetConfig.serializer(), result.data)
+                    }
                     ApiResult.Success(config)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse payment intent response")
@@ -150,7 +156,9 @@ class NativePaymentRepository @Inject constructor(
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val response = json.decodeFromString(ConfirmBookingResponse.serializer(), result.data)
+                    val response = withContext(Dispatchers.Default) {
+                        json.decodeFromString(ConfirmBookingResponse.serializer(), result.data)
+                    }
                     ApiResult.Success(response)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse confirm booking response")
@@ -184,11 +192,13 @@ class NativePaymentRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val element = json.parseToJsonElement(result.data)
-                    val obj = element as? kotlinx.serialization.json.JsonObject
-                    obj?.get("publishableKey")
-                        ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
-                        ?.takeIf { it.isNotBlank() }
+                    withContext(Dispatchers.Default) {
+                        val element = json.parseToJsonElement(result.data)
+                        val obj = element as? kotlinx.serialization.json.JsonObject
+                        obj?.get("publishableKey")
+                            ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                            ?.takeIf { it.isNotBlank() }
+                    }
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse stripe config")
                     null

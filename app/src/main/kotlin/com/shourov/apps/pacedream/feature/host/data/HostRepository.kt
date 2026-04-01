@@ -84,7 +84,11 @@ class HostRepository @Inject constructor(
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
                     val json = response.body()
-                    val listings = if (json != null) parseHostListings(json) else emptyList()
+                    val listings = if (json != null) {
+                        withContext(Dispatchers.Default) {
+                            parseHostListings(json)
+                        }
+                    } else emptyList()
                     Timber.d("Loaded ${listings.size} host listings")
                     listings
                 } else {
@@ -236,7 +240,12 @@ class HostRepository @Inject constructor(
             val response = hostApiService.getHostListings(filter, sort)
             if (response.isSuccessful) {
                 val json = response.body()
-                Result.success(if (json != null) parseHostListings(json) else emptyList())
+                val listings = if (json != null) {
+                    withContext(Dispatchers.Default) {
+                        parseHostListings(json)
+                    }
+                } else emptyList()
+                Result.success(listings)
             } else {
                 Result.failure(Exception("Failed to fetch listings: ${response.code()}"))
             }
@@ -264,7 +273,9 @@ class HostRepository @Inject constructor(
             if (response.isSuccessful) {
                 val json = response.body()
                 if (json != null) {
-                    val property = parseCreateListingResponse(json, request)
+                    val property = withContext(Dispatchers.Default) {
+                        parseCreateListingResponse(json, request)
+                    }
                     Timber.d("createListing success: id=%s", property.id)
                     Result.success(property)
                 } else {
@@ -409,22 +420,24 @@ class HostRepository @Inject constructor(
 
     // ── Payouts / Stripe Connect (iOS: PayoutsService) ──────────
 
-    suspend fun resolvePayoutState(): PayoutConnectionState {
+    suspend fun resolvePayoutState(): PayoutConnectionState = withContext(Dispatchers.Default) {
         val response = try {
+            // Retrofit calls are safe to call from any thread as they switch to IO internally
+            // but we wrap the entire resolution in Default for the mapping logic.
             hostApiService.getPayoutStatus()
         } catch (e: Exception) {
             Timber.e(e, "resolvePayoutState: failed to fetch payout status")
-            return PayoutConnectionState.NOT_CONNECTED
+            return@withContext PayoutConnectionState.NOT_CONNECTED
         }
-        if (!response.isSuccessful) return PayoutConnectionState.NOT_CONNECTED
+        if (!response.isSuccessful) return@withContext PayoutConnectionState.NOT_CONNECTED
 
-        val body = response.body() ?: return PayoutConnectionState.NOT_CONNECTED
+        val body = response.body() ?: return@withContext PayoutConnectionState.NOT_CONNECTED
         val raw = (body.status.ifEmpty { body.payoutStatus ?: "" }).lowercase()
         val chargesEnabled = body.resolvedChargesEnabled
         val payoutsEnabled = body.resolvedPayoutsEnabled
         val detailsSubmitted = body.resolvedDetailsSubmitted
 
-        return when {
+        when {
             (raw == "active" || raw.contains("connect")) && payoutsEnabled ->
                 PayoutConnectionState.CONNECTED
             raw.contains("pending") || raw.contains("action") ||

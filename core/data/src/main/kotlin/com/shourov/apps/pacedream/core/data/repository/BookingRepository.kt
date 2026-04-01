@@ -26,9 +26,11 @@ import com.shourov.apps.pacedream.core.network.config.AppConfig
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -134,7 +136,9 @@ class BookingRepository @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val bookings = parseBookingsListResponse(result.data)
+                        val bookings = withContext(Dispatchers.Default) {
+                            parseBookingsListResponse(result.data)
+                        }
                         Timber.d("Bookings: decoded ${bookings.size} bookings from ${route.pathSegments.joinToString("/")}")
 
                         if (bookings.isNotEmpty()) {
@@ -265,7 +269,9 @@ class BookingRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    parseBookingDetailResponse(result.data)
+                    withContext(Dispatchers.Default) {
+                        parseBookingDetailResponse(result.data)
+                    }
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse booking detail response")
                     null
