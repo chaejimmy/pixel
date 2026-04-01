@@ -100,7 +100,11 @@ fun CheckoutScreen(
                         val configBuilder = PaymentSheet.Configuration.Builder(effect.merchantDisplayName)
                             // Enable Google Pay (Android equivalent of iOS Apple Pay)
                             .googlePay(PaymentSheet.GooglePayConfiguration(
-                                environment = PaymentSheet.GooglePayConfiguration.Environment.Production,
+                                environment = if (effect.publishableKey.startsWith("pk_test_")) {
+                                    PaymentSheet.GooglePayConfiguration.Environment.Test
+                                } else {
+                                    PaymentSheet.GooglePayConfiguration.Environment.Production
+                                },
                                 countryCode = "US",
                                 currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
                             ))
