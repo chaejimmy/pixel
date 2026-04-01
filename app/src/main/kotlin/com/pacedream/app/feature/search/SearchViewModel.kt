@@ -309,7 +309,8 @@ class SearchViewModel @Inject constructor(
                         }
                     }
                     else -> {
-                        val priceValue = price.jsonPrimitive.doubleOrNull
+                        val prim = price as? kotlinx.serialization.json.JsonPrimitive
+                        val priceValue = prim?.doubleOrNull
                         priceValue?.let { formatPrice(it, standaloneFrequency) }
                     }
                 }

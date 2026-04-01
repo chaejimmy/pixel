@@ -207,7 +207,7 @@ class StripeConnectRepository @Inject constructor(
 
     private fun JsonObject.str(key: String): String? =
         if (has(key) && get(key).isJsonPrimitive) get(key).asJsonPrimitive.let {
-            if (it.isString) it.asString else it.asString
+            if (it.isString) it.asString else try { it.asString } catch (_: Exception) { null }
         } else null
 
     private fun JsonObject.bool(key: String): Boolean =

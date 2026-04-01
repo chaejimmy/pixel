@@ -115,14 +115,21 @@ class ImageUploadService @Inject constructor(
         if (finalBytes.size > maxBytes) {
             val qualities = listOf(62, 54, 46, 38, 30, 24, 18)
             for (q in qualities) {
-                val recompressed = ByteArrayOutputStream()
-                scaledBitmap.let {
+                try {
+                    val recompressed = ByteArrayOutputStream()
                     val bmp = downscaleBitmap(originalBitmap, maxDim)
+                    if (bmp == null) {
+                        Timber.w("ImageUpload: downscaleBitmap returned null at quality=$q, using last good bytes")
+                        break
+                    }
                     bmp.compress(Bitmap.CompressFormat.JPEG, q, recompressed)
                     if (bmp != originalBitmap) bmp.recycle()
+                    finalBytes = recompressed.toByteArray()
+                    if (finalBytes.size <= maxBytes) break
+                } catch (e: OutOfMemoryError) {
+                    Timber.e("ImageUpload: OutOfMemoryError during quality retry at q=$q, using last good bytes")
+                    break
                 }
-                finalBytes = recompressed.toByteArray()
-                if (finalBytes.size <= maxBytes) break
             }
         }
 

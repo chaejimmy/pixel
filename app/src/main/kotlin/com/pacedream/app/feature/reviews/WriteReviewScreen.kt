@@ -169,7 +169,7 @@ class WriteReviewViewModel @Inject constructor(
         return try {
             when (val result = repository.getUserReviews()) {
                 is ApiResult.Success -> {
-                    val reviews = result.data.resolvedReviews
+                    val reviews = result.data?.resolvedReviews ?: emptyList()
                     reviews.find { it.bookingId == bookingId }?.id
                 }
                 is ApiResult.Failure -> null // Can't verify, allow attempt (server will reject duplicates)

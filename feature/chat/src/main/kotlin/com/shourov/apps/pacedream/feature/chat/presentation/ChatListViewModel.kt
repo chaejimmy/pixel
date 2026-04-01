@@ -86,7 +86,7 @@ class ChatListViewModel @Inject constructor(
             val sortedMessages = messageList.sortedBy { it.timestamp }
             val lastMessage = sortedMessages.lastOrNull()
             val otherUserId = if (lastMessage?.senderId == currentUserId) {
-                lastMessage.receiverId ?: ""
+                lastMessage?.receiverId ?: ""
             } else {
                 lastMessage?.senderId ?: ""
             }
