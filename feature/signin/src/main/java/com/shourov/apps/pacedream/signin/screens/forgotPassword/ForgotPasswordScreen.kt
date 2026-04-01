@@ -142,7 +142,7 @@ fun ForgotPasswordScreen(
             } else {
                 ProcessButton(
                     onClick = { viewModel.sendResetLink() },
-                    isEnabled = uiState.email.isNotBlank(),
+                    isEnabled = uiState.email.isNotBlank() && !uiState.isLoading,
                     isProcessing = uiState.isLoading,
                     text = "Send Reset Link",
                 )

@@ -111,7 +111,7 @@ fun OtpVerificationScreen(
                 shouldCursorBlink = true,
                 onOtpModified = { text, isComplete ->
                     viewModel.updateOtpCode(text)
-                    if (isComplete) {
+                    if (isComplete && !uiState.isLoading) {
                         viewModel.verifyAndLogin(
                             phoneNumber = phoneNumber,
                             onSuccess = { userData -> onLoginSuccess(userData) },
@@ -142,7 +142,7 @@ fun OtpVerificationScreen(
                         }
                     )
                 },
-                isEnabled = uiState.otpCode.length == 6,
+                isEnabled = uiState.otpCode.length == 6 && !uiState.isLoading,
                 isProcessing = uiState.isLoading,
                 text = if (uiState.isLoading) "Verifying..." else "Verify",
             )

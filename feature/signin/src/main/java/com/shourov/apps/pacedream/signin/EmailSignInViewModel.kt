@@ -30,6 +30,7 @@ class EmailSignInViewModel @Inject constructor(
             onError("Email and password cannot be empty")
             return
         }
+        if (_uiState.value.isLoading || _uiState.value.isGoogleLoading || _uiState.value.isAppleLoading) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -61,6 +62,7 @@ class EmailSignInViewModel @Inject constructor(
             onError("Email and password cannot be empty")
             return
         }
+        if (_uiState.value.isLoading || _uiState.value.isGoogleLoading || _uiState.value.isAppleLoading) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
@@ -85,6 +87,7 @@ class EmailSignInViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        if (_uiState.value.isLoading || _uiState.value.isGoogleLoading || _uiState.value.isAppleLoading) return
         _uiState.value = _uiState.value.copy(isGoogleLoading = true, error = null)
 
         viewModelScope.launch {
@@ -114,6 +117,7 @@ class EmailSignInViewModel @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        if (_uiState.value.isLoading || _uiState.value.isGoogleLoading || _uiState.value.isAppleLoading) return
         _uiState.value = _uiState.value.copy(isAppleLoading = true, error = null)
 
         viewModelScope.launch {
@@ -147,6 +151,7 @@ class EmailSignInViewModel @Inject constructor(
             onError("Please enter your email address")
             return
         }
+        if (_uiState.value.isLoading) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 

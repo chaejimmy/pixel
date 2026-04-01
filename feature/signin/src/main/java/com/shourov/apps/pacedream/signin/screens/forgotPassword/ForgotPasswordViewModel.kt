@@ -28,6 +28,7 @@ class ForgotPasswordViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(error = "Please enter your email address")
             return
         }
+        if (_uiState.value.isLoading) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 

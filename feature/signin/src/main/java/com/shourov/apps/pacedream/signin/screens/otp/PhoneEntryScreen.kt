@@ -123,9 +123,13 @@ fun PhoneEntryScreen(
                         }
                     )
                 },
-                isEnabled = uiState.isValidPhone,
+                isEnabled = uiState.isValidPhone && !uiState.isLoading && !uiState.isBlocked,
                 isProcessing = uiState.isLoading,
-                text = if (uiState.isLoading) "Sending OTP..." else "Continue",
+                text = when {
+                    uiState.isBlocked -> "Unavailable"
+                    uiState.isLoading -> "Sending OTP..."
+                    else -> "Continue"
+                },
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))

@@ -47,6 +47,8 @@ class CreateAccountViewModel @Inject constructor(
     private var componentIndex = 0
 
     var toastMessage  = mutableStateOf("")
+    var isSubmitting by mutableStateOf(false)
+        private set
 
     private var _createAccountData by mutableStateOf(CreateAccountData())
     val createAccountData: CreateAccountData
@@ -100,6 +102,8 @@ class CreateAccountViewModel @Inject constructor(
     }
 
     fun onDoneClicked() {
+        if (isSubmitting) return
+        isSubmitting = true
         viewModelScope.launch {
             try {
                 val data = _createAccountData
@@ -118,15 +122,18 @@ class CreateAccountViewModel @Inject constructor(
                 )
                 result.fold(
                     onSuccess = {
+                        isSubmitting = false
                         Timber.d("Account creation profile update succeeded")
                         toastMessage.value = "Account created successfully"
                     },
                     onFailure = { error ->
+                        isSubmitting = false
                         Timber.e("Account creation profile update failed: ${error.message}")
                         toastMessage.value = error.message ?: "Failed to create account"
                     }
                 )
             } catch (e: Exception) {
+                isSubmitting = false
                 Timber.e("Account creation profile update crashed: ${e.message}")
                 toastMessage.value = e.message ?: "Failed to create account"
             }

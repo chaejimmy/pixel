@@ -32,6 +32,8 @@ class BookingConfirmationViewModel @Inject constructor(
      * Confirm booking based on session ID and booking type
      */
     fun confirmBooking(sessionId: String, bookingTypeString: String) {
+        // Prevent double-tap — ignore if already loading
+        if (_uiState.value is BookingConfirmationUiState.Loading) return
         viewModelScope.launch {
             _uiState.value = BookingConfirmationUiState.Loading
 

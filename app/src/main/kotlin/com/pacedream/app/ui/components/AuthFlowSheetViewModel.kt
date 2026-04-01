@@ -78,7 +78,11 @@ class AuthFlowSheetViewModel @Inject constructor(
     fun updateEmail(value: String) = _uiState.update { it.copy(email = value, error = null) }
     fun updatePassword(value: String) = _uiState.update { it.copy(password = value, error = null) }
 
+    private val AuthFlowSheetUiState.isAnyLoading: Boolean
+        get() = isEmailLoading || isGoogleLoading || isAppleLoading
+
     fun loginWithAuth0(activity: Activity, connection: Auth0Connection) {
+        if (_uiState.value.isAnyLoading) return
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -128,6 +132,7 @@ class AuthFlowSheetViewModel @Inject constructor(
     }
 
     fun loginWithEmail() {
+        if (_uiState.value.isAnyLoading) return
         viewModelScope.launch {
             val email = _uiState.value.email.trim()
             val password = _uiState.value.password
@@ -155,6 +160,7 @@ class AuthFlowSheetViewModel @Inject constructor(
     }
 
     fun signUpWithEmail() {
+        if (_uiState.value.isAnyLoading) return
         viewModelScope.launch {
             val first = _uiState.value.firstName.trim()
             val last = _uiState.value.lastName.trim()
