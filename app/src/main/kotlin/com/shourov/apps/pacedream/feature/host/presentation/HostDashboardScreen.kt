@@ -307,7 +307,6 @@ private fun SummaryCard(
                 label = "This month"
             )
         }
-            }
     }
 }
 
