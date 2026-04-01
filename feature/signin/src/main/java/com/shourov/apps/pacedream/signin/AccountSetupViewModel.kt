@@ -144,6 +144,7 @@ class AccountSetupViewModel @Inject constructor(
      * Called when user clicks "Done" on the last setup step
      */
     fun onDoneClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        if (_isSubmitting.value) return
         val data = _accountSetupData
 
         _isSubmitting.value = true

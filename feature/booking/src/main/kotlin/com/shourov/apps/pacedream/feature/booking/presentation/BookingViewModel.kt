@@ -207,13 +207,17 @@ class BookingViewModel @Inject constructor(
     }
 
     fun cancelBooking(bookingId: String) {
+        if (_uiState.value.actionInFlight) return
+        _uiState.value = _uiState.value.copy(actionInFlight = true)
         viewModelScope.launch {
             when (val result = bookingRepository.cancelBooking(bookingId)) {
                 is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(actionInFlight = false)
                     loadBookings()
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
+                        actionInFlight = false,
                         error = result.exception.message
                     )
                 }
@@ -223,13 +227,17 @@ class BookingViewModel @Inject constructor(
     }
 
     fun confirmBooking(bookingId: String) {
+        if (_uiState.value.actionInFlight) return
+        _uiState.value = _uiState.value.copy(actionInFlight = true)
         viewModelScope.launch {
             when (val result = bookingRepository.confirmBooking(bookingId)) {
                 is Result.Success -> {
+                    _uiState.value = _uiState.value.copy(actionInFlight = false)
                     loadBookings()
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
+                        actionInFlight = false,
                         error = result.exception.message
                     )
                 }
@@ -250,7 +258,9 @@ data class BookingUiState(
     val upcomingBookings: List<BookingModel> = emptyList(),
     val pastBookings: List<BookingModel> = emptyList(),
     val cancelledBookings: List<BookingModel> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    /** True while a confirm/cancel action is in flight — prevents duplicate requests. */
+    val actionInFlight: Boolean = false
 ) {
     val filteredBookings: List<BookingModel>
         get() = when (selectedTab) {

@@ -187,13 +187,17 @@ class HostEarningsViewModel @Inject constructor(
     }
 
     fun requestPayout(amount: Double) {
+        if (_earningsUiState.value.isRequestingPayout) return
         viewModelScope.launch {
-            _earningsUiState.value = _earningsUiState.value.copy(payoutError = null)
+            _earningsUiState.value = _earningsUiState.value.copy(
+                isRequestingPayout = true, payoutError = null
+            )
 
             val amountInCents = (amount * 100).toInt()
             stripeConnectRepository.createPayout(amountInCents)
                 .onSuccess {
                     _earningsUiState.value = _earningsUiState.value.copy(
+                        isRequestingPayout = false,
                         showPayoutSheet = false,
                         payoutAmount = ""
                     )
@@ -201,6 +205,7 @@ class HostEarningsViewModel @Inject constructor(
                 }
                 .onFailure { exception ->
                     _earningsUiState.value = _earningsUiState.value.copy(
+                        isRequestingPayout = false,
                         payoutError = exception.message ?: "Failed to request payout"
                     )
                 }

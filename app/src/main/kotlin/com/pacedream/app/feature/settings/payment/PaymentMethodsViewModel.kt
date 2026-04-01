@@ -18,7 +18,9 @@ data class PaymentMethodsUiState(
     val isCreatingSetupIntent: Boolean = false,
     val paymentMethods: List<PaymentMethod> = emptyList(),
     val errorMessage: String? = null,
-    val unauthorized: Boolean = false
+    val unauthorized: Boolean = false,
+    /** True while a setDefault or delete operation is in flight. */
+    val isActionInFlight: Boolean = false
 )
 
 @HiltViewModel
@@ -106,12 +108,15 @@ class PaymentMethodsViewModel @Inject constructor(
     }
 
     fun setDefault(paymentMethodId: String) {
+        if (_uiState.value.isActionInFlight) return
         viewModelScope.launch {
+            _uiState.update { it.copy(isActionInFlight = true) }
             try {
                 when (val result = repository.setDefault(paymentMethodId)) {
                     is ApiResult.Success -> {
                         _uiState.update {
                             it.copy(
+                                isActionInFlight = false,
                                 paymentMethods = result.data,
                                 errorMessage = null
                             )
@@ -119,23 +124,26 @@ class PaymentMethodsViewModel @Inject constructor(
                     }
                     is ApiResult.Failure -> {
                         _uiState.update {
-                            it.copy(errorMessage = result.error.message)
+                            it.copy(isActionInFlight = false, errorMessage = result.error.message)
                         }
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "An unexpected error occurred.") }
+                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }
 
     fun deletePaymentMethod(id: String) {
+        if (_uiState.value.isActionInFlight) return
         viewModelScope.launch {
+            _uiState.update { it.copy(isActionInFlight = true) }
             try {
                 when (val result = repository.deletePaymentMethod(id)) {
                     is ApiResult.Success -> {
                         _uiState.update {
                             it.copy(
+                                isActionInFlight = false,
                                 paymentMethods = result.data,
                                 errorMessage = null
                             )
@@ -143,12 +151,12 @@ class PaymentMethodsViewModel @Inject constructor(
                     }
                     is ApiResult.Failure -> {
                         _uiState.update {
-                            it.copy(errorMessage = result.error.message)
+                            it.copy(isActionInFlight = false, errorMessage = result.error.message)
                         }
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "An unexpected error occurred.") }
+                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "An unexpected error occurred.") }
             }
         }
     }

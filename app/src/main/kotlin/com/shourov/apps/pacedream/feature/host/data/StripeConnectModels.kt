@@ -306,5 +306,7 @@ data class HostEarningsUiState(
     val isRefreshing: Boolean = false,
     val showPayoutSheet: Boolean = false,
     val payoutAmount: String = "",
-    val payoutError: String? = null
+    val payoutError: String? = null,
+    /** True while a payout request is in flight — prevents duplicate submissions. */
+    val isRequestingPayout: Boolean = false
 )
