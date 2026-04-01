@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.feature.host.data.HostDashboardData
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
+import com.shourov.apps.pacedream.feature.host.data.computeDashboardData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,7 +69,7 @@ class HostDashboardViewModel @Inject constructor(
             }
 
             // Perform expensive list computations on Default dispatcher (CPU intensive)
-            val updatedState = withContext(Dispatchers.Default) {
+            val updatedState = withContext<HostDashboardData>(Dispatchers.Default) {
                 computeDashboardData(
                     data = _uiState.value.copy(
                         userName = resolvedUserName,

@@ -80,7 +80,7 @@ fun HostPostScreen(
 
             // Host Stats — unified KPI chips
             PostStatsSection(
-                activeListings = uiState.activeListingsCount,
+                activeListings = uiState.activeListings,
                 monthlyEarnings = uiState.monthlyEarnings,
                 upcomingBookings = uiState.upcomingBookingsCount
             )

@@ -1,0 +1,1070 @@
+Calculating task graph as configuration cache cannot be reused because the set of Gradle properties has changed: 'kotlin.daemon.jvmargs' was removed.
+Type-safe project accessors is an incubating feature.
+> Task :build-logic:convention:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :build-logic:convention:compileKotlin UP-TO-DATE
+> Task :build-logic:convention:compileJava NO-SOURCE
+> Task :build-logic:convention:pluginDescriptors UP-TO-DATE
+> Task :build-logic:convention:processResources UP-TO-DATE
+> Task :build-logic:convention:classes UP-TO-DATE
+> Task :build-logic:convention:jar UP-TO-DATE
+
+> Configure project :app
+WARNING: The option setting 'android.usesSdkInManifest.disallowed=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.sdk.defaultTargetSdkToCompileSdkIfUnset=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.enableAppCompileTimeRClass=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.r8.optimizedResourceShrinking=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+This version of the Baseline Profile Gradle Plugin was tested at most with the Android
+Gradle Plugin version Android Gradle Plugin version 8.3.0 and it may not work as intended.
+Current version is Android Gradle Plugin version 9.1.0.
+This version of the Baseline Profile Gradle Plugin was tested at most with the Android
+Gradle Plugin version Android Gradle Plugin version 8.3.0 and it may not work as intended.
+Current version is Android Gradle Plugin version 9.1.0.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :benchmarks
+This version of the Baseline Profile Gradle Plugin was tested at most with the Android
+Gradle Plugin version Android Gradle Plugin version 8.3.0 and it may not work as intended.
+Current version is Android Gradle Plugin version 9.1.0.
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':benchmarks' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :common
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':common' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:analytics
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:analytics' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:common
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:common' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:data
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:data' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:database
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:database' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:datastore
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:datastore' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:datastore-proto
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:datastore-proto' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:designsystem
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:designsystem' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:network
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:network' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :core:ui
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':core:ui' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:auth
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:auth' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:booking
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:booking' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:chat
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:chat' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:create-account
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:create-account' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:guest
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:guest' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:home
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:home' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:host
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:host' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:inbox
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:inbox' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:notification
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:notification' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:payment
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:payment' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:signin
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:signin' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:webflow
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:webflow' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:wishlist
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+WARNING: androidTestImplementation dependencies are ignored because androidTest is disabled.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:wishlist' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:home:data
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:home:data' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:home:domain
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:home:domain' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:home:presentation
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:home:presentation' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:search:data
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:search:data' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:search:domain
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:search:domain' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :feature:search:presentation
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+WARNING: The property android.dependency.excludeLibraryComponentsFromConstraints improves project import performance for very large projects. It should be enabled to improve performance.
+To suppress this warning, add android.generateSyncIssueWhenLibraryConstraintsAreEnabled=false to gradle.properties
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':feature:search:presentation' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Task :common:preBuild UP-TO-DATE
+> Task :core:database:preBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:datastore:preBuild UP-TO-DATE
+> Task :core:model:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:database:preProdReleaseBuild UP-TO-DATE
+> Task :core:data:preBuild UP-TO-DATE
+> Task :core:datastore:preProdReleaseBuild UP-TO-DATE
+> Task :core:data:preProdReleaseBuild UP-TO-DATE
+> Task :core:analytics:preBuild UP-TO-DATE
+> Task :common:preReleaseBuild UP-TO-DATE
+> Task :core:analytics:preProdReleaseBuild UP-TO-DATE
+> Task :core:common:preBuild UP-TO-DATE
+> Task :core:common:preProdReleaseBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :core:datastore-proto:preBuild UP-TO-DATE
+> Task :core:datastore-proto:preProdReleaseBuild UP-TO-DATE
+> Task :core:data:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:datastore-proto:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:common:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:analytics:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:datastore:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:model:processResources NO-SOURCE
+> Task :feature:booking:preBuild UP-TO-DATE
+> Task :core:designsystem:preBuild UP-TO-DATE
+> Task :feature:booking:preProdReleaseBuild UP-TO-DATE
+> Task :feature:auth:preBuild UP-TO-DATE
+> Task :feature:auth:preProdReleaseBuild UP-TO-DATE
+> Task :common:writeReleaseAarMetadata UP-TO-DATE
+> Task :core:database:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:booking:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:home:preBuild UP-TO-DATE
+> Task :feature:home:preProdReleaseBuild UP-TO-DATE
+> Task :feature:auth:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:host:preBuild UP-TO-DATE
+> Task :feature:inbox:preBuild UP-TO-DATE
+> Task :feature:create-account:preBuild UP-TO-DATE
+> Task :feature:inbox:preProdReleaseBuild UP-TO-DATE
+> Task :feature:create-account:preProdReleaseBuild UP-TO-DATE
+> Task :feature:home:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:ui:preBuild UP-TO-DATE
+> Task :core:ui:preProdReleaseBuild UP-TO-DATE
+> Task :feature:host:preProdReleaseBuild UP-TO-DATE
+> Task :feature:inbox:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:notification:preBuild UP-TO-DATE
+> Task :feature:notification:preProdReleaseBuild UP-TO-DATE
+> Task :core:ui:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:payment:preBuild UP-TO-DATE
+> Task :feature:host:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:payment:preProdReleaseBuild UP-TO-DATE
+> Task :feature:signin:preBuild UP-TO-DATE
+> Task :feature:notification:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:signin:preProdReleaseBuild UP-TO-DATE
+> Task :core:designsystem:preProdReleaseBuild UP-TO-DATE
+> Task :feature:signin:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:designsystem:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:home:domain:preBuild UP-TO-DATE
+> Task :feature:home:domain:preProdReleaseBuild UP-TO-DATE
+> Task :feature:webflow:preBuild UP-TO-DATE
+> Task :feature:webflow:preProdReleaseBuild UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :feature:home:domain:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:webflow:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:home:presentation:preBuild UP-TO-DATE
+> Task :feature:wishlist:preBuild UP-TO-DATE
+> Task :feature:home:data:preBuild UP-TO-DATE
+> Task :feature:guest:preBuild UP-TO-DATE
+> Task :core:network:preBuild UP-TO-DATE
+> Task :core:network:preProdReleaseBuild UP-TO-DATE
+> Task :feature:create-account:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:guest:preProdReleaseBuild UP-TO-DATE
+> Task :feature:payment:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:network:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:home:data:preProdReleaseBuild UP-TO-DATE
+> Task :feature:wishlist:preProdReleaseBuild UP-TO-DATE
+> Task :feature:home:data:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:guest:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:analytics:processProdReleaseNavigationResources UP-TO-DATE
+> Task :common:processReleaseNavigationResources UP-TO-DATE
+> Task :core:data:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:database:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:network:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:common:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:wishlist:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :feature:home:presentation:preProdReleaseBuild UP-TO-DATE
+> Task :core:designsystem:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:ui:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:home:presentation:writeProdReleaseAarMetadata UP-TO-DATE
+> Task :core:datastore-proto:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:booking:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:datastore:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:auth:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:host:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:guest:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:notification:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:signin:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:payment:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:inbox:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:create-account:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:home:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:webflow:processProdReleaseNavigationResources UP-TO-DATE
+> Task :common:generateReleaseResources UP-TO-DATE
+> Task :core:analytics:generateProdReleaseResources UP-TO-DATE
+> Task :app:generateProdReleaseResources UP-TO-DATE
+> Task :feature:home:data:processProdReleaseNavigationResources UP-TO-DATE
+> Task :feature:home:domain:processProdReleaseNavigationResources UP-TO-DATE
+> Task :app:collectProdReleaseDependencies UP-TO-DATE
+> Task :core:data:generateProdReleaseResources UP-TO-DATE
+> Task :feature:home:presentation:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:database:generateProdReleaseResources UP-TO-DATE
+> Task :core:datastore:generateProdReleaseResources UP-TO-DATE
+> Task :app:prodReleaseOssDependencyTask UP-TO-DATE
+> Task :core:common:generateProdReleaseResources UP-TO-DATE
+> Task :feature:wishlist:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:data:packageProdReleaseResources UP-TO-DATE
+> Task :app:checkProdReleaseAarMetadata UP-TO-DATE
+> Task :core:database:packageProdReleaseResources UP-TO-DATE
+> Task :core:datastore:packageProdReleaseResources UP-TO-DATE
+> Task :core:common:packageProdReleaseResources UP-TO-DATE
+> Task :core:datastore-proto:generateProdReleaseResources UP-TO-DATE
+> Task :core:network:generateProdReleaseResources UP-TO-DATE
+> Task :core:designsystem:generateProdReleaseResources UP-TO-DATE
+> Task :core:ui:generateProdReleaseResources UP-TO-DATE
+> Task :core:analytics:packageProdReleaseResources UP-TO-DATE
+> Task :common:packageReleaseResources UP-TO-DATE
+> Task :feature:auth:generateProdReleaseResources UP-TO-DATE
+> Task :feature:booking:generateProdReleaseResources UP-TO-DATE
+> Task :feature:create-account:generateProdReleaseResources UP-TO-DATE
+> Task :app:processProdReleaseNavigationResources UP-TO-DATE
+> Task :core:network:packageProdReleaseResources UP-TO-DATE
+> Task :feature:guest:generateProdReleaseResources UP-TO-DATE
+> Task :core:designsystem:packageProdReleaseResources UP-TO-DATE
+> Task :core:datastore-proto:packageProdReleaseResources UP-TO-DATE
+> Task :feature:home:generateProdReleaseResources UP-TO-DATE
+> Task :core:ui:packageProdReleaseResources UP-TO-DATE
+> Task :feature:host:generateProdReleaseResources UP-TO-DATE
+> Task :feature:inbox:generateProdReleaseResources UP-TO-DATE
+> Task :feature:auth:packageProdReleaseResources UP-TO-DATE
+> Task :feature:booking:packageProdReleaseResources UP-TO-DATE
+> Task :feature:notification:generateProdReleaseResources UP-TO-DATE
+> Task :feature:payment:generateProdReleaseResources UP-TO-DATE
+> Task :feature:create-account:packageProdReleaseResources UP-TO-DATE
+> Task :feature:guest:packageProdReleaseResources UP-TO-DATE
+> Task :core:model:compileKotlin UP-TO-DATE
+> Task :feature:webflow:generateProdReleaseResources UP-TO-DATE
+> Task :feature:signin:generateProdReleaseResources UP-TO-DATE
+> Task :feature:host:packageProdReleaseResources UP-TO-DATE
+> Task :feature:wishlist:generateProdReleaseResources UP-TO-DATE
+> Task :feature:inbox:packageProdReleaseResources UP-TO-DATE
+> Task :core:model:compileJava NO-SOURCE
+> Task :feature:home:packageProdReleaseResources UP-TO-DATE
+> Task :feature:notification:packageProdReleaseResources UP-TO-DATE
+> Task :feature:home:presentation:generateProdReleaseResources UP-TO-DATE
+> Task :feature:home:domain:generateProdReleaseResources UP-TO-DATE
+> Task :feature:payment:packageProdReleaseResources UP-TO-DATE
+> Task :core:model:classes UP-TO-DATE
+> Task :feature:home:data:generateProdReleaseResources UP-TO-DATE
+> Task :feature:wishlist:packageProdReleaseResources UP-TO-DATE
+> Task :feature:signin:packageProdReleaseResources UP-TO-DATE
+> Task :common:extractDeepLinksRelease UP-TO-DATE
+> Task :feature:webflow:packageProdReleaseResources UP-TO-DATE
+> Task :feature:home:presentation:packageProdReleaseResources UP-TO-DATE
+> Task :core:analytics:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:domain:packageProdReleaseResources UP-TO-DATE
+> Task :core:model:jar UP-TO-DATE
+> Task :app:createProdReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :core:common:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:data:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:database:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:data:packageProdReleaseResources UP-TO-DATE
+> Task :common:processReleaseManifest UP-TO-DATE
+> Task :core:analytics:processProdReleaseManifest UP-TO-DATE
+> Task :core:datastore:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:common:processProdReleaseManifest UP-TO-DATE
+> Task :core:data:processProdReleaseManifest UP-TO-DATE
+> Task :core:datastore-proto:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:database:processProdReleaseManifest UP-TO-DATE
+> Task :core:designsystem:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:network:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:ui:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:datastore:processProdReleaseManifest UP-TO-DATE
+> Task :core:designsystem:processProdReleaseManifest UP-TO-DATE
+> Task :feature:booking:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:auth:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:create-account:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:datastore-proto:processProdReleaseManifest UP-TO-DATE
+> Task :feature:guest:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:ui:processProdReleaseManifest UP-TO-DATE
+> Task :feature:host:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:network:processProdReleaseManifest UP-TO-DATE
+> Task :feature:auth:processProdReleaseManifest UP-TO-DATE
+> Task :feature:booking:processProdReleaseManifest UP-TO-DATE
+> Task :feature:create-account:processProdReleaseManifest UP-TO-DATE
+> Task :feature:guest:processProdReleaseManifest UP-TO-DATE
+> Task :feature:home:processProdReleaseManifest UP-TO-DATE
+> Task :feature:inbox:processProdReleaseManifest UP-TO-DATE
+> Task :feature:notification:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:payment:processProdReleaseManifest UP-TO-DATE
+> Task :feature:signin:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:notification:processProdReleaseManifest UP-TO-DATE
+> Task :feature:inbox:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:host:processProdReleaseManifest UP-TO-DATE
+> Task :feature:webflow:processProdReleaseManifest UP-TO-DATE
+> Task :feature:signin:processProdReleaseManifest UP-TO-DATE
+> Task :feature:home:data:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:wishlist:processProdReleaseManifest UP-TO-DATE
+> Task :feature:home:domain:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:presentation:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:payment:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:data:processProdReleaseManifest UP-TO-DATE
+> Task :feature:wishlist:extractDeepLinksProdRelease UP-TO-DATE
+> Task :feature:home:domain:processProdReleaseManifest UP-TO-DATE
+> Task :core:analytics:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:webflow:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:data:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :common:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:home:presentation:processProdReleaseManifest UP-TO-DATE
+> Task :core:common:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:analytics:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:data:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :common:compileReleaseLibraryResources UP-TO-DATE
+> Task :core:database:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:datastore:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :common:parseReleaseLocalResources UP-TO-DATE
+> Task :core:datastore:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:datastore:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:analytics:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:data:parseProdReleaseLocalResources UP-TO-DATE
+> Task :common:generateReleaseRFile UP-TO-DATE
+> Task :core:database:generateProdReleaseRFile UP-TO-DATE
+> Task :core:analytics:generateProdReleaseRFile UP-TO-DATE
+> Task :core:data:generateProdReleaseRFile UP-TO-DATE
+> Task :core:datastore-proto:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:common:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:designsystem:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:designsystem:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:common:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:database:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:common:generateProdReleaseRFile UP-TO-DATE
+> Task :core:datastore:generateProdReleaseRFile UP-TO-DATE
+> Task :core:network:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:datastore-proto:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:datastore-proto:generateProdReleaseRFile UP-TO-DATE
+> Task :core:ui:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:network:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:auth:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:ui:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:auth:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:auth:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:booking:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:database:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:network:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:booking:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:booking:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:create-account:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:network:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:auth:generateProdReleaseRFile UP-TO-DATE
+> Task :core:ui:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:datastore-proto:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:create-account:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:create-account:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:guest:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:home:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:guest:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:home:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:booking:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:guest:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:host:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :core:designsystem:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:ui:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:inbox:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:home:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:host:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:host:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:guest:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:generateProdReleaseRFile UP-TO-DATE
+> Task :core:designsystem:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:create-account:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:inbox:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:payment:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:payment:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:notification:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:signin:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:payment:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:signin:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:inbox:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:inbox:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:payment:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:host:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:signin:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:notification:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:webflow:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:wishlist:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:notification:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:home:data:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:wishlist:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:webflow:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:home:data:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:webflow:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:home:data:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:wishlist:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:home:domain:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:signin:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:domain:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:notification:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:presentation:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :feature:wishlist:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:presentation:parseProdReleaseLocalResources UP-TO-DATE
+> Task :feature:home:data:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:webflow:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:domain:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :feature:home:domain:generateProdReleaseRFile UP-TO-DATE
+> Task :common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :common:javaPreCompileRelease UP-TO-DATE
+> Task :core:analytics:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:analytics:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:data:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:common:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:database:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:database:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :core:data:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :feature:home:presentation:generateProdReleaseRFile UP-TO-DATE
+> Task :feature:home:presentation:compileProdReleaseLibraryResources UP-TO-DATE
+> Task :core:datastore-proto:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:datastore:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:database:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:datastore-proto:extractReleaseProto UP-TO-DATE
+> Task :core:datastore-proto:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:datastore-proto:extractProdProto UP-TO-DATE
+> Task :core:network:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:datastore-proto:extractProdReleaseProto UP-TO-DATE
+> Task :core:datastore-proto:extractIncludeProdReleaseProto UP-TO-DATE
+> Task :core:designsystem:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:network:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:datastore-proto:extractProto UP-TO-DATE
+> Task :core:datastore:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:data:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:designsystem:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:network:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :core:designsystem:compileProdReleaseKotlin NO-SOURCE
+> Task :core:ui:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:ui:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:auth:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:booking:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:auth:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:create-account:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:guest:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:designsystem:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:booking:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:analytics:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:create-account:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:guest:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:designsystem:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:common:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:designsystem:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :feature:host:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:inbox:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:home:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:notification:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:host:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:inbox:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:notification:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:datastore-proto:generateProdReleaseProto UP-TO-DATE
+> Task :common:compileReleaseKotlin UP-TO-DATE
+> Task :feature:payment:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:signin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:analytics:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:webflow:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:payment:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:wishlist:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :common:compileReleaseJavaWithJavac NO-SOURCE
+> Task :feature:signin:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:home:data:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:webflow:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:home:domain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:wishlist:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:home:presentation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :common:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :common:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :feature:home:presentation:javaPreCompileProdRelease UP-TO-DATE
+> Task :feature:home:data:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:analytics:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :core:datastore-proto:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:domain:javaPreCompileProdRelease UP-TO-DATE
+> Task :core:common:compileProdReleaseKotlin UP-TO-DATE
+> Task :core:datastore-proto:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :core:common:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :core:datastore-proto:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:datastore-proto:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :feature:home:domain:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:domain:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :core:common:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:home:domain:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:analytics:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:home:domain:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:common:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:analytics:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:common:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:analytics:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :app:prodReleaseOssLicensesTask UP-TO-DATE
+> Task :app:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :core:datastore:kspProdReleaseKotlin NO-SOURCE
+> Task :core:database:kspProdReleaseKotlin UP-TO-DATE
+> Task :core:datastore:compileProdReleaseKotlin NO-SOURCE
+> Task :app:compileProdReleaseNavigationResources UP-TO-DATE
+> Task :app:packageProdReleaseResources UP-TO-DATE
+> Task :core:datastore:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :core:network:kspProdReleaseKotlin UP-TO-DATE
+> Task :app:mergeProdReleaseResources UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources UP-TO-DATE
+> Task :core:datastore:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :core:datastore:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:datastore:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:database:compileProdReleaseKotlin UP-TO-DATE
+> Task :core:database:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :core:database:copyRoomSchemas NO-SOURCE
+> Task :core:network:compileProdReleaseKotlin UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :core:network:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:processProdReleaseManifest UP-TO-DATE
+> Task :app:processProdReleaseManifestForPackage UP-TO-DATE
+> Task :core:database:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :core:network:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :core:database:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:network:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:network:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:database:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:data:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:data:kspProdReleaseKotlin UP-TO-DATE
+> Task :core:data:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:data:compileProdReleaseKotlin UP-TO-DATE
+> Task :core:data:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:home:data:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:home:data:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:home:data:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:data:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:home:data:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:data:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :core:data:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :app:processProdReleaseResources UP-TO-DATE
+> Task :core:ui:compileProdReleaseKotlin UP-TO-DATE
+> Task :core:ui:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :core:ui:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :core:ui:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :feature:auth:kspProdReleaseKotlin NO-SOURCE
+> Task :feature:guest:kspProdReleaseKotlin NO-SOURCE
+> Task :feature:home:kspProdReleaseKotlin NO-SOURCE
+> Task :feature:host:kspProdReleaseKotlin NO-SOURCE
+> Task :feature:guest:compileProdReleaseKotlin NO-SOURCE
+> Task :feature:payment:kspProdReleaseKotlin NO-SOURCE
+> Task :feature:host:compileProdReleaseKotlin NO-SOURCE
+> Task :feature:create-account:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:inbox:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:compileProdReleaseKotlin NO-SOURCE
+> Task :feature:guest:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:auth:compileProdReleaseKotlin NO-SOURCE
+> Task :feature:payment:compileProdReleaseKotlin NO-SOURCE
+> Task :feature:signin:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:host:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:home:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:booking:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:auth:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:notification:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:payment:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:inbox:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:create-account:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:signin:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:notification:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:host:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:auth:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:inbox:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:home:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:payment:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:guest:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:create-account:compileProdReleaseJavaWithJavac NO-SOURCE
+> Task :feature:auth:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:payment:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:host:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:guest:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:booking:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:webflow:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:notification:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:signin:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:inbox:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:wishlist:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:inbox:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:booking:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:create-account:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:create-account:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:webflow:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:signin:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:notification:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:webflow:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:signin:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:booking:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:notification:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:booking:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:wishlist:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:webflow:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:wishlist:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:webflow:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:wishlist:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:wishlist:bundleLibRuntimeToJarProdRelease UP-TO-DATE
+> Task :feature:wishlist:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :feature:home:presentation:kspProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:presentation:compileProdReleaseKotlin UP-TO-DATE
+> Task :feature:home:presentation:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :feature:home:presentation:transformProdReleaseClassesWithAsm UP-TO-DATE
+> Task :feature:home:presentation:bundleLibCompileToJarProdRelease UP-TO-DATE
+> Task :app:kspProdReleaseKotlin UP-TO-DATE
+
+> Task :app:compileProdReleaseKotlin FAILED
+e: file:///Users/sean/pixel/app/src/main/kotlin/com/shourov/apps/pacedream/feature/host/presentation/HostAnalyticsScreen.kt:103:49 Unresolved reference 'activeListingsCount'.
+e: file:///Users/sean/pixel/app/src/main/kotlin/com/shourov/apps/pacedream/feature/host/presentation/HostAnalyticsScreen.kt:362:26 Unresolved reference 'activeListingsCount'.
+e: file:///Users/sean/pixel/app/src/main/kotlin/com/shourov/apps/pacedream/feature/host/presentation/HostDashboardScreen.kt:112:46 Unresolved reference 'activeListingsCount'.
+e: file:///Users/sean/pixel/app/src/main/kotlin/com/shourov/apps/pacedream/feature/host/presentation/HostPostScreen.kt:83:42 Unresolved reference 'activeListingsCount'.
+
+[Incubating] Problems report is available at: file:///Users/sean/pixel/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileProdReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 12s
+414 actionable tasks: 1 executed, 413 up-to-date
+Configuration cache entry stored.

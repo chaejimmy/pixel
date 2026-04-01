@@ -100,7 +100,7 @@ fun HostAnalyticsScreen(
                         ) {
                             AnalyticsKpiCard(
                                 label = "Active Listings",
-                                value = uiState.activeListingsCount.toString(),
+                                value = uiState.activeListings.toString(),
                                 icon = PaceDreamIcons.CheckCircle,
                                 tint = PaceDreamColors.HostAccent,
                                 modifier = Modifier.weight(1f)
@@ -359,7 +359,7 @@ private data class BreakdownItem(
 )
 
 private fun buildListingsBreakdown(uiState: HostDashboardData): List<BreakdownItem> {
-    val active = uiState.activeListingsCount
+    val active = uiState.activeListings
     val inactive = uiState.listings.count { !it.isAvailable }
     val total = uiState.listings.size
 

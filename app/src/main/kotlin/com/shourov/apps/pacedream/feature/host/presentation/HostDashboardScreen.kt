@@ -109,7 +109,7 @@ fun HostDashboardScreen(
             // ── Summary card (KPIs in a 2×2 grid) ──
             item {
                 SummaryCard(
-                    activeListings = uiState.activeListingsCount,
+                    activeListings = uiState.activeListings,
                     underReviewListings = uiState.underReviewListingsCount,
                     upcomingBookings = uiState.upcomingBookingsCount,
                     pendingRequests = uiState.pendingRequestsCount,
