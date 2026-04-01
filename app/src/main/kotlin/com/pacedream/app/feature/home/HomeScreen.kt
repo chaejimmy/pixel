@@ -275,9 +275,8 @@ private fun HeroHeaderSection(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF4F46E5), // Indigo top (iOS parity)
-                            Color(0xFF6B5CE7), // Purple mid (iOS parity)
-                            Color(0xFF7B4DFF)  // Purple bottom (iOS parity)
+                            PaceDreamColors.GradientStart, // Brand Green
+                            PaceDreamColors.GradientEnd    // Brand Blue
                         ),
                         start = Offset(0f, 0f),
                         end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)

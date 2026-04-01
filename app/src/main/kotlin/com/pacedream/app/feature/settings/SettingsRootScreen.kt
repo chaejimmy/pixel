@@ -258,8 +258,9 @@ fun SettingsRootScreen(
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
+        thickness = 0.5.dp,
         color = PaceDreamColors.Border,
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+        modifier = Modifier.padding(start = 72.dp, end = PaceDreamSpacing.MD)
     )
 }
 
@@ -314,7 +315,7 @@ private fun SettingsRow(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(16.dp)
         )
     }
 }

@@ -265,8 +265,12 @@ private fun SummaryCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(PaceDreamRadius.LG)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Flat for glass
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp, 
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -413,7 +417,7 @@ private fun CompactActionButton(
         modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(PaceDreamRadius.MD),
-        color = PaceDreamColors.HostAccent.copy(alpha = 0.08f)
+        color = PaceDreamColors.HostAccent.copy(alpha = 0.10f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -543,7 +547,7 @@ private fun NewHostWelcome(
         Button(
             onClick = onCreateListing,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
             Icon(
@@ -634,8 +638,12 @@ private fun BookingRowCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(PaceDreamRadius.LG)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp, 
+            PaceDreamColors.Border.copy(alpha = 0.3f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -758,8 +766,12 @@ private fun ListingMiniCard(
         modifier = Modifier.width(200.dp),
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
-        shape = RoundedCornerShape(PaceDreamRadius.LG)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp, 
+            PaceDreamColors.Border.copy(alpha = 0.3f)
+        )
     ) {
         Column {
             Box(

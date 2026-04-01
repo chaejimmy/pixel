@@ -91,9 +91,11 @@ fun BookingsScreen(
             when {
                 // Error with no data
                 uiState.error != null && uiState.allBookings.isEmpty() -> {
-                    BookingsErrorState(
-                        message = uiState.error ?: "An unexpected error occurred",
-                        onRetry = { viewModel.refresh() }
+                    PaceDreamErrorState(
+                        title = "Couldn't load bookings",
+                        description = uiState.error ?: "An unexpected error occurred",
+                        onRetryClick = { viewModel.refresh() },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
 
@@ -115,7 +117,23 @@ fun BookingsScreen(
 
                 // Empty state for selected tab
                 uiState.filteredBookings.isEmpty() -> {
-                    BookingsEmptyState(tab = uiState.selectedTab)
+                    val emptyConfig = when (uiState.selectedTab) {
+                        BookingTab.ALL -> Pair(PaceDreamIcons.ListIcon, "No bookings found")
+                        BookingTab.UPCOMING -> Pair(PaceDreamIcons.CalendarToday, "No upcoming bookings")
+                        BookingTab.PAST -> Pair(PaceDreamIcons.CheckCircle, "No past bookings")
+                        BookingTab.CANCELLED -> Pair(PaceDreamIcons.Cancel, "No cancelled bookings")
+                    }
+                    PaceDreamEmptyState(
+                        title = emptyConfig.second,
+                        description = when (uiState.selectedTab) {
+                            BookingTab.UPCOMING -> "When you book a stay, it will appear here."
+                            BookingTab.PAST -> "Completed stays will appear here after checkout."
+                            BookingTab.CANCELLED -> "Cancelled or refunded bookings will show up here."
+                            else -> "Start exploring and find your next stay!"
+                        },
+                        icon = emptyConfig.first,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
 
                 // Content
@@ -131,9 +149,10 @@ fun BookingsScreen(
                     ) {
                         if (uiState.error != null) {
                             item {
-                                InlineErrorBanner(
-                                    text = uiState.error ?: "An unexpected error occurred",
-                                    onRetry = { viewModel.refresh() }
+                                com.pacedream.common.composables.components.InlineErrorBanner(
+                                    message = uiState.error ?: "An unexpected error occurred",
+                                    onAction = { viewModel.refresh() },
+                                    actionText = "Retry"
                                 )
                             }
                         }
@@ -596,33 +615,33 @@ private data class BadgeColors(
 private fun statusBadgeColors(badgeColor: String): BadgeColors {
     return when (badgeColor) {
         "yellow" -> BadgeColors(
-            fg = Color(0xFF8C6600),
-            bg = Color(0xFFFFCC00).copy(alpha = 0.15f),
-            border = Color(0xFFFFCC00).copy(alpha = 0.4f),
+            fg = Color(0xFF8C6600), // Keep darker for contrast
+            bg = PaceDreamColors.Warning.copy(alpha = 0.15f),
+            border = PaceDreamColors.Warning.copy(alpha = 0.4f),
             icon = PaceDreamIcons.AccessTime
         )
         "blue" -> BadgeColors(
             fg = Color(0xFF1F4DA6),
-            bg = Color(0xFF007AFF).copy(alpha = 0.12f),
-            border = Color(0xFF007AFF).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Info.copy(alpha = 0.12f),
+            border = PaceDreamColors.Info.copy(alpha = 0.3f),
             icon = PaceDreamIcons.CheckCircle
         )
         "green" -> BadgeColors(
             fg = Color(0xFF1A7326),
-            bg = Color(0xFF34C759).copy(alpha = 0.12f),
-            border = Color(0xFF34C759).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Success.copy(alpha = 0.12f),
+            border = PaceDreamColors.Success.copy(alpha = 0.3f),
             icon = PaceDreamIcons.Verified
         )
         "red" -> BadgeColors(
             fg = Color(0xFF991A1A),
-            bg = Color(0xFFFF3B30).copy(alpha = 0.12f),
-            border = Color(0xFFFF3B30).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Error.copy(alpha = 0.12f),
+            border = PaceDreamColors.Error.copy(alpha = 0.3f),
             icon = PaceDreamIcons.Cancel
         )
         else -> BadgeColors(
-            fg = Color(0xFF595959),
-            bg = Color(0xFF8E8E93).copy(alpha = 0.12f),
-            border = Color(0xFF8E8E93).copy(alpha = 0.3f),
+            fg = PaceDreamColors.TextSecondary,
+            bg = PaceDreamColors.Gray100,
+            border = PaceDreamColors.Gray200,
             icon = PaceDreamIcons.Info
         )
     }
@@ -771,168 +790,5 @@ private fun BookingCardSkeleton() {
                     )
             )
         }
-    }
-}
-
-// ============================================================================
-// Empty States — per-tab messaging matching iOS
-// ============================================================================
-@Composable
-private fun BookingsEmptyState(tab: BookingTab) {
-    data class EmptyConfig(
-        val icon: androidx.compose.ui.graphics.vector.ImageVector,
-        val title: String,
-        val subtitle: String
-    )
-
-    val config = when (tab) {
-        BookingTab.ALL -> EmptyConfig(
-            PaceDreamIcons.CalendarToday,
-            "No bookings yet",
-            "Book a space or experience and it will show up here."
-        )
-        BookingTab.UPCOMING -> EmptyConfig(
-            PaceDreamIcons.CalendarToday,
-            "No upcoming bookings",
-            "Your confirmed and pending stays will appear here."
-        )
-        BookingTab.PAST -> EmptyConfig(
-            PaceDreamIcons.CheckCircle,
-            "No past bookings",
-            "Completed stays will appear here after checkout."
-        )
-        BookingTab.CANCELLED -> EmptyConfig(
-            PaceDreamIcons.Cancel,
-            "No cancelled bookings",
-            "Cancelled or refunded bookings will show up here."
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = PaceDreamSpacing.LG),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = config.icon,
-            contentDescription = null,
-            tint = PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(56.dp)
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-        Text(
-            text = config.title,
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-        Text(
-            text = config.subtitle,
-            style = PaceDreamTypography.Subheadline,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
-
-// ============================================================================
-// Error States — matching iOS
-// ============================================================================
-@Composable
-private fun BookingsErrorState(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = PaceDreamSpacing.LG),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-
-        Icon(
-            imageVector = PaceDreamIcons.ErrorOutline,
-            contentDescription = null,
-            tint = PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(48.dp)
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-        Text(
-            text = "Couldn't load bookings",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-        Text(
-            text = message,
-            style = PaceDreamTypography.Subheadline,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamColors.Primary
-            ),
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            modifier = Modifier.height(PaceDreamButtonHeight.MD)
-        ) {
-            Text("Retry", style = PaceDreamTypography.Button, color = Color.White)
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-    }
-}
-
-// ============================================================================
-// Inline Error Banner — matching iOS GuestInlineErrorBanner
-// ============================================================================
-@Composable
-private fun InlineErrorBanner(text: String, onRetry: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                PaceDreamColors.Orange.copy(alpha = 0.12f),
-                RoundedCornerShape(PaceDreamRadius.MD)
-            )
-            .padding(PaceDreamSpacing.SM2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.Warning,
-            contentDescription = null,
-            tint = PaceDreamColors.Orange,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = text,
-            style = PaceDreamTypography.Footnote,
-            color = PaceDreamColors.TextPrimary,
-            maxLines = 2,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "Retry",
-            style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold),
-            color = PaceDreamColors.Primary,
-            modifier = Modifier.clickable { onRetry() }
-        )
     }
 }

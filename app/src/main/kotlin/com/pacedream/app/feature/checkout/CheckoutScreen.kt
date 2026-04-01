@@ -358,7 +358,11 @@ private fun ListingInfoCard(draft: BookingDraft) {
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -421,7 +425,11 @@ private fun BookingDetailsCard(draft: BookingDraft) {
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD),
@@ -452,7 +460,11 @@ private fun PriceBreakdownCard(
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD),
@@ -578,7 +590,11 @@ private fun CancellationPolicyCard() {
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(PaceDreamSpacing.MD),

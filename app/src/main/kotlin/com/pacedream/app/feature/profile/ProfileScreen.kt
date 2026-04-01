@@ -483,7 +483,7 @@ private fun SectionRow(
             imageVector = PaceDreamIcons.ChevronRight,
             contentDescription = null,
             tint = PaceDreamColors.TextTertiary,
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(16.dp)
         )
     }
 }

@@ -278,7 +278,14 @@ fun SearchScreen(
                         labelColor = PaceDreamColors.TextSecondary
                     ),
                     shape = RoundedCornerShape(PaceDreamRadius.Round),
-                    border = null
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = uiState.selectedCategory == category,
+                        borderColor = PaceDreamColors.BorderLight,
+                        selectedBorderColor = Color.Transparent,
+                        borderWidth = 0.5.dp,
+                        selectedBorderWidth = 0.dp
+                    )
                 )
             }
         }

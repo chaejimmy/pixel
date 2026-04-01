@@ -311,27 +311,27 @@ private data class StatusBadgeStyle(
 private fun statusBadgeStyle(status: BookingStatus): StatusBadgeStyle {
     return when (status) {
         BookingStatus.PENDING -> StatusBadgeStyle(
-            fg = Color(0xFF8C6600),
-            bg = Color(0xFFFFCC00).copy(alpha = 0.15f),
-            border = Color(0xFFFFCC00).copy(alpha = 0.4f),
+            fg = Color(0xFF8C6600), // Darker for contrast on glass
+            bg = PaceDreamColors.Warning.copy(alpha = 0.15f),
+            border = PaceDreamColors.Warning.copy(alpha = 0.4f),
             icon = PaceDreamIcons.AccessTime
         )
         BookingStatus.CONFIRMED -> StatusBadgeStyle(
             fg = Color(0xFF1F4DA6),
-            bg = Color(0xFF007AFF).copy(alpha = 0.12f),
-            border = Color(0xFF007AFF).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Info.copy(alpha = 0.12f),
+            border = PaceDreamColors.Info.copy(alpha = 0.3f),
             icon = PaceDreamIcons.CheckCircle
         )
         BookingStatus.COMPLETED -> StatusBadgeStyle(
             fg = Color(0xFF1A7326),
-            bg = Color(0xFF34C759).copy(alpha = 0.12f),
-            border = Color(0xFF34C759).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Success.copy(alpha = 0.12f),
+            border = PaceDreamColors.Success.copy(alpha = 0.3f),
             icon = PaceDreamIcons.Verified
         )
         BookingStatus.CANCELLED -> StatusBadgeStyle(
             fg = Color(0xFF991A1A),
-            bg = Color(0xFFFF3B30).copy(alpha = 0.12f),
-            border = Color(0xFFFF3B30).copy(alpha = 0.3f),
+            bg = PaceDreamColors.Error.copy(alpha = 0.12f),
+            border = PaceDreamColors.Error.copy(alpha = 0.3f),
             icon = PaceDreamIcons.Cancel
         )
     }

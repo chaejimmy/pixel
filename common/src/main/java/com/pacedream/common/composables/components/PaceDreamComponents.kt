@@ -798,7 +798,7 @@ fun PaceDreamErrorState(
                 text = description,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamTextSecondary,
-                lineHeight = PaceDreamTypography.Body.lineHeight
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
@@ -808,7 +808,11 @@ fun PaceDreamErrorState(
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
                 modifier = Modifier.height(PaceDreamButtonHeight.MD),
                 shape = RoundedCornerShape(PaceDreamGlass.ButtonRadius),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                contentPadding = PaddingValues(
+                    horizontal = PaceDreamSpacing.LG,
+                    vertical = PaceDreamSpacing.SM2
+                )
             ) {
                 Text(
                     text = "Try Again",
@@ -816,6 +820,75 @@ fun PaceDreamErrorState(
                     color = Color.White
                 )
             }
+        }
+    }
+}
+
+// ============================================================================
+// Locked State - For unauthorized access with call to action
+// ============================================================================
+@Composable
+fun PaceDreamLockedState(
+    title: String,
+    description: String,
+    onActionClick: () -> Unit,
+    icon: ImageVector = PaceDreamIcons.Lock,
+    actionText: String = "Sign In",
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.XL),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(PaceDreamPrimary.copy(alpha = 0.08f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PaceDreamPrimary,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        Text(
+            text = title,
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamTextPrimary,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        Text(
+            text = description,
+            style = PaceDreamTypography.Body,
+            color = PaceDreamTextSecondary,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XXL))
+
+        Button(
+            onClick = onActionClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(PaceDreamButtonHeight.MD),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamPrimary),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+        ) {
+            Text(actionText, style = PaceDreamTypography.Button, color = Color.White)
         }
     }
 }

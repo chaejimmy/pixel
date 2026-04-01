@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.pacedream.android.library.compose)
+    alias(libs.plugins.compose)
 }
 
 android {

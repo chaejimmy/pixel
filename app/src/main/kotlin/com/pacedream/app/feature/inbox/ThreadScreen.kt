@@ -92,13 +92,14 @@ fun ThreadScreen(
                         Column {
                             Text(
                                 text = uiState.participantName,
-                                style = PaceDreamTypography.Headline
+                                style = PaceDreamTypography.Headline,
+                                color = PaceDreamColors.TextPrimary
                             )
                             uiState.listingName?.let { listingName ->
                                 Text(
                                     text = listingName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = PaceDreamTypography.Caption,
+                                    color = PaceDreamColors.TextSecondary
                                 )
                             }
                         }
@@ -399,9 +400,9 @@ private fun MessageInputBar(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Attach media",
                         tint = if (attachmentsEnabled)
-                            MaterialTheme.colorScheme.primary
+                            PaceDreamColors.Primary
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            PaceDreamColors.TextTertiary
                     )
                 }
 
@@ -409,10 +410,24 @@ private fun MessageInputBar(
                     value = text,
                     onValueChange = onTextChange,
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Type a message...") },
+                    placeholder = { 
+                        Text(
+                            "Type a message...", 
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextTertiary
+                        ) 
+                    },
                     shape = RoundedCornerShape(24.dp),
                     maxLines = 4,
-                    enabled = !isSending
+                    enabled = !isSending,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.Primary,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                        focusedContainerColor = PaceDreamColors.Surface,
+                        unfocusedContainerColor = PaceDreamColors.Surface,
+                        focusedTextColor = PaceDreamColors.TextPrimary,
+                        unfocusedTextColor = PaceDreamColors.TextPrimary
+                    )
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -422,15 +437,15 @@ private fun MessageInputBar(
                     enabled = text.isNotBlank() && !isSending
                 ) {
                     if (isSending) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = PaceDreamColors.Primary)
                     } else {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Send",
                             tint = if (text.isNotBlank())
-                                MaterialTheme.colorScheme.primary
+                                PaceDreamColors.Primary
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                PaceDreamColors.TextTertiary
                         )
                     }
                 }
@@ -457,9 +472,10 @@ private fun MessageBubble(
                 bottomEnd = if (isFromCurrentUser) 4.dp else 16.dp
             ),
             color = if (isFromCurrentUser)
-                MaterialTheme.colorScheme.primary
+                PaceDreamColors.Primary
             else
-                MaterialTheme.colorScheme.surfaceVariant
+                PaceDreamColors.Gray100,
+            tonalElevation = 0.dp
         ) {
             Column(
                 modifier = Modifier.padding(12.dp)
@@ -484,12 +500,12 @@ private fun MessageBubble(
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Play video",
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = Color.White,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .align(Alignment.Center)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                    .background(Color.Black.copy(alpha = 0.5f))
                                     .padding(8.dp)
                             )
                         }
@@ -500,11 +516,11 @@ private fun MessageBubble(
                 if (message.text.isNotBlank()) {
                     Text(
                         text = message.text,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = PaceDreamTypography.Body,
                         color = if (isFromCurrentUser)
-                            MaterialTheme.colorScheme.onPrimary
+                            Color.White
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            PaceDreamColors.TextPrimary
                     )
                 }
 
@@ -512,11 +528,11 @@ private fun MessageBubble(
 
                 Text(
                     text = message.formattedTime,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaceDreamTypography.Caption2,
                     color = if (isFromCurrentUser)
-                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        Color.White.copy(alpha = 0.7f)
                     else
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        PaceDreamColors.TextSecondary
                 )
             }
         }

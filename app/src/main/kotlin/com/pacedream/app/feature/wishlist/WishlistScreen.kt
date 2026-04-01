@@ -84,8 +84,12 @@ fun WishlistScreen(
         ) {
             when {
                 uiState.showLockedState -> {
-                    LockedState(
-                        onSignInClick = onLoginRequired,
+                    PaceDreamLockedState(
+                        title = "Sign in to view your favorites",
+                        description = "Save your favorite spaces, items, and services to access them anytime.",
+                        onActionClick = onLoginRequired,
+                        actionText = "Sign In / Create Account",
+                        icon = PaceDreamIcons.Shield,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -95,13 +99,14 @@ fun WishlistScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = PaceDreamColors.Primary)
                     }
                 }
                 
                 uiState.error != null -> {
-                    ErrorState(
-                        message = uiState.error ?: "An unexpected error occurred",
+                    PaceDreamErrorState(
+                        title = "Something went wrong",
+                        description = uiState.error ?: "An unexpected error occurred",
                         onRetryClick = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -121,7 +126,10 @@ fun WishlistScreen(
                             )
                             
                             if (uiState.filteredItems.isEmpty()) {
-                                EmptyState(
+                                PaceDreamEmptyState(
+                                    title = "No favorites yet",
+                                    description = "Start exploring and save your favorite spaces, items, and services",
+                                    icon = PaceDreamIcons.Favorite,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .weight(1f)
@@ -183,9 +191,19 @@ private fun WishlistItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onItemClick),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 0.5.dp,
+                    color = PaceDreamColors.Border.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
+                )
+        ) {
             Column {
                 if (!item.imageUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -194,41 +212,40 @@ private fun WishlistItemCard(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1.2f)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
                     )
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1.2f)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-                            .background(PaceDreamColors.SurfaceVariant),
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
+                            .background(PaceDreamColors.Gray100),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Image,
+                            imageVector = PaceDreamIcons.Image,
                             contentDescription = "No image",
-                            tint = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.size(48.dp)
+                            tint = PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
                 
                 Column(
-                    modifier = Modifier.padding(12.dp)
+                    modifier = Modifier.padding(PaceDreamSpacing.MD),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = item.title,
-                        style = PaceDreamTypography.Subheadline,
-                        fontWeight = FontWeight.SemiBold,
+                        style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                         color = PaceDreamColors.TextPrimary,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
 
                     item.location?.let { location ->
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = location,
                             style = PaceDreamTypography.Caption,
@@ -238,146 +255,35 @@ private fun WishlistItemCard(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
                     item.price?.let { price ->
                         Text(
                             text = price,
-                            style = PaceDreamTypography.Subheadline,
-                            fontWeight = FontWeight.Bold,
+                            style = PaceDreamTypography.Headline,
                             color = PaceDreamColors.Primary
                         )
                     }
                 }
             }
             
-            // Remove button
+            // Remove button (iOS Parity: top-right heart)
             IconButton(
                 onClick = onRemoveClick,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
+                    .padding(PaceDreamSpacing.XS)
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Favorite,
                     contentDescription = "Remove from favorites",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = PaceDreamColors.Error,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
     }
 }
 
-@Composable
-private fun LockedState(
-    onSignInClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.Lock,
-            contentDescription = null,
-            modifier = Modifier.size(56.dp),
-            tint = PaceDreamColors.TextSecondary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Sign in to view your favorites",
-            style = PaceDreamTypography.Title3,
-            fontWeight = FontWeight.Bold,
-            color = PaceDreamColors.TextPrimary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Save your favorite spaces, items, and services",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onSignInClick,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Sign In", style = PaceDreamTypography.Button)
-        }
-    }
-}
-
-@Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.Favorite,
-            contentDescription = null,
-            modifier = Modifier.size(56.dp),
-            tint = PaceDreamColors.TextSecondary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "No favorites yet",
-            style = PaceDreamTypography.Title3,
-            fontWeight = FontWeight.Bold,
-            color = PaceDreamColors.TextPrimary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Start exploring and save your favorite spaces, items, and services",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun ErrorState(
-    message: String,
-    onRetryClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.ErrorOutline,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = PaceDreamColors.TextSecondary
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Something went wrong",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = message,
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onRetryClick,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Try Again", style = PaceDreamTypography.Button)
-        }
-    }
-}
 
 

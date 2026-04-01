@@ -178,8 +178,12 @@ class ProfileTabViewModel @Inject constructor(
                     val data = root["data"]?.jsonObject ?: root
                     val createdAt = data["createdAt"]?.jsonPrimitive?.contentOrNull
                         ?: data["created_at"]?.jsonPrimitive?.contentOrNull
-                        ?: return@try ""
-                    formatMemberSince(createdAt)
+                    
+                    if (createdAt != null) {
+                        formatMemberSince(createdAt)
+                    } else {
+                        ""
+                    }
                 }
                 else -> ""
             }

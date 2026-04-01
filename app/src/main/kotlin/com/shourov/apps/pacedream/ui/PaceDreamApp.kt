@@ -37,7 +37,7 @@ fun PaceDreamApp(
     // Handle pending deep links from MainActivity (reactive: handles onNewIntent too)
     val activity = context as? MainActivity
     val pendingDeepLink by activity?.pendingDeepLink?.collectAsStateWithLifecycle()
-        ?: remember { androidx.compose.runtime.mutableStateOf(null) }
+        ?:  remember { androidx.compose.runtime.mutableStateOf(null) }
     LaunchedEffect(pendingDeepLink) {
         pendingDeepLink?.let { deepLinkResult ->
             activity?.consumePendingDeepLink()

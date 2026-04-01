@@ -949,45 +949,57 @@ private fun BookingBar(
     val isAvailable = available != false
     Surface(
         shadowElevation = 12.dp,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        color = PaceDreamColors.Surface,
+        tonalElevation = 0.dp
     ) {
         Column {
             HorizontalDivider(
                 thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                color = PaceDreamColors.BorderLight
             )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp)
                     .padding(WindowInsets.navigationBars.asPaddingValues()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = pricingLabel ?: "Select time",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = PaceDreamTypography.Title3.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = PaceDreamColors.TextPrimary
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "You won't be charged yet",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = PaceDreamTypography.Caption.copy(
+                            fontFamily = paceDreamFontFamily
+                        ),
+                        color = PaceDreamColors.TextSecondary
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Button(
                     onClick = onReserveClick,
                     enabled = isAvailable,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Primary,
+                        disabledContainerColor = PaceDreamColors.Gray300
+                    ),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
                 ) {
                     Text(
                         "Reserve",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
+                        style = PaceDreamTypography.Headline.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = Color.White
                     )
                 }
             }
@@ -1110,8 +1122,12 @@ private fun TitleMetaBlock(
     Column(modifier = modifier) {
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold
+            style = PaceDreamTypography.Title2.copy(
+                fontFamily = paceDreamDisplayFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.5).sp
+            ),
+            color = PaceDreamColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -1127,8 +1143,11 @@ private fun TitleMetaBlock(
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = String.format("%.1f", rating ?: 0.0),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = PaceDreamTypography.Subheadline.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = PaceDreamColors.TextPrimary
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(

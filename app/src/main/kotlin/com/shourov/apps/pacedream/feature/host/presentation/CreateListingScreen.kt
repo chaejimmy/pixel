@@ -595,7 +595,11 @@ private fun ModeCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.5f)
+        )
     ) {
         Row(
             modifier = Modifier
@@ -708,7 +712,11 @@ private fun SubcategoryCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
             Box(
@@ -1420,7 +1428,7 @@ private fun BasicsStep(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 supportingText = {
                     val len = description.trim().length
-                    Text("${len}/2000 characters", style = PaceDreamTypography.Caption2, color = PaceDreamColors.TextSecondary)
+                    Text("${len}/2000 characters (min 20)", style = PaceDreamTypography.Caption2, color = PaceDreamColors.TextSecondary)
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.HostAccent,
