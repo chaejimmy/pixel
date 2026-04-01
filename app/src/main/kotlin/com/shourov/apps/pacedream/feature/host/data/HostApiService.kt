@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.host.data
 
 import com.google.gson.JsonElement
+import com.google.gson.annotations.SerializedName
 import com.shourov.apps.pacedream.core.network.ApiEndPoints
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.Property
@@ -259,13 +260,16 @@ data class HostBookingsListResponse(
 )
 
 data class HostBookingDTO(
+    @SerializedName(value = "id", alternate = ["_id"])
     val id: String = "",
     val status: String? = null,
     val guestName: String? = null,
     val listingTitle: String? = null,
     val start: String? = null,
     val end: String? = null,
+    @SerializedName(value = "checkIn", alternate = ["check_in"])
     val checkIn: String? = null,
+    @SerializedName(value = "checkOut", alternate = ["check_out"])
     val checkOut: String? = null,
     val startDate: String? = null,
     val endDate: String? = null,
