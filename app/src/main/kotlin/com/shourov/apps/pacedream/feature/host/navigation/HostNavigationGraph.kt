@@ -98,8 +98,17 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // Host Messages tab — delegates directly to the shared InboxScreen
-    composable(HostScreen.Inbox.route) {
+    // Host Messages tab — delegates directly to the shared InboxScreen.
+    // Pass initialMode=host so the ViewModel loads host threads immediately
+    // instead of loading guest threads first then switching (which doubled
+    // API calls and contributed to ANR on slower devices).
+    composable(
+        route = "${HostScreen.Inbox.route}?initialMode={initialMode}",
+        arguments = listOf(navArgument("initialMode") {
+            type = NavType.StringType
+            defaultValue = "host"
+        })
+    ) {
         InboxScreen(
             onThreadClick = { threadId ->
                 navController.navigate("host_thread/$threadId")
