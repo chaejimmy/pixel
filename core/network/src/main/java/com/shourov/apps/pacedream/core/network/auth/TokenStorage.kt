@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.core.network.auth
 
 import android.content.Context
+import android.os.Looper
 import kotlin.jvm.JvmName
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -9,6 +10,7 @@ import com.shourov.apps.pacedream.core.network.api.TokenProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,18 +18,22 @@ import javax.inject.Singleton
 /**
  * Secure token storage using EncryptedSharedPreferences
  * Matches iOS Keychain-based token storage pattern
+ *
+ * EncryptedSharedPreferences is eagerly initialised on a background thread.
+ * The getter never blocks the main thread — it returns a plain-text fallback
+ * (empty) if called before init completes, preventing ANR.
  */
 @Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) : TokenProvider {
 
-    // Eagerly initialize EncryptedSharedPreferences on a background thread to avoid
-    // blocking the main thread on first access. MasterKey creation and KeyStore IPC
-    // can take several seconds on some devices, causing ANR if triggered lazily
-    // during navigation (e.g. switching to the Messages tab).
     private val prefsRef = AtomicReference<SharedPreferences>()
     private val prefsLatch = CountDownLatch(1)
+
+    private val fallbackPrefs: SharedPreferences by lazy {
+        context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
+    }
 
     init {
         Thread({
@@ -35,7 +41,7 @@ class TokenStorage @Inject constructor(
                 prefsRef.set(createEncryptedPrefsWithFallback())
             } catch (e: Exception) {
                 Timber.e(e, "EncryptedSharedPreferences init failed completely")
-                prefsRef.set(context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE))
+                prefsRef.set(fallbackPrefs)
             } finally {
                 prefsLatch.countDown()
             }
@@ -44,8 +50,21 @@ class TokenStorage @Inject constructor(
 
     private val encryptedPrefs: SharedPreferences
         get() {
-            prefsLatch.await()
-            return prefsRef.get()
+            // Fast path: already initialised.
+            prefsRef.get()?.let { return it }
+
+            // On the main thread, never block — return the empty fallback instead.
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                Timber.w("TokenStorage: main-thread access before encrypted prefs ready — using fallback")
+                return fallbackPrefs
+            }
+
+            // Background / IO thread: wait for the init thread to finish.
+            if (!prefsLatch.await(10, TimeUnit.SECONDS)) {
+                Timber.e("TokenStorage: encrypted prefs init timed out after 10 s — using fallback")
+                return fallbackPrefs
+            }
+            return prefsRef.get() ?: fallbackPrefs
         }
 
     private fun createEncryptedPrefsWithFallback(): SharedPreferences {
@@ -53,18 +72,13 @@ class TokenStorage @Inject constructor(
             createEncryptedPrefs()
         } catch (e: Exception) {
             Timber.e(e, "Failed to create encrypted prefs, deleting corrupt prefs and retrying")
-            // Delete potentially corrupt encrypted prefs file and retry once.
-            // Also clear the AndroidKeyStore master key to recover from keystore corruption
-            // (common on Samsung/Huawei after OTA updates or cache clears).
             try { context.deleteSharedPreferences(PREFS_NAME) } catch (_: Exception) {}
-            try {
-                clearMasterKeyFromKeyStore()
-            } catch (_: Exception) {}
+            try { clearMasterKeyFromKeyStore() } catch (_: Exception) {}
             try {
                 createEncryptedPrefs()
             } catch (retryException: Exception) {
                 Timber.e(retryException, "EncryptedSharedPreferences retry also failed, falling back to plain SharedPreferences")
-                context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
+                fallbackPrefs
             }
         }
     }
@@ -91,7 +105,7 @@ class TokenStorage @Inject constructor(
             Timber.w(e, "Failed to clear master key from AndroidKeyStore")
         }
     }
-    
+
     /**
      * Store the backend JWT access token
      */
@@ -172,7 +186,7 @@ class TokenStorage @Inject constructor(
             Timber.e(e, "Failed to write key: $key to encrypted prefs")
         }
     }
-    
+
     /**
      * Check if user has tokens stored (considered authenticated)
      */
@@ -238,7 +252,7 @@ class TokenStorage @Inject constructor(
     // TokenProvider interface implementation
     override fun getAccessToken(): String? = try { accessToken } catch (e: Exception) { Timber.e(e, "Failed to get access token"); null }
     override fun getRefreshToken(): String? = try { refreshToken } catch (e: Exception) { Timber.e(e, "Failed to get refresh token"); null }
-    
+
     companion object {
         private const val PREFS_NAME = "pacedream_secure_prefs"
         private const val PREFS_NAME_FALLBACK = "pacedream_prefs_fallback"
@@ -252,5 +266,3 @@ class TokenStorage @Inject constructor(
         private const val KEY_CHECKOUT_BOOKING_TYPE = "checkout_booking_type"
     }
 }
-
-

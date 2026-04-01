@@ -71,7 +71,12 @@ class ProfileViewModel @Inject constructor(
             }
         }
 
-        _uiState.update { it.copy(isHostMode = tokenStorage.isHostMode) }
+        // Read isHostMode off the main thread to avoid blocking on
+        // EncryptedSharedPreferences initialisation (ANR prevention).
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val hostMode = tokenStorage.isHostMode
+            _uiState.update { it.copy(isHostMode = hostMode) }
+        }
     }
 
     fun refresh() {
