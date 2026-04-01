@@ -37,7 +37,8 @@ fun HostKpiChip(
     value: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    iconTint: Color = PaceDreamColors.HostAccent
+    iconTint: Color = PaceDreamColors.HostAccent,
+    valueColor: Color? = null
 ) {
     Card(
         modifier = modifier.width(160.dp),
@@ -60,7 +61,7 @@ fun HostKpiChip(
             Text(
                 text = value,
                 style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
+                color = valueColor ?: PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(2.dp))

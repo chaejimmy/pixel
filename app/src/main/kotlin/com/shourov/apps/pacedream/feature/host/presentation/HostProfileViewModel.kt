@@ -57,15 +57,24 @@ class HostProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
+            // Compute dashboard data to get derived counts (monthly earnings, pending, etc.)
+            val computed = com.shourov.apps.pacedream.feature.host.data.computeDashboardData(
+                data = HostDashboardData(
+                    bookings = result.bookings,
+                    listings = result.listings,
+                    activeListings = result.overview?.activeListings ?: 0
+                ),
+                bookings = result.bookings,
+                listings = result.listings
+            )
             _uiState.update {
                 it.copy(
                     activeListingsCount = result.overview?.activeListings
                         ?: result.listings.count { p -> p.isActiveStatus },
-                    monthlyEarnings = HostDashboardData(
-                        bookings = result.bookings,
-                        listings = result.listings,
-                        activeListings = result.overview?.activeListings ?: 0
-                    ).monthlyEarnings,
+                    totalBookingsCount = result.bookings.size,
+                    pendingRequestsCount = computed.pendingRequestsCount,
+                    underReviewListingsCount = computed.underReviewListingsCount,
+                    monthlyEarnings = computed.monthlyEarnings,
                     isLoading = false
                 )
             }
@@ -93,6 +102,9 @@ data class HostProfileUiState(
     val firstName: String = "",
     val lastName: String = "",
     val activeListingsCount: Int = 0,
+    val totalBookingsCount: Int = 0,
+    val pendingRequestsCount: Int = 0,
+    val underReviewListingsCount: Int = 0,
     val monthlyEarnings: Double = 0.0,
     val isLoading: Boolean = false
 ) {
