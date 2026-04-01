@@ -2,6 +2,7 @@ package com.pacedream.app.feature.inbox
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.SavedStateHandle
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
@@ -42,16 +43,18 @@ import javax.inject.Inject
 class InboxViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
-    private val json: Json
+    private val json: Json,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(InboxUiState())
     val uiState: StateFlow<InboxUiState> = _uiState.asStateFlow()
-    
+
     private var cursor: String? = null
-    private var mode: String = "guest"
+    private var mode: String = savedStateHandle.get<String>("initialMode") ?: "guest"
 
     init {
+        _uiState.update { it.copy(selectedMode = mode) }
         loadThreads()
         loadUnreadCounts()
     }

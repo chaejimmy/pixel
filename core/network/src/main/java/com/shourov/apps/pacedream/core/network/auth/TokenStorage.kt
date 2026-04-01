@@ -8,6 +8,8 @@ import androidx.security.crypto.MasterKey
 import com.shourov.apps.pacedream.core.network.api.TokenProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,9 +21,35 @@ import javax.inject.Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) : TokenProvider {
-    
-    private val encryptedPrefs: SharedPreferences by lazy {
-        try {
+
+    // Eagerly initialize EncryptedSharedPreferences on a background thread to avoid
+    // blocking the main thread on first access. MasterKey creation and KeyStore IPC
+    // can take several seconds on some devices, causing ANR if triggered lazily
+    // during navigation (e.g. switching to the Messages tab).
+    private val prefsRef = AtomicReference<SharedPreferences>()
+    private val prefsLatch = CountDownLatch(1)
+
+    init {
+        Thread({
+            try {
+                prefsRef.set(createEncryptedPrefsWithFallback())
+            } catch (e: Exception) {
+                Timber.e(e, "EncryptedSharedPreferences init failed completely")
+                prefsRef.set(context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE))
+            } finally {
+                prefsLatch.countDown()
+            }
+        }, "TokenStorage-init").start()
+    }
+
+    private val encryptedPrefs: SharedPreferences
+        get() {
+            prefsLatch.await()
+            return prefsRef.get()
+        }
+
+    private fun createEncryptedPrefsWithFallback(): SharedPreferences {
+        return try {
             createEncryptedPrefs()
         } catch (e: Exception) {
             Timber.e(e, "Failed to create encrypted prefs, deleting corrupt prefs and retrying")
