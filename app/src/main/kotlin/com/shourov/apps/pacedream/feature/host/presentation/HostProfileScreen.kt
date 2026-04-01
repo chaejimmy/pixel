@@ -119,16 +119,24 @@ fun HostProfileScreen(
                     ) {
                         item {
                             HostKpiChip(
-                                title = "Listings",
-                                value = "${uiState.activeListingsCount}",
-                                icon = PaceDreamIcons.Home
+                                title = "Bookings",
+                                value = "${uiState.totalBookingsCount}",
+                                icon = PaceDreamIcons.CalendarToday
                             )
                         }
                         item {
                             HostKpiChip(
-                                title = "Booked This Month",
-                                value = formatHostCurrency(uiState.monthlyEarnings),
-                                icon = PaceDreamIcons.AttachMoney
+                                title = "Pending",
+                                value = "${uiState.pendingRequestsCount}",
+                                icon = PaceDreamIcons.Schedule,
+                                valueColor = if (uiState.pendingRequestsCount > 0) PaceDreamColors.Warning else null
+                            )
+                        }
+                        item {
+                            HostKpiChip(
+                                title = "Active",
+                                value = "${uiState.activeListingsCount}",
+                                icon = PaceDreamIcons.Home
                             )
                         }
                     }

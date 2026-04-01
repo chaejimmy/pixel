@@ -262,110 +262,106 @@ private fun SummaryCard(
     monthlyEarnings: Double,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    // iOS parity: horizontal scroll row showing ALL KPIs, nothing hidden
+    LazyRow(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), // Flat for glass
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        border = androidx.compose.foundation.BorderStroke(
-            0.5.dp, 
-            PaceDreamColors.Border.copy(alpha = 0.4f)
-        )
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                SummaryMetric(
-                    icon = PaceDreamIcons.Home,
-                    value = "$activeListings",
-                    label = "Active listings",
-                    modifier = Modifier.weight(1f)
-                )
-                // iOS parity: show "Under review" KPI only when count > 0
-                if (underReviewListings > 0) {
-                    SummaryMetric(
-                        icon = PaceDreamIcons.Schedule,
-                        value = "$underReviewListings",
-                        label = "Under review",
-                        valueColor = PaceDreamColors.Warning,
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    SummaryMetric(
-                        icon = PaceDreamIcons.CalendarToday,
-                        value = "$upcomingBookings",
-                        label = "Upcoming",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                // When under-review KPI displaced Upcoming above, show Upcoming here
-                if (underReviewListings > 0) {
-                    SummaryMetric(
-                        icon = PaceDreamIcons.CalendarToday,
-                        value = "$upcomingBookings",
-                        label = "Upcoming",
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    SummaryMetric(
-                        icon = PaceDreamIcons.Schedule,
-                        value = "$pendingRequests",
-                        label = "Pending",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                SummaryMetric(
-                    icon = PaceDreamIcons.AttachMoney,
-                    value = "$${String.format("%.0f", monthlyEarnings)}",
-                    label = "This month",
-                    modifier = Modifier.weight(1f)
+        item {
+            KpiChipCard(
+                icon = PaceDreamIcons.Home,
+                value = "$activeListings",
+                label = "Active listings"
+            )
+        }
+        if (underReviewListings > 0) {
+            item {
+                KpiChipCard(
+                    icon = PaceDreamIcons.Schedule,
+                    value = "$underReviewListings",
+                    label = "Under review",
+                    valueColor = PaceDreamColors.Warning
                 )
             }
         }
+        item {
+            KpiChipCard(
+                icon = PaceDreamIcons.CalendarToday,
+                value = "$upcomingBookings",
+                label = "Upcoming"
+            )
+        }
+        item {
+            KpiChipCard(
+                icon = PaceDreamIcons.Schedule,
+                value = "$pendingRequests",
+                label = "Pending requests",
+                valueColor = if (pendingRequests > 0) PaceDreamColors.Warning else PaceDreamColors.TextPrimary
+            )
+        }
+        item {
+            KpiChipCard(
+                icon = PaceDreamIcons.AttachMoney,
+                value = "$${String.format("%.0f", monthlyEarnings)}",
+                label = "This month"
+            )
+        }
+            }
     }
 }
 
 @Composable
-private fun SummaryMetric(
+private fun KpiChipCard(
     icon: ImageVector,
     value: String,
     label: String,
     modifier: Modifier = Modifier,
     valueColor: Color = PaceDreamColors.TextPrimary
 ) {
-    Row(
+    Card(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        border = androidx.compose.foundation.BorderStroke(
+            0.5.dp,
+            PaceDreamColors.Border.copy(alpha = 0.4f)
+        )
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(PaceDreamColors.HostAccent.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = PaceDreamColors.HostAccent,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(
-                text = value,
-                style = PaceDreamTypography.Title3,
-                color = valueColor,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextSecondary
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.HostAccent.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = PaceDreamColors.HostAccent,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    text = value,
+                    style = PaceDreamTypography.Title3,
+                    color = valueColor,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = label,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
