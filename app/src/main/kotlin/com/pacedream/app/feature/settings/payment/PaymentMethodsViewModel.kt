@@ -60,13 +60,13 @@ class PaymentMethodsViewModel @Inject constructor(
                                     )
                                 }
                             }
-                            is ApiError.AccountRestricted, is ApiError.FraudBlocked -> {
+                            is ApiError.Forbidden -> {
+                                // Backend returned 403 — may be an account restriction or fraud block.
+                                // Surface the server message directly (it carries the reason).
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = result.error.message,
-                                        unauthorized = result.error is ApiError.AccountRestricted &&
-                                            (result.error as ApiError.AccountRestricted).requiresLogout
+                                        errorMessage = result.error.message
                                     )
                                 }
                             }
@@ -74,7 +74,7 @@ class PaymentMethodsViewModel @Inject constructor(
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = (result.error as ApiError.RateLimited).friendlyMessage()
+                                        errorMessage = result.error.message
                                     )
                                 }
                             }
