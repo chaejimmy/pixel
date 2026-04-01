@@ -164,6 +164,11 @@ fun ReportBlockSheet(
                         errorMessage = null
                         scope.launch {
                             try {
+                                if (reportedUserId.isNullOrBlank()) {
+                                    isSubmitting = false
+                                    errorMessage = "Cannot report: missing user information"
+                                    return@launch
+                                }
                                 when (repository.reportContent(
                                     reportedUserId = reportedUserId,
                                     reason = reason.label,

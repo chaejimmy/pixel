@@ -149,7 +149,7 @@ class TripPlannerViewModel @Inject constructor(
     fun loadTrips() { viewModelScope.launch {
         _uiState.update { it.copy(isLoading = true, error = null) }
         when (val result = repository.getTrips()) {
-            is ApiResult.Success -> _uiState.update { it.copy(trips = result.data.resolvedTrips, isLoading = false, isRefreshing = false) }
+            is ApiResult.Success -> _uiState.update { it.copy(trips = result.data?.resolvedTrips ?: emptyList(), isLoading = false, isRefreshing = false) }
             is ApiResult.Failure -> _uiState.update { it.copy(isLoading = false, isRefreshing = false, error = "Failed to load trips") }
         }
     }}
@@ -167,7 +167,7 @@ class TripPlannerViewModel @Inject constructor(
         try {
             _uiState.update { it.copy(isSearchingTours = true) }
             when (val result = repository.getTours(city)) {
-                is ApiResult.Success -> _uiState.update { it.copy(tours = result.data.resolvedTours, isSearchingTours = false) }
+                is ApiResult.Success -> _uiState.update { it.copy(tours = result.data?.resolvedTours ?: emptyList(), isSearchingTours = false) }
                 is ApiResult.Failure -> _uiState.update { it.copy(isSearchingTours = false) }
             }
         } catch (e: Exception) {

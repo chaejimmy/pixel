@@ -61,9 +61,9 @@ class HostDashboardViewModel @Inject constructor(
             }
 
             // iOS parity: derive userName from personal info or overview if available
-            val resolvedUserName = _uiState.value.userName.let { current ->
+            val resolvedUserName = _uiState.value.userName?.let { current ->
                 if (current != "Host") current else "Host"
-            }
+            } ?: "Host"
 
             _uiState.value = _uiState.value.copy(
                 userName = resolvedUserName,

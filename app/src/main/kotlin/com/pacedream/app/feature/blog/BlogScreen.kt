@@ -147,13 +147,14 @@ class BlogViewModel @Inject constructor(
             when (val result = repository.getPosts(page = 1)) {
                 is ApiResult.Success -> {
                     val data = result.data
+                    val posts = data?.resolvedPosts ?: emptyList()
                     _uiState.update {
                         it.copy(
-                            posts = data.resolvedPosts,
-                            categories = data.categories ?: extractCategories(data.resolvedPosts),
+                            posts = posts,
+                            categories = data?.categories ?: extractCategories(posts),
                             isLoading = false,
                             isRefreshing = false,
-                            hasMore = data.resolvedPosts.size >= 20
+                            hasMore = posts.size >= 20
                         )
                     }
                 }
@@ -177,7 +178,7 @@ class BlogViewModel @Inject constructor(
             _uiState.update { it.copy(isLoadingMore = true) }
             when (val result = repository.getPosts(page = nextPage)) {
                 is ApiResult.Success -> {
-                    val newPosts = result.data.resolvedPosts
+                    val newPosts = result.data?.resolvedPosts ?: emptyList()
                     _uiState.update {
                         it.copy(
                             posts = it.posts + newPosts,
@@ -203,7 +204,7 @@ class BlogViewModel @Inject constructor(
     fun loadPostDetail(postId: String) = viewModelScope.launch {
         try {
             when (val result = repository.getPost(postId)) {
-                is ApiResult.Success -> result.data.resolvedPost?.let { p -> _uiState.update { it.copy(selectedPost = p) } }
+                is ApiResult.Success -> result.data?.resolvedPost?.let { p -> _uiState.update { it.copy(selectedPost = p) } }
                 is ApiResult.Failure -> { /* keep existing data */ }
             }
         } catch (e: Exception) {

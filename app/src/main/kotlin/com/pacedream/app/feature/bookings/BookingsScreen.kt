@@ -516,33 +516,37 @@ private fun UnifiedBookingCard(
 // ============================================================================
 @Composable
 private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
-    val (textColor, bgColor, borderColor, icon) = when (role) {
-        BookingRole.GUEST -> arrayOf(
-            Color(0xFF59339A),
-            PaceDreamColors.Purple.copy(alpha = 0.12f),
-            PaceDreamColors.Purple.copy(alpha = 0.3f),
-            PaceDreamIcons.Person
-        )
-        BookingRole.HOST -> arrayOf(
-            Color(0xFF1A6B8C),
-            PaceDreamColors.Teal.copy(alpha = 0.12f),
-            PaceDreamColors.Teal.copy(alpha = 0.3f),
-            PaceDreamIcons.Home
-        )
+    val textColor: Color
+    val bgColor: Color
+    val borderColor: Color
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    when (role) {
+        BookingRole.GUEST -> {
+            textColor = Color(0xFF59339A)
+            bgColor = PaceDreamColors.Purple.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Purple.copy(alpha = 0.3f)
+            icon = PaceDreamIcons.Person
+        }
+        BookingRole.HOST -> {
+            textColor = Color(0xFF1A6B8C)
+            bgColor = PaceDreamColors.Teal.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Teal.copy(alpha = 0.3f)
+            icon = PaceDreamIcons.Home
+        }
     }
 
     Row(
         modifier = modifier
-            .background(bgColor as Color, RoundedCornerShape(PaceDreamRadius.Round))
-            .border(0.5.dp, borderColor as Color, RoundedCornerShape(PaceDreamRadius.Round))
+            .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
+            .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
-            imageVector = icon as androidx.compose.ui.graphics.vector.ImageVector,
+            imageVector = icon,
             contentDescription = null,
-            tint = textColor as Color,
+            tint = textColor,
             modifier = Modifier.size(10.dp)
         )
         Text(

@@ -322,8 +322,9 @@ class WishlistViewModel @Inject constructor(
                         amount?.let { formatPrice(it, unit) }
                     }
                     else -> {
-                        val priceValue = price.jsonPrimitive.doubleOrNull
-                            ?: price.jsonPrimitive.content.toDoubleOrNull()
+                        val prim = price as? kotlinx.serialization.json.JsonPrimitive
+                        val priceValue = prim?.doubleOrNull
+                            ?: prim?.content?.toDoubleOrNull()
                         priceValue?.let { formatPrice(it, "hr") }
                     }
                 }

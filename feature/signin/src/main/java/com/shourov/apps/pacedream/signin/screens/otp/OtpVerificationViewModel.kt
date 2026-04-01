@@ -75,10 +75,10 @@ class OtpVerificationViewModel @Inject constructor(
                                         data.accessToken,
                                         data.refreshToken
                                     )
-                                    tokenStorage.userId = data.user.id
+                                    tokenStorage.userId = data.user?.id
 
                                     // Store user data as JSON
-                                    val userJson = com.google.gson.Gson().toJson(data.user)
+                                    val userJson = data.user?.let { com.google.gson.Gson().toJson(it) }
                                     tokenStorage.cachedUserSummary = userJson
                                 } catch (e: Exception) {
                                     Timber.e(e, "Failed to store auth tokens")

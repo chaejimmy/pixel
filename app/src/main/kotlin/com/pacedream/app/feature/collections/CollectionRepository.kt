@@ -177,7 +177,12 @@ class CollectionRepository @Inject constructor(
             listingId = listingId,
             title = obj.str("title", "name") ?: "Listing",
             imageUrl = obj.str("image", "imageUrl", "cover")
-                ?: obj["images"]?.asArr()?.firstOrNull()?.jsonPrimitive?.content,
+                ?: obj["images"]?.asArr()?.firstOrNull()?.let { el ->
+                    runCatching { el.jsonPrimitive.content }.getOrNull()
+                        ?: (el as? kotlinx.serialization.json.JsonObject)?.let { imgObj ->
+                            imgObj.str("url", "src", "thumbnail")
+                        }
+                },
             location = obj["location"]?.let {
                 when (it) {
                     is JsonObject -> it.str("city")

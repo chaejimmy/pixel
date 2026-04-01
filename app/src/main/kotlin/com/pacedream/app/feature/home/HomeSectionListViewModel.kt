@@ -146,7 +146,7 @@ class HomeSectionListViewModel @Inject constructor(
                                     val state = loc["state"]?.jsonPrimitive?.content
                                     listOfNotNull(city, state).joinToString(", ").ifBlank { null }
                                 }
-                                else -> loc.jsonPrimitive.content
+                                else -> runCatching { loc.jsonPrimitive.content }.getOrNull()
                             }
                         },
                         price = parsePrice(itemObj),
@@ -200,8 +200,9 @@ class HomeSectionListViewModel @Inject constructor(
                         amount?.let { formatPrice(it, unit) }
                     }
                     else -> {
-                        val priceValue = price.jsonPrimitive.doubleOrNull
-                            ?: price.jsonPrimitive.content.toDoubleOrNull()
+                        val prim = price as? kotlinx.serialization.json.JsonPrimitive
+                        val priceValue = prim?.doubleOrNull
+                            ?: prim?.content?.toDoubleOrNull()
                         priceValue?.let { formatPrice(it, "hr") }
                     }
                 }

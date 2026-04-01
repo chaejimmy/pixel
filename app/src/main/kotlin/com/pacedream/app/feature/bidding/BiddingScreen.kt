@@ -162,7 +162,7 @@ class BiddingViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             when (val result = repository.getBids()) {
                 is ApiResult.Success -> _uiState.update {
-                    it.copy(bids = result.data.resolvedBids, isLoading = false, isRefreshing = false)
+                    it.copy(bids = result.data?.resolvedBids ?: emptyList(), isLoading = false, isRefreshing = false)
                 }
                 is ApiResult.Failure -> _uiState.update {
                     it.copy(isLoading = false, isRefreshing = false, error = "Failed to load bids")
