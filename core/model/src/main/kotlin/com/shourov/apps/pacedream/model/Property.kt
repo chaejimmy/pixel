@@ -60,7 +60,7 @@ data class Property(
 
     val isActiveStatus: Boolean get() {
         val s = (status ?: "").trim().lowercase()
-        return s in listOf("published", "active", "true") || (s.isEmpty() && isAvailable)
+        return s in listOf("published", "active", "true")
     }
 
     val isRejected: Boolean get() {
