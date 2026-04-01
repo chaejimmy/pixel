@@ -6,11 +6,13 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
@@ -91,7 +93,9 @@ class InboxViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val (threads, nextCursor) = parseThreadsResponse(result.data)
+                        val (threads, nextCursor) = withContext(Dispatchers.Default) {
+                            parseThreadsResponse(result.data)
+                        }
                         cursor = nextCursor
                         _uiState.update {
                             it.copy(
@@ -127,7 +131,9 @@ class InboxViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val (threads, nextCursor) = parseThreadsResponse(result.data)
+                        val (threads, nextCursor) = withContext(Dispatchers.Default) {
+                            parseThreadsResponse(result.data)
+                        }
                         cursor = nextCursor
                         _uiState.update {
                             it.copy(
@@ -169,7 +175,9 @@ class InboxViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val count = parseUnreadCountResponse(result.data)
+                        val count = withContext(Dispatchers.Default) {
+                            parseUnreadCountResponse(result.data)
+                        }
                         _uiState.update { it.copy(unreadCount = count) }
                     }
                     is ApiResult.Failure -> {

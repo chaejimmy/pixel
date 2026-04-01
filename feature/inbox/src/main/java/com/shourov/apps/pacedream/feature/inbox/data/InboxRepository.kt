@@ -7,6 +7,8 @@ import com.shourov.apps.pacedream.core.network.config.AppConfig
 import com.shourov.apps.pacedream.feature.inbox.model.Message
 import com.shourov.apps.pacedream.feature.inbox.model.Thread
 import com.shourov.apps.pacedream.feature.inbox.model.UnreadCounts
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -66,14 +68,18 @@ class InboxRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val threadsResult = parseThreadsResponse(result.data)
+                    val threadsResult = withContext(Dispatchers.Default) {
+                        parseThreadsResponse(result.data)
+                    }
                     Timber.d("InboxRepository: parsed ${threadsResult.threads.size} threads, hasMore=${threadsResult.hasMore}")
                     ApiResult.Success(threadsResult)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse threads response, trying fallback")
                     // Try fallback parsing
                     try {
-                        val fallbackResult = parseTolerantThreadsResponse(result.data)
+                        val fallbackResult = withContext(Dispatchers.Default) {
+                            parseTolerantThreadsResponse(result.data)
+                        }
                         Timber.d("InboxRepository: fallback parsed ${fallbackResult.threads.size} threads")
                         if (fallbackResult.threads.isEmpty()) {
                             // If fallback also returns empty, it may be a parse failure
@@ -99,7 +105,9 @@ class InboxRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val counts = parseUnreadCounts(result.data)
+                    val counts = withContext(Dispatchers.Default) {
+                        parseUnreadCounts(result.data)
+                    }
                     ApiResult.Success(counts)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse unread counts")
@@ -130,7 +138,9 @@ class InboxRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val messagesResult = parseMessagesResponse(result.data)
+                    val messagesResult = withContext(Dispatchers.Default) {
+                        parseMessagesResponse(result.data)
+                    }
                     Timber.d("InboxRepository: parsed ${messagesResult.messages.size} messages, hasMore=${messagesResult.hasMore}")
                     ApiResult.Success(messagesResult)
                 } catch (e: Exception) {
@@ -169,7 +179,9 @@ class InboxRepository @Inject constructor(
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val message = parseMessageFromResponse(result.data)
+                    val message = withContext(Dispatchers.Default) {
+                        parseMessageFromResponse(result.data)
+                    }
                     ApiResult.Success(message)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse sent message response")
@@ -190,9 +202,11 @@ class InboxRepository @Inject constructor(
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
-                    val jsonElement = json.parseToJsonElement(result.data)
-                    val data = jsonElement.jsonObject["data"]?.jsonObject ?: jsonElement.jsonObject
-                    val thread = parseThread(data)
+                    val thread = withContext(Dispatchers.Default) {
+                        val jsonElement = json.parseToJsonElement(result.data)
+                        val data = jsonElement.jsonObject["data"]?.jsonObject ?: jsonElement.jsonObject
+                        parseThread(data)
+                    }
                     ApiResult.Success(thread)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to parse thread details")
