@@ -129,6 +129,10 @@ class ChatViewModel @Inject constructor(
         val photos = snapshot.pendingPhotos
 
         if (message.isEmpty() && photos.isEmpty()) return
+        // Prevent duplicate sends while a request is in flight
+        if (snapshot.isSending || snapshot.isUploading) return
+        // Prevent rapid duplicate text sends (same content within 2 seconds)
+        if (photos.isEmpty() && message == lastSentText && System.currentTimeMillis() - lastSentTimestamp < DUPLICATE_SEND_GUARD_MS) return
 
         viewModelScope.launch {
             if (photos.isNotEmpty()) {
@@ -138,6 +142,9 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    private var lastSentText: String = ""
+    private var lastSentTimestamp: Long = 0L
 
     private suspend fun sendTextMessage(text: String) {
         _uiState.value = _uiState.value.copy(isSending = true, uploadError = null)
@@ -156,6 +163,10 @@ class ChatViewModel @Inject constructor(
             status = "sending"
         )
 
+        // Track for duplicate guard
+        lastSentText = text
+        lastSentTimestamp = System.currentTimeMillis()
+
         // Optimistic insert
         _uiState.value = _uiState.value.copy(
             messages = _uiState.value.messages + messageModel,
@@ -168,15 +179,33 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSending = false)
             }
             is Result.Error -> {
+                val errorMsg = mapMessageError(result.exception)
                 // Mark message as failed
                 _uiState.value = _uiState.value.copy(
                     isSending = false,
                     messages = _uiState.value.messages.map {
                         if (it.id == messageModel.id) it.copy(status = "failed") else it
                     },
-                    error = result.exception.message
+                    error = errorMsg
                 )
             }
+        }
+    }
+
+    /**
+     * Map message send errors, surfacing rate-limit and spam blocks clearly.
+     */
+    private fun mapMessageError(exception: Throwable): String {
+        val msg = exception.message ?: "Failed to send message"
+        val lower = msg.lowercase()
+        return when {
+            lower.contains("rate") || lower.contains("too many") || lower.contains("429") ->
+                "You're sending messages too quickly. Please wait a moment."
+            lower.contains("spam") || lower.contains("blocked") || lower.contains("fraud") ->
+                "This message was blocked. Please contact support if you believe this is an error."
+            lower.contains("restricted") || lower.contains("suspended") ->
+                "Your account is currently restricted from sending messages."
+            else -> msg
         }
     }
 
@@ -263,6 +292,8 @@ class ChatViewModel @Inject constructor(
 
     companion object {
         const val MAX_PHOTOS_PER_MESSAGE = 10
+        /** Minimum interval in ms before the same text can be sent again. */
+        private const val DUPLICATE_SEND_GUARD_MS = 2000L
     }
 }
 

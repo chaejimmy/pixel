@@ -112,7 +112,21 @@ class MessageRepository @Inject constructor(
                 messageDao.insertMessage(message.asEntity())
                 Result.Success(message)
             } else {
-                Result.Error(Exception("Failed to send message: ${response.message()}"))
+                val errorMsg = when (response.code()) {
+                    429 -> "You're sending messages too quickly. Please wait a moment."
+                    403 -> {
+                        val errorBody = response.errorBody()?.string()
+                        val lower = errorBody?.lowercase() ?: ""
+                        when {
+                            lower.contains("spam") -> "This message was flagged as spam."
+                            lower.contains("restrict") || lower.contains("blocked") ->
+                                "Your account is restricted from sending messages."
+                            else -> "You don't have permission to send messages in this chat."
+                        }
+                    }
+                    else -> "Failed to send message: ${response.message()}"
+                }
+                Result.Error(Exception(errorMsg))
             }
         } catch (e: Exception) {
             timber.log.Timber.e(e, "Failed to send message in chat $chatId")

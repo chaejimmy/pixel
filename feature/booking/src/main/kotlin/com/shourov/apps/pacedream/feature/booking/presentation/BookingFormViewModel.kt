@@ -135,10 +135,10 @@ class BookingFormViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(totalPrice = totalPrice)
     }
 
-    private var isSubmitting = false
-
     fun createBooking(onSuccess: (String) -> Unit) {
-        if (isSubmitting) return
+        // Prevent double-submit — ignore while already submitting
+        if (_uiState.value.isSubmitting) return
+
         viewModelScope.launch {
             val currentState = _uiState.value
 
@@ -162,7 +162,9 @@ class BookingFormViewModel @Inject constructor(
                 return@launch
             }
 
-            isSubmitting = true
+            // Lock submission state
+            _uiState.value = currentState.copy(isSubmitting = true, error = null)
+
             val user = authSession.currentUser.value
             val userId = user?.id.orEmpty()
 
@@ -185,15 +187,37 @@ class BookingFormViewModel @Inject constructor(
 
             when (val result = bookingRepository.createBooking(booking)) {
                 is Result.Success -> {
-                    isSubmitting = false
+                    _uiState.value = _uiState.value.copy(isSubmitting = false)
                     onSuccess(booking.id)
                 }
                 is Result.Error -> {
-                    isSubmitting = false
-                    _uiState.value = currentState.copy(error = result.exception.message)
+                    val errorMsg = mapBookingError(result.exception)
+                    _uiState.value = _uiState.value.copy(
+                        isSubmitting = false,
+                        error = errorMsg
+                    )
                 }
                 is Result.Loading -> { /* No-op */ }
             }
+        }
+    }
+
+    /**
+     * Map booking errors, including security-related responses from the backend.
+     */
+    private fun mapBookingError(exception: Throwable): String {
+        val msg = exception.message ?: "Failed to create booking"
+        val lower = msg.lowercase()
+        return when {
+            lower.contains("fraud") || lower.contains("blocked") ->
+                "This booking has been blocked for security reasons. Please contact support."
+            lower.contains("review") || lower.contains("paused") ->
+                "Your booking is paused for review. We'll notify you once it's approved."
+            lower.contains("restricted") || lower.contains("suspended") ->
+                "Your account is currently restricted. Please contact support."
+            lower.contains("rate") || lower.contains("too many") ->
+                "Too many booking attempts. Please wait a moment and try again."
+            else -> msg
         }
     }
 

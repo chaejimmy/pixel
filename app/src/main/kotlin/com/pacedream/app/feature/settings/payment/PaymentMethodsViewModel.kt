@@ -46,22 +46,43 @@ class PaymentMethodsViewModel @Inject constructor(
                         }
                     }
                     is ApiResult.Failure -> {
-                        if (result.error is ApiError.Unauthorized) {
-                            sessionManager.signOut()
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    paymentMethods = emptyList(),
-                                    errorMessage = "Please log in to continue.",
-                                    unauthorized = true
-                                )
+                        when (result.error) {
+                            is ApiError.Unauthorized -> {
+                                sessionManager.signOut()
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        paymentMethods = emptyList(),
+                                        errorMessage = "Please log in to continue.",
+                                        unauthorized = true
+                                    )
+                                }
                             }
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    errorMessage = result.error.message
-                                )
+                            is ApiError.AccountRestricted, is ApiError.FraudBlocked -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = result.error.message,
+                                        unauthorized = result.error is ApiError.AccountRestricted &&
+                                            (result.error as ApiError.AccountRestricted).requiresLogout
+                                    )
+                                }
+                            }
+                            is ApiError.RateLimited -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = (result.error as ApiError.RateLimited).friendlyMessage()
+                                    )
+                                }
+                            }
+                            else -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        errorMessage = result.error.message
+                                    )
+                                }
                             }
                         }
                     }

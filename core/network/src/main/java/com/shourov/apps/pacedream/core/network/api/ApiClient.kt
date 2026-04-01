@@ -45,14 +45,16 @@ import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 class ApiClient constructor(
     private val appConfig: AppConfig,
     private val json: Json,
-    private val tokenProvider: TokenProvider
+    private val tokenProvider: TokenProvider,
+    private val interceptors: List<okhttp3.Interceptor> = emptyList()
 ) {
-    
+
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(AppConfig.REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(AppConfig.RESOURCE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(AppConfig.RESOURCE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .apply { interceptors.forEach { addInterceptor(it) } }
             .build()
     }
     
@@ -449,8 +451,11 @@ class ApiClient constructor(
             
             401 -> ApiResult.Failure(ApiError.Unauthorized())
             
-            403 -> ApiResult.Failure(ApiError.Forbidden())
-            
+            403 -> {
+                val securityError = SecurityErrorHandler.parseSecurityError(statusCode, bodyString, json)
+                ApiResult.Failure(securityError ?: ApiError.Forbidden())
+            }
+
             404 -> ApiResult.Failure(ApiError.NotFound())
             
             429 -> {
@@ -461,6 +466,11 @@ class ApiClient constructor(
             502, 503, 504 -> ApiResult.Failure(ApiError.ServiceUnavailable())
             
             else -> {
+                // Check for security-related error codes in the response body
+                val securityError = SecurityErrorHandler.parseSecurityError(statusCode, bodyString, json)
+                if (securityError != null) {
+                    return ApiResult.Failure(securityError)
+                }
                 // Try to extract error message from JSON response
                 val errorMessage = extractErrorMessage(bodyString)
                 ApiResult.Failure(

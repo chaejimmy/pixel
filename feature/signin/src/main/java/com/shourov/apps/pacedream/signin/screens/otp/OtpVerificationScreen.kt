@@ -156,7 +156,7 @@ fun OtpVerificationScreen(
                 modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
             )
 
-            // Resend Button
+            // Resend Button — disabled during cooldown and while loading
             PrimaryTextButton(
                 text = if (resendCountdown > 0) {
                     "Resend code in ${resendCountdown}s"
@@ -164,11 +164,11 @@ fun OtpVerificationScreen(
                     "Resend code"
                 },
                 onClick = {
-                    if (resendCountdown == 0) {
+                    if (resendCountdown == 0 && !uiState.isLoading) {
                         viewModel.resendOTP(
                             phoneNumber = phoneNumber,
-                            onSuccess = {
-                                resendCountdown = 60
+                            onSuccess = { cooldownSeconds ->
+                                resendCountdown = cooldownSeconds
                                 scope.launch {
                                     snackbarHostState.showSnackbar("New OTP sent successfully")
                                 }
