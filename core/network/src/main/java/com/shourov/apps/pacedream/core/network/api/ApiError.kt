@@ -10,8 +10,25 @@ sealed class ApiError : Exception() {
     data class Unauthorized(override val message: String = "Unauthorized") : ApiError()
     
     data class Forbidden(override val message: String = "Access forbidden") : ApiError()
-    
+
     data class NotFound(override val message: String = "Resource not found") : ApiError()
+
+    data class AccountRestricted(
+        override val message: String = "Your account has been temporarily restricted.",
+        val reason: String? = null,
+        val requiresLogout: Boolean = false,
+        val requiresVerification: Boolean = false
+    ) : ApiError()
+
+    data class FraudBlocked(
+        override val message: String = "This action has been blocked for security reasons.",
+        val reason: String? = null
+    ) : ApiError()
+
+    data class UnderReview(
+        override val message: String = "This action is paused while under review. Please try again later.",
+        val reason: String? = null
+    ) : ApiError()
     
     data class RateLimited(
         override val message: String = "Too many requests. Please slow down.",

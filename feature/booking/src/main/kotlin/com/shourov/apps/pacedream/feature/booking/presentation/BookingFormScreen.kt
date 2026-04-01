@@ -779,11 +779,12 @@ private fun BookingSummaryBar(
                 }
             }
 
-            // CTA Button — iOS hero action pattern
+            // CTA Button — iOS hero action pattern, locked while submitting
             GradientProcessButton(
-                onClick = onBookNow,
-                isEnabled = isSelectionComplete,
+                onClick = { if (!uiState.isSubmitting) onBookNow() },
+                isEnabled = isSelectionComplete && !uiState.isSubmitting,
                 text = when {
+                    uiState.isSubmitting -> "Reserving..."
                     !isSelectionComplete -> "Select duration, date & time"
                     uiState.totalPrice > 0 -> "Reserve - ${uiState.currency} ${String.format("%.2f", uiState.totalPrice)}"
                     else -> "Reserve"
@@ -905,5 +906,7 @@ data class BookingFormUiState(
     val specialRequests: String = "",
     val guestCount: Int = 1,
     val totalPrice: Double = 0.0,
-    val error: String? = null
+    val error: String? = null,
+    /** True while a booking creation request is in flight — prevents double-submit. */
+    val isSubmitting: Boolean = false
 )

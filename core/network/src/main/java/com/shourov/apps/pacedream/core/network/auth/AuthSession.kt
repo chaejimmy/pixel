@@ -138,12 +138,24 @@ class AuthSession constructor(
                     return
                 }
                 is ApiResult.Failure -> {
-                    when (result.error) {
+                    when (val error = result.error) {
                         is ApiError.Unauthorized -> {
                             // Refresh once, retry once (iOS parity). Avoid infinite loops.
                             if (!retriedAfterRefresh && attemptTokenRefresh()) {
                                 bootstrap(retriedAfterRefresh = true)
                             } else {
+                                signOut()
+                            }
+                            return
+                        }
+                        is ApiError.AccountRestricted -> {
+                            Timber.w("Account restricted: ${error.message}")
+                            _authState.value = AuthState.Restricted(
+                                message = error.message,
+                                requiresLogout = error.requiresLogout,
+                                requiresVerification = error.requiresVerification
+                            )
+                            if (error.requiresLogout) {
                                 signOut()
                             }
                             return
@@ -798,6 +810,16 @@ sealed class AuthState {
     object Unauthenticated : AuthState()
     object Authenticated : AuthState()
     object AuthenticatedWithRefreshNeeded : AuthState()
+
+    /**
+     * Account is restricted by the backend.
+     * The user should be shown a clear message and prevented from repeating actions.
+     */
+    data class Restricted(
+        val message: String = "Your account has been temporarily restricted.",
+        val requiresLogout: Boolean = false,
+        val requiresVerification: Boolean = false
+    ) : AuthState()
 }
 
 /**

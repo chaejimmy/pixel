@@ -189,7 +189,19 @@ class BookingRepository @Inject constructor(
                 booking.asEntity()?.let { bookingDao.insertBooking(it) }
                 Result.Success(booking)
             } else {
-                Result.Error(Exception("Failed to create booking: ${response.message()}"))
+                // Parse error body for security-related responses
+                val errorBody = response.errorBody()?.string()
+                val securityError = if (errorBody != null) {
+                    com.shourov.apps.pacedream.core.network.api.SecurityErrorHandler
+                        .parseSecurityError(response.code(), errorBody, json)
+                } else null
+
+                val errorMsg = if (securityError != null) {
+                    com.shourov.apps.pacedream.core.network.api.SecurityErrorHandler.getUserMessage(securityError)
+                } else {
+                    "Failed to create booking: ${response.message()}"
+                }
+                Result.Error(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.Error(e)

@@ -54,7 +54,8 @@ class PhoneEntryViewModel @Inject constructor(
     }
     
     /**
-     * Send OTP to phone number
+     * Send OTP to phone number.
+     * Prevents rapid repeated taps — ignored while a request is already in flight.
      */
     fun sendOTP(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         val phone = _uiState.value.phoneNumber
@@ -62,9 +63,12 @@ class PhoneEntryViewModel @Inject constructor(
             onError("Invalid phone number format")
             return
         }
-        
+
+        // Prevent rapid repeated taps
+        if (_uiState.value.isLoading) return
+
         _uiState.value = _uiState.value.copy(isLoading = true, phoneError = null)
-        
+
         viewModelScope.launch {
             val result = otpRepository.sendOTP(phone)
             result.fold(
@@ -77,9 +81,17 @@ class PhoneEntryViewModel @Inject constructor(
                         is OtpError -> error.getUserMessage()
                         else -> error.message ?: "Failed to send OTP"
                     }
+                    // For rate-limited errors, extract cooldown for the UI
+                    val cooldownSeconds = (error as? OtpError.RateLimited)?.retryAfterSeconds
+                    // For blocking errors, prevent further action
+                    val isBlocked = error is OtpError.AccountBlocked ||
+                        error is OtpError.UnsupportedCountry ||
+                        error is OtpError.TooManyAttempts
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        phoneError = errorMessage
+                        phoneError = errorMessage,
+                        isBlocked = isBlocked,
+                        cooldownSeconds = cooldownSeconds ?: 0
                     )
                     onError(errorMessage)
                 }
@@ -95,5 +107,9 @@ data class PhoneEntryUiState(
     val phoneNumber: String = "",
     val isValidPhone: Boolean = false,
     val phoneError: String? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    /** True when the account is blocked or the country is unsupported — disables the send button. */
+    val isBlocked: Boolean = false,
+    /** Server-driven cooldown in seconds (from Retry-After). 0 = no cooldown active. */
+    val cooldownSeconds: Int = 0
 )

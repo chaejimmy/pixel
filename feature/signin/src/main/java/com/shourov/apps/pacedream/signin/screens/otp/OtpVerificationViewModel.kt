@@ -43,7 +43,8 @@ class OtpVerificationViewModel @Inject constructor(
     }
     
     /**
-     * Verify OTP and login
+     * Verify OTP and login.
+     * Prevents rapid repeated taps — ignored while a request is already in flight.
      */
     fun verifyAndLogin(
         phoneNumber: String,
@@ -55,7 +56,10 @@ class OtpVerificationViewModel @Inject constructor(
             onError("Please enter a 6-digit code")
             return
         }
-        
+
+        // Prevent rapid repeated taps
+        if (_uiState.value.isLoading) return
+
         _uiState.value = _uiState.value.copy(isLoading = true, otpError = null)
         
         viewModelScope.launch {
@@ -131,32 +135,51 @@ class OtpVerificationViewModel @Inject constructor(
     }
     
     /**
-     * Resend OTP
+     * Resend OTP.
+     * Prevents rapid repeated taps — ignored while loading or during cooldown.
      */
     fun resendOTP(
         phoneNumber: String,
-        onSuccess: () -> Unit,
+        onSuccess: (cooldownSeconds: Int) -> Unit,
         onError: (String) -> Unit
     ) {
+        // Prevent taps while in flight or during active cooldown
+        if (_uiState.value.isLoading || _uiState.value.isResendCooldown) return
+
         _uiState.value = _uiState.value.copy(isLoading = true)
-        
+
         viewModelScope.launch {
             val result = otpRepository.sendOTP(phoneNumber)
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    onSuccess()
+                    onSuccess(DEFAULT_RESEND_COOLDOWN)
                 },
                 onFailure = { error ->
                     val errorMessage = when (error) {
                         is OtpError -> error.getUserMessage()
                         else -> error.message ?: "Failed to resend OTP"
                     }
-                    _uiState.value = _uiState.value.copy(isLoading = false)
-                    onError(errorMessage)
+                    // Use server Retry-After if available, otherwise default cooldown
+                    val cooldown = (error as? OtpError.RateLimited)?.retryAfterSeconds
+                        ?: DEFAULT_RESEND_COOLDOWN
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        otpError = errorMessage
+                    )
+                    // Still apply cooldown even on error to prevent hammering
+                    if (error is OtpError.RateLimited) {
+                        onSuccess(cooldown)
+                    } else {
+                        onError(errorMessage)
+                    }
                 }
             )
         }
+    }
+
+    companion object {
+        const val DEFAULT_RESEND_COOLDOWN = 60
     }
 }
 
@@ -166,5 +189,7 @@ class OtpVerificationViewModel @Inject constructor(
 data class OtpVerificationUiState(
     val otpCode: String = "",
     val otpError: String? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    /** True while the resend cooldown timer is active. */
+    val isResendCooldown: Boolean = false
 )

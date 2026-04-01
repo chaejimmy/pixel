@@ -136,6 +136,12 @@ class OtpRepository @Inject constructor(
             "INVALID_PHONE" -> OtpError.InvalidPhone(error.message)
             "VERIFICATION_FAILED" -> OtpError.VerificationFailed(error.message)
             "60203" -> OtpError.MaxAttemptsReached(error.message)
+            "ACCOUNT_BLOCKED", "ACCOUNT_RESTRICTED", "TEMPORARILY_BLOCKED" ->
+                OtpError.AccountBlocked(error.message)
+            "UNSUPPORTED_COUNTRY", "COUNTRY_NOT_SUPPORTED" ->
+                OtpError.UnsupportedCountry(error.message)
+            "TOO_MANY_ATTEMPTS", "MAX_ATTEMPTS" ->
+                OtpError.TooManyAttempts(error.message)
             else -> OtpError.UnknownError(error?.message ?: "Unknown error")
         }
     }
