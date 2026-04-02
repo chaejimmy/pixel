@@ -51,13 +51,22 @@ data class ListingDetailModel(
     val slotsTotal: Int? = null,
     val slotsFilled: Int? = null,
     val splitStatus: String? = null,
-    val deadlineAt: String? = null
+    val deadlineAt: String? = null,
+    // Host visibility: listing moderation status
+    val listingStatus: String? = null
 ) {
     val hasPropertyDetails: Boolean
         get() = propertyType != null || maxGuests != null || bedrooms != null || beds != null || bathrooms != null
 
     val isSplitListing: Boolean
         get() = shareType?.uppercase() == "SPLIT"
+
+    val isPendingReview: Boolean
+        get() {
+            val s = (listingStatus ?: "").trim().lowercase()
+            return s == "pending_review" || s == "pending" || s == "awaiting_approval" ||
+                s == "under_review" || s == "in_review" || s == "submitted"
+        }
 }
 
 data class ListingLocation(

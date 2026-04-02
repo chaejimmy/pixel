@@ -156,6 +156,48 @@ fun ListingDetailScreen(
                         )
                     }
 
+                    // Under Review banner for pending listings (host self-view)
+                    if (listing?.isPendingReview == true) {
+                        item {
+                            androidx.compose.foundation.layout.Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .background(
+                                        androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.10f),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.25f),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(14.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = com.pacedream.common.icon.PaceDreamIcons.Schedule,
+                                    contentDescription = null,
+                                    tint = androidx.compose.ui.graphics.Color(0xFFFFA500),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                androidx.compose.foundation.layout.Column {
+                                    androidx.compose.material3.Text(
+                                        text = "Under Review",
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    androidx.compose.material3.Text(
+                                        text = "This listing is being reviewed and will be visible to guests once approved.",
+                                        fontSize = 12.sp,
+                                        color = androidx.compose.ui.graphics.Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     if (uiState.inlineErrorMessage != null) {
                         item {
                             InlineErrorBanner(

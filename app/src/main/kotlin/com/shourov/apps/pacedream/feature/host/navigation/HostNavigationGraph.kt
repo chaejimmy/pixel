@@ -255,9 +255,10 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
+                // View Listing → navigate to host-side listing detail (stays in host mode)
                 navController.popBackStack()
                 if (listingId.isNotBlank() && listingId != "created") {
-                    onNavigateToProperty(listingId)
+                    onHostListingClick(listingId)
                 }
             },
             onGoToMyListings = {
