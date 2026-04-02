@@ -73,7 +73,10 @@ class HostDashboardViewModel @Inject constructor(
                 computeDashboardData(
                     data = _uiState.value.copy(
                         userName = resolvedUserName,
-                        activeListings = result.overview?.activeListings ?: result.listings.count { it.isActiveStatus },
+                        // iOS parity: always compute active count from parsed listings, not
+                        // from the backend overview. The overview count does not account for
+                        // admin-approval overrides applied during listing parsing.
+                        activeListings = result.listings.count { it.isActiveStatus },
                         totalBookings = result.overview?.totalBookings ?: result.bookings.size,
                         totalRevenue = result.overview?.totalRevenue ?: 0.0,
                         averageRating = result.overview?.averageRating ?: 0.0,

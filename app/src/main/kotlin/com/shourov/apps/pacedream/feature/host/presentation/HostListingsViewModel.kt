@@ -26,14 +26,23 @@ class HostListingsViewModel @Inject constructor(
     private fun loadHostListings() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            val filter = uiState.value.selectedFilter.lowercase().takeIf { it != "all" }
+
+            val selectedFilter = uiState.value.selectedFilter
             val sort = uiState.value.selectedSort.lowercase()
-            
-            hostRepository.getHostListings(filter, sort)
-                .onSuccess { listings ->
+
+            // iOS parity: always fetch all listings, then filter client-side.
+            // The backend may not support filter params or may not account for
+            // admin-approval overrides that happen during client-side parsing.
+            hostRepository.getHostListings(null, sort)
+                .onSuccess { allListings ->
+                    val filtered = when (selectedFilter.lowercase()) {
+                        "active" -> allListings.filter { it.isActiveStatus }
+                        "pending" -> allListings.filter { it.isPendingReview }
+                        "unavailable" -> allListings.filter { !it.isActiveStatus && !it.isPendingReview && !it.isRejected }
+                        else -> allListings // "all"
+                    }
                     _uiState.value = _uiState.value.copy(
-                        listings = listings,
+                        listings = filtered,
                         isLoading = false,
                         error = null
                     )
