@@ -213,19 +213,22 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // View Listing → navigate directly to host listing detail
-                if (listingId.isNotBlank() && listingId != "created") {
-                    navController.navigate("host_listing_detail/$listingId") {
-                        popUpTo(HostScreen.Dashboard.route) { saveState = false }
-                        launchSingleTop = true
+                // View Listing → navigate to host listing detail
+                timber.log.Timber.d("View Listing tapped: listingId='%s'", listingId)
+                try {
+                    if (listingId.isNotBlank() && listingId != "created") {
+                        navController.navigate("host_listing_detail/$listingId") {
+                            launchSingleTop = true
+                        }
+                    } else {
+                        // Fallback: no valid ID, go to listings
+                        navController.navigate(HostScreen.Listings.route) {
+                            popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                            launchSingleTop = true
+                        }
                     }
-                } else {
-                    // No valid listing ID — go to My Listings instead
-                    navController.navigate(HostScreen.Listings.route) {
-                        popUpTo(HostScreen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "View Listing navigation failed for id='%s'", listingId)
                 }
             },
             onGoToMyListings = {
@@ -264,19 +267,22 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // View Listing → navigate directly to host listing detail
-                if (listingId.isNotBlank() && listingId != "created") {
-                    navController.navigate("host_listing_detail/$listingId") {
-                        popUpTo(HostScreen.Dashboard.route) { saveState = false }
-                        launchSingleTop = true
+                // View Listing → navigate to host listing detail
+                timber.log.Timber.d("View Listing tapped: listingId='%s'", listingId)
+                try {
+                    if (listingId.isNotBlank() && listingId != "created") {
+                        navController.navigate("host_listing_detail/$listingId") {
+                            launchSingleTop = true
+                        }
+                    } else {
+                        // Fallback: no valid ID, go to listings
+                        navController.navigate(HostScreen.Listings.route) {
+                            popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                            launchSingleTop = true
+                        }
                     }
-                } else {
-                    // No valid listing ID — go to My Listings instead
-                    navController.navigate(HostScreen.Listings.route) {
-                        popUpTo(HostScreen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "View Listing navigation failed for id='%s'", listingId)
                 }
             },
             onGoToMyListings = {
