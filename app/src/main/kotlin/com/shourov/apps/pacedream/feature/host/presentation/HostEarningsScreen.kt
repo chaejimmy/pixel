@@ -294,88 +294,130 @@ private fun SessionExpiredContent(onSignInClick: () -> Unit) {
 
 @Composable
 private fun StripeNotConnectedContent(isBusy: Boolean, onConnectClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(PaceDreamColors.HostAccent.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.CreditCard,
-                contentDescription = null,
-                tint = PaceDreamColors.HostAccent,
-                modifier = Modifier.size(32.dp)
-            )
+        item {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
         }
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+        // Hero section
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(PaceDreamIcons.CreditCard, null, tint = PaceDreamColors.HostAccent, modifier = Modifier.size(36.dp))
+                }
 
-        Text(
-            text = "Set up payouts",
-            style = PaceDreamTypography.Title3,
-            color = PaceDreamColors.TextPrimary,
-            fontWeight = FontWeight.Bold
-        )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-        Text(
-            text = "Link your bank account via Stripe to receive earnings from bookings.",
-            style = PaceDreamTypography.Subheadline,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-        )
-
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-
-        Button(
-            onClick = onConnectClick,
-            enabled = !isBusy,
-            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
-            shape = RoundedCornerShape(PaceDreamRadius.SM),
-            modifier = Modifier.fillMaxWidth(0.7f),
-            contentPadding = PaddingValues(vertical = 14.dp)
-        ) {
-            if (isBusy) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp
+                Text(
+                    "Start getting paid",
+                    style = PaceDreamTypography.Title2,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-            }
-            Text(
-                text = "Set up payouts",
-                style = PaceDreamTypography.Subheadline,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (!isBusy) {
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                Icon(
-                    imageVector = PaceDreamIcons.ArrowForward,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(PaceDreamIconSize.SM)
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                Text(
+                    "Connect your bank account to receive earnings from bookings automatically.",
+                    style = PaceDreamTypography.Subheadline,
+                    color = PaceDreamColors.TextSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
                 )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+                Button(
+                    onClick = onConnectClick,
+                    enabled = !isBusy,
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    if (isBusy) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    }
+                    Text("Set up payouts", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    if (!isBusy) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(PaceDreamIcons.Lock, null, tint = PaceDreamColors.TextTertiary, modifier = Modifier.size(12.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Secured by Stripe", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextTertiary, fontWeight = FontWeight.Medium)
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        // "How you get paid" section
+        item {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            HowYouGetPaidCard()
+        }
+    }
+}
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(PaceDreamIcons.Lock, null, tint = PaceDreamColors.TextTertiary, modifier = Modifier.size(12.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Secured by Stripe", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextTertiary, fontWeight = FontWeight.Medium)
+@Composable
+private fun HowYouGetPaidCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text("How you get paid", style = PaceDreamTypography.Headline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            val steps = listOf(
+                Triple(PaceDreamIcons.CreditCard, "Connect your bank", "Link a bank account through Stripe."),
+                Triple(PaceDreamIcons.CheckCircle, "Verify your identity", "Stripe verifies your details for secure payouts."),
+                Triple(PaceDreamIcons.Schedule, "Receive bookings", "Earn money when guests book your listings."),
+                Triple(PaceDreamIcons.AttachMoney, "Get paid", "Earnings are deposited to your bank automatically.")
+            )
+
+            steps.forEachIndexed { index, (icon, title, subtitle) ->
+                Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(PaceDreamColors.HostAccent.copy(alpha = 0.10f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icon, null, tint = PaceDreamColors.HostAccent, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(title, style = PaceDreamTypography.Subheadline, color = PaceDreamColors.TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text(subtitle, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                    }
+                }
+                if (index < steps.lastIndex) {
+                    Box(modifier = Modifier.padding(start = 17.dp).width(2.dp).height(8.dp).background(PaceDreamColors.HostAccent.copy(alpha = 0.15f)))
+                }
+            }
         }
     }
 }
@@ -389,107 +431,224 @@ private fun StripePendingContent(
     isBusy: Boolean,
     onCompleteSetupClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Compact status card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.SM),
-            shape = RoundedCornerShape(PaceDreamRadius.LG)
-        ) {
-            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(PaceDreamColors.Warning.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(PaceDreamIcons.CreditCard, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(22.dp))
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Payout setup in progress",
-                            style = PaceDreamTypography.Subheadline,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "Complete your Stripe setup to start receiving earnings.",
-                            style = PaceDreamTypography.Footnote,
-                            color = PaceDreamColors.TextSecondary
-                        )
-                    }
-                }
+    val checklistItems = remember(requirements) { StripeRequirementMapper.mapRequirements(requirements) }
+    val friendlyReason = remember(disabledReason) { StripeRequirementMapper.mapDisabledReason(disabledReason) }
 
-                // Requirements (if any)
-                if (requirements.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                            .background(PaceDreamColors.Warning.copy(alpha = 0.06f))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text("Remaining steps", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary, fontWeight = FontWeight.SemiBold)
-                        requirements.forEach { req ->
-                            Text("• ${req.replace("_", " ")}", style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // ── Status header card ──
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+                shape = RoundedCornerShape(PaceDreamRadius.LG)
+            ) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                    // Status badge + title
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(PaceDreamColors.Warning.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(PaceDreamIcons.CreditCard, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Finish setup to get paid",
+                                style = PaceDreamTypography.Headline,
+                                color = PaceDreamColors.TextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "Setup required",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Warning,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .background(PaceDreamColors.Warning.copy(alpha = 0.14f), RoundedCornerShape(PaceDreamRadius.Round))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
                         }
                     }
-                }
 
-                // Disabled reason
-                disabledReason?.let { reason ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                            .background(PaceDreamColors.Error.copy(alpha = 0.06f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Complete your payout setup so we can send your earnings to your bank account. Payouts will begin automatically once verified.",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary,
+                        lineHeight = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Primary CTA
+                    Button(
+                        onClick = onCompleteSetupClick,
+                        enabled = !isBusy,
+                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(vertical = 14.dp)
                     ) {
-                        Icon(PaceDreamIcons.Info, null, tint = PaceDreamColors.Error, modifier = Modifier.size(PaceDreamIconSize.SM))
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Text(reason.replace("_", " "), style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = onCompleteSetupClick,
-                    enabled = !isBusy,
-                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
-                    shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 12.dp)
-                ) {
-                    if (isBusy) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    }
-                    Text("Continue Stripe setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
-                    if (!isBusy) {
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                        if (isBusy) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        }
+                        Text("Continue setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                        if (!isBusy) {
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                            Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                        }
                     }
                 }
             }
         }
+
+        // ── Warning banner (disabled reason) ──
+        if (friendlyReason != null) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                        .background(PaceDreamColors.Error.copy(alpha = 0.08f))
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(PaceDreamIcons.Warning, null, tint = PaceDreamColors.Error, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Payouts paused", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.Error, fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(friendlyReason, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary, lineHeight = 18.sp)
+                    }
+                }
+            }
+        }
+
+        // ── Remaining steps checklist ──
+        if (checklistItems.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                    elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
+                ) {
+                    Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "What's needed",
+                                style = PaceDreamTypography.Headline,
+                                color = PaceDreamColors.TextPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                "${checklistItems.size} ${if (checklistItems.size == 1) "item" else "items"}",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.TextTertiary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        checklistItems.forEachIndexed { index, item ->
+                            RequirementChecklistRow(item)
+                            if (index < checklistItems.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = 44.dp),
+                                    thickness = 0.5.dp,
+                                    color = PaceDreamColors.Border.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Action required info banner ──
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Icon(PaceDreamIcons.Info, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("Action required", style = PaceDreamTypography.Subheadline, color = PaceDreamColors.Warning, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Stripe needs a few more details before they can send payouts to your bank account. Tap \"Continue setup\" above to complete the process.",
+                        style = PaceDreamTypography.Footnote,
+                        color = PaceDreamColors.TextSecondary,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+        }
+
+        // Bottom spacing
+        item { Spacer(modifier = Modifier.height(PaceDreamSpacing.LG)) }
+    }
+}
+
+@Composable
+private fun RequirementChecklistRow(item: StripeRequirementMapper.ChecklistItem) {
+    val icon = when (item.iconType) {
+        StripeRequirementMapper.IconType.BANK -> PaceDreamIcons.CreditCard
+        StripeRequirementMapper.IconType.IDENTITY -> PaceDreamIcons.Person
+        StripeRequirementMapper.IconType.ADDRESS -> PaceDreamIcons.LocationOn
+        StripeRequirementMapper.IconType.PHONE -> PaceDreamIcons.Phone
+        StripeRequirementMapper.IconType.LEGAL -> PaceDreamIcons.Description
+        StripeRequirementMapper.IconType.DEFAULT -> PaceDreamIcons.CheckCircle
+    }
+    val iconColor = when (item.iconType) {
+        StripeRequirementMapper.IconType.BANK -> PaceDreamColors.HostAccent
+        StripeRequirementMapper.IconType.LEGAL -> PaceDreamColors.Info
+        else -> PaceDreamColors.Warning
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(iconColor.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, tint = iconColor, modifier = Modifier.size(16.dp))
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            item.label,
+            style = PaceDreamTypography.Subheadline,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(PaceDreamIcons.ArrowForward, null, tint = PaceDreamColors.TextTertiary, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -873,7 +1032,7 @@ private fun TransactionRow(transaction: DashboardTransaction) {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                StatusBadge(status = transaction.payoutStatus ?: transaction.status ?: "")
+                StatusBadge(status = transaction.payoutStatus ?: transaction.status ?: "", isTransaction = true)
             }
         }
     }
@@ -959,21 +1118,26 @@ private fun PayoutRow(payout: DashboardPayout) {
 // ── Status Badge ──────────────────────────────────────────────
 
 @Composable
-private fun StatusBadge(status: String) {
+private fun StatusBadge(status: String, isTransaction: Boolean = false) {
     val badgeColor = when (status.lowercase()) {
         "succeeded", "paid", "transferred", "paid_out" -> PaceDreamColors.Success
         "pending", "processing", "pending_settlement", "in_transit" -> PaceDreamColors.Warning
-        "held", "ready_for_transfer" -> PaceDreamColors.HostAccent
+        "held", "ready_for_transfer" -> PaceDreamColors.Info
         "failed", "canceled", "blocked", "clawed_back" -> PaceDreamColors.Error
         else -> PaceDreamColors.TextSecondary
     }
+    val label = if (isTransaction) {
+        StripeRequirementMapper.mapTransactionStatus(status)
+    } else {
+        StripeRequirementMapper.mapPayoutStatus(status)
+    }
     Text(
-        text = status.replace("_", " ").replaceFirstChar { it.uppercase() },
+        text = label,
         style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Bold),
         color = badgeColor,
         modifier = Modifier
             .background(badgeColor.copy(alpha = 0.14f), RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     )
 }
 
