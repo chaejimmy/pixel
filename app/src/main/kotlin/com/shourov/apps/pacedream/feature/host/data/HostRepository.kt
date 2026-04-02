@@ -378,19 +378,13 @@ class HostRepository @Inject constructor(
                     val property = withContext(Dispatchers.Default) {
                         parseCreateListingResponse(json, request)
                     }
-                    Timber.d("createListing success: id=%s", property.id)
-                    // Cache the created listing as pending_review so the
-                    // dashboard can merge it in when the backend GET
-                    // /host/listings hasn't been updated yet.
-                    val cached = property.copy(
-                        status = property.status ?: "pending_review",
-                        title = property.title.ifEmpty { request.title },
-                        images = request.images ?: emptyList()
-                    )
-                    // Add to cache list (supports multiple created listings)
-                    recentlyCreatedListings.removeAll { it.id == cached.id }
-                    recentlyCreatedListings.add(cached)
-                    Timber.d("Cached recently created listing: id=%s status=%s (total cached: %d)", cached.id, cached.status, recentlyCreatedListings.size)
+                    Timber.d("createListing success: id=%s images=%d", property.id, property.images.size)
+                    // Cache for dashboard/My Listings merge. The property already has
+                    // images and status from parseCreateListingResponse.
+                    recentlyCreatedListings.removeAll { it.id.isNotEmpty() && it.id == property.id }
+                    recentlyCreatedListings.add(property)
+                    Timber.d("Cached recently created listing: id=%s status=%s images=%d (total cached: %d)",
+                        property.id, property.status, property.images.size, recentlyCreatedListings.size)
                     Result.success(property)
                 } else {
                     val fallback = Property(id = "", title = request.title, status = "pending_review", images = request.images ?: emptyList())
@@ -434,7 +428,7 @@ class HostRepository @Inject constructor(
     private fun parseCreateListingResponse(json: JsonElement, request: CreateListingRequest): Property {
         if (!json.isJsonObject) {
             Timber.w("createListing response is not a JSON object, returning fallback")
-            return Property(id = "", title = request.title)
+            return Property(id = "", title = request.title, images = request.images ?: emptyList())
         }
 
         val root = json.asJsonObject
@@ -443,8 +437,76 @@ class HostRepository @Inject constructor(
         val listingId = extractIdFromPaths(root)
         val title = extractTitleFromPaths(root) ?: request.title
 
-        Timber.d("createListing parsed: id=$listingId, title=$title")
-        return Property(id = listingId, title = title)
+        // Extract images from the response. The backend returns:
+        // - images: [...] (top-level, from gallery.images or uploadedImages)
+        // - gallery: { thumbnail, images: [...] }
+        // - data.images, data.gallery.images
+        val images = extractImagesFromResponse(root)
+            .ifEmpty { request.images ?: emptyList() }
+
+        Timber.d("createListing parsed: id=$listingId, title=$title, images=%d", images.size)
+        return Property(
+            id = listingId,
+            title = title,
+            images = images,
+            status = "pending_review"
+        )
+    }
+
+    /** Extract image URLs from the create listing response (multiple paths). */
+    private fun extractImagesFromResponse(root: JsonObject): List<String> {
+        val result = mutableListOf<String>()
+
+        // Check top-level and data-wrapped paths
+        for (obj in listOfNotNull(root, root.getAsJsonObject("data"))) {
+            // Direct images array
+            obj.get("images")?.let { el ->
+                if (el.isJsonArray) {
+                    el.asJsonArray.forEach { item ->
+                        if (item.isJsonPrimitive && item.asJsonPrimitive.isString) {
+                            val url = item.asString
+                            if (url.isNotBlank() && url.startsWith("http") && url !in result) {
+                                result.add(url)
+                            }
+                        }
+                    }
+                }
+            }
+            if (result.isNotEmpty()) return result
+
+            // Gallery
+            obj.getAsJsonObject("gallery")?.let { gallery ->
+                gallery.getStringOrNull("thumbnail")?.let { url ->
+                    if (url.isNotBlank() && url.startsWith("http")) result.add(url)
+                }
+                gallery.get("images")?.let { el ->
+                    if (el.isJsonArray) {
+                        el.asJsonArray.forEach { item ->
+                            if (item.isJsonPrimitive && item.asJsonPrimitive.isString) {
+                                val url = item.asString
+                                if (url.isNotBlank() && url.startsWith("http") && url !in result) {
+                                    result.add(url)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (result.isNotEmpty()) return result
+
+            // Single cover field
+            obj.getStringOrNull("cover")?.let { url ->
+                if (url.isNotBlank() && url.startsWith("http")) result.add(url)
+            }
+            if (result.isNotEmpty()) return result
+
+            // Inside listing sub-object
+            obj.getAsJsonObject("listing")?.let { listing ->
+                val inner = extractImagesFromResponse(listing)
+                if (inner.isNotEmpty()) return inner
+            }
+        }
+        return result
     }
 
     /**

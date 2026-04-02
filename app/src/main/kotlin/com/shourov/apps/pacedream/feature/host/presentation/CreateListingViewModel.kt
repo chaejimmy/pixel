@@ -47,12 +47,13 @@ class CreateListingViewModel @Inject constructor(
                 )
                 val result = hostRepository.createListing(request)
                 result.onSuccess { property ->
-                    Timber.d("Listing created successfully: id=%s title=%s", property.id, property.title)
+                    Timber.d("Listing created successfully: id=%s title=%s images=%d", property.id, property.title, property.images.size)
                     _effects.send(
                         Effect.PublishSuccess(
                             listingId = property.id.ifEmpty { "created" },
                             title = property.title.ifEmpty { request.title },
-                            coverUrl = request.images?.firstOrNull(),
+                            coverUrl = property.images.firstOrNull()
+                                ?: request.images?.firstOrNull(),
                         )
                     )
                 }
