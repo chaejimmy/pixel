@@ -31,12 +31,12 @@ class HostRepository @Inject constructor(
     private val appConfig: com.shourov.apps.pacedream.core.network.config.AppConfig
 ) {
 
-    // ── Recently created listing cache ──
-    // The backend GET /host/listings may not immediately return a newly created
-    // listing (race condition or Host document not yet updated). Cache the most
-    // recent creation so the dashboard can merge it in.
+    // ── Recently created listings cache ──
+    // The backend GET /host/listings may not immediately return newly created
+    // listings (race condition or Host document not yet updated). Cache them
+    // so the dashboard and My Listings can merge them in.
     @Volatile
-    private var recentlyCreatedListing: Property? = null
+    private var recentlyCreatedListings: MutableList<Property> = mutableListOf()
 
     // ── Dashboard: concurrent load (iOS: HostDataStore.refresh + HostDashboardViewModel.load) ──
 
@@ -229,25 +229,10 @@ class HostRepository @Inject constructor(
         val payoutState = payoutDeferred.await()
         val payoutEligibility = eligibilityDeferred.await()
 
-        // Merge recently created listing if not yet returned by the backend.
+        // Merge recently created listings if not yet returned by the backend.
         // The backend GET /host/listings may lag behind creation because
         // listing_controller.js doesn't always push to Host.listings.rentableItems.
-        val cached = recentlyCreatedListing
-        if (cached != null && cached.id.isNotEmpty()) {
-            val alreadyPresent = listings.any { it.id == cached.id }
-            if (!alreadyPresent) {
-                Timber.d("Merging recently created listing %s into dashboard (not in API response)", cached.id)
-                listings = listings + cached
-            } else {
-                // Backend now returns it — clear the cache
-                recentlyCreatedListing = null
-            }
-        } else if (cached != null && cached.id.isEmpty() && listings.isEmpty()) {
-            // Listing was created but ID wasn't returned. Still show it as pending
-            // so the host doesn't see an empty dashboard right after creating.
-            Timber.d("Merging recently created listing (no ID) into dashboard as pending placeholder")
-            listings = listings + cached
-        }
+        listings = mergeRecentlyCreatedListings(listings)
 
         // iOS parity: 401/403/404 on host-only endpoints for users without a host profile
         // is NOT a failure. Treat as empty data with no error message — matches iOS behavior
@@ -328,24 +313,44 @@ class HostRepository @Inject constructor(
 
     suspend fun getHostListings(filter: String? = null, sort: String? = null): Result<List<Property>> = withContext(Dispatchers.IO) {
         try {
-            // iOS parity: try frontend proxy first, then backend
+            // iOS parity: try frontend proxy first, then backend, then by-owner fallback
             val proxyListings = fetchHostListingsViaProxy()
             if (proxyListings != null && proxyListings.isNotEmpty()) {
-                return@withContext Result.success(proxyListings)
+                return@withContext Result.success(mergeRecentlyCreatedListings(proxyListings))
             }
 
+            var listings = emptyList<Property>()
             val response = hostApiService.getHostListings(filter, sort)
             if (response.isSuccessful) {
                 val json = response.body()
-                val listings = if (json != null) {
-                    withContext(Dispatchers.Default) {
+                if (json != null) {
+                    listings = withContext(Dispatchers.Default) {
                         parseHostListings(json)
                     }
-                } else emptyList()
-                Result.success(listings)
-            } else {
-                Result.failure(Exception("Failed to fetch listings: ${response.code()}"))
+                }
             }
+
+            // By-owner fallback: same strategy as loadDashboard
+            if (listings.isEmpty()) {
+                try {
+                    val fallbackResponse = hostApiService.getHostListingsByOwner()
+                    if (fallbackResponse.isSuccessful) {
+                        val fallbackJson = fallbackResponse.body()
+                        if (fallbackJson != null) {
+                            val fallbackListings = withContext(Dispatchers.Default) {
+                                parseHostListings(fallbackJson)
+                            }
+                            if (fallbackListings.isNotEmpty()) {
+                                listings = fallbackListings
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.d(e, "By-owner fallback in getHostListings (non-fatal)")
+                }
+            }
+
+            Result.success(mergeRecentlyCreatedListings(listings))
         } catch (e: Exception) {
             Timber.e(e, "Host listings fetch failed")
             Result.failure(e)
@@ -382,12 +387,14 @@ class HostRepository @Inject constructor(
                         title = property.title.ifEmpty { request.title },
                         images = request.images ?: emptyList()
                     )
-                    recentlyCreatedListing = cached
-                    Timber.d("Cached recently created listing: id=%s status=%s", cached.id, cached.status)
+                    // Add to cache list (supports multiple created listings)
+                    recentlyCreatedListings.removeAll { it.id == cached.id }
+                    recentlyCreatedListings.add(cached)
+                    Timber.d("Cached recently created listing: id=%s status=%s (total cached: %d)", cached.id, cached.status, recentlyCreatedListings.size)
                     Result.success(property)
                 } else {
                     val fallback = Property(id = "", title = request.title, status = "pending_review", images = request.images ?: emptyList())
-                    recentlyCreatedListing = fallback
+                    recentlyCreatedListings.add(fallback)
                     Result.success(fallback)
                 }
             } else {
@@ -643,6 +650,28 @@ class HostRepository @Inject constructor(
             Timber.w(e, "Payout methods fetch failed, returning empty list")
             Result.success(emptyList())
         }
+    }
+
+    // ── Merge recently created listings cache ──
+
+    private fun mergeRecentlyCreatedListings(apiListings: List<Property>): List<Property> {
+        if (recentlyCreatedListings.isEmpty()) return apiListings
+        val apiIds = apiListings.map { it.id }.toSet()
+        val toMerge = recentlyCreatedListings.filter { cached ->
+            if (cached.id.isNotEmpty() && cached.id in apiIds) {
+                // Backend now returns this listing — remove from cache
+                false
+            } else if (cached.id.isNotEmpty()) {
+                true // Not yet in API response
+            } else {
+                apiListings.isEmpty() // Only merge no-ID placeholders if API returned nothing
+            }
+        }
+        // Clean up cache: remove items that the API now returns
+        recentlyCreatedListings.removeAll { it.id.isNotEmpty() && it.id in apiIds }
+        if (toMerge.isEmpty()) return apiListings
+        Timber.d("Merging %d cached listings into %d API listings", toMerge.size, apiListings.size)
+        return apiListings + toMerge
     }
 
     // ── Frontend proxy for host listings (iOS parity: FrontendProxyClient) ──
