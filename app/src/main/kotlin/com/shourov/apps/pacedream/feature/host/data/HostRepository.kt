@@ -628,11 +628,43 @@ class HostRepository @Inject constructor(
 
             // Step 2: check approved/isApproved boolean — override active-like status
             // to "pending_review" when admin has not approved the listing yet.
+            // The iOS web proxy performs this override server-side; Android must do it client-side
+            // because it calls the backend API directly.
             if (obj != null && resolved.isActiveStatus) {
+                // 2a: explicit boolean approval fields
                 val approvedField = obj.get("approved") ?: obj.get("isApproved")
                     ?: obj.get("is_approved") ?: obj.get("adminApproved")
+                    ?: obj.get("admin_approved")
                 if (approvedField != null && approvedField.isJsonPrimitive &&
                     approvedField.asJsonPrimitive.isBoolean && !approvedField.asBoolean) {
+                    return@mapIndexed resolved.copy(status = "pending_review")
+                }
+
+                // 2b: string-based approval/moderation status fields
+                val moderationStatus = obj.getStringOrNull("moderationStatus")
+                    ?: obj.getStringOrNull("moderation_status")
+                    ?: obj.getStringOrNull("adminStatus")
+                    ?: obj.getStringOrNull("admin_status")
+                    ?: obj.getStringOrNull("reviewStatus")
+                    ?: obj.getStringOrNull("review_status")
+                    ?: obj.getStringOrNull("approvalStatus")
+                    ?: obj.getStringOrNull("approval_status")
+                if (moderationStatus != null) {
+                    val ms = moderationStatus.trim().lowercase()
+                    if (ms.contains("pending") || ms.contains("review") ||
+                        ms.contains("awaiting") || ms == "submitted") {
+                        return@mapIndexed resolved.copy(status = "pending_review")
+                    }
+                }
+
+                // 2c: verified field — if listing has an explicit verified=false, treat as pending
+                val verifiedField = obj.get("verified") ?: obj.get("isVerified")
+                    ?: obj.get("is_verified")
+                if (verifiedField != null && verifiedField.isJsonPrimitive &&
+                    verifiedField.asJsonPrimitive.isBoolean && !verifiedField.asBoolean) {
+                    // Only override if there's also an indication this is moderation-related
+                    // (e.g. the listing was just created). Check createdAt vs updatedAt proximity
+                    // or just override — the backend sets verified=false for new listings.
                     return@mapIndexed resolved.copy(status = "pending_review")
                 }
             }

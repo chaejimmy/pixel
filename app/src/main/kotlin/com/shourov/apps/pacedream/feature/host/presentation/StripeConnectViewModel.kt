@@ -3,13 +3,16 @@ package com.shourov.apps.pacedream.feature.host.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.host.data.ConnectAccount
+import com.shourov.apps.pacedream.feature.host.data.ConnectAccountStatus
 import com.shourov.apps.pacedream.feature.host.data.ConnectBalance
 import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class StripeConnectUiState(
@@ -33,59 +36,65 @@ class StripeConnectViewModel @Inject constructor(
         loadConnectAccountStatus()
     }
 
+    /**
+     * iOS parity: resolve connect state from /host/payouts/status (PayoutsService.fetchPayoutStatus).
+     * The legacy /host/stripe/connect/status endpoint is not available on the backend.
+     */
     private fun loadConnectAccountStatus() {
         viewModelScope.launch {
-            stripeConnectRepository.getConnectAccountStatus()
-                .onSuccess { account ->
-                    _uiState.value = _uiState.value.copy(connectAccount = account)
+            stripeConnectRepository.getPayoutStatus()
+                .onSuccess { status ->
+                    val rawStatus = (status.status.ifBlank { status.payoutStatus ?: "" }).trim().lowercase()
+                    val resolvedStatus = when {
+                        (rawStatus == "active" || rawStatus.contains("connect")) && status.resolvedPayoutsEnabled ->
+                            ConnectAccountStatus.ENABLED
+                        rawStatus.contains("pending") || rawStatus.contains("action") ||
+                            (status.resolvedDetailsSubmitted && !status.resolvedPayoutsEnabled) ->
+                            ConnectAccountStatus.PENDING
+                        status.resolvedChargesEnabled || status.resolvedDetailsSubmitted ->
+                            ConnectAccountStatus.PENDING
+                        else -> ConnectAccountStatus.NOT_CREATED
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        connectAccount = ConnectAccount(
+                            status = resolvedStatus,
+                            chargesEnabled = status.resolvedChargesEnabled,
+                            payoutsEnabled = status.resolvedPayoutsEnabled,
+                            detailsSubmitted = status.resolvedDetailsSubmitted
+                        )
+                    )
                 }
-                .onFailure {
-                    // Account might not exist yet
+                .onFailure { e ->
+                    Timber.d("Payout status unavailable, treating as not connected: ${e.message}")
                     _uiState.value = _uiState.value.copy(connectAccount = null)
                 }
-
-            // Balance is now loaded via the earnings dashboard endpoint
-            // (HostEarningsViewModel handles this)
         }
     }
 
-    fun createConnectAccount() {
+    /**
+     * iOS parity: for all non-connected states (NOT_CREATED, PENDING, UNDER_REVIEW),
+     * call createOnboardingLink() directly. The backend creates the Stripe Connect
+     * account as part of the onboarding link flow — no separate create step needed.
+     * This matches iOS StripeConnectOnboardingView.startOnboarding().
+     */
+    fun startOnboarding(openUrl: (String) -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-
-            val email = authSession.currentUser.value?.email ?: run {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Please add an email to your profile first"
-                )
-                return@launch
-            }
-            stripeConnectRepository.createConnectAccount(email)
-                .onSuccess { account ->
-                    _uiState.value = _uiState.value.copy(
-                        connectAccount = account,
-                        isLoading = false
-                    )
+            stripeConnectRepository.createOnboardingLink()
+                .onSuccess { link ->
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    val url = link.resolvedUrl
+                    if (url != null) {
+                        openUrl(url)
+                        // iOS parity: refresh status after returning from Stripe (2-second delay)
+                        delay(2000)
+                        loadConnectAccountStatus()
+                    }
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message ?: "Failed to create account"
-                    )
-                }
-        }
-    }
-
-    fun startOnboarding(openUrl: (String) -> Unit) {
-        viewModelScope.launch {
-            stripeConnectRepository.createOnboardingLink()
-                .onSuccess { link ->
-                    val url = link.resolvedUrl
-                    if (url != null) openUrl(url)
-                }
-                .onFailure { exception ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = exception.message ?: "Failed to create onboarding link"
+                        errorMessage = exception.message ?: "Couldn't start Stripe setup. Please try again."
                     )
                 }
         }
@@ -93,14 +102,17 @@ class StripeConnectViewModel @Inject constructor(
 
     fun openDashboard(openUrl: (String) -> Unit) {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
             stripeConnectRepository.createLoginLink()
                 .onSuccess { link ->
+                    _uiState.value = _uiState.value.copy(isLoading = false)
                     val url = link.resolvedUrl
                     if (url != null) openUrl(url)
                 }
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
-                        errorMessage = exception.message ?: "Failed to open dashboard"
+                        isLoading = false,
+                        errorMessage = exception.message ?: "Couldn't open Stripe dashboard. Please try again."
                     )
                 }
         }

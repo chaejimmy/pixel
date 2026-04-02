@@ -62,15 +62,15 @@ class HostProfileViewModel @Inject constructor(
                 data = HostDashboardData(
                     bookings = result.bookings,
                     listings = result.listings,
-                    activeListings = result.overview?.activeListings ?: 0
+                    activeListings = result.listings.count { it.isActiveStatus }
                 ),
                 bookings = result.bookings,
                 listings = result.listings
             )
             _uiState.update {
                 it.copy(
-                    activeListingsCount = result.overview?.activeListings
-                        ?: result.listings.count { p -> p.isActiveStatus },
+                    // iOS parity: always compute from parsed listings, not backend overview
+                    activeListingsCount = result.listings.count { p -> p.isActiveStatus },
                     totalBookingsCount = result.bookings.size,
                     pendingRequestsCount = computed.pendingRequestsCount,
                     underReviewListingsCount = computed.underReviewListingsCount,

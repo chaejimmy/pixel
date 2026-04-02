@@ -114,9 +114,19 @@ fun StripeConnectOnboardingScreen(
                 val account = uiState.connectAccount
 
                 if (account == null || account.status == ConnectAccountStatus.NOT_CREATED) {
-                    // Create Account Button
+                    // iOS parity: call createOnboardingLink() directly for not-connected state.
+                    // The backend creates the Stripe Connect account as part of the onboarding flow.
                     Button(
-                        onClick = { viewModel.createConnectAccount() },
+                        onClick = {
+                            viewModel.startOnboarding { url ->
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    viewModel.clearError()
+                                }
+                            }
+                        },
                         enabled = !uiState.isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -140,7 +150,7 @@ fun StripeConnectOnboardingScreen(
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         }
                         Text(
-                            text = "Create Stripe Connect Account",
+                            text = "Set Up Stripe Connect",
                             style = PaceDreamTypography.Button,
                             color = Color.White
                         )
@@ -158,18 +168,28 @@ fun StripeConnectOnboardingScreen(
                                 }
                             }
                         },
+                        enabled = !uiState.isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Accent),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
                     ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.ArrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        } else {
+                            Icon(
+                                imageVector = PaceDreamIcons.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        }
                         Text(
                             text = "Complete Onboarding",
                             style = PaceDreamTypography.Button,
