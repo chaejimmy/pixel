@@ -25,7 +25,9 @@ import javax.inject.Singleton
  */
 @Singleton
 class HostRepository @Inject constructor(
-    private val hostApiService: HostApiService
+    private val hostApiService: HostApiService,
+    private val okHttpClient: okhttp3.OkHttpClient,
+    private val appConfig: com.shourov.apps.pacedream.core.network.config.AppConfig
 ) {
 
     // ── Dashboard: concurrent load (iOS: HostDataStore.refresh + HostDashboardViewModel.load) ──
@@ -80,7 +82,21 @@ class HostRepository @Inject constructor(
 
         val listingsDeferred = async {
             try {
-                Timber.d("Fetching host listings from /host/listings")
+                // iOS parity: try frontend proxy first (/api/proxy/host/listings),
+                // fall back to direct backend (/host/listings).
+                // The web proxy returns pending/under-review listings that the
+                // direct backend endpoint may not include.
+                val proxyListings = try {
+                    withContext(Dispatchers.IO) { fetchHostListingsViaProxy() }
+                } catch (e: Exception) {
+                    Timber.d(e, "Frontend proxy exception, falling back to backend")
+                    null
+                }
+                if (proxyListings != null && proxyListings.isNotEmpty()) {
+                    Timber.d("Using %d listings from frontend proxy", proxyListings.size)
+                    proxyListings
+                } else {
+                Timber.d("Fetching host listings from /host/listings (backend)")
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
                     val json = response.body()
@@ -109,6 +125,7 @@ class HostRepository @Inject constructor(
                     }
                     emptyList()
                 }
+                } // end else (backend fallback)
             } catch (e: Exception) {
                 Timber.e(e, "Host listings fetch exception")
                 hadFailure = true
@@ -245,6 +262,12 @@ class HostRepository @Inject constructor(
 
     suspend fun getHostListings(filter: String? = null, sort: String? = null): Result<List<Property>> = withContext(Dispatchers.IO) {
         try {
+            // iOS parity: try frontend proxy first, then backend
+            val proxyListings = fetchHostListingsViaProxy()
+            if (proxyListings != null && proxyListings.isNotEmpty()) {
+                return@withContext Result.success(proxyListings)
+            }
+
             val response = hostApiService.getHostListings(filter, sort)
             if (response.isSuccessful) {
                 val json = response.body()
@@ -541,6 +564,52 @@ class HostRepository @Inject constructor(
         } catch (e: Exception) {
             Timber.w(e, "Payout methods fetch failed, returning empty list")
             Result.success(emptyList())
+        }
+    }
+
+    // ── Frontend proxy for host listings (iOS parity: FrontendProxyClient) ──
+
+    /**
+     * iOS parity: fetch host listings from the frontend web proxy first.
+     * iOS calls GET /api/proxy/host/listings via FrontendProxyClient,
+     * falling back to the direct backend /host/listings endpoint.
+     * The web proxy returns listings that the direct backend may not (e.g. pending review).
+     *
+     * The injected OkHttpClient already has the auth token interceptor, so
+     * Authorization: Bearer <token> is added automatically.
+     */
+    private fun fetchHostListingsViaProxy(): List<Property>? {
+        return try {
+            val url = appConfig.buildFrontendUrl("api", "proxy", "host", "listings")
+            Timber.d("Trying frontend proxy for host listings: $url")
+
+            val request = okhttp3.Request.Builder()
+                .url(url)
+                .get()
+                .addHeader("Accept", "application/json")
+                .build()
+
+            val response = okHttpClient.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string()
+                if (!body.isNullOrBlank()) {
+                    Timber.d("Frontend proxy returned %d bytes for host listings", body.length)
+                    val json = com.google.gson.JsonParser.parseString(body)
+                    val listings = parseHostListings(json)
+                    if (listings.isNotEmpty()) {
+                        Timber.d("Frontend proxy: parsed %d listings", listings.size)
+                        return listings
+                    } else {
+                        Timber.d("Frontend proxy returned data but parsed 0 listings")
+                    }
+                }
+            } else {
+                Timber.d("Frontend proxy failed [${response.code}], falling back to backend")
+            }
+            null
+        } catch (e: Exception) {
+            Timber.d(e, "Frontend proxy unavailable, falling back to backend: ${e.message}")
+            null
         }
     }
 
