@@ -1,7 +1,8 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
-import android.content.Intent
 import android.net.Uri
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,10 +27,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.*
 import com.shourov.apps.pacedream.feature.host.data.*
 import com.shourov.apps.pacedream.feature.host.presentation.components.*
+import timber.log.Timber
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Currency
@@ -39,13 +44,64 @@ import java.util.Locale
 @Composable
 fun HostEarningsScreen(
     viewModel: HostEarningsViewModel = hiltViewModel(),
-    onSignInClick: () -> Unit = {},
-    onConnectStripeClick: () -> Unit = {},
-    onCompleteSetupClick: () -> Unit = {}
+    onSignInClick: () -> Unit = {}
 ) {
     val uiState by viewModel.earningsUiState.collectAsStateWithLifecycle()
     val screenState = uiState.screenState
     val isReady = screenState is EarningsScreenState.Ready
+    val presentingUrl by viewModel.presentingUrl.collectAsStateWithLifecycle()
+    val isBusy by viewModel.isBusy.collectAsStateWithLifecycle()
+    val inlineError by viewModel.inlineError.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Track whether we launched Custom Tabs so we know to refresh on resume
+    var didLaunchStripe by remember { mutableStateOf(false) }
+
+    // iOS parity: open Stripe URL in Chrome Custom Tabs (in-app browser)
+    LaunchedEffect(presentingUrl) {
+        val url = presentingUrl ?: return@LaunchedEffect
+        try {
+            val customTabsIntent = CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .setUrlBarHidingEnabled(true)
+                .setDefaultColorSchemeParams(
+                    CustomTabColorSchemeParams.Builder()
+                        .setToolbarColor(0xFF5527D7.toInt())
+                        .setNavigationBarColor(0xFF5527D7.toInt())
+                        .build()
+                )
+                .build()
+            customTabsIntent.launchUrl(context, Uri.parse(url))
+            didLaunchStripe = true
+            Timber.d("[Earnings] Launched Stripe onboarding in Custom Tab: $url")
+        } catch (e: Exception) {
+            Timber.e(e, "[Earnings] Failed to launch Custom Tab, trying fallback")
+            try {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                didLaunchStripe = true
+            } catch (e2: Exception) {
+                Timber.e(e2, "[Earnings] Failed to open Stripe URL in any browser")
+            }
+        }
+        // Clear URL immediately so it won't re-launch on recomposition.
+        // Data refresh happens in LifecycleResumeEffect when user returns.
+        viewModel.clearPresentingUrl()
+    }
+
+    // iOS parity: auto-refresh data when returning from Stripe Custom Tab
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && didLaunchStripe) {
+                didLaunchStripe = false
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -105,13 +161,17 @@ fun HostEarningsScreen(
                     SessionExpiredContent(onSignInClick = onSignInClick)
 
                 is EarningsScreenState.StripeNotConnected ->
-                    StripeNotConnectedContent(onConnectClick = onConnectStripeClick)
+                    StripeNotConnectedContent(
+                        isBusy = isBusy,
+                        onConnectClick = { viewModel.openOnboarding() }
+                    )
 
                 is EarningsScreenState.StripePending ->
                     StripePendingContent(
                         requirements = screenState.requirements,
                         disabledReason = screenState.disabledReason,
-                        onCompleteSetupClick = onCompleteSetupClick
+                        isBusy = isBusy,
+                        onCompleteSetupClick = { viewModel.openOnboarding() }
                     )
 
                 is EarningsScreenState.Ready ->
@@ -136,6 +196,20 @@ fun HostEarningsScreen(
                 error = uiState.payoutError,
                 onDismiss = { viewModel.hidePayoutSheet() },
                 onPayoutRequested = { amount -> viewModel.requestPayout(amount) }
+            )
+        }
+
+        // Inline error from Stripe link creation
+        inlineError?.let { error ->
+            AlertDialog(
+                onDismissRequest = { viewModel.clearInlineError() },
+                title = { Text("Error") },
+                text = { Text(error) },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearInlineError() }) {
+                        Text("OK")
+                    }
+                }
             )
         }
     }
@@ -219,7 +293,7 @@ private fun SessionExpiredContent(onSignInClick: () -> Unit) {
 // ── State 3: Stripe Not Connected ─────────────────────────────
 
 @Composable
-private fun StripeNotConnectedContent(onConnectClick: () -> Unit) {
+private fun StripeNotConnectedContent(isBusy: Boolean, onConnectClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -265,24 +339,35 @@ private fun StripeNotConnectedContent(onConnectClick: () -> Unit) {
 
         Button(
             onClick = onConnectClick,
+            enabled = !isBusy,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
             shape = RoundedCornerShape(PaceDreamRadius.SM),
             modifier = Modifier.fillMaxWidth(0.7f),
             contentPadding = PaddingValues(vertical = 14.dp)
         ) {
+            if (isBusy) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            }
             Text(
-                text = "Connect Stripe",
+                text = "Set up payouts",
                 style = PaceDreamTypography.Subheadline,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-            Icon(
-                imageVector = PaceDreamIcons.ArrowForward,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(PaceDreamIconSize.SM)
-            )
+            if (!isBusy) {
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                Icon(
+                    imageVector = PaceDreamIcons.ArrowForward,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(PaceDreamIconSize.SM)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -301,6 +386,7 @@ private fun StripeNotConnectedContent(onConnectClick: () -> Unit) {
 private fun StripePendingContent(
     requirements: List<String>,
     disabledReason: String?,
+    isBusy: Boolean,
     onCompleteSetupClick: () -> Unit
 ) {
     Column(
@@ -382,14 +468,25 @@ private fun StripePendingContent(
 
                 Button(
                     onClick = onCompleteSetupClick,
+                    enabled = !isBusy,
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Text("Complete Setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                    Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                    if (isBusy) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    }
+                    Text("Continue Stripe setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    if (!isBusy) {
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                    }
                 }
             }
         }

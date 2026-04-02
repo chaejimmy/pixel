@@ -42,6 +42,16 @@ class HostEarningsViewModel @Inject constructor(
     private val _earningsUiState = MutableStateFlow(HostEarningsUiState())
     val earningsUiState: StateFlow<HostEarningsUiState> = _earningsUiState.asStateFlow()
 
+    /** URL to present in Custom Tabs (iOS parity: presentingURL). */
+    private val _presentingUrl = MutableStateFlow<String?>(null)
+    val presentingUrl: StateFlow<String?> = _presentingUrl.asStateFlow()
+
+    private val _isBusy = MutableStateFlow(false)
+    val isBusy: StateFlow<Boolean> = _isBusy.asStateFlow()
+
+    private val _inlineError = MutableStateFlow<String?>(null)
+    val inlineError: StateFlow<String?> = _inlineError.asStateFlow()
+
     init {
         // Observe auth state reactively so we load data once auth is confirmed,
         // rather than racing against auth initialization on startup.
@@ -214,6 +224,69 @@ class HostEarningsViewModel @Inject constructor(
 
     fun clearPayoutError() {
         _earningsUiState.value = _earningsUiState.value.copy(payoutError = null)
+    }
+
+    // ── iOS parity: open Stripe onboarding / dashboard in-app ──
+
+    /**
+     * iOS parity: HostEarningsViewModel.openOnboarding().
+     * Fetches an onboarding link and exposes the URL for the UI to open in Custom Tabs.
+     */
+    fun openOnboarding() {
+        if (_isBusy.value) return
+        viewModelScope.launch {
+            _isBusy.value = true
+            _inlineError.value = null
+            stripeConnectRepository.createOnboardingLink()
+                .onSuccess { link ->
+                    val url = link.resolvedUrl
+                    if (url != null) {
+                        _presentingUrl.value = url
+                    } else {
+                        _inlineError.value = "Couldn't start Stripe setup. Please try again."
+                    }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "[Earnings] Failed to create onboarding link")
+                    _inlineError.value = e.message ?: "Couldn't start Stripe setup. Please try again."
+                }
+            _isBusy.value = false
+        }
+    }
+
+    /**
+     * iOS parity: HostEarningsViewModel.openDashboard().
+     * Fetches a login link for the Stripe Express dashboard.
+     */
+    fun openDashboard() {
+        if (_isBusy.value) return
+        viewModelScope.launch {
+            _isBusy.value = true
+            _inlineError.value = null
+            stripeConnectRepository.createLoginLink()
+                .onSuccess { link ->
+                    val url = link.resolvedUrl
+                    if (url != null) {
+                        _presentingUrl.value = url
+                    } else {
+                        _inlineError.value = "Couldn't open Stripe dashboard. Please try again."
+                    }
+                }
+                .onFailure { e ->
+                    Timber.e(e, "[Earnings] Failed to create login link")
+                    _inlineError.value = e.message ?: "Couldn't open Stripe dashboard. Please try again."
+                }
+            _isBusy.value = false
+        }
+    }
+
+    /** Clear the URL after launching Custom Tabs (prevents re-launch on recomposition). */
+    fun clearPresentingUrl() {
+        _presentingUrl.value = null
+    }
+
+    fun clearInlineError() {
+        _inlineError.value = null
     }
 
     // Legacy methods for backward compatibility
