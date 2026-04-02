@@ -254,7 +254,7 @@ private fun MessagesList(
         modifier = modifier,
         state = listState,
         contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM)
+        verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM, Alignment.Bottom)
     ) {
         items(messages, key = { it.id ?: it.hashCode().toString() }) { message ->
             MessageBubble(
