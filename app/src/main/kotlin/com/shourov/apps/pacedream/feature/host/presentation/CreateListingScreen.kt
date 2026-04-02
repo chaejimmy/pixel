@@ -364,9 +364,13 @@ fun CreateListingScreen(
             listingId = publishedListingId,
             title = publishedTitle,
             coverUrl = publishedCoverUrl,
-            onViewListing = onPublishSuccess,
+            onViewListing = { phase = "preview" },
             onGoToMyListings = onGoToMyListings,
             onBackToHome = onBackToHome,
+        )
+        "preview" -> HostListingPreviewScreen(
+            listingId = publishedListingId,
+            onBackClick = { phase = "success" }
         )
     }
 }
