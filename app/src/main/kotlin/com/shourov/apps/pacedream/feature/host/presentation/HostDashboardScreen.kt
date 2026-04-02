@@ -145,11 +145,12 @@ fun HostDashboardScreen(
             }
 
             // Determine if the host is brand new (nothing to show).
-            // Use listings.isEmpty() (not topActiveListings) to catch listings in any state.
+            // A host with any listing (including pending/under-review) is NOT new.
             val isNewHost = uiState.hasLoaded &&
                 uiState.topUpcomingBookings.isEmpty() &&
                 uiState.listings.isEmpty() &&
                 uiState.topActiveListings.isEmpty() &&
+                uiState.pendingListings.isEmpty() &&
                 uiState.recentEvents.isEmpty()
 
             if (isNewHost && uiState.error == null) {
