@@ -51,6 +51,19 @@ fun HostDashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutConfirm by remember { mutableStateOf(false) }
 
+    // iOS parity: refresh dashboard data when the screen becomes visible again
+    // (e.g. returning from listing creation). iOS uses .onAppear { if needsRefresh ... }
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME && uiState.hasLoaded) {
+                viewModel.refreshData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     if (showLogoutConfirm) {
         HostSignOutDialog(
             onConfirm = {

@@ -57,7 +57,9 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
             },
             onNavigateToProperty = { propertyId ->
-                try { appState.navController.navigate("listing_details/$propertyId") }
+                // Switch to guest mode to show listing detail (host mode has no detail screen)
+                appState.hostModeManager.setHostMode(false)
+                try { appState.navController.navigate(com.pacedream.app.ui.navigation.NavRoutes.listingDetail(propertyId)) }
                 catch (e: Exception) { timber.log.Timber.e(e, "Navigate to property failed: $propertyId") }
             },
             onNavigateToBooking = { bookingId ->

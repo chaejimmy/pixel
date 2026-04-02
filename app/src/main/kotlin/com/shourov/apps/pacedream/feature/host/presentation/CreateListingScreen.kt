@@ -47,6 +47,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -363,9 +364,6 @@ fun CreateListingScreen(
             listingId = publishedListingId,
             title = publishedTitle,
             coverUrl = publishedCoverUrl,
-            onViewListing = {
-                onPublishSuccess(publishedListingId)
-            },
             onGoToMyListings = onGoToMyListings,
             onBackToHome = onBackToHome,
         )
@@ -2353,15 +2351,20 @@ private fun ReviewPublishStep(
 // iOS parity: shows green checkmark, "Submitted!", Under Review banner,
 // cover image preview, and 3 CTAs: View Listing, Go to My Listings, Back to Home.
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PublishSuccessScreen(
     listingId: String,
     title: String,
     coverUrl: String? = null,
-    onViewListing: () -> Unit,
     onGoToMyListings: () -> Unit,
     onBackToHome: () -> Unit,
 ) {
+    // iOS parity: "View Listing" opens a bottom sheet showing the listing preview
+    // instead of navigating to the detail screen (pending listings may not be
+    // available via public detail endpoints).
+    var showListingPreview by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -2481,9 +2484,9 @@ private fun PublishSuccessScreen(
                 .padding(bottom = PaceDreamSpacing.XL),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
-            // Primary: View Listing
+            // Primary: View Listing (opens inline sheet — iOS parity)
             Button(
-                onClick = onViewListing,
+                onClick = { showListingPreview = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(PaceDreamButtonHeight.MD),
@@ -2547,6 +2550,124 @@ private fun PublishSuccessScreen(
                     color = PaceDreamColors.TextSecondary,
                 )
             }
+        }
+    }
+
+    // iOS parity: listing preview shown as bottom sheet (iOS uses .sheet(isPresented:))
+    if (showListingPreview) {
+        ModalBottomSheet(
+            onDismissRequest = { showListingPreview = false },
+            containerColor = PaceDreamColors.Background,
+        ) {
+            PendingListingPreviewSheet(
+                title = title,
+                coverUrl = coverUrl,
+                listingId = listingId,
+                onDismiss = { showListingPreview = false },
+            )
+        }
+    }
+}
+
+/** Inline preview for a pending listing — shows what the host submitted. */
+@Composable
+private fun PendingListingPreviewSheet(
+    title: String,
+    coverUrl: String?,
+    listingId: String,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG)
+            .padding(bottom = PaceDreamSpacing.XL),
+    ) {
+        // Cover image
+        if (coverUrl != null && coverUrl.startsWith("http")) {
+            AsyncImage(
+                model = coverUrl,
+                contentDescription = "Listing cover",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG)),
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+        }
+
+        Text(
+            text = title,
+            style = PaceDreamTypography.Title2,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        // Status badge
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(PaceDreamRadius.Round))
+                    .background(PaceDreamColors.Warning)
+                    .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
+            ) {
+                Text(
+                    "Under Review",
+                    style = PaceDreamTypography.Caption2,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        // Info
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                .background(Color(0xFFFFA500).copy(alpha = 0.08f))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                PaceDreamIcons.Info,
+                contentDescription = null,
+                tint = Color(0xFFFFA500),
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                "This listing is under review and will be visible to guests once approved.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        if (listingId.isNotBlank()) {
+            Text(
+                "Listing ID: $listingId",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+        Button(
+            onClick = onDismiss,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+        ) {
+            Text("Done", style = PaceDreamTypography.Button)
         }
     }
 }
