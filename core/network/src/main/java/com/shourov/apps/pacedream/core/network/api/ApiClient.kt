@@ -168,7 +168,7 @@ class ApiClient constructor(
                     .addFormDataPart(
                         fieldName,
                         "upload.$ext",
-                        okhttp3.RequestBody.create(okhttp3.MediaType.parse(mimeType), bytes)
+                        okhttp3.RequestBody.create(mimeType.toMediaType(), bytes)
                     )
                     .build()
             } else {
