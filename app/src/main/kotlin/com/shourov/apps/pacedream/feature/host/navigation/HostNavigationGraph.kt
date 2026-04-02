@@ -44,10 +44,17 @@ fun NavGraphBuilder.HostNavigationGraph(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToWithdraw: () -> Unit = {}
 ) {
+    // Host-side listing click: navigate within host nav graph to avoid switching to guest mode
+    val onHostListingClick: (String) -> Unit = { listingId ->
+        if (listingId.isNotBlank()) {
+            navController.navigate("host_listing_detail/$listingId")
+        }
+    }
+
     composable(HostScreen.Dashboard.route) {
         HostDashboardScreenWithViewModel(
             onAddListingClick = onNavigateToAddListing,
-            onListingClick = onNavigateToProperty,
+            onListingClick = onHostListingClick,
             onBookingClick = onNavigateToBooking,
             onEarningsClick = onNavigateToWithdraw,
             onAnalyticsClick = onNavigateToAnalytics,
@@ -60,7 +67,7 @@ fun NavGraphBuilder.HostNavigationGraph(
 
     composable(HostScreen.Listings.route) {
         HostListingsScreen(
-            onListingClick = onNavigateToProperty,
+            onListingClick = onHostListingClick,
             onAddListingClick = onNavigateToAddListing,
             onEditListingClick = onNavigateToEditListing
         )
@@ -123,6 +130,23 @@ fun NavGraphBuilder.HostNavigationGraph(
         ThreadScreen(
             threadId = threadId,
             onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    // Host-side listing detail — allows hosts to view their own pending listings
+    // without switching to guest mode (which hides pending listings).
+    composable(
+        route = "host_listing_detail/{listingId}",
+        arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
+        com.pacedream.app.feature.listingdetail.ListingDetailRoute(
+            listingId = listingId,
+            onBackClick = { navController.popBackStack() },
+            onLoginRequired = {},
+            onNavigateToInbox = {},
+            onNavigateToThread = {},
+            onNavigateToCheckout = {}
         )
     }
 
@@ -189,10 +213,10 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // View Listing → navigate to listing detail
+                // View Listing → navigate to host-side listing detail (stays in host mode)
                 navController.popBackStack()
                 if (listingId.isNotBlank() && listingId != "created") {
-                    onNavigateToProperty(listingId)
+                    onHostListingClick(listingId)
                 }
             },
             onGoToMyListings = {
