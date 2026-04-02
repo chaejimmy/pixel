@@ -39,6 +39,7 @@ data class HostDashboardData(
     val pendingRequestsCount: Int = 0,
     val upcomingBookingsCount: Int = 0,
     val topUpcomingBookings: List<HostBookingDTO> = emptyList(),
+    val pendingListings: List<Property> = emptyList(),
     val topActiveListings: List<Property> = emptyList(),
     val recentEvents: List<DashboardEvent> = emptyList()
 ) {
@@ -85,6 +86,8 @@ fun computeDashboardData(
 
     val underReviewListings = listings.filter { it.isPendingReview }
     val activeListings = listings.filter { it.isActiveStatus }
+    // Pending listings for the dedicated dashboard preview section
+    val pendingListings = underReviewListings.take(5)
     // iOS parity: show under-review first, then active, then any other listings.
     // Include ALL listings so the dashboard doesn't show "Welcome to hosting" when
     // the host has listings in any state (draft, unrecognized status, etc.).
@@ -132,6 +135,7 @@ fun computeDashboardData(
         pendingRequestsCount = pendingRequestsCount,
         upcomingBookingsCount = upcomingBookingsCount,
         topUpcomingBookings = topUpcomingBookings,
+        pendingListings = pendingListings,
         topActiveListings = topActiveListings,
         recentEvents = recentEvents
     )

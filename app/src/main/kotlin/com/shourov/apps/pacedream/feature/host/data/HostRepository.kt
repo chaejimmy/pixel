@@ -639,6 +639,13 @@ class HostRepository @Inject constructor(
             if (unwrapped != null && unwrapped.isJsonArray) {
                 return parsePropertyArray(unwrapped.asJsonArray)
             }
+            // Backend helper.sendSuccess wraps as { data: { rooms: [...], ... } }.
+            // When `data` is an object (not array), recurse into it to find
+            // category-keyed or flat-array listings inside.
+            if (unwrapped != null && unwrapped.isJsonObject) {
+                val inner = parseHostListings(unwrapped)
+                if (inner.isNotEmpty()) return inner
+            }
 
             // "listings" key
             val listings = obj.get("listings")

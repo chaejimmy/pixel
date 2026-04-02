@@ -161,6 +161,16 @@ fun HostDashboardScreen(
                     )
                 }
             } else {
+                // ── Pending Listings (under review) ──
+                if (uiState.pendingListings.isNotEmpty()) {
+                    item {
+                        PendingListingsSection(
+                            listings = uiState.pendingListings,
+                            onListingClick = onListingClick
+                        )
+                    }
+                }
+
                 // ── Upcoming Bookings ──
                 item {
                     UpcomingBookingsSection(
@@ -692,6 +702,100 @@ private fun BookingRowCard(
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold
             )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pending Listings (Under Review) — shown when host has listings awaiting admin approval
+// ═══════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun PendingListingsSection(
+    listings: List<Property>,
+    onListingClick: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .padding(top = PaceDreamSpacing.LG)
+    ) {
+        HostSectionHeader(title = "Pending approval")
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+
+        listings.forEach { listing ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = PaceDreamSpacing.SM),
+                onClick = { onListingClick(listing.id) },
+                colors = CardDefaults.cardColors(
+                    containerColor = PaceDreamColors.Warning.copy(alpha = 0.06f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                border = androidx.compose.foundation.BorderStroke(
+                    0.5.dp,
+                    PaceDreamColors.Warning.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (listing.images.firstOrNull()?.isNotBlank() == true) {
+                            coil.compose.AsyncImage(
+                                model = listing.images.first(),
+                                contentDescription = listing.title,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(PaceDreamColors.Warning.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Schedule,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.Warning,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = listing.title.ifBlank { "Untitled listing" },
+                            style = PaceDreamTypography.Subheadline,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Awaiting admin review",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.Warning
+                        )
+                    }
+
+                    ListingStatusBadge(status = "Under Review")
+                }
+            }
         }
     }
 }
