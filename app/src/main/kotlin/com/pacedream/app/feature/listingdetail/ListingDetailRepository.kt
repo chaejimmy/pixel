@@ -196,8 +196,9 @@ class ListingDetailRepository @Inject constructor(
             val safetyFeatures = parseStringList(listing, "safetyFeatures", "safety_features", "safety")
 
             // Status - also check if status field equals "published" or "active" (website parity)
+            val listingStatus = listing.string("status", "listingStatus", "moderation_status", "moderationStatus")
             val available = listing.boolean("available", "is_available", "isAvailable")
-                ?: listing.string("status")?.let { it == "published" || it == "active" }
+                ?: listingStatus?.let { it == "published" || it == "active" }
             val instantBook = listing.boolean("instantBook", "instant_book", "instantBooking")
 
             // Split listing fields (website parity)
@@ -249,7 +250,8 @@ class ListingDetailRepository @Inject constructor(
                 slotsTotal = slotsTotal,
                 slotsFilled = slotsFilled,
                 splitStatus = splitStatus,
-                deadlineAt = deadlineAt
+                deadlineAt = deadlineAt,
+                listingStatus = listingStatus
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse listing detail")
