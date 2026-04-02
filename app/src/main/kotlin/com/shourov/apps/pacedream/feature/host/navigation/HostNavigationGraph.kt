@@ -196,13 +196,19 @@ fun NavGraphBuilder.HostNavigationGraph(
                 }
             },
             onGoToMyListings = {
-                // Go to My Listings → navigate to host listings tab
-                navController.popBackStack()
-                navController.navigate(HostScreen.Listings.route) { launchSingleTop = true }
+                // Atomic: navigate to listings while clearing the create-listing screen
+                navController.navigate(HostScreen.Listings.route) {
+                    popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             },
             onBackToHome = {
-                // Back to Home → pop all the way to dashboard
-                navController.popBackStack(HostScreen.Dashboard.route, inclusive = false)
+                // Atomic: navigate to dashboard clearing everything on top
+                navController.navigate(HostScreen.Dashboard.route) {
+                    popUpTo(HostScreen.Dashboard.route) { inclusive = true }
+                    launchSingleTop = true
+                }
             },
         )
     }
@@ -231,11 +237,17 @@ fun NavGraphBuilder.HostNavigationGraph(
                 }
             },
             onGoToMyListings = {
-                navController.popBackStack()
-                navController.navigate(HostScreen.Listings.route) { launchSingleTop = true }
+                navController.navigate(HostScreen.Listings.route) {
+                    popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
             },
             onBackToHome = {
-                navController.popBackStack(HostScreen.Dashboard.route, inclusive = false)
+                navController.navigate(HostScreen.Dashboard.route) {
+                    popUpTo(HostScreen.Dashboard.route) { inclusive = true }
+                    launchSingleTop = true
+                }
             },
         )
     }
