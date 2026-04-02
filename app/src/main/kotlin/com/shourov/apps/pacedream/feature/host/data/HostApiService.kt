@@ -57,6 +57,10 @@ interface HostApiService {
         @Query("sort") sort: String? = null
     ): Response<JsonElement>
 
+    /** Fallback: fetch RentableItems directly by owner, bypassing Host document array */
+    @GET(ApiEndPoints.HOST_GET_LISTINGS_BY_OWNER)
+    suspend fun getHostListingsByOwner(): Response<JsonElement>
+
     @POST(ApiEndPoints.CREATE_LISTING)
     suspend fun createListing(@Body listing: Map<String, @JvmSuppressWildcards Any>): Response<JsonElement>
 
