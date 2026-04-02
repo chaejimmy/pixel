@@ -133,20 +133,17 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // Host-side listing detail — allows hosts to view their own pending listings
-    // without switching to guest mode (which hides pending listings).
+    // Host-side listing detail — dedicated preview for host's own listings.
+    // Uses HostListingPreviewScreen instead of the shared guest ListingDetailRoute
+    // to avoid guest-mode dependencies (booking bar, favorites, auth redirects).
     composable(
         route = "host_listing_detail/{listingId}",
         arguments = listOf(navArgument("listingId") { type = NavType.StringType })
     ) { backStackEntry ->
         val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
-        com.pacedream.app.feature.listingdetail.ListingDetailRoute(
+        com.shourov.apps.pacedream.feature.host.presentation.HostListingPreviewScreen(
             listingId = listingId,
-            onBackClick = { navController.popBackStack() },
-            onLoginRequired = {},
-            onNavigateToInbox = {},
-            onNavigateToThread = {},
-            onNavigateToCheckout = {}
+            onBackClick = { navController.popBackStack() }
         )
     }
 
