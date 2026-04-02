@@ -213,10 +213,19 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // View Listing → navigate to host-side listing detail (stays in host mode)
-                navController.popBackStack()
+                // View Listing → navigate directly to host listing detail
                 if (listingId.isNotBlank() && listingId != "created") {
-                    onHostListingClick(listingId)
+                    navController.navigate("host_listing_detail/$listingId") {
+                        popUpTo(HostScreen.Dashboard.route) { saveState = false }
+                        launchSingleTop = true
+                    }
+                } else {
+                    // No valid listing ID — go to My Listings instead
+                    navController.navigate(HostScreen.Listings.route) {
+                        popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             },
             onGoToMyListings = {
@@ -255,10 +264,19 @@ fun NavGraphBuilder.HostNavigationGraph(
             imageUploadService = uploadService,
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
-                // View Listing → navigate to host-side listing detail (stays in host mode)
-                navController.popBackStack()
+                // View Listing → navigate directly to host listing detail
                 if (listingId.isNotBlank() && listingId != "created") {
-                    onHostListingClick(listingId)
+                    navController.navigate("host_listing_detail/$listingId") {
+                        popUpTo(HostScreen.Dashboard.route) { saveState = false }
+                        launchSingleTop = true
+                    }
+                } else {
+                    // No valid listing ID — go to My Listings instead
+                    navController.navigate(HostScreen.Listings.route) {
+                        popUpTo(HostScreen.Dashboard.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                 }
             },
             onGoToMyListings = {
