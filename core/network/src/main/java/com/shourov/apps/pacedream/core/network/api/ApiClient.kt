@@ -153,10 +153,30 @@ class ApiClient constructor(
         includeAuth: Boolean = true
     ): ApiResult<String> = withContext(Dispatchers.IO) {
         try {
-            val multipartBody = okhttp3.MultipartBody.Builder()
-                .setType(okhttp3.MultipartBody.FORM)
-                .addFormDataPart(fieldName, fieldValue)
-                .build()
+            // Send base64 data URLs as actual file uploads so the server's
+            // formData.get() returns a File object (not a plain string).
+            // The Next.js /api/upload endpoint does formData.get('file') as File
+            // and calls file.arrayBuffer(), which only works on File/Blob, not strings.
+            val multipartBody = if (fieldValue.startsWith("data:image/")) {
+                val commaIdx = fieldValue.indexOf(',')
+                val base64Part = if (commaIdx >= 0) fieldValue.substring(commaIdx + 1) else fieldValue
+                val bytes = android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT)
+                val mimeType = if (fieldValue.contains("image/png")) "image/png" else "image/jpeg"
+                val ext = if (mimeType == "image/png") "png" else "jpg"
+                okhttp3.MultipartBody.Builder()
+                    .setType(okhttp3.MultipartBody.FORM)
+                    .addFormDataPart(
+                        fieldName,
+                        "upload.$ext",
+                        okhttp3.RequestBody.create(okhttp3.MediaType.parse(mimeType), bytes)
+                    )
+                    .build()
+            } else {
+                okhttp3.MultipartBody.Builder()
+                    .setType(okhttp3.MultipartBody.FORM)
+                    .addFormDataPart(fieldName, fieldValue)
+                    .build()
+            }
 
             val requestBuilder = Request.Builder()
                 .url(url)
