@@ -849,7 +849,58 @@ class HostRepository @Inject constructor(
                 }
             }
 
-            resolved
+            // Step 3: extract images from gallery if Property.images is empty.
+            // RentableItems store images in gallery.images / gallery.thumbnail,
+            // not a top-level images array. Gson won't populate Property.images
+            // from these nested fields, so we extract them manually.
+            val withImages = if (resolved.images.isEmpty() && obj != null) {
+                val extractedImages = mutableListOf<String>()
+                val gallery = obj.getAsJsonObject("gallery")
+                if (gallery != null) {
+                    // gallery.thumbnail
+                    gallery.getStringOrNull("thumbnail")?.let { thumb ->
+                        if (thumb.isNotBlank()) extractedImages.add(thumb)
+                    }
+                    // gallery.images array
+                    val galleryImages = gallery.get("images")
+                    if (galleryImages != null && galleryImages.isJsonArray) {
+                        galleryImages.asJsonArray.forEach { el ->
+                            if (el.isJsonPrimitive && el.asJsonPrimitive.isString) {
+                                val url = el.asString
+                                if (url.isNotBlank() && url !in extractedImages) {
+                                    extractedImages.add(url)
+                                }
+                            }
+                        }
+                    }
+                }
+                // Also try top-level photos, photoUrls, imageUrls, media arrays
+                for (key in listOf("photos", "photoUrls", "imageUrls", "media")) {
+                    val arr = obj.get(key)
+                    if (arr != null && arr.isJsonArray && extractedImages.isEmpty()) {
+                        arr.asJsonArray.forEach { el ->
+                            if (el.isJsonPrimitive && el.asJsonPrimitive.isString) {
+                                val url = el.asString
+                                if (url.isNotBlank()) extractedImages.add(url)
+                            }
+                        }
+                    }
+                }
+                // Single image fields: coverImage, cover, image, imageUrl, thumbnail
+                if (extractedImages.isEmpty()) {
+                    for (key in listOf("coverImage", "cover", "image", "imageUrl", "thumbnail")) {
+                        obj.getStringOrNull(key)?.let { url ->
+                            if (url.isNotBlank()) extractedImages.add(url)
+                        }
+                    }
+                }
+                if (extractedImages.isNotEmpty()) {
+                    Timber.d("Extracted %d images from gallery/alt fields for listing %s", extractedImages.size, resolved.id)
+                    resolved.copy(images = extractedImages)
+                } else resolved
+            } else resolved
+
+            withImages
         }
     }
 

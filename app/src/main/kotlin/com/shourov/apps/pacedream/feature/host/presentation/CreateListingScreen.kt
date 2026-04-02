@@ -2373,7 +2373,7 @@ private fun PublishSuccessScreen(
             .padding(PaceDreamSpacing.LG),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(40.dp))
 
         // Green checkmark with animated entrance
         Box(
@@ -2464,7 +2464,7 @@ private fun PublishSuccessScreen(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         // What's next section
         Text(
