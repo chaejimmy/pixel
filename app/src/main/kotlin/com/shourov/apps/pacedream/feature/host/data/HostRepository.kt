@@ -30,6 +30,13 @@ class HostRepository @Inject constructor(
     private val appConfig: com.shourov.apps.pacedream.core.network.config.AppConfig
 ) {
 
+    // ── Recently created listing cache ──
+    // The backend GET /host/listings may not immediately return a newly created
+    // listing (race condition or Host document not yet updated). Cache the most
+    // recent creation so the dashboard can merge it in.
+    @Volatile
+    private var recentlyCreatedListing: Property? = null
+
     // ── Dashboard: concurrent load (iOS: HostDataStore.refresh + HostDashboardViewModel.load) ──
 
     data class DashboardLoadResult(
@@ -178,10 +185,30 @@ class HostRepository @Inject constructor(
         }
 
         val bookings = bookingsDeferred.await()
-        val listings = listingsDeferred.await()
+        var listings = listingsDeferred.await()
         val overview = overviewDeferred.await()
         val payoutState = payoutDeferred.await()
         val payoutEligibility = eligibilityDeferred.await()
+
+        // Merge recently created listing if not yet returned by the backend.
+        // The backend GET /host/listings may lag behind creation because
+        // listing_controller.js doesn't always push to Host.listings.rentableItems.
+        val cached = recentlyCreatedListing
+        if (cached != null && cached.id.isNotEmpty()) {
+            val alreadyPresent = listings.any { it.id == cached.id }
+            if (!alreadyPresent) {
+                Timber.d("Merging recently created listing %s into dashboard (not in API response)", cached.id)
+                listings = listings + cached
+            } else {
+                // Backend now returns it — clear the cache
+                recentlyCreatedListing = null
+            }
+        } else if (cached != null && cached.id.isEmpty() && listings.isEmpty()) {
+            // Listing was created but ID wasn't returned. Still show it as pending
+            // so the host doesn't see an empty dashboard right after creating.
+            Timber.d("Merging recently created listing (no ID) into dashboard as pending placeholder")
+            listings = listings + cached
+        }
 
         // iOS parity: 401/403/404 on host-only endpoints for users without a host profile
         // is NOT a failure. Treat as empty data with no error message — matches iOS behavior
@@ -308,9 +335,21 @@ class HostRepository @Inject constructor(
                         parseCreateListingResponse(json, request)
                     }
                     Timber.d("createListing success: id=%s", property.id)
+                    // Cache the created listing as pending_review so the
+                    // dashboard can merge it in when the backend GET
+                    // /host/listings hasn't been updated yet.
+                    val cached = property.copy(
+                        status = property.status ?: "pending_review",
+                        title = property.title.ifEmpty { request.title },
+                        images = request.images ?: emptyList()
+                    )
+                    recentlyCreatedListing = cached
+                    Timber.d("Cached recently created listing: id=%s status=%s", cached.id, cached.status)
                     Result.success(property)
                 } else {
-                    Result.success(Property(id = "", title = request.title))
+                    val fallback = Property(id = "", title = request.title, status = "pending_review", images = request.images ?: emptyList())
+                    recentlyCreatedListing = fallback
+                    Result.success(fallback)
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
