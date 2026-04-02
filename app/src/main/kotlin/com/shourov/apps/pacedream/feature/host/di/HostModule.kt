@@ -21,7 +21,11 @@ object HostModule {
     
     @Provides
     @Singleton
-    fun provideHostRepository(hostApiService: HostApiService): HostRepository {
-        return HostRepository(hostApiService)
+    fun provideHostRepository(
+        hostApiService: HostApiService,
+        okHttpClient: okhttp3.OkHttpClient,
+        appConfig: com.shourov.apps.pacedream.core.network.config.AppConfig
+    ): HostRepository {
+        return HostRepository(hostApiService, okHttpClient, appConfig)
     }
 }
