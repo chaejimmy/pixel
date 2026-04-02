@@ -151,6 +151,14 @@ fun HostProfileScreen(
                                 icon = PaceDreamIcons.Home
                             )
                         }
+                        item {
+                            HostKpiChip(
+                                title = "Under Review",
+                                value = "${uiState.underReviewListingsCount}",
+                                icon = PaceDreamIcons.Schedule,
+                                valueColor = if (uiState.underReviewListingsCount > 0) PaceDreamColors.Warning else null
+                            )
+                        }
                     }
                 }
 

@@ -85,7 +85,11 @@ fun computeDashboardData(
 
     val underReviewListings = listings.filter { it.isPendingReview }
     val activeListings = listings.filter { it.isActiveStatus }
-    val topActiveListings = (underReviewListings + activeListings).take(5)
+    // iOS parity: show under-review first, then active, then any other listings.
+    // Include ALL listings so the dashboard doesn't show "Welcome to hosting" when
+    // the host has listings in any state (draft, unrecognized status, etc.).
+    val topActiveListings = (underReviewListings + activeListings +
+        listings.filter { !it.isPendingReview && !it.isActiveStatus }).distinctBy { it.id }.take(5)
 
     val recentEvents = bookings.mapNotNull { booking ->
         val created = parseDate(booking.createdAt) ?: return@mapNotNull null
