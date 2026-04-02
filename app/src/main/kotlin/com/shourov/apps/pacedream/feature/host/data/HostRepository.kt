@@ -111,9 +111,11 @@ class HostRepository @Inject constructor(
 
                 // Source 2: primary backend endpoint
                 var listings = emptyList<Property>()
+                var primarySucceeded = false
                 Timber.d("Fetching host listings from /host/listings (backend)")
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
+                    primarySucceeded = true
                     val json = response.body()
                     if (json != null) {
                         Timber.d("Host listings raw response keys: %s",
@@ -132,15 +134,17 @@ class HostRepository @Inject constructor(
                     if (isNonHostCode(response.code())) {
                         Timber.d("Host listings returned ${response.code()} — user may not have a host profile")
                         gotNonHostResponse = true
+                        primarySucceeded = true // not an error, just no host profile
                     } else {
                         Timber.w("Host listings failed [${response.code()}]")
+                        hadFailure = true
                     }
                 }
 
                 // Source 3: direct by-owner fallback
                 // If primary returned 0 listings, try the by-owner endpoint which
                 // queries RentableItem.find({ owner }) directly — not the Host document.
-                if (listings.isEmpty()) {
+                if (listings.isEmpty() && primarySucceeded) {
                     Timber.d("Primary returned 0 listings, trying /host/listings/by-owner fallback")
                     try {
                         val fallbackResponse = hostApiService.getHostListingsByOwner()
@@ -159,16 +163,11 @@ class HostRepository @Inject constructor(
                                 }
                             }
                         } else {
-                            Timber.d("By-owner fallback failed [${fallbackResponse.code()}]")
+                            Timber.d("By-owner fallback failed [${fallbackResponse.code()}] (non-fatal)")
                         }
                     } catch (e: Exception) {
                         Timber.d(e, "By-owner fallback exception (non-fatal)")
                     }
-                }
-
-                if (listings.isEmpty() && !gotNonHostResponse) {
-                    // Both endpoints returned empty — may be a real failure
-                    hadFailure = true
                 }
 
                 listings
