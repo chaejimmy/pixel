@@ -113,6 +113,7 @@ object ApiEndPoints {
     const val HOST_DASHBOARD_REVENUE = "hosts/dashboard/revenue"
     const val HOST_DASHBOARD_BOOKINGS = "hosts/dashboard/bookings"
     const val HOST_GET_LISTINGS = "host/listings"
+    const val HOST_GET_LISTINGS_BY_OWNER = "host/listings/by-owner"
     const val HOST_CREATE_LISTING = "host/listings"
     const val HOST_UPDATE_LISTING = "host/listings/{listingId}"
     const val HOST_DELETE_LISTING = "host/listings/{listingId}"

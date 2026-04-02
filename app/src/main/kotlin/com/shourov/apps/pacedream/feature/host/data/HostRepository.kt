@@ -89,10 +89,15 @@ class HostRepository @Inject constructor(
 
         val listingsDeferred = async {
             try {
-                // iOS parity: try frontend proxy first (/api/proxy/host/listings),
-                // fall back to direct backend (/host/listings).
-                // The web proxy returns pending/under-review listings that the
-                // direct backend endpoint may not include.
+                // Strategy: try multiple sources to find host listings.
+                // 1. Frontend proxy (/api/proxy/host/listings)
+                // 2. Backend primary (/host/listings) - populates from Host document
+                // 3. Backend by-owner (/host/listings/by-owner) - queries RentableItems directly
+                // Source 3 is critical because listing_controller.js may not push
+                // new listings to Host.listings.rentableItems, making them invisible
+                // to source 2. The admin panel confirms the listing exists in the DB.
+
+                // Source 1: frontend proxy
                 val proxyListings = try {
                     withContext(Dispatchers.IO) { fetchHostListingsViaProxy() }
                 } catch (e: Exception) {
@@ -101,38 +106,72 @@ class HostRepository @Inject constructor(
                 }
                 if (proxyListings != null && proxyListings.isNotEmpty()) {
                     Timber.d("Using %d listings from frontend proxy", proxyListings.size)
-                    proxyListings
-                } else {
+                    return@async proxyListings
+                }
+
+                // Source 2: primary backend endpoint
+                var listings = emptyList<Property>()
                 Timber.d("Fetching host listings from /host/listings (backend)")
                 val response = hostApiService.getHostListings()
                 if (response.isSuccessful) {
                     val json = response.body()
-                    val listings = if (json != null) {
-                        // Log raw response shape for debugging listing status issues
+                    if (json != null) {
                         Timber.d("Host listings raw response keys: %s",
                             if (json.isJsonObject) json.asJsonObject.keySet().toString()
                             else if (json.isJsonArray) "array[${json.asJsonArray.size()}]"
                             else json.javaClass.simpleName
                         )
-                        withContext(Dispatchers.Default) {
+                        listings = withContext(Dispatchers.Default) {
                             parseHostListings(json)
                         }
-                    } else emptyList()
-                    Timber.d("Loaded ${listings.size} host listings: %s",
+                    }
+                    Timber.d("Loaded ${listings.size} host listings from primary endpoint: %s",
                         listings.joinToString { "${it.id}:status=${it.status},pending=${it.isPendingReview},active=${it.isActiveStatus}" }
                     )
-                    listings
                 } else {
                     if (isNonHostCode(response.code())) {
                         Timber.d("Host listings returned ${response.code()} — user may not have a host profile")
                         gotNonHostResponse = true
                     } else {
                         Timber.w("Host listings failed [${response.code()}]")
-                        hadFailure = true
                     }
-                    emptyList()
                 }
-                } // end else (backend fallback)
+
+                // Source 3: direct by-owner fallback
+                // If primary returned 0 listings, try the by-owner endpoint which
+                // queries RentableItem.find({ owner }) directly — not the Host document.
+                if (listings.isEmpty()) {
+                    Timber.d("Primary returned 0 listings, trying /host/listings/by-owner fallback")
+                    try {
+                        val fallbackResponse = hostApiService.getHostListingsByOwner()
+                        if (fallbackResponse.isSuccessful) {
+                            val fallbackJson = fallbackResponse.body()
+                            if (fallbackJson != null) {
+                                val fallbackListings = withContext(Dispatchers.Default) {
+                                    parseHostListings(fallbackJson)
+                                }
+                                if (fallbackListings.isNotEmpty()) {
+                                    Timber.d("By-owner fallback returned %d listings: %s",
+                                        fallbackListings.size,
+                                        fallbackListings.joinToString { "${it.id}:status=${it.status}" }
+                                    )
+                                    listings = fallbackListings
+                                }
+                            }
+                        } else {
+                            Timber.d("By-owner fallback failed [${fallbackResponse.code()}]")
+                        }
+                    } catch (e: Exception) {
+                        Timber.d(e, "By-owner fallback exception (non-fatal)")
+                    }
+                }
+
+                if (listings.isEmpty() && !gotNonHostResponse) {
+                    // Both endpoints returned empty — may be a real failure
+                    hadFailure = true
+                }
+
+                listings
             } catch (e: Exception) {
                 Timber.e(e, "Host listings fetch exception")
                 hadFailure = true
