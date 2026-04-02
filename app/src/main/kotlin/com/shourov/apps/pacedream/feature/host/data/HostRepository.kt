@@ -85,11 +85,19 @@ class HostRepository @Inject constructor(
                 if (response.isSuccessful) {
                     val json = response.body()
                     val listings = if (json != null) {
+                        // Log raw response shape for debugging listing status issues
+                        Timber.d("Host listings raw response keys: %s",
+                            if (json.isJsonObject) json.asJsonObject.keySet().toString()
+                            else if (json.isJsonArray) "array[${json.asJsonArray.size()}]"
+                            else json.javaClass.simpleName
+                        )
                         withContext(Dispatchers.Default) {
                             parseHostListings(json)
                         }
                     } else emptyList()
-                    Timber.d("Loaded ${listings.size} host listings")
+                    Timber.d("Loaded ${listings.size} host listings: %s",
+                        listings.joinToString { "${it.id}:status=${it.status},pending=${it.isPendingReview},active=${it.isActiveStatus}" }
+                    )
                     listings
                 } else {
                     if (isNonHostCode(response.code())) {
@@ -611,6 +619,20 @@ class HostRepository @Inject constructor(
             val element = arr.getOrNull(index)
             val obj = if (element != null && element.isJsonObject) element.asJsonObject else null
 
+            // Log raw status fields from the backend for debugging
+            if (obj != null) {
+                val rawStatus = obj.getStringOrNull("status")
+                val rawListingStatus = obj.getStringOrNull("listingStatus")
+                val rawState = obj.getStringOrNull("state")
+                val rawApproved = obj.get("approved")?.toString()
+                val rawIsApproved = obj.get("isApproved")?.toString()
+                Timber.d(
+                    "Listing[%d] id=%s gsonStatus=%s raw: status=%s listingStatus=%s state=%s approved=%s isApproved=%s",
+                    index, property.id, property.status,
+                    rawStatus, rawListingStatus, rawState, rawApproved, rawIsApproved
+                )
+            }
+
             // Step 1: resolve status if missing
             val resolved = if (property.status != null) {
                 property
@@ -621,9 +643,14 @@ class HostRepository @Inject constructor(
                             if (pub.asBoolean) "published" else "draft"
                         } else null
                     }
-                if (fallbackStatus != null) property.copy(status = fallbackStatus) else property
+                    // If none of the known status fields have a value, default to
+                    // "pending_review" for newly created listings that show up in
+                    // /host/listings without an explicit status.
+                    ?: "pending_review"
+                property.copy(status = fallbackStatus)
             } else {
-                property
+                // No raw JSON available and no status — treat as pending
+                if (property.status == null) property.copy(status = "pending_review") else property
             }
 
             // Step 2: check approved/isApproved boolean — override active-like status

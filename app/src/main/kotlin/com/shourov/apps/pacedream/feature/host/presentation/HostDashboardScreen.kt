@@ -144,9 +144,11 @@ fun HostDashboardScreen(
                 )
             }
 
-            // Determine if the host is brand new (nothing to show)
+            // Determine if the host is brand new (nothing to show).
+            // Use listings.isEmpty() (not topActiveListings) to catch listings in any state.
             val isNewHost = uiState.hasLoaded &&
                 uiState.topUpcomingBookings.isEmpty() &&
+                uiState.listings.isEmpty() &&
                 uiState.topActiveListings.isEmpty() &&
                 uiState.recentEvents.isEmpty()
 
@@ -288,15 +290,13 @@ private fun SummaryCard(
                 label = "Active listings"
             )
         }
-        if (underReviewListings > 0) {
-            item {
-                KpiChipCard(
-                    icon = PaceDreamIcons.Schedule,
-                    value = "$underReviewListings",
-                    label = "Under review",
-                    valueColor = PaceDreamColors.Warning
-                )
-            }
+        item {
+            KpiChipCard(
+                icon = PaceDreamIcons.Schedule,
+                value = "$underReviewListings",
+                label = "Under review",
+                valueColor = if (underReviewListings > 0) PaceDreamColors.Warning else PaceDreamColors.TextPrimary
+            )
         }
         item {
             KpiChipCard(
