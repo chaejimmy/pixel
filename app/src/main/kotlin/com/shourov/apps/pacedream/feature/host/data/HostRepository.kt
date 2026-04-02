@@ -6,6 +6,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.shourov.apps.pacedream.model.Property
+import com.shourov.apps.pacedream.model.PropertyPricing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -900,7 +901,40 @@ class HostRepository @Inject constructor(
                 } else resolved
             } else resolved
 
-            withImages
+            // Step 4: extract pricing from RentableItem price array.
+            // RentableItem has price: [{ amount, pricing_type, currency, frequency }]
+            // but Property.pricing expects { basePrice, unit, currency }.
+            val withPricing = if (withImages.pricing.basePrice == 0.0 && obj != null) {
+                val priceArr = obj.get("price")
+                if (priceArr != null && priceArr.isJsonArray && priceArr.asJsonArray.size() > 0) {
+                    val first = priceArr.asJsonArray[0]
+                    if (first.isJsonObject) {
+                        val p = first.asJsonObject
+                        val amount = try { p.get("amount")?.asDouble ?: 0.0 } catch (_: Exception) { 0.0 }
+                        val pricingType = p.getStringOrNull("pricing_type") ?: ""
+                        val currency = p.getStringOrNull("currency") ?: "USD"
+                        val unit = when (pricingType.lowercase()) {
+                            "hourly" -> "hour"
+                            "daily" -> "day"
+                            "weekly" -> "week"
+                            "monthly" -> "month"
+                            else -> pricingType.ifBlank { "hour" }
+                        }
+                        if (amount > 0) {
+                            withImages.copy(
+                                pricing = PropertyPricing(
+                                    basePrice = amount,
+                                    currency = currency,
+                                    unit = unit,
+                                    pricingType = pricingType
+                                )
+                            )
+                        } else withImages
+                    } else withImages
+                } else withImages
+            } else withImages
+
+            withPricing
         }
     }
 

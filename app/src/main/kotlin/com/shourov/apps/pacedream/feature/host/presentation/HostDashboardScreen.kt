@@ -726,75 +726,139 @@ private fun PendingListingsSection(
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         listings.forEach { listing ->
-            Card(
+            PendingListingCard(listing = listing, onClick = { onListingClick(listing.id) })
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        }
+    }
+}
+
+@Composable
+private fun PendingListingCard(
+    listing: Property,
+    onClick: () -> Unit
+) {
+    val imageUrl = listing.images.firstOrNull()?.takeIf { it.isNotBlank() }
+    val hasImage = imageUrl != null
+    val locationText = listOfNotNull(
+        listing.location.city.takeIf { it.isNotBlank() },
+        listing.location.state.takeIf { it.isNotBlank() }
+    ).joinToString(", ").ifEmpty { listing.location.country.takeIf { it.isNotBlank() } }
+    val priceText = if (listing.pricing.basePrice > 0) {
+        "$${listing.pricing.basePrice.toInt()}/${listing.pricing.unit.ifBlank { "hr" }}"
+    } else null
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            PaceDreamColors.Warning.copy(alpha = 0.35f)
+        )
+    ) {
+        Column {
+            // Cover image or placeholder
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = PaceDreamSpacing.SM),
-                onClick = { onListingClick(listing.id) },
-                colors = CardDefaults.cardColors(
-                    containerColor = PaceDreamColors.Warning.copy(alpha = 0.06f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                border = androidx.compose.foundation.BorderStroke(
-                    0.5.dp,
-                    PaceDreamColors.Warning.copy(alpha = 0.3f)
-                )
+                    .height(if (hasImage) 160.dp else 90.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                if (hasImage) {
+                    coil.compose.AsyncImage(
+                        model = imageUrl,
+                        contentDescription = listing.title,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(8.dp)),
+                            .fillMaxSize()
+                            .background(PaceDreamColors.Warning.copy(alpha = 0.06f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (listing.images.firstOrNull()?.isNotBlank() == true) {
-                            coil.compose.AsyncImage(
-                                model = listing.images.first(),
-                                contentDescription = listing.title,
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Home,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Warning.copy(alpha = 0.5f),
+                                modifier = Modifier.size(28.dp)
                             )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(PaceDreamColors.Warning.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Schedule,
-                                    contentDescription = null,
-                                    tint = PaceDreamColors.Warning,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "No photo yet",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.TextTertiary
+                            )
                         }
                     }
+                }
+                // Under Review badge overlay (top-end)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    ListingStatusBadge(status = "Under Review")
+                }
+            }
 
-                    Spacer(modifier = Modifier.width(12.dp))
+            // Details
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(
+                    text = listing.title.ifBlank { "Untitled listing" },
+                    style = PaceDreamTypography.Subheadline,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    Column(modifier = Modifier.weight(1f)) {
+                if (!locationText.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = locationText,
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (priceText != null) {
                         Text(
-                            text = listing.title.ifBlank { "Untitled listing" },
-                            style = PaceDreamTypography.Subheadline,
-                            color = PaceDreamColors.TextPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Awaiting admin review",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.Warning
+                            text = priceText,
+                            style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold),
+                            color = PaceDreamColors.HostAccent
                         )
                     }
-
-                    ListingStatusBadge(status = "Under Review")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Schedule,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Warning,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Awaiting review",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.Warning,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
