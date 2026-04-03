@@ -38,8 +38,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
+import javax.net.ssl.SSLException
+import javax.net.ssl.SSLHandshakeException
 
 @Singleton
 class MessageRepository @Inject constructor(
@@ -132,7 +136,7 @@ class MessageRepository @Inject constructor(
             }
         } catch (e: Exception) {
             timber.log.Timber.e(e, "Failed to send message in chat $chatId")
-            Result.Error(e)
+            Result.Error(classifyNetworkException(e))
         }
     }
 
@@ -206,7 +210,7 @@ class MessageRepository @Inject constructor(
             }
         } catch (e: Exception) {
             timber.log.Timber.e(e, "Failed to upload chat media to thread $threadId")
-            Result.Error(e)
+            Result.Error(classifyNetworkException(e))
         }
     }
 
@@ -305,6 +309,28 @@ class MessageRepository @Inject constructor(
         if (width <= maxDimension && height <= maxDimension) return bitmap
         val ratio = minOf(maxDimension.toFloat() / width, maxDimension.toFloat() / height)
         return Bitmap.createScaledBitmap(bitmap, (width * ratio).toInt(), (height * ratio).toInt(), true)
+    }
+
+    /**
+     * Wraps raw network exceptions with user-friendly messages.
+     * SSL/TLS failures (often caused by device-level KeyMint/SPU errors)
+     * and connectivity issues get actionable guidance.
+     */
+    private fun classifyNetworkException(e: Exception): Exception {
+        val message = when {
+            e is SSLHandshakeException || e is SSLException ->
+                "Secure connection failed. Please restart your device and try again."
+            e is SocketTimeoutException ->
+                "Connection timed out. Please check your internet and try again."
+            e is UnknownHostException ->
+                "No internet connection. Please check your network and try again."
+            e is java.net.ConnectException ->
+                "Unable to reach the server. Please check your connection and try again."
+            e.cause is SSLException || e.cause is SSLHandshakeException ->
+                "Secure connection failed. Please restart your device and try again."
+            else -> return e
+        }
+        return Exception(message, e)
     }
 
     companion object {

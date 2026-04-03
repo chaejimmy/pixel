@@ -95,6 +95,36 @@ fun ChatScreen(
                 modifier = Modifier.weight(1f)
             )
 
+            // Send error banner
+            AnimatedVisibility(visible = uiState.error != null) {
+                uiState.error?.let { error ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.errorContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = PaceDreamDesignSystem.PaceDreamSpacing.MD, vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = viewModel::clearError, modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.MD)) {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Close,
+                                    contentDescription = "Dismiss",
+                                    modifier = Modifier.size(PaceDreamDesignSystem.PaceDreamIconSize.SM),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Upload error banner
             AnimatedVisibility(visible = uiState.uploadError != null) {
                 uiState.uploadError?.let { error ->
