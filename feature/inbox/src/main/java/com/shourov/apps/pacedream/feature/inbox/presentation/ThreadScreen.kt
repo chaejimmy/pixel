@@ -2,7 +2,12 @@
 
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -19,11 +24,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +41,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,6 +50,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -59,18 +69,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamLoadingState
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.inbox.model.Message
 import com.shourov.apps.pacedream.feature.inbox.model.MessageStatus
 import com.shourov.apps.pacedream.feature.inbox.model.ThreadDetailEvent
@@ -232,17 +247,39 @@ private fun SuccessState(
             )
         }
 
-        // Message input
+        // Upload progress bar
+        AnimatedVisibility(visible = state.isUploading) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = PaceDreamColors.Primary
+            )
+        }
+
+        // Photo preview tray
+        AnimatedVisibility(visible = state.pendingPhotoUris.isNotEmpty()) {
+            PhotoPreviewTray(
+                photoUris = state.pendingPhotoUris,
+                onRemove = { uri -> onEvent(ThreadDetailEvent.RemovePhoto(uri)) }
+            )
+        }
+
+        // Message input with photo attachment
         MessageInputBar(
             text = messageText,
             onTextChange = { messageText = it },
             onSend = {
-                if (messageText.isNotBlank()) {
+                if (state.pendingPhotoUris.isNotEmpty()) {
+                    onEvent(ThreadDetailEvent.SendMediaMessage(messageText, state.pendingPhotoUris))
+                    messageText = ""
+                } else if (messageText.isNotBlank()) {
                     onEvent(ThreadDetailEvent.SendMessage(messageText))
                     messageText = ""
                 }
             },
-            isSending = state.isSending
+            onAttachPhotos = { uris -> onEvent(ThreadDetailEvent.AddPhotos(uris)) },
+            isSending = state.isSending || state.isUploading,
+            canSend = state.canSend && (messageText.isNotBlank() || state.pendingPhotoUris.isNotEmpty()),
+            attachmentsEnabled = state.attachmentsEnabled
         )
     }
 }
@@ -433,12 +470,73 @@ private fun SendErrorBanner(
 }
 
 @Composable
+private fun PhotoPreviewTray(
+    photoUris: List<Uri>,
+    onRemove: (Uri) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(0.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Surface)
+    ) {
+        LazyRow(
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            items(photoUris) { uri ->
+                Box(modifier = Modifier.size(72.dp)) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(uri)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Selected photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    )
+                    IconButton(
+                        onClick = { onRemove(uri) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp)
+                            .size(22.dp)
+                            .background(Color.White, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove photo",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MessageInputBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSend: () -> Unit,
-    isSending: Boolean
+    onAttachPhotos: (List<Uri>) -> Unit,
+    isSending: Boolean,
+    canSend: Boolean,
+    attachmentsEnabled: Boolean
 ) {
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(
+            maxItems = ThreadViewModel.MAX_PHOTOS
+        )
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onAttachPhotos(uris)
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG),
@@ -452,8 +550,30 @@ private fun MessageInputBar(
                     horizontal = PaceDreamSpacing.MD,
                     vertical = PaceDreamSpacing.SM
                 ),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Bottom
         ) {
+            // Photo attachment button
+            IconButton(
+                onClick = {
+                    photoPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                enabled = attachmentsEnabled && !isSending,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Image,
+                    contentDescription = "Attach photo",
+                    tint = if (attachmentsEnabled)
+                        PaceDreamColors.Primary
+                    else
+                        PaceDreamColors.TextSecondary.copy(alpha = 0.3f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
             OutlinedTextField(
                 value = text,
                 onValueChange = onTextChange,
@@ -475,18 +595,18 @@ private fun MessageInputBar(
                 maxLines = 4,
                 enabled = !isSending
             )
-            
+
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-            
+
             IconButton(
                 onClick = onSend,
-                enabled = text.isNotBlank() && !isSending,
+                enabled = canSend,
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        if (text.isNotBlank() && !isSending) 
-                            PaceDreamColors.Primary 
-                        else 
+                        if (canSend)
+                            PaceDreamColors.Primary
+                        else
                             PaceDreamColors.Border,
                         CircleShape
                     )

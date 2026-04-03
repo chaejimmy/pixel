@@ -1,5 +1,9 @@
 package com.shourov.apps.pacedream.feature.inbox.data
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import com.shourov.apps.pacedream.core.network.api.ApiClient
 import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.api.ApiResult
@@ -10,6 +14,10 @@ import com.shourov.apps.pacedream.feature.inbox.model.UnreadCounts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.ByteArrayOutputStream
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -231,6 +239,79 @@ class InboxRepository @Inject constructor(
                 result
             }
         }
+    }
+
+    /**
+     * Upload images to a chat thread and send as a message with attachments.
+     * Compresses/downscales images on Dispatchers.IO to avoid ANR.
+     * Uses POST /v1/chat-media/upload then sends message with attachment URLs.
+     */
+    suspend fun uploadChatMedia(
+        context: Context,
+        threadId: String,
+        imageUris: List<Uri>,
+        text: String? = null
+    ): ApiResult<Message> {
+        // Compress images on background thread
+        val parts = withContext(Dispatchers.IO) {
+            val result = mutableListOf<MultipartBody.Part>()
+            for (uri in imageUris) {
+                val inputStream = context.contentResolver.openInputStream(uri) ?: continue
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream.close()
+                if (bitmap == null) continue
+
+                val scaled = downscaleBitmap(bitmap, MAX_UPLOAD_DIMENSION)
+                val outputStream = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
+                val bytes = outputStream.toByteArray()
+
+                if (scaled != bitmap) scaled.recycle()
+                bitmap.recycle()
+
+                val fileName = "photo_${System.currentTimeMillis()}.jpg"
+                val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
+                result.add(MultipartBody.Part.createFormData("images", fileName, requestBody))
+            }
+            result
+        }
+
+        if (parts.isEmpty()) {
+            return ApiResult.Failure(ApiError.DecodingError("No valid images to upload"))
+        }
+
+        val url = appConfig.buildApiUrl("chat-media", "upload")
+        return when (val result = apiClient.postMultipartParts(url, parts, includeAuth = true)) {
+            is ApiResult.Success -> {
+                try {
+                    val element = json.parseToJsonElement(result.data)
+                    val obj = element.jsonObject
+                    val data = obj["data"]?.jsonObject ?: obj
+
+                    // Extract attachment URLs from upload response
+                    val attachmentUrls = try {
+                        data["attachments"]?.jsonArray?.mapNotNull { att ->
+                            att.jsonObject["url"]?.jsonPrimitive?.content
+                        } ?: emptyList()
+                    } catch (_: Exception) { emptyList() }
+
+                    // Send message with attachment URLs
+                    sendMessage(threadId, text ?: "", attachmentUrls)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to parse upload response")
+                    ApiResult.Failure(ApiError.DecodingError("Failed to parse upload response", e))
+                }
+            }
+            is ApiResult.Failure -> result
+        }
+    }
+
+    private fun downscaleBitmap(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= maxDimension && height <= maxDimension) return bitmap
+        val ratio = minOf(maxDimension.toFloat() / width, maxDimension.toFloat() / height)
+        return Bitmap.createScaledBitmap(bitmap, (width * ratio).toInt(), (height * ratio).toInt(), true)
     }
 
     /**
@@ -569,8 +650,13 @@ class InboxRepository @Inject constructor(
         )
     }
     
+    companion object {
+        private const val MAX_UPLOAD_DIMENSION = 1280
+        private const val JPEG_QUALITY = 80
+    }
+
     // Utility methods
-    
+
     private fun findArrayField(obj: JsonObject, vararg keys: String): List<JsonElement>? {
         for (key in keys) {
             try {

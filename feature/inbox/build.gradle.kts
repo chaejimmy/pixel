@@ -17,6 +17,7 @@ dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.common)
     
+    implementation(libs.androidx.activity.compose)
     implementation(libs.coil.kt.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)

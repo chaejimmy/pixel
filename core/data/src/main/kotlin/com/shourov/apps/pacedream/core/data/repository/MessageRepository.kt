@@ -28,10 +28,12 @@ import com.shourov.apps.pacedream.core.network.model.AttachmentResponse
 import com.shourov.apps.pacedream.core.network.services.PaceDreamApiService
 import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -145,26 +147,33 @@ class MessageRepository @Inject constructor(
         text: String? = null
     ): Result<MessageModel> {
         return try {
-            val parts = mutableListOf<MultipartBody.Part>()
+            // Perform all bitmap I/O on a background thread to avoid ANR.
+            // BitmapFactory.decodeStream / compress are heavy and must not run
+            // on Dispatchers.Main (the default for viewModelScope).
+            val parts = withContext(Dispatchers.IO) {
+                val result = mutableListOf<MultipartBody.Part>()
 
-            for (uri in imageUris) {
-                val inputStream = context.contentResolver.openInputStream(uri) ?: continue
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream.close()
-                if (bitmap == null) continue
+                for (uri in imageUris) {
+                    val inputStream = context.contentResolver.openInputStream(uri) ?: continue
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    inputStream.close()
+                    if (bitmap == null) continue
 
-                // Downscale to max 1280px
-                val scaled = downscaleBitmap(bitmap, MAX_UPLOAD_DIMENSION)
-                val outputStream = ByteArrayOutputStream()
-                scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
-                val bytes = outputStream.toByteArray()
+                    // Downscale to max 1280px
+                    val scaled = downscaleBitmap(bitmap, MAX_UPLOAD_DIMENSION)
+                    val outputStream = ByteArrayOutputStream()
+                    scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
+                    val bytes = outputStream.toByteArray()
 
-                if (scaled != bitmap) scaled.recycle()
-                bitmap.recycle()
+                    if (scaled != bitmap) scaled.recycle()
+                    bitmap.recycle()
 
-                val fileName = "photo_${System.currentTimeMillis()}.jpg"
-                val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
-                parts.add(MultipartBody.Part.createFormData("images", fileName, requestBody))
+                    val fileName = "photo_${System.currentTimeMillis()}.jpg"
+                    val requestBody = bytes.toRequestBody("image/jpeg".toMediaType())
+                    result.add(MultipartBody.Part.createFormData("images", fileName, requestBody))
+                }
+
+                result
             }
 
             if (parts.isEmpty()) {

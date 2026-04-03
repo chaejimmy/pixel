@@ -180,8 +180,14 @@ sealed class ThreadDetailUiState {
         val hasMore: Boolean = false,
         val isLoadingMore: Boolean = false,
         val isSending: Boolean = false,
+        val isUploading: Boolean = false,
+        val pendingPhotoUris: List<android.net.Uri> = emptyList(),
+        val attachmentsEnabled: Boolean = false,
         val sendError: String? = null
-    ) : ThreadDetailUiState()
+    ) : ThreadDetailUiState() {
+        val canSend: Boolean
+            get() = !isSending && !isUploading
+    }
     data class Error(val message: String) : ThreadDetailUiState()
 }
 
@@ -202,6 +208,9 @@ sealed class InboxEvent {
 sealed class ThreadDetailEvent {
     object Refresh : ThreadDetailEvent()
     data class SendMessage(val text: String) : ThreadDetailEvent()
+    data class SendMediaMessage(val text: String, val photoUris: List<android.net.Uri>) : ThreadDetailEvent()
+    data class AddPhotos(val uris: List<android.net.Uri>) : ThreadDetailEvent()
+    data class RemovePhoto(val uri: android.net.Uri) : ThreadDetailEvent()
     data class RetryMessage(val tempId: String) : ThreadDetailEvent()
     object DismissSendError : ThreadDetailEvent()
     object LoadMore : ThreadDetailEvent()
