@@ -63,6 +63,15 @@ fun ListingCalendarScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+                        // Show listing timezone so host knows the time context
+                        if (uiState.listingTimezone.isNotBlank()) {
+                            Text(
+                                text = "Times in ${uiState.listingTimezone.replace("_", " ")}",
+                                style = PaceDreamTypography.Caption2,
+                                color = PaceDreamColors.TextTertiary,
+                                maxLines = 1
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -180,6 +189,10 @@ fun ListingCalendarScreen(
 
 // ── Monthly Calendar ────────────────────────────────────────────
 
+/**
+ * Monthly calendar grid.
+ * currentMonth is 1-based (1=January, 12=December) matching the backend API.
+ */
 @Composable
 private fun MonthlyCalendar(
     selectedDate: String,
@@ -206,8 +219,8 @@ private fun MonthlyCalendar(
 
     val dayHeaders = arrayOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
-    // Calculate days in month
-    cal.set(displayYear, displayMonth, 1)
+    // Calculate days in month (Calendar.MONTH is 0-based, so subtract 1)
+    cal.set(displayYear, displayMonth - 1, 1)
     val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1 // 0 = Sunday
     val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
@@ -235,8 +248,8 @@ private fun MonthlyCalendar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
-                    if (displayMonth == 0) {
-                        displayMonth = 11
+                    if (displayMonth == 1) {
+                        displayMonth = 12
                         displayYear--
                     } else {
                         displayMonth--
@@ -251,14 +264,14 @@ private fun MonthlyCalendar(
                 }
 
                 Text(
-                    text = "${monthNames[displayMonth]} $displayYear",
+                    text = "${monthNames[displayMonth - 1]} $displayYear",
                     style = PaceDreamTypography.Headline,
                     color = PaceDreamColors.TextPrimary
                 )
 
                 IconButton(onClick = {
-                    if (displayMonth == 11) {
-                        displayMonth = 0
+                    if (displayMonth == 12) {
+                        displayMonth = 1
                         displayYear++
                     } else {
                         displayMonth++
@@ -304,7 +317,7 @@ private fun MonthlyCalendar(
                             val dateStr = String.format(
                                 "%04d-%02d-%02d",
                                 displayYear,
-                                displayMonth + 1,
+                                displayMonth,
                                 day
                             )
                             val isSelected = dateStr == selectedDate
@@ -470,10 +483,10 @@ private fun TimeSlotRow(
             }
         }
 
-        // Remove block button
-        if (slot.status == TimeSlotStatus.BLOCKED) {
+        // Remove block button — only show for host-created blocks (have a bookingId = blockId)
+        if (slot.status == TimeSlotStatus.BLOCKED && slot.bookingId != null) {
             IconButton(
-                onClick = { onRemoveBlock(slot.id) },
+                onClick = { onRemoveBlock(slot.bookingId) },
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(

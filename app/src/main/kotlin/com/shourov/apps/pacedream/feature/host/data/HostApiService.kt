@@ -149,6 +149,52 @@ interface HostApiService {
     suspend fun getHostAnalytics(
         @Query("timeRange") timeRange: String? = null
     ): Response<HostAnalyticsData>
+
+    // ── Calendar / Availability (backend source of truth) ───────────
+
+    /** Host: get calendar with bookings, blocks, holds overlay for a month */
+    @GET(ApiEndPoints.HOST_LISTING_CALENDAR)
+    suspend fun getListingCalendar(
+        @Path("listingId") listingId: String,
+        @Query("month") month: Int,
+        @Query("year") year: Int
+    ): Response<ListingCalendarResponse>
+
+    /** Host: create a blocked time range on a listing */
+    @POST(ApiEndPoints.HOST_BLOCK_TIME)
+    suspend fun blockListingTime(
+        @Path("listingId") listingId: String,
+        @Body body: BlockTimeRequest
+    ): Response<BlockTimeResponse>
+
+    /** Host: remove a blocked time range */
+    @DELETE(ApiEndPoints.HOST_REMOVE_BLOCK)
+    suspend fun removeListingBlock(
+        @Path("listingId") listingId: String,
+        @Path("blockId") blockId: String
+    ): Response<GenericSuccessResponse>
+
+    /** Host: update listing availability (dateRange + blocks) */
+    @PATCH(ApiEndPoints.HOST_UPDATE_AVAILABILITY)
+    suspend fun updateListingAvailability(
+        @Path("listingId") listingId: String,
+        @Body body: UpdateAvailabilityRequest
+    ): Response<JsonElement>
+
+    /** Guest/public: check if a specific time range is available */
+    @POST(ApiEndPoints.CHECK_AVAILABILITY)
+    suspend fun checkAvailability(
+        @Path("listingId") listingId: String,
+        @Body body: CheckAvailabilityRequest
+    ): Response<CheckAvailabilityResponse>
+
+    /** Guest/public: get monthly availability calendar */
+    @GET(ApiEndPoints.GET_LISTING_AVAILABILITY_CALENDAR)
+    suspend fun getAvailabilityCalendar(
+        @Path("listingId") listingId: String,
+        @Query("month") month: Int,
+        @Query("year") year: Int
+    ): Response<JsonElement>
 }
 
 // ── Request/Response Models (iOS parity) ────────────────────────
@@ -640,4 +686,120 @@ data class AvailabilityPayload(
 data class DateRangePayload(
     val startDate: String? = null,
     val endDate: String? = null,
+)
+
+// ── Calendar / Availability DTOs (backend contract) ────────────
+
+/** Response from GET /host/listings/:id/calendar */
+data class ListingCalendarResponse(
+    val success: Boolean = false,
+    val data: ListingCalendarData? = null
+)
+
+data class ListingCalendarData(
+    val availability: AvailabilityData? = null,
+    val bookings: List<CalendarBookingOverlay> = emptyList(),
+    val holds: List<CalendarHoldOverlay> = emptyList(),
+    val blocks: List<BackendBlock> = emptyList()
+)
+
+data class AvailabilityData(
+    val timezone: String = "America/New_York",
+    @SerializedName("start_time")
+    val startTime: String = "09:00",
+    @SerializedName("end_time")
+    val endTime: String = "17:00",
+    @SerializedName("available_days")
+    val availableDays: List<Int> = listOf(1, 2, 3, 4, 5),
+    val dateRange: DateRangePayload? = null,
+    @SerializedName("instant_booking")
+    val instantBooking: Boolean = false
+)
+
+data class CalendarBookingOverlay(
+    @SerializedName(value = "id", alternate = ["_id"])
+    val id: String = "",
+    val status: String? = null,
+    @SerializedName(value = "check_in", alternate = ["checkIn", "startDate"])
+    val checkIn: String? = null,
+    @SerializedName(value = "check_out", alternate = ["checkOut", "endDate"])
+    val checkOut: String? = null,
+    @SerializedName(value = "guest_id")
+    val guestId: String? = null,
+    val guestName: String? = null
+)
+
+data class CalendarHoldOverlay(
+    val id: String = "",
+    val status: String = "",
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val expiresAt: String? = null
+)
+
+/** A blocked time range as stored on the backend */
+data class BackendBlock(
+    val id: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val reason: String = "",
+    val repeat: String = "none",
+    val createdAt: String? = null
+)
+
+/** Request body for POST /host/listings/:id/calendar/block */
+data class BlockTimeRequest(
+    val startDate: String,
+    val endDate: String,
+    val startTime: String? = null,
+    val endTime: String? = null,
+    val reason: String = "personal",
+    val repeat: String = "none"
+)
+
+/** Response from POST /host/listings/:id/calendar/block */
+data class BlockTimeResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val data: BackendBlock? = null
+)
+
+/** Generic success response */
+data class GenericSuccessResponse(
+    val success: Boolean = false,
+    val message: String? = null
+)
+
+/** Request body for PATCH /host/listings/:id/availability */
+data class UpdateAvailabilityRequest(
+    val dateRange: DateRangePayload? = null,
+    val blocks: List<BackendBlock> = emptyList()
+)
+
+/** Request body for POST /listings/:id/check-availability */
+data class CheckAvailabilityRequest(
+    val startDate: String,
+    val endDate: String
+)
+
+/** Response from POST /listings/:id/check-availability */
+data class CheckAvailabilityResponse(
+    val status: Boolean = false,
+    val data: CheckAvailabilityData? = null
+)
+
+data class CheckAvailabilityData(
+    val available: Boolean = false,
+    val reason: String? = null,
+    val listing: CheckAvailabilityListingInfo? = null
+)
+
+data class CheckAvailabilityListingInfo(
+    val bookable: Boolean = false,
+    val status: String? = null,
+    val moderationStatus: String? = null,
+    val timezone: String? = null,
+    val blockedDates: List<BackendBlock> = emptyList()
 )

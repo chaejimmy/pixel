@@ -1108,6 +1108,132 @@ class HostRepository @Inject constructor(
         return body
     }
 
+    // ── Calendar / Availability (backend source of truth) ──────
+
+    /**
+     * Fetch the host calendar for a listing from the backend.
+     * Returns availability settings, bookings overlay, holds, and blocked time ranges.
+     * This is the source of truth — never derive availability locally.
+     */
+    suspend fun getListingCalendar(
+        listingId: String,
+        month: Int,
+        year: Int
+    ): Result<ListingCalendarData> = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("Fetching listing calendar: listingId=%s month=%d year=%d", listingId, month, year)
+            val response = hostApiService.getListingCalendar(listingId, month, year)
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+                if (data != null) {
+                    Timber.d(
+                        "Calendar loaded: %d bookings, %d blocks, %d holds",
+                        data.bookings.size, data.blocks.size, data.holds.size
+                    )
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Empty calendar response"))
+                }
+            } else {
+                Timber.w("Listing calendar failed [%d]", response.code())
+                Result.failure(Exception("Failed to load calendar: HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Listing calendar fetch exception")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Create a blocked time range on a listing via backend.
+     * Backend validates no overlap with active bookings (returns 409 on conflict).
+     */
+    suspend fun blockListingTime(
+        listingId: String,
+        request: BlockTimeRequest
+    ): Result<BackendBlock> = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("Blocking time: listingId=%s %s to %s", listingId, request.startDate, request.endDate)
+            val response = hostApiService.blockListingTime(listingId, request)
+            if (response.isSuccessful) {
+                val block = response.body()?.data
+                if (block != null) {
+                    Timber.d("Block created: id=%s", block.id)
+                    Result.success(block)
+                } else {
+                    Result.failure(Exception("Empty block response"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMsg = when (response.code()) {
+                    409 -> "Cannot block time that overlaps with an active booking"
+                    else -> "Failed to block time: HTTP ${response.code()}"
+                }
+                Timber.w("Block time failed [%d]: %s", response.code(), errorBody)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Block time exception")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Remove a blocked time range from a listing via backend.
+     */
+    suspend fun removeListingBlock(
+        listingId: String,
+        blockId: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("Removing block: listingId=%s blockId=%s", listingId, blockId)
+            val response = hostApiService.removeListingBlock(listingId, blockId)
+            if (response.isSuccessful) {
+                Timber.d("Block removed successfully")
+                Result.success(Unit)
+            } else {
+                Timber.w("Remove block failed [%d]", response.code())
+                Result.failure(Exception("Failed to remove block: HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Remove block exception")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Check availability for a specific time range on a listing.
+     * This is the guest-facing availability check — backend source of truth.
+     */
+    suspend fun checkAvailability(
+        listingId: String,
+        startDate: String,
+        endDate: String
+    ): Result<CheckAvailabilityData> = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("Checking availability: listingId=%s %s to %s", listingId, startDate, endDate)
+            val response = hostApiService.checkAvailability(
+                listingId,
+                CheckAvailabilityRequest(startDate = startDate, endDate = endDate)
+            )
+            if (response.isSuccessful) {
+                val data = response.body()?.data
+                if (data != null) {
+                    Timber.d("Availability check: available=%s reason=%s", data.available, data.reason)
+                    Result.success(data)
+                } else {
+                    Result.failure(Exception("Empty availability check response"))
+                }
+            } else {
+                Timber.w("Availability check failed [%d]", response.code())
+                Result.failure(Exception("Failed to check availability: HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Availability check exception")
+            Result.failure(e)
+        }
+    }
+
     // ── Revenue (iOS: HostDashboardService.getRevenue) ──────────
 
     suspend fun getRevenue(period: String = "30d"): Result<HostRevenueResponse> = withContext(Dispatchers.IO) {

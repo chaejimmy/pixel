@@ -165,6 +165,52 @@ class BookingFormViewModel @Inject constructor(
             // Lock submission state
             _uiState.value = currentState.copy(isSubmitting = true, error = null)
 
+            // ── Step 1: Check availability with backend (source of truth) ──
+            // Build ISO date-times for check-availability endpoint
+            val startDateTime = "${currentState.startDate}T${currentState.startTime}:00Z"
+            val endDateTime = if (currentState.endTime.isNotEmpty()) {
+                "${currentState.endDate.ifEmpty { currentState.startDate }}T${currentState.endTime}:00Z"
+            } else {
+                startDateTime
+            }
+
+            val availResult = bookingRepository.checkAvailability(
+                listingId = currentState.propertyId,
+                startDate = startDateTime,
+                endDate = endDateTime
+            )
+
+            when (availResult) {
+                is Result.Success -> {
+                    val check = availResult.data
+                    if (!check.available) {
+                        _uiState.value = _uiState.value.copy(
+                            isSubmitting = false,
+                            error = check.displayReason
+                        )
+                        return@launch
+                    }
+                    if (!check.listingBookable) {
+                        _uiState.value = _uiState.value.copy(
+                            isSubmitting = false,
+                            error = "This listing is not currently accepting bookings"
+                        )
+                        return@launch
+                    }
+                }
+                is Result.Error -> {
+                    // If availability check fails, still proceed with booking creation
+                    // so the backend can enforce its own validation (defense in depth).
+                    // Log but don't block the user.
+                    timber.log.Timber.w(
+                        availResult.exception,
+                        "Availability pre-check failed, proceeding with booking creation"
+                    )
+                }
+                is Result.Loading -> { /* No-op */ }
+            }
+
+            // ── Step 2: Create booking ──
             val user = authSession.currentUser.value
             val userId = user?.id.orEmpty()
 

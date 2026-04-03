@@ -107,6 +107,22 @@ object ApiEndPoints {
     const val CREATE_LISTING = "listings" // iOS: POST /listings with Bearer auth
     const val GET_LISTING_BY_ID = "listings/{listingId}"
 
+    // ── Availability / Calendar (backend source of truth) ──
+    /** POST body: { startDate, endDate } → { available, reason, listing } */
+    const val CHECK_AVAILABILITY = "listings/{listingId}/check-availability"
+    /** GET ?startDate=&endDate= → availability slots + bookings + holds overlay */
+    const val GET_LISTING_AVAILABILITY = "listings/{listingId}/availability"
+    /** GET ?month=&year= → monthly calendar with bookable status */
+    const val GET_LISTING_AVAILABILITY_CALENDAR = "listings/{listingId}/availability/calendar"
+    /** GET ?month=&year= → host calendar with bookings, blocks, holds */
+    const val HOST_LISTING_CALENDAR = "host/listings/{listingId}/calendar"
+    /** POST body: { startDate, endDate, startTime?, endTime?, reason, repeat } */
+    const val HOST_BLOCK_TIME = "host/listings/{listingId}/calendar/block"
+    /** DELETE → remove a specific block */
+    const val HOST_REMOVE_BLOCK = "host/listings/{listingId}/calendar/block/{blockId}"
+    /** PATCH body: { dateRange, blocks } → update listing availability settings */
+    const val HOST_UPDATE_AVAILABILITY = "host/listings/{listingId}/availability"
+
     // ── Host (iOS parity) ─────────────────────────────────
     const val HOST_DASHBOARD_OVERVIEW = "hosts/dashboard/overview"
     const val HOST_DASHBOARD_ANALYTICS = "hosts/dashboard/analytics"
