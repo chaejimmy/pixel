@@ -41,6 +41,7 @@ data class Property(
     val reviewCount: Int = 0,
     val amenities: List<String> = emptyList(),
     val isAvailable: Boolean = true,
+    val status: String = "",
     val propertyType: String = "",
     val bedrooms: Int = 0,
     val bathrooms: Int = 0,

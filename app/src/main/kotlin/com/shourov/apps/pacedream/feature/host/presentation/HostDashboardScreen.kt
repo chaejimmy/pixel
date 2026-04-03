@@ -110,6 +110,7 @@ fun HostDashboardScreen(
             item {
                 SummaryCard(
                     activeListings = uiState.activeListingsCount,
+                    underReviewListings = uiState.underReviewListingsCount,
                     upcomingBookings = uiState.upcomingBookingsCount,
                     pendingRequests = uiState.pendingRequestsCount,
                     monthlyEarnings = uiState.monthlyEarnings,
@@ -130,10 +131,10 @@ fun HostDashboardScreen(
                 )
             }
 
-            // Determine if the host is brand new (nothing to show)
+            // Determine if the host is brand new (no listings at all, not just active)
             val isNewHost = uiState.hasLoaded &&
+                !uiState.hasAnyListings &&
                 uiState.topUpcomingBookings.isEmpty() &&
-                uiState.topActiveListings.isEmpty() &&
                 uiState.recentEvents.isEmpty()
 
             if (isNewHost && uiState.error == null) {
@@ -155,10 +156,10 @@ fun HostDashboardScreen(
                     )
                 }
 
-                // ── Your Listings ──
+                // ── Your Listings (show all listings, not just active)
                 item {
                     YourListingsSection(
-                        listings = uiState.topActiveListings,
+                        listings = uiState.listings.take(5),
                         isLoading = uiState.isLoading && !uiState.hasLoaded,
                         onListingClick = onListingClick,
                         onViewAllClick = onViewAllListings,
@@ -255,6 +256,7 @@ private fun DashboardHeader(
 @Composable
 private fun SummaryCard(
     activeListings: Int,
+    underReviewListings: Int,
     upcomingBookings: Int,
     pendingRequests: Int,
     monthlyEarnings: Double,
@@ -275,18 +277,18 @@ private fun SummaryCard(
                     modifier = Modifier.weight(1f)
                 )
                 SummaryMetric(
-                    icon = PaceDreamIcons.CalendarToday,
-                    value = "$upcomingBookings",
-                    label = "Upcoming",
+                    icon = PaceDreamIcons.Schedule,
+                    value = "$underReviewListings",
+                    label = "Under review",
                     modifier = Modifier.weight(1f)
                 )
             }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Row(modifier = Modifier.fillMaxWidth()) {
                 SummaryMetric(
-                    icon = PaceDreamIcons.Schedule,
-                    value = "$pendingRequests",
-                    label = "Pending",
+                    icon = PaceDreamIcons.CalendarToday,
+                    value = "$upcomingBookings",
+                    label = "Upcoming",
                     modifier = Modifier.weight(1f)
                 )
                 SummaryMetric(

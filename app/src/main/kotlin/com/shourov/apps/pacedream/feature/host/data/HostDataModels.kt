@@ -38,6 +38,11 @@ data class HostDashboardData(
 
     val activeListingsCount: Int get() = activeListings
 
+    val underReviewListingsCount: Int get() = listings.count { listing ->
+        val s = listing.status.trim().lowercase()
+        s == "pending_review" || s == "pending" || s == "under_review" || s == "in_review"
+    }
+
     val pendingRequestsCount: Int get() = bookings.count { booking ->
         isPendingStatus(booking.status)
     }
@@ -70,6 +75,9 @@ data class HostDashboardData(
 
     val topActiveListings: List<Property> get() =
         listings.filter { it.isAvailable }.take(5)
+
+    /** All listings regardless of status — used for "new host" detection */
+    val hasAnyListings: Boolean get() = listings.isNotEmpty()
 
     // ── History events (iOS parity: DashboardEvent) ──────────
 
