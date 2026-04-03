@@ -210,35 +210,40 @@ class AccountSettingsRepository @Inject constructor(
     // region Notifications
 
     /**
-     * Notification settings matching iOS NotificationSettings model (iOS parity).
+     * Notification settings matching backend NotificationPreference model.
      *
-     * iOS has: emailNotifications, pushNotifications, smsNotifications,
-     * marketingNotifications, bookingNotifications, messageNotifications,
-     * reviewNotifications, friendRequestNotifications, systemNotifications,
-     * quietHours (with start/end/timezone).
+     * Backend fields: emailEnabled, pushEnabled, messages, instantMessages,
+     * bookingUpdates, bookingAlerts, marketingEnabled, productUpdatesEnabled,
+     * quietHoursStart, quietHoursEnd, tz.
+     *
+     * Additional Android-only fields (reviewNotifications, friendRequestNotifications,
+     * systemNotifications, smsNotifications) are persisted locally only until
+     * backend support is added.
      */
     @Serializable
     data class NotificationSettings(
-        val emailGeneral: Boolean = false,
-        val pushGeneral: Boolean = false,
-        val messageNotifications: Boolean = false,
-        val bookingUpdates: Boolean = false,
-        val bookingAlerts: Boolean = false,
-        val marketingPromotions: Boolean = false,
-        // iOS parity: additional notification categories
+        @SerialName("emailEnabled") val emailGeneral: Boolean = true,
+        @SerialName("pushEnabled") val pushGeneral: Boolean = true,
+        @SerialName("messages") val messageNotifications: Boolean = true,
+        val bookingUpdates: Boolean = true,
+        val bookingAlerts: Boolean = true,
+        @SerialName("marketingEnabled") val marketingPromotions: Boolean = false,
+        @SerialName("instantMessages") val instantMessages: Boolean = true,
+        @SerialName("productUpdatesEnabled") val productUpdatesEnabled: Boolean = true,
+        // Android-only fields (not in backend yet — persisted locally)
         val reviewNotifications: Boolean = true,
         val friendRequestNotifications: Boolean = true,
         val systemNotifications: Boolean = true,
         val smsNotifications: Boolean = false,
-        // iOS parity: quiet hours
+        // Quiet hours
         val quietHoursEnabled: Boolean = false,
-        val quietHoursStart: String? = null,
-        val quietHoursEnd: String? = null,
-        val quietHoursTimezone: String? = null
+        val quietHoursStart: String? = "22:00",
+        val quietHoursEnd: String? = "08:00",
+        @SerialName("tz") val quietHoursTimezone: String? = null
     )
 
     suspend fun getNotificationSettings(): ApiResult<NotificationSettings> {
-        val url = appConfig.buildFrontendUrl("api", "proxy", "account", "notifications")
+        val url = appConfig.buildApiUrl("notification-preferences")
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
@@ -263,9 +268,9 @@ class AccountSettingsRepository @Inject constructor(
     }
 
     suspend fun updateNotificationSettings(settings: NotificationSettings): ApiResult<NotificationSettings> {
-        val url = appConfig.buildFrontendUrl("api", "proxy", "account", "notifications")
+        val url = appConfig.buildApiUrl("notification-preferences")
         val body = json.encodeToString(NotificationSettings.serializer(), settings)
-        return when (val result = apiClient.put(url, body, includeAuth = true)) {
+        return when (val result = apiClient.patch(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
                     val envelope = json.decodeFromString(Envelope.serializer(NotificationSettings.serializer()), result.data)

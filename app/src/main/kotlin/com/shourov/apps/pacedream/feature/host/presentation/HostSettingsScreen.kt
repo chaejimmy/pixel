@@ -36,8 +36,7 @@ fun HostSettingsScreen(
     onNotificationsClick: () -> Unit = {},
     onHelpClick: () -> Unit = {}
 ) {
-    val sections = remember {
-        listOf(
+    val sections = listOf(
             SettingsSection(
                 title = "Management",
                 items = listOf(
@@ -96,7 +95,6 @@ fun HostSettingsScreen(
                 )
             )
         )
-    }
 
     Scaffold(
         topBar = {

@@ -177,7 +177,28 @@ fun NavGraphBuilder.HostNavigationGraph(
             onPaymentSetupClick = { navController.navigate(HostScreen.PaymentSetup.route) },
             onEarningsClick = { navController.navigate(HostScreen.Earnings.route) },
             onBookingsClick = { navController.navigate(HostScreen.Bookings.route) },
-            onListingsClick = { navController.navigate(HostScreen.Listings.route) }
+            onListingsClick = { navController.navigate(HostScreen.Listings.route) },
+            onNotificationsClick = { navController.navigate(HostScreen.Notifications.route) },
+            onHelpClick = { navController.navigate(HostScreen.HelpSupport.route) }
+        )
+    }
+
+    composable(HostScreen.Notifications.route) {
+        com.pacedream.app.feature.settings.notifications.SettingsNotificationsScreen(
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    composable(HostScreen.HelpSupport.route) {
+        com.pacedream.app.feature.settings.help.SettingsHelpSupportScreen(
+            onBackClick = { navController.popBackStack() },
+            onOpenFaq = { navController.navigate("host_faq") }
+        )
+    }
+
+    composable("host_faq") {
+        com.pacedream.app.feature.faq.FAQScreen(
+            onBackClick = { navController.popBackStack() }
         )
     }
 
