@@ -58,8 +58,7 @@ class ThreadViewModel @Inject constructor(
     
     private var threadId: String = ""
     private var beforeCursor: String? = null
-    // Cache user ID to avoid repeated EncryptedSharedPreferences reads on the main thread
-    private val currentUserId: String? = tokenStorage.userId
+    private val currentUserId: String? get() = tokenStorage.userId
     // Track temp message IDs for deduplication (iOS PR #205 parity)
     private val pendingTempIds = mutableSetOf<String>()
     private val idempotencyKeyByTempId = mutableMapOf<String, String>()
