@@ -336,22 +336,40 @@ class BookingRepository @Inject constructor(
          * User-friendly message for the unavailability reason.
          * Maps backend reason codes to display strings.
          */
+        /**
+         * User-friendly message for the unavailability reason.
+         * Maps ALL backend reason codes from checkFullAvailability() to display strings.
+         *
+         * Backend reason codes (availabilityService.js):
+         *   LISTING_NOT_FOUND, LISTING_DELETED, LISTING_SNOOZED, LISTING_ARCHIVED,
+         *   LISTING_HIDDEN, LISTING_STATUS_NOT_BOOKABLE:{status},
+         *   MODERATION_STATUS_NOT_BOOKABLE:{status}, INVALID_DATE_FORMAT,
+         *   END_BEFORE_START, START_IN_PAST, DURATION_TOO_SHORT:min={X}m,
+         *   DURATION_TOO_LONG:max={X}m, BEFORE_AVAILABILITY_START,
+         *   AFTER_AVAILABILITY_END, BLOCKED_PERIOD:{dates}, DAY_NOT_AVAILABLE:{date},
+         *   BOOKING_CONFLICT, HOLD_CONFLICT
+         */
         val displayReason: String get() = when {
             available -> ""
             reason == null -> "This time is not available"
             reason == "BOOKING_CONFLICT" -> "This time overlaps with an existing booking"
             reason == "HOLD_CONFLICT" -> "This time is being held for another checkout"
+            reason == "LISTING_NOT_FOUND" -> "This listing could not be found"
             reason == "LISTING_SNOOZED" -> "This listing is currently paused"
             reason == "LISTING_ARCHIVED" -> "This listing is no longer available"
             reason == "LISTING_DELETED" -> "This listing has been removed"
-            reason == "DURATION_TOO_SHORT" -> "Booking duration is too short (minimum 15 minutes)"
-            reason == "DURATION_TOO_LONG" -> "Booking duration is too long (maximum 30 days)"
+            reason == "LISTING_HIDDEN" -> "This listing is not currently visible"
+            reason == "INVALID_DATE_FORMAT" -> "Invalid date format"
+            reason == "END_BEFORE_START" -> "End time must be after start time"
             reason == "START_IN_PAST" -> "Cannot book in the past"
             reason == "BEFORE_AVAILABILITY_START" -> "This date is before the listing's available dates"
             reason == "AFTER_AVAILABILITY_END" -> "This date is after the listing's available dates"
+            reason.startsWith("DURATION_TOO_SHORT") -> "Booking duration is too short (minimum 15 minutes)"
+            reason.startsWith("DURATION_TOO_LONG") -> "Booking duration is too long (maximum 30 days)"
             reason.startsWith("BLOCKED_PERIOD") -> "This time is blocked by the host"
             reason.startsWith("DAY_NOT_AVAILABLE") -> "This day is not available for booking"
             reason.startsWith("LISTING_STATUS_NOT_BOOKABLE") -> "This listing is not currently accepting bookings"
+            reason.startsWith("MODERATION_STATUS_NOT_BOOKABLE") -> "This listing is pending moderation review"
             !listingBookable -> "This listing is not available for booking"
             else -> "This time is not available: $reason"
         }

@@ -690,17 +690,57 @@ data class DateRangePayload(
 
 // ── Calendar / Availability DTOs (backend contract) ────────────
 
-/** Response from GET /host/listings/:id/calendar */
+/**
+ * Response from GET /host/listings/:id/calendar
+ *
+ * Backend returns a `days` map keyed by "YYYY-MM-DD" date strings,
+ * each containing that day's status, bookings, and blocks.
+ * NOT flat arrays — must be parsed as Map.
+ */
 data class ListingCalendarResponse(
     val success: Boolean = false,
     val data: ListingCalendarData? = null
 )
 
 data class ListingCalendarData(
-    val availability: AvailabilityData? = null,
-    val bookings: List<CalendarBookingOverlay> = emptyList(),
-    val holds: List<CalendarHoldOverlay> = emptyList(),
-    val blocks: List<BackendBlock> = emptyList()
+    val listingId: String = "",
+    val listingTitle: String = "",
+    val month: Int = 0,
+    val year: Int = 0,
+    /** Map of "YYYY-MM-DD" → day data with status, bookings, blocks */
+    val days: Map<String, CalendarDayData> = emptyMap(),
+    /** Raw availability settings from the listing (snake_case from MongoDB) */
+    val availability: AvailabilityData? = null
+)
+
+/** Per-day data within the calendar `days` map */
+data class CalendarDayData(
+    val date: String = "",
+    /** Day-level status: "available", "blocked", "booked", "pending" */
+    val status: String = "available",
+    /** Bookings overlapping this day (only ACTIVE statuses from backend) */
+    val bookings: List<CalendarDayBooking> = emptyList(),
+    /** Blocked time ranges overlapping this day */
+    val blocks: List<CalendarDayBlock> = emptyList()
+)
+
+/** A booking entry within a calendar day */
+data class CalendarDayBooking(
+    val id: String = "",
+    /** ISO date-time string (serialized from Date) */
+    val startTime: String? = null,
+    /** ISO date-time string (serialized from Date) */
+    val endTime: String? = null,
+    val status: String? = null
+)
+
+/** A block entry within a calendar day */
+data class CalendarDayBlock(
+    val id: String = "",
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val reason: String? = null,
+    val repeat: String? = null
 )
 
 data class AvailabilityData(
@@ -714,27 +754,6 @@ data class AvailabilityData(
     val dateRange: DateRangePayload? = null,
     @SerializedName("instant_booking")
     val instantBooking: Boolean = false
-)
-
-data class CalendarBookingOverlay(
-    @SerializedName(value = "id", alternate = ["_id"])
-    val id: String = "",
-    val status: String? = null,
-    @SerializedName(value = "check_in", alternate = ["checkIn", "startDate"])
-    val checkIn: String? = null,
-    @SerializedName(value = "check_out", alternate = ["checkOut", "endDate"])
-    val checkOut: String? = null,
-    @SerializedName(value = "guest_id")
-    val guestId: String? = null,
-    val guestName: String? = null
-)
-
-data class CalendarHoldOverlay(
-    val id: String = "",
-    val status: String = "",
-    val startTime: String? = null,
-    val endTime: String? = null,
-    val expiresAt: String? = null
 )
 
 /** A blocked time range as stored on the backend */

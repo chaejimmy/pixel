@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.host.data.*
-import com.shourov.apps.pacedream.model.BookingStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -68,20 +67,8 @@ class ListingCalendarViewModel @Inject constructor(
             try {
                 val state = _uiState.value
 
-                // Also fetch listing title from dashboard if we don't have it
-                val listingTitle = if (state.listingTitle.isBlank()) {
-                    try {
-                        val dashResult = hostRepository.loadDashboard()
-                        dashResult.listings.find { it.id == listingId }?.title ?: ""
-                    } catch (e: Exception) {
-                        Timber.d(e, "Failed to load listing title (non-fatal)")
-                        ""
-                    }
-                } else {
-                    state.listingTitle
-                }
-
                 // Fetch calendar from backend — this is the source of truth
+                // Backend returns listingTitle directly in the response
                 val result = hostRepository.getListingCalendar(
                     listingId = listingId,
                     month = state.currentMonth,
@@ -97,8 +84,11 @@ class ListingCalendarViewModel @Inject constructor(
                             listingTimezone = TimeZone.getTimeZone(tz)
                         }
 
+                        // Use listingTitle from backend response (falls back to current value)
+                        val title = data.listingTitle.ifBlank { state.listingTitle }
+
                         _uiState.value = state.copy(
-                            listingTitle = listingTitle,
+                            listingTitle = title,
                             listingTimezone = data.availability?.timezone ?: "America/New_York",
                             availableStartTime = data.availability?.startTime ?: "09:00",
                             availableEndTime = data.availability?.endTime ?: "17:00",
@@ -110,12 +100,11 @@ class ListingCalendarViewModel @Inject constructor(
                         rebuildDaySlots()
                         rebuildEventDates()
                     },
-                    onFailure = { error ->
-                        Timber.e(error, "Failed to load calendar from backend")
+                    onFailure = { err ->
+                        Timber.e(err, "Failed to load calendar from backend")
                         _uiState.value = state.copy(
-                            listingTitle = listingTitle,
                             isLoading = false,
-                            error = error.message ?: "Failed to load calendar"
+                            error = err.message ?: "Failed to load calendar"
                         )
                     }
                 )
@@ -246,21 +235,23 @@ class ListingCalendarViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // ── Slot Generation (from backend data) ────────────────────
+    // ── Slot Generation (from backend days map) ──────────────
 
     /**
-     * Rebuild time slots for the selected date using backend calendar data.
-     * Time slots reflect:
-     *   - Bookings with ACTIVE status (backend ACTIVE_BOOKING_STATUSES)
-     *   - Blocked time ranges from backend
-     *   - Holds (active booking holds)
-     *   - Listing available hours and available days
+     * Rebuild time slots for the selected date using the backend `days` map.
+     *
+     * Backend returns: data.days["2026-04-03"] = { date, status, bookings[], blocks[] }
+     * Each day already has its bookings/blocks pre-filtered by the backend.
+     *
+     * Slot generation also considers listing availability settings
+     * (available_days, start_time, end_time) for showing off-hours/unavailable days.
      */
     private fun rebuildDaySlots() {
         val data = calendarData ?: return
         val selectedDate = _uiState.value.selectedDate
         if (selectedDate.isBlank()) return
 
+        val dayData = data.days[selectedDate]
         val slots = mutableListOf<CalendarTimeSlot>()
 
         // Check if this day is an available day (0=Sun, 6=Sat)
@@ -274,6 +265,9 @@ class ListingCalendarViewModel @Inject constructor(
         val availStartMin = timeToMinutes(availStart)
         val availEndMin = timeToMinutes(availEnd)
 
+        // Backend day-level status (pre-computed): "available", "blocked", "booked", "pending"
+        val dayStatus = dayData?.status ?: "available"
+
         // Generate hourly slots from 00:00 to 23:00
         for (hour in 0..23) {
             val startTime = String.format("%02d:00", hour)
@@ -281,10 +275,9 @@ class ListingCalendarViewModel @Inject constructor(
             val endLabel = if (hour == 23) "00:00" else endTime
             val slotMinutes = hour * 60
 
-            // Check backend data for this slot
-            val matchingBooking = findBookingForSlot(data, selectedDate, slotMinutes)
-            val matchingBlock = findBlockForSlot(data, selectedDate, slotMinutes)
-            val matchingHold = findHoldForSlot(data, selectedDate, slotMinutes)
+            // Check this day's bookings and blocks from backend
+            val matchingBooking = findBookingForSlot(dayData, slotMinutes)
+            val matchingBlock = findBlockForSlot(dayData, slotMinutes)
 
             val status: TimeSlotStatus
             val label: String
@@ -294,20 +287,14 @@ class ListingCalendarViewModel @Inject constructor(
                 // Active booking takes priority
                 matchingBooking != null -> {
                     status = TimeSlotStatus.BOOKED
-                    label = matchingBooking.guestName ?: "Booked"
+                    label = "Booked (${matchingBooking.status ?: ""})"
                     bookingId = matchingBooking.id
                 }
                 // Blocked time range
                 matchingBlock != null -> {
                     status = TimeSlotStatus.BLOCKED
-                    label = matchingBlock.reason.ifBlank { "Blocked" }
+                    label = matchingBlock.reason?.ifBlank { "Blocked" } ?: "Blocked"
                     bookingId = matchingBlock.id // Use block ID for removal
-                }
-                // Active hold
-                matchingHold != null -> {
-                    status = TimeSlotStatus.BOOKED
-                    label = "Hold (checkout in progress)"
-                    bookingId = null
                 }
                 // Not an available day
                 !isDayAvailable -> {
@@ -319,6 +306,12 @@ class ListingCalendarViewModel @Inject constructor(
                 slotMinutes < availStartMin || slotMinutes >= availEndMin -> {
                     status = TimeSlotStatus.BLOCKED
                     label = "Outside hours"
+                    bookingId = null
+                }
+                // Backend says day is blocked
+                dayStatus == "blocked" -> {
+                    status = TimeSlotStatus.BLOCKED
+                    label = "Blocked"
                     bookingId = null
                 }
                 else -> {
@@ -344,24 +337,17 @@ class ListingCalendarViewModel @Inject constructor(
     }
 
     /**
-     * Find an active booking that covers this slot.
-     * Only considers bookings with ACTIVE statuses (backend source of truth).
+     * Find a booking in this day's data that covers the given slot.
+     * Backend already filters to only active bookings for the calendar.
      */
     private fun findBookingForSlot(
-        data: ListingCalendarData,
-        date: String,
+        dayData: CalendarDayData?,
         slotMinutes: Int
-    ): CalendarBookingOverlay? {
-        return data.bookings.find { booking ->
-            // Only active bookings block availability
-            val bookingStatus = BookingStatus.fromString(booking.status)
-            if (!bookingStatus.isActive) return@find false
-
-            val bookingDate = extractDate(booking.checkIn)
-            if (bookingDate != date) return@find false
-
-            val bStart = extractTime(booking.checkIn)
-            val bEnd = extractTime(booking.checkOut)
+    ): CalendarDayBooking? {
+        if (dayData == null) return null
+        return dayData.bookings.find { booking ->
+            val bStart = extractTime(booking.startTime)
+            val bEnd = extractTime(booking.endTime)
             if (bStart == null || bEnd == null) return@find false
 
             val bStartMin = timeToMinutes(bStart)
@@ -371,80 +357,45 @@ class ListingCalendarViewModel @Inject constructor(
     }
 
     /**
-     * Find a blocked time range that covers this slot.
-     * Backend blocks have startDate/endDate range and optional startTime/endTime.
+     * Find a block in this day's data that covers the given slot.
+     * Backend pre-expands blocks per day, so we just check time range.
      */
     private fun findBlockForSlot(
-        data: ListingCalendarData,
-        date: String,
+        dayData: CalendarDayData?,
         slotMinutes: Int
-    ): BackendBlock? {
-        return data.blocks.find { block ->
-            // Check date range (inclusive)
-            if (date < block.startDate || date > block.endDate) return@find false
+    ): CalendarDayBlock? {
+        if (dayData == null) return null
+        return dayData.blocks.find { block ->
+            // If block has no time fields, it's a full-day block
+            val startStr = block.startDate ?: return@find true
+            val endStr = block.endDate ?: return@find true
 
-            // If block has time range, check it; otherwise block covers full day
-            if (block.startTime != null && block.endTime != null) {
-                val bStartMin = timeToMinutes(block.startTime)
-                val bEndMin = timeToMinutes(block.endTime)
-                slotMinutes in bStartMin until bEndMin
-            } else {
-                true // Full-day block
-            }
+            // If startDate/endDate look like date strings (not times), it's a full-day block
+            if (startStr.length > 5) return@find true
+
+            // Otherwise treat as time range
+            val bStartMin = timeToMinutes(startStr)
+            val bEndMin = timeToMinutes(endStr)
+            slotMinutes in bStartMin until bEndMin
         }
     }
 
     /**
-     * Find an active hold that covers this slot.
-     */
-    private fun findHoldForSlot(
-        data: ListingCalendarData,
-        date: String,
-        slotMinutes: Int
-    ): CalendarHoldOverlay? {
-        return data.holds.find { hold ->
-            if (hold.status != "active") return@find false
-            val holdDate = extractDate(hold.startTime)
-            if (holdDate != date) return@find false
-
-            val hStart = extractTime(hold.startTime)
-            val hEnd = extractTime(hold.endTime)
-            if (hStart == null || hEnd == null) return@find false
-
-            val hStartMin = timeToMinutes(hStart)
-            val hEndMin = timeToMinutes(hEnd)
-            slotMinutes in hStartMin until hEndMin
-        }
-    }
-
-    /**
-     * Rebuild the set of dates in the current month that have events (bookings, blocks, holds).
+     * Rebuild the set of dates in the current month that have events.
+     * Uses the backend `days` map — any day with status != "available" or
+     * with bookings/blocks is an event day.
      */
     private fun rebuildEventDates() {
         val data = calendarData ?: return
         val dates = mutableSetOf<String>()
 
-        // Dates with active bookings
-        data.bookings.forEach { booking ->
-            val status = BookingStatus.fromString(booking.status)
-            if (status.isActive) {
-                extractDate(booking.checkIn)?.let { dates.add(it) }
+        data.days.forEach { (dateStr, dayData) ->
+            if (dayData.status != "available" ||
+                dayData.bookings.isNotEmpty() ||
+                dayData.blocks.isNotEmpty()
+            ) {
+                dates.add(dateStr)
             }
-        }
-
-        // Dates with blocks (expand date range)
-        data.blocks.forEach { block ->
-            // Add all dates in the block range that fall in the current month
-            var current = block.startDate
-            while (current <= block.endDate) {
-                dates.add(current)
-                current = incrementDate(current) ?: break
-            }
-        }
-
-        // Dates with active holds
-        data.holds.filter { it.status == "active" }.forEach { hold ->
-            extractDate(hold.startTime)?.let { dates.add(it) }
         }
 
         _uiState.value = _uiState.value.copy(datesWithEvents = dates)
@@ -502,22 +453,4 @@ class ListingCalendarViewModel @Inject constructor(
         return cal.get(Calendar.DAY_OF_WEEK) - 1 // Calendar.SUNDAY=1 → 0
     }
 
-    /** Increment a YYYY-MM-DD date string by one day. */
-    private fun incrementDate(dateStr: String): String? {
-        val parts = dateStr.split("-")
-        if (parts.size != 3) return null
-        val cal = Calendar.getInstance()
-        cal.set(
-            parts[0].toIntOrNull() ?: return null,
-            (parts[1].toIntOrNull() ?: return null) - 1,
-            parts[2].toIntOrNull() ?: return null
-        )
-        cal.add(Calendar.DAY_OF_MONTH, 1)
-        return String.format(
-            "%04d-%02d-%02d",
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.DAY_OF_MONTH)
-        )
-    }
 }
