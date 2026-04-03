@@ -254,10 +254,16 @@ class BookingTabViewModel @Inject constructor(
 
         return when (item.status) {
             BookingStatus.PENDING -> BookingStatusConfig("Pending", BookingFilterCategory.UPCOMING, "yellow")
+            BookingStatus.PENDING_HOST -> BookingStatusConfig("Awaiting Host", BookingFilterCategory.UPCOMING, "yellow")
+            BookingStatus.CREATED -> BookingStatusConfig("Created", BookingFilterCategory.UPCOMING, "yellow")
+            BookingStatus.REQUIRES_CAPTURE -> BookingStatusConfig("Processing", BookingFilterCategory.UPCOMING, "yellow")
             BookingStatus.CONFIRMED -> BookingStatusConfig("Confirmed", BookingFilterCategory.UPCOMING, "blue")
+            BookingStatus.ONGOING -> BookingStatusConfig("Ongoing", BookingFilterCategory.UPCOMING, "blue")
             BookingStatus.COMPLETED -> BookingStatusConfig("Completed", BookingFilterCategory.PAST, "green")
             BookingStatus.CANCELLED -> BookingStatusConfig("Cancelled", BookingFilterCategory.CANCELLED, "red")
             BookingStatus.REJECTED -> BookingStatusConfig("Declined", BookingFilterCategory.CANCELLED, "red")
+            BookingStatus.REFUNDED -> BookingStatusConfig("Refunded", BookingFilterCategory.CANCELLED, "red")
+            BookingStatus.EXPIRED -> BookingStatusConfig("Expired", BookingFilterCategory.CANCELLED, "red")
         }
     }
 

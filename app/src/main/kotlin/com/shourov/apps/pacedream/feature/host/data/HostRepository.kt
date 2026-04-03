@@ -1127,8 +1127,8 @@ class HostRepository @Inject constructor(
                 val data = response.body()?.data
                 if (data != null) {
                     Timber.d(
-                        "Calendar loaded: %d bookings, %d blocks, %d holds",
-                        data.bookings.size, data.blocks.size, data.holds.size
+                        "Calendar loaded: %d days in map",
+                        data.days.size
                     )
                     Result.success(data)
                 } else {
