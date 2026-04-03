@@ -98,7 +98,7 @@ fun HostListingPreviewScreen(
             }
 
             uiState.listing != null -> {
-                val listing = uiState.listing!!
+                val listing = uiState.listing ?: return@Scaffold
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(bottom = 32.dp)

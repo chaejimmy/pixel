@@ -55,7 +55,10 @@ class AuthRepository @Inject constructor(
      */
     suspend fun initiateEmailSignup(email: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "signup", "initiate")
-        val body = """{"email":"$email"}"""
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject { put("email", kotlinx.serialization.json.JsonPrimitive(email)) }
+        )
         return apiClient.post(url, body, includeAuth = false)
     }
 
@@ -65,7 +68,10 @@ class AuthRepository @Inject constructor(
      */
     suspend fun initiateMobileSignup(mobile: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "signup", "send-sms-otp")
-        val body = """{"mobile":"$mobile"}"""
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject { put("mobile", kotlinx.serialization.json.JsonPrimitive(mobile)) }
+        )
         return apiClient.post(url, body, includeAuth = false)
     }
 
@@ -75,7 +81,13 @@ class AuthRepository @Inject constructor(
      */
     suspend fun verifyEmailOtp(email: String, code: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "signup", "verify-email-otp")
-        val body = """{"email":"$email","code":"$code"}"""
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("email", kotlinx.serialization.json.JsonPrimitive(email))
+                put("code", kotlinx.serialization.json.JsonPrimitive(code))
+            }
+        )
         return apiClient.post(url, body, includeAuth = false)
     }
 
@@ -85,7 +97,13 @@ class AuthRepository @Inject constructor(
      */
     suspend fun verifySmsOtp(mobile: String, otp: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "signup", "verify-sms-otp")
-        val body = """{"mobile":"$mobile","otp":"$otp"}"""
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("mobile", kotlinx.serialization.json.JsonPrimitive(mobile))
+                put("otp", kotlinx.serialization.json.JsonPrimitive(otp))
+            }
+        )
         return apiClient.post(url, body, includeAuth = false)
     }
 

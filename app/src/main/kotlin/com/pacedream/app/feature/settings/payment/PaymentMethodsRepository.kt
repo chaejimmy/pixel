@@ -88,11 +88,12 @@ class PaymentMethodsRepository @Inject constructor(
             "default"
         )
 
-        val body = """
-            {
-                "paymentMethodId": "$paymentMethodId"
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("paymentMethodId", kotlinx.serialization.json.JsonPrimitive(paymentMethodId))
             }
-        """.trimIndent()
+        )
 
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {

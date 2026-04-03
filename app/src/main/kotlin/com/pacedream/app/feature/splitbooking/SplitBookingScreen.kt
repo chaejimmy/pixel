@@ -116,19 +116,28 @@ class SplitBookingRepository @Inject constructor(
 ) {
     suspend fun createSplit(bookingId: String, roomId: String?): ApiResult<SplitBookingData> {
         val url = appConfig.buildApiUrl("split-bookings")
-        val body = buildString {
-            append("""{"bookingId":"$bookingId"""")
-            roomId?.let { append(""","roomId":"$it"""") }
-            append("}")
-        }
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("bookingId", kotlinx.serialization.json.JsonPrimitive(bookingId))
+                roomId?.let { put("roomId", kotlinx.serialization.json.JsonPrimitive(it)) }
+            }
+        )
         return parseOne(apiClient.post(url, body, includeAuth = true))
     }
 
     suspend fun getSplit(id: String): ApiResult<SplitBookingData> =
         parseOne(apiClient.get(appConfig.buildApiUrl("split-bookings", id), includeAuth = true))
 
-    suspend fun joinSplit(splitId: String): ApiResult<SplitBookingData> =
-        parseOne(apiClient.post(appConfig.buildApiUrl("split-bookings", "join"), """{"splitId":"$splitId"}""", includeAuth = true))
+    suspend fun joinSplit(splitId: String): ApiResult<SplitBookingData> {
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("splitId", kotlinx.serialization.json.JsonPrimitive(splitId))
+            }
+        )
+        return parseOne(apiClient.post(appConfig.buildApiUrl("split-bookings", "join"), body, includeAuth = true))
+    }
 
     suspend fun declineSplit(splitId: String): ApiResult<SplitBookingData> =
         parseOne(apiClient.post(appConfig.buildApiUrl("split-bookings", splitId, "decline"), "{}", includeAuth = true))

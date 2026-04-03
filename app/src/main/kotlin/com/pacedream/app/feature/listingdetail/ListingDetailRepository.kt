@@ -127,8 +127,8 @@ class ListingDetailRepository @Inject constructor(
             if (parsedLat == null || parsedLng == null) {
                 val coords = locationObj?.get("coordinates")?.asArrayOrNull()
                 if (coords != null && coords.size >= 2) {
-                    val geoLng = coords[0].jsonPrimitive.doubleOrNull
-                    val geoLat = coords[1].jsonPrimitive.doubleOrNull
+                    val geoLng = (coords.getOrNull(0) as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
+                    val geoLat = (coords.getOrNull(1) as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
                     if (geoLat != null && geoLng != null) {
                         parsedLat = geoLat
                         parsedLng = geoLng

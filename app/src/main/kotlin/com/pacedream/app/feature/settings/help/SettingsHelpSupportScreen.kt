@@ -124,11 +124,15 @@ fun SettingsHelpSupportScreen(
                         title = "Email Support",
                         subtitle = "support@pacedream.com",
                         onClick = {
-                            val intent = android.content.Intent(
-                                android.content.Intent.ACTION_SENDTO,
-                                android.net.Uri.parse("mailto:support@pacedream.com")
-                            )
-                            context.startActivity(intent)
+                            try {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_SENDTO,
+                                    android.net.Uri.parse("mailto:support@pacedream.com")
+                                )
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                // No email client available
+                            }
                         }
                     )
 
@@ -142,11 +146,15 @@ fun SettingsHelpSupportScreen(
                         title = "Report an Issue",
                         subtitle = "Let us know about bugs or problems",
                         onClick = {
-                            val intent = android.content.Intent(
-                                android.content.Intent.ACTION_SENDTO,
-                                android.net.Uri.parse("mailto:support@pacedream.com?subject=Bug%20Report")
-                            )
-                            context.startActivity(intent)
+                            try {
+                                val intent = android.content.Intent(
+                                    android.content.Intent.ACTION_SENDTO,
+                                    android.net.Uri.parse("mailto:support@pacedream.com?subject=Bug%20Report")
+                                )
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                // No email client available
+                            }
                         }
                     )
                 }

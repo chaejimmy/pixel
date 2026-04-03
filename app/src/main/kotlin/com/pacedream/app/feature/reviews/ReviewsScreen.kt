@@ -195,7 +195,13 @@ class ReviewsRepository @Inject constructor(
 
     suspend fun reportReview(reviewId: String, reason: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("reviews", reviewId, "report")
-        return apiClient.post(url, """{"reason":"$reason"}""", includeAuth = true)
+        val body = json.encodeToString(
+            kotlinx.serialization.json.JsonObject.serializer(),
+            kotlinx.serialization.json.buildJsonObject {
+                put("reason", kotlinx.serialization.json.JsonPrimitive(reason))
+            }
+        )
+        return apiClient.post(url, body, includeAuth = true)
     }
 }
 
