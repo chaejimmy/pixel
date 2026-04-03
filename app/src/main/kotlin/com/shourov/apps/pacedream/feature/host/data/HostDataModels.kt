@@ -259,3 +259,53 @@ fun parseDate(dateString: String?): Long? {
     }
     return null
 }
+
+// ── Listing Calendar UI State ──────────────────────────────────────
+
+/** Time slot status for the availability calendar */
+enum class TimeSlotStatus {
+    AVAILABLE,
+    BOOKED,
+    BLOCKED
+}
+
+/** A single time slot shown in the calendar day view */
+data class CalendarTimeSlot(
+    val id: String = "",
+    val startTime: String = "",   // "09:00"
+    val endTime: String = "",     // "10:00"
+    val status: TimeSlotStatus = TimeSlotStatus.AVAILABLE,
+    val label: String = "",       // e.g. guest name or block reason
+    val bookingId: String? = null
+)
+
+/** A blocked time range created by the host */
+data class BlockedTimeRange(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val listingId: String = "",
+    val date: String = "",        // "2026-04-03"
+    val startTime: String = "",   // "09:00"
+    val endTime: String = "",     // "17:00"
+    val reason: String = ""
+)
+
+/** UI state for the listing calendar screen */
+data class ListingCalendarUiState(
+    val listingId: String = "",
+    val listingTitle: String = "",
+    val selectedDate: String = "",   // "2026-04-03"
+    val currentMonth: Int = 0,       // 0-based (Calendar.MONTH)
+    val currentYear: Int = 2026,
+    val timeSlots: List<CalendarTimeSlot> = emptyList(),
+    val blockedRanges: List<BlockedTimeRange> = emptyList(),
+    val bookings: List<HostBookingDTO> = emptyList(),
+    // Dates in the month that have bookings or blocks (for calendar dot indicators)
+    val datesWithEvents: Set<String> = emptySet(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    // Block Time sheet state
+    val showBlockTimeSheet: Boolean = false,
+    val blockStartTime: String = "",
+    val blockEndTime: String = "",
+    val blockReason: String = ""
+)

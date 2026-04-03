@@ -33,6 +33,7 @@ fun HostListingsScreen(
     onListingClick: (String) -> Unit = {},
     onEditListingClick: (String) -> Unit = {},
     onDeleteListingClick: (String) -> Unit = {},
+    onCalendarClick: (String) -> Unit = {},
     viewModel: HostListingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -120,7 +121,8 @@ fun HostListingsScreen(
                         listing = listing,
                         onListingClick = onListingClick,
                         onEditClick = onEditListingClick,
-                        onDeleteClick = onDeleteListingClick
+                        onDeleteClick = onDeleteListingClick,
+                        onCalendarClick = onCalendarClick
                     )
                 }
             }
@@ -183,7 +185,8 @@ fun HostListingCard(
     listing: Property,
     onListingClick: (String) -> Unit,
     onEditClick: (String) -> Unit,
-    onDeleteClick: (String) -> Unit
+    onDeleteClick: (String) -> Unit,
+    onCalendarClick: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -273,6 +276,17 @@ fun HostListingCard(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
+                        IconButton(
+                            onClick = { onCalendarClick(listing.id) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CalendarToday,
+                                contentDescription = "Calendar",
+                                tint = PaceDreamColors.HostAccent,
+                                modifier = Modifier.size(PaceDreamIconSize.XS)
+                            )
+                        }
                         IconButton(
                             onClick = { onEditClick(listing.id) },
                             modifier = Modifier.size(32.dp)

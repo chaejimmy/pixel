@@ -16,6 +16,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostListingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostPostScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostProfileScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
+import com.shourov.apps.pacedream.feature.host.presentation.ListingCalendarScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.profile.EditProfileScreen
 import com.pacedream.app.feature.inbox.InboxScreen
@@ -69,7 +70,12 @@ fun NavGraphBuilder.HostNavigationGraph(
         HostListingsScreen(
             onListingClick = onHostListingClick,
             onAddListingClick = onNavigateToAddListing,
-            onEditListingClick = onNavigateToEditListing
+            onEditListingClick = onNavigateToEditListing,
+            onCalendarClick = { listingId ->
+                if (listingId.isNotBlank()) {
+                    navController.navigate("listing_calendar/$listingId")
+                }
+            }
         )
     }
 
@@ -143,6 +149,16 @@ fun NavGraphBuilder.HostNavigationGraph(
         val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
         com.shourov.apps.pacedream.feature.host.presentation.HostListingPreviewScreen(
             listingId = listingId,
+            onBackClick = { navController.popBackStack() }
+        )
+    }
+
+    // Listing Availability Calendar
+    composable(
+        route = HostNavigationDestinations.LISTING_CALENDAR,
+        arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+    ) {
+        ListingCalendarScreen(
             onBackClick = { navController.popBackStack() }
         )
     }
