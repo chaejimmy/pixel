@@ -503,7 +503,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                             val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
                                             intent.launchUrl(context, Uri.parse("https://www.pacedream.com/privacy"))
                                         } catch (_: Exception) {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy")))
+                                            try {
+                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/privacy")))
+                                            } catch (_: Exception) { /* No browser available */ }
                                         }
                                     },
                                     onTermsOfServiceClick = {
@@ -511,7 +513,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                             val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
                                             intent.launchUrl(context, Uri.parse("https://www.pacedream.com/terms"))
                                         } catch (_: Exception) {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms")))
+                                            try {
+                                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/terms")))
+                                            } catch (_: Exception) { /* No browser available */ }
                                         }
                                     },
                                     onLogoutClick = {
