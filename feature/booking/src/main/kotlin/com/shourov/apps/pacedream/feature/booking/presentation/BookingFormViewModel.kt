@@ -201,10 +201,10 @@ class BookingFormViewModel @Inject constructor(
                 is Result.Error -> {
                     // If availability check fails, still proceed with booking creation
                     // so the backend can enforce its own validation (defense in depth).
-                    // Log but don't block the user.
-                    timber.log.Timber.w(
-                        availResult.exception,
-                        "Availability pre-check failed, proceeding with booking creation"
+                    android.util.Log.w(
+                        "BookingFormVM",
+                        "Availability pre-check failed, proceeding with booking creation",
+                        availResult.exception
                     )
                 }
                 is Result.Loading -> { /* No-op */ }
