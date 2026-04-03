@@ -19,6 +19,8 @@ sealed class HostScreen(
     object Post : HostScreen("host_post", "Post", PaceDreamIcons.AddCircle)
     object Inbox : HostScreen("host_inbox", "Messages", PaceDreamIcons.Mail)
     object Profile : HostScreen("host_profile", "Profile", PaceDreamIcons.Person)
+    object Notifications : HostScreen("host_notifications", "Notifications", PaceDreamIcons.Notifications)
+    object HelpSupport : HostScreen("host_help_support", "Help & Support", PaceDreamIcons.Help)
 }
 
 object HostNavigationDestinations {
