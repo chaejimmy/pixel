@@ -58,7 +58,8 @@ class ThreadViewModel @Inject constructor(
     
     private var threadId: String = ""
     private var beforeCursor: String? = null
-    private val currentUserId: String? get() = tokenStorage.userId
+    // Cache user ID to avoid repeated EncryptedSharedPreferences reads on the main thread
+    private val currentUserId: String? = tokenStorage.userId
     // Track temp message IDs for deduplication (iOS PR #205 parity)
     private val pendingTempIds = mutableSetOf<String>()
     private val idempotencyKeyByTempId = mutableMapOf<String, String>()
@@ -95,7 +96,9 @@ class ThreadViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val (messages, nextCursor) = parseMessagesResponse(result.data)
+                        val (messages, nextCursor) = withContext(Dispatchers.Default) {
+                            parseMessagesResponse(result.data)
+                        }
                         beforeCursor = nextCursor
                         _uiState.update {
                             it.copy(
@@ -197,10 +200,13 @@ class ThreadViewModel @Inject constructor(
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
                         try {
-                            val element = json.parseToJsonElement(result.data)
-                            val obj = element.jsonObject
-                            val enabled = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: false
-                            val reason = obj["reason"]?.jsonPrimitive?.content
+                            val (enabled, reason) = withContext(Dispatchers.Default) {
+                                val element = json.parseToJsonElement(result.data)
+                                val obj = element.jsonObject
+                                val en = obj["enabled"]?.jsonPrimitive?.booleanOrNull ?: false
+                                val rs = obj["reason"]?.jsonPrimitive?.content
+                                Pair(en, rs)
+                            }
                             _uiState.update { it.copy(attachmentsEnabled = enabled, attachmentDisabledReason = reason) }
                         } catch (e: Exception) {
                             Timber.w(e, "Failed to parse attachment status")
@@ -302,7 +308,10 @@ class ThreadViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        val (messages, nextCursor) = parseMessagesResponse(result.data)
+                        // Parse JSON off the main thread to avoid ANR
+                        val (messages, nextCursor) = withContext(Dispatchers.Default) {
+                            parseMessagesResponse(result.data)
+                        }
                         beforeCursor = nextCursor
                         // Derive opponent ID from messages if not set from thread info
                         val opponentId = messages.firstOrNull { it.senderId != null && it.senderId != currentUserId }?.senderId
@@ -344,7 +353,10 @@ class ThreadViewModel @Inject constructor(
 
                 when (val result = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        parseThreadInfo(result.data)
+                        // Parse JSON off the main thread to avoid ANR
+                        withContext(Dispatchers.Default) {
+                            parseThreadInfo(result.data)
+                        }
                     }
                     is ApiResult.Failure -> {
                         Timber.w("Failed to load thread info: ${result.error.message}")
