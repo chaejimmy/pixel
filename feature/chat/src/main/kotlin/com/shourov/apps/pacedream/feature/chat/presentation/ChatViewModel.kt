@@ -193,12 +193,21 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Map message send errors, surfacing rate-limit and spam blocks clearly.
+     * Map message send errors, surfacing rate-limit, spam blocks, and
+     * network/SSL failures (e.g. caused by device-level SPU/KeyMint issues).
      */
     private fun mapMessageError(exception: Throwable): String {
         val msg = exception.message ?: "Failed to send message"
         val lower = msg.lowercase()
         return when {
+            lower.contains("secure connection failed") || lower.contains("ssl") ->
+                "Secure connection failed. Please restart your device and try again."
+            lower.contains("timed out") || lower.contains("timeout") ->
+                "Connection timed out. Please check your internet and try again."
+            lower.contains("no internet") || lower.contains("unable to resolve") || lower.contains("unknownhost") ->
+                "No internet connection. Please check your network and try again."
+            lower.contains("unable to reach") || lower.contains("connect") && lower.contains("fail") ->
+                "Unable to reach the server. Please check your connection and try again."
             lower.contains("rate") || lower.contains("too many") || lower.contains("429") ->
                 "You're sending messages too quickly. Please wait a moment."
             lower.contains("spam") || lower.contains("blocked") || lower.contains("fraud") ->
