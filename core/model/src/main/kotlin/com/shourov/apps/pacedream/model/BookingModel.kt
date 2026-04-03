@@ -1,33 +1,83 @@
 package com.shourov.apps.pacedream.model
 
 /**
- * Booking status enum matching both iOS and screen usage
+ * Booking status enum aligned with backend source of truth.
+ *
+ * Backend statuses (bookingStatuses.js):
+ *   ACTIVE_BOOKING_STATUSES  = [created, pending, pending_host, confirmed, requires_capture, ongoing]
+ *   TERMINAL_BOOKING_STATUSES = [cancelled, completed, refunded, expired]
+ *
+ * These ACTIVE statuses block availability; TERMINAL statuses free the slot.
  */
 enum class BookingStatus {
     PENDING,
+    PENDING_HOST,
+    CREATED,
     CONFIRMED,
+    REQUIRES_CAPTURE,
+    ONGOING,
     CANCELLED,
     COMPLETED,
+    REFUNDED,
+    EXPIRED,
     REJECTED;
-    
+
+    /** True if this status blocks availability (backend ACTIVE_BOOKING_STATUSES). */
+    val isActive: Boolean get() = this in ACTIVE_STATUSES
+
+    /** True if this status is terminal and frees the slot. */
+    val isTerminal: Boolean get() = this in TERMINAL_STATUSES
+
+    /** Display label for UI. */
+    val displayLabel: String get() = when (this) {
+        PENDING -> "Pending"
+        PENDING_HOST -> "Awaiting Host"
+        CREATED -> "Created"
+        CONFIRMED -> "Confirmed"
+        REQUIRES_CAPTURE -> "Processing"
+        ONGOING -> "Ongoing"
+        CANCELLED -> "Cancelled"
+        COMPLETED -> "Completed"
+        REFUNDED -> "Refunded"
+        EXPIRED -> "Expired"
+        REJECTED -> "Rejected"
+    }
+
     companion object {
+        /** Matches backend ACTIVE_BOOKING_STATUSES — these block availability. */
+        val ACTIVE_STATUSES = setOf(CREATED, PENDING, PENDING_HOST, CONFIRMED, REQUIRES_CAPTURE, ONGOING)
+
+        /** Matches backend TERMINAL_BOOKING_STATUSES — these free the slot. */
+        val TERMINAL_STATUSES = setOf(CANCELLED, COMPLETED, REFUNDED, EXPIRED)
+
         fun fromString(status: String?): BookingStatus {
             if (status.isNullOrBlank()) return PENDING
             // Direct enum match
             entries.find { it.name.equals(status, ignoreCase = true) }?.let { return it }
             // Map server-side status variants to enum values
-            val s = status.lowercase()
+            val s = status.trim().lowercase()
             return when {
-                // Website parity: 'active', 'ongoing', 'booked' → confirmed
+                // Backend exact matches first
+                s == "pending_host" -> PENDING_HOST
+                s == "requires_capture" -> REQUIRES_CAPTURE
+                s == "created" -> CREATED
+                s == "ongoing" -> ONGOING
+                s == "refunded" || s == "refunded and cancelled" -> REFUNDED
+                s == "expired" -> EXPIRED
+                // Confirmed variants
                 s == "accepted" || s == "confirmed" || s == "active" ||
-                    s == "ongoing" || s == "booked" || s == "paid" ||
-                    s == "succeeded" || s == "captured" -> CONFIRMED
+                    s == "booked" || s == "paid" || s == "succeeded" ||
+                    s == "captured" -> CONFIRMED
+                // Rejected
                 s == "declined" || s == "rejected" -> REJECTED
-                s.contains("cancel") || s.contains("refund") ||
-                    s == "failed" || s == "expired" || s == "void" -> CANCELLED
+                // Cancelled variants
+                s.contains("cancel") -> CANCELLED
+                s.contains("refund") -> REFUNDED
+                s == "failed" || s == "void" -> CANCELLED
+                // Completed variants
                 s == "completed" || s.contains("finish") -> COMPLETED
-                s == "created" || s == "pending_host" || s == "requires_capture" ||
-                    s.contains("pending") || s.contains("await") -> PENDING
+                // Pending variants
+                s.contains("pending") || s.contains("await") -> PENDING
                 else -> PENDING
             }
         }

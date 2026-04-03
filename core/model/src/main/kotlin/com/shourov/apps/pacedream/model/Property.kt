@@ -62,7 +62,7 @@ data class Property(
 
     val isActiveStatus: Boolean get() {
         val s = (status ?: "").trim().lowercase()
-        return s in listOf("published", "active", "approved", "true")
+        return s in BOOKABLE_LISTING_STATUSES
     }
 
     val isRejected: Boolean get() {
@@ -70,11 +70,46 @@ data class Property(
         return s == "rejected"
     }
 
+    /**
+     * Whether this listing can accept bookings from guests.
+     * Matches backend isListingBookable() from availabilityService.js.
+     *
+     * Bookable requires:
+     *   - status in [active, published, approved]
+     *   - not deleted, snoozed, archived, or hidden
+     */
+    val isBookable: Boolean get() {
+        val s = (status ?: "").trim().lowercase()
+        return s in BOOKABLE_LISTING_STATUSES
+    }
+
     val displayStatus: String get() = when {
         isPendingReview -> "Under Review"
         isActiveStatus -> "Active"
         isRejected -> "Rejected"
         else -> status?.replaceFirstChar { it.uppercase() } ?: "Unknown"
+    }
+
+    companion object {
+        /**
+         * Backend source of truth: BOOKABLE_LISTING_STATUSES from bookingStatuses.js.
+         * Only these statuses allow guest bookings.
+         */
+        val BOOKABLE_LISTING_STATUSES = setOf("active", "published", "approved")
+
+        /**
+         * Backend source of truth: BOOKABLE_MODERATION_STATUSES.
+         * Only listings with this moderation status are bookable.
+         */
+        val BOOKABLE_MODERATION_STATUSES = setOf("published")
+
+        /**
+         * Non-bookable statuses that Android must NOT treat as available in guest flow.
+         */
+        val NON_BOOKABLE_STATUSES = setOf(
+            "draft", "inactive", "pending_review", "rejected",
+            "archived", "unpublished_account_deleted", "permanently_deleted"
+        )
     }
 }
 

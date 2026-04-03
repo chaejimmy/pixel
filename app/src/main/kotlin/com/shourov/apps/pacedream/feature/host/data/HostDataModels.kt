@@ -236,6 +236,17 @@ private val threadLocalSdfCache = ThreadLocal.withInitial {
     mutableMapOf<String, java.text.SimpleDateFormat>()
 }
 
+/**
+ * Parse a date/datetime string to epoch millis.
+ *
+ * Backend stores dates as:
+ *   - ISO 8601 with Z suffix (UTC): "2026-04-03T09:00:00.000Z"
+ *   - ISO 8601 without timezone: "2026-04-03T09:00:00"
+ *   - Date-only: "2026-04-03"
+ *
+ * Strings ending in 'Z' are parsed as UTC (correct — backend uses UTC).
+ * Strings without timezone info are also parsed as UTC to match backend behavior.
+ */
 fun parseDate(dateString: String?): Long? {
     if (dateString.isNullOrBlank()) return null
     val formats = listOf(
@@ -260,6 +271,37 @@ fun parseDate(dateString: String?): Long? {
     return null
 }
 
+/**
+ * Format a UTC epoch millis to a display string in the listing's timezone.
+ * Use this when rendering dates/times to the user for listing-specific context.
+ *
+ * @param epochMillis UTC epoch millis
+ * @param listingTimezone IANA timezone ID (e.g. "America/New_York"), from listing availability settings
+ * @param pattern SimpleDateFormat pattern (default: "MMM d, yyyy h:mm a")
+ */
+fun formatInListingTimezone(
+    epochMillis: Long,
+    listingTimezone: String,
+    pattern: String = "MMM d, yyyy h:mm a"
+): String {
+    val sdf = java.text.SimpleDateFormat(pattern, java.util.Locale.US)
+    sdf.timeZone = java.util.TimeZone.getTimeZone(listingTimezone)
+    return sdf.format(java.util.Date(epochMillis))
+}
+
+/**
+ * Format an ISO date-time string for display in the listing's timezone.
+ * Parses as UTC, then formats in the listing timezone.
+ */
+fun formatDateTimeInListingTimezone(
+    dateTimeStr: String?,
+    listingTimezone: String,
+    pattern: String = "MMM d, yyyy h:mm a"
+): String? {
+    val millis = parseDate(dateTimeStr) ?: return null
+    return formatInListingTimezone(millis, listingTimezone, pattern)
+}
+
 // ── Listing Calendar UI State ──────────────────────────────────────
 
 /** Time slot status for the availability calendar */
@@ -279,29 +321,29 @@ data class CalendarTimeSlot(
     val bookingId: String? = null
 )
 
-/** A blocked time range created by the host */
-data class BlockedTimeRange(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val listingId: String = "",
-    val date: String = "",        // "2026-04-03"
-    val startTime: String = "",   // "09:00"
-    val endTime: String = "",     // "17:00"
-    val reason: String = ""
-)
-
-/** UI state for the listing calendar screen */
+/**
+ * UI state for the listing calendar screen.
+ *
+ * All data comes from the backend calendar API (source of truth).
+ * No local-only availability state is stored here.
+ */
 data class ListingCalendarUiState(
     val listingId: String = "",
     val listingTitle: String = "",
-    val selectedDate: String = "",   // "2026-04-03"
-    val currentMonth: Int = 0,       // 0-based (Calendar.MONTH)
+    val selectedDate: String = "",      // "2026-04-03"
+    val currentMonth: Int = 1,          // 1-based month (backend API uses 1-12)
     val currentYear: Int = 2026,
     val timeSlots: List<CalendarTimeSlot> = emptyList(),
-    val blockedRanges: List<BlockedTimeRange> = emptyList(),
-    val bookings: List<HostBookingDTO> = emptyList(),
-    // Dates in the month that have bookings or blocks (for calendar dot indicators)
+    // Dates in the month that have bookings, blocks, or holds (for calendar dot indicators)
     val datesWithEvents: Set<String> = emptySet(),
+    // Listing availability settings from backend
+    val listingTimezone: String = "America/New_York",
+    val availableStartTime: String = "09:00",
+    val availableEndTime: String = "17:00",
+    val availableDays: List<Int> = listOf(1, 2, 3, 4, 5), // 0=Sun, 6=Sat
+    // UI state
     val isLoading: Boolean = false,
+    val isMutating: Boolean = false,    // True during block create/delete
     val error: String? = null,
     // Block Time sheet state
     val showBlockTimeSheet: Boolean = false,

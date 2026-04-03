@@ -265,6 +265,98 @@ class BookingRepository @Inject constructor(
         }
     }
 
+    // ── Availability Check (backend source of truth) ──────────
+
+    /**
+     * Check if a specific time range is available for booking on a listing.
+     * Calls POST /v1/listings/:id/check-availability (backend source of truth).
+     *
+     * Returns a [AvailabilityCheckResult] with available status and reason if unavailable.
+     * Must be called BEFORE creating a booking to prevent invalid/overlapping bookings.
+     */
+    suspend fun checkAvailability(
+        listingId: String,
+        startDate: String,
+        endDate: String
+    ): Result<AvailabilityCheckResult> = withContext(Dispatchers.IO) {
+        try {
+            Timber.d("Checking availability: listing=%s %s to %s", listingId, startDate, endDate)
+            val body = mapOf("startDate" to startDate, "endDate" to endDate)
+            val response = apiService.checkListingAvailability(listingId, body)
+
+            if (response.isSuccessful) {
+                val jsonBody = response.body()
+                if (jsonBody != null && jsonBody.isJsonObject) {
+                    val root = jsonBody.asJsonObject
+                    val data = root.getAsJsonObject("data")
+                    val available = data?.get("available")?.asBoolean ?: false
+                    val reason = data?.get("reason")?.let {
+                        if (it.isJsonNull) null else it.asString
+                    }
+                    val listingInfo = data?.getAsJsonObject("listing")
+                    val bookable = listingInfo?.get("bookable")?.asBoolean ?: true
+                    val listingStatus = listingInfo?.get("status")?.asString
+                    val timezone = listingInfo?.get("timezone")?.asString
+
+                    Timber.d("Availability check result: available=%s reason=%s bookable=%s", available, reason, bookable)
+                    Result.Success(
+                        AvailabilityCheckResult(
+                            available = available,
+                            reason = reason,
+                            listingBookable = bookable,
+                            listingStatus = listingStatus,
+                            listingTimezone = timezone
+                        )
+                    )
+                } else {
+                    Result.Error(Exception("Empty availability check response"))
+                }
+            } else {
+                Timber.w("Availability check failed [%d]", response.code())
+                Result.Error(Exception("Availability check failed: HTTP ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Availability check exception")
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * Result of an availability check from the backend.
+     * Maps directly to the backend check-availability response.
+     */
+    data class AvailabilityCheckResult(
+        val available: Boolean,
+        val reason: String?,
+        val listingBookable: Boolean,
+        val listingStatus: String?,
+        val listingTimezone: String?
+    ) {
+        /**
+         * User-friendly message for the unavailability reason.
+         * Maps backend reason codes to display strings.
+         */
+        val displayReason: String get() = when {
+            available -> ""
+            reason == null -> "This time is not available"
+            reason == "BOOKING_CONFLICT" -> "This time overlaps with an existing booking"
+            reason == "HOLD_CONFLICT" -> "This time is being held for another checkout"
+            reason == "LISTING_SNOOZED" -> "This listing is currently paused"
+            reason == "LISTING_ARCHIVED" -> "This listing is no longer available"
+            reason == "LISTING_DELETED" -> "This listing has been removed"
+            reason == "DURATION_TOO_SHORT" -> "Booking duration is too short (minimum 15 minutes)"
+            reason == "DURATION_TOO_LONG" -> "Booking duration is too long (maximum 30 days)"
+            reason == "START_IN_PAST" -> "Cannot book in the past"
+            reason == "BEFORE_AVAILABILITY_START" -> "This date is before the listing's available dates"
+            reason == "AFTER_AVAILABILITY_END" -> "This date is after the listing's available dates"
+            reason.startsWith("BLOCKED_PERIOD") -> "This time is blocked by the host"
+            reason.startsWith("DAY_NOT_AVAILABLE") -> "This day is not available for booking"
+            reason.startsWith("LISTING_STATUS_NOT_BOOKABLE") -> "This listing is not currently accepting bookings"
+            !listingBookable -> "This listing is not available for booking"
+            else -> "This time is not available: $reason"
+        }
+    }
+
     // ── Private API helpers ─────────────────────────────────
 
     /**

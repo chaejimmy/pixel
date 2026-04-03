@@ -270,6 +270,17 @@ interface PaceDreamApiService {
     @GET(ApiEndPoints.GET_BOOKING_AVAILABILITY)
     suspend fun getBookingAvailability(@Path("propertyId") propertyId: String): Response<ApiResponse<BookingAvailabilityResponse>>
 
+    /**
+     * Check availability for a specific time range — backend source of truth.
+     * Returns whether the slot is available, and if not, the reason why.
+     * This must be called before creating a booking to prevent invalid bookings.
+     */
+    @POST(ApiEndPoints.CHECK_AVAILABILITY)
+    suspend fun checkListingAvailability(
+        @Path("listingId") listingId: String,
+        @Body body: Map<String, String>
+    ): Response<com.google.gson.JsonElement>
+
     // ── Messaging APIs ─────────────────────────────────────────
     @GET(ApiEndPoints.GET_USER_CHATS)
     suspend fun getUserChats(@Path("userId") userId: String): Response<ApiListResponse<ChatResponse>>
