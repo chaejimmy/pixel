@@ -181,21 +181,27 @@ class CalendarAvailabilityTest {
     // ════════════════════════════════════════════════════════════════
 
     @Test
-    fun `availability check result display reasons map backend reason codes`() {
+    fun `availability check result display reasons map ALL backend reason codes`() {
+        // All reason codes from checkFullAvailability() in availabilityService.js
         val testCases = mapOf(
             "BOOKING_CONFLICT" to "This time overlaps with an existing booking",
             "HOLD_CONFLICT" to "This time is being held for another checkout",
+            "LISTING_NOT_FOUND" to "This listing could not be found",
             "LISTING_SNOOZED" to "This listing is currently paused",
             "LISTING_ARCHIVED" to "This listing is no longer available",
             "LISTING_DELETED" to "This listing has been removed",
-            "DURATION_TOO_SHORT" to "Booking duration is too short (minimum 15 minutes)",
-            "DURATION_TOO_LONG" to "Booking duration is too long (maximum 30 days)",
+            "LISTING_HIDDEN" to "This listing is not currently visible",
+            "INVALID_DATE_FORMAT" to "Invalid date format",
+            "END_BEFORE_START" to "End time must be after start time",
             "START_IN_PAST" to "Cannot book in the past",
             "BEFORE_AVAILABILITY_START" to "This date is before the listing's available dates",
             "AFTER_AVAILABILITY_END" to "This date is after the listing's available dates",
+            "DURATION_TOO_SHORT:min=15m" to "Booking duration is too short (minimum 15 minutes)",
+            "DURATION_TOO_LONG:max=43200m" to "Booking duration is too long (maximum 30 days)",
             "BLOCKED_PERIOD:2026-04-03_to_2026-04-05" to "This time is blocked by the host",
             "DAY_NOT_AVAILABLE:2026-04-03" to "This day is not available for booking",
-            "LISTING_STATUS_NOT_BOOKABLE:draft" to "This listing is not currently accepting bookings"
+            "LISTING_STATUS_NOT_BOOKABLE:draft" to "This listing is not currently accepting bookings",
+            "MODERATION_STATUS_NOT_BOOKABLE:DRAFT" to "This listing is pending moderation review"
         )
 
         for ((reason, expectedDisplay) in testCases) {
@@ -262,8 +268,9 @@ class CalendarAvailabilityTest {
 
     @Test
     fun `BackendBlock matches backend block structure`() {
+        // Backend block ID format: "block-{timestamp}-{randomStr}"
         val block = BackendBlock(
-            id = "block-123",
+            id = "block-1712160000000-abc123",
             startDate = "2026-04-03",
             endDate = "2026-04-05",
             startTime = "10:00",
@@ -271,7 +278,7 @@ class CalendarAvailabilityTest {
             reason = "maintenance",
             repeat = "weekly"
         )
-        assertEquals("block-123", block.id)
+        assertTrue(block.id.startsWith("block-"))
         assertEquals("2026-04-03", block.startDate)
         assertEquals("2026-04-05", block.endDate)
         assertEquals("maintenance", block.reason)
@@ -321,12 +328,61 @@ class CalendarAvailabilityTest {
     }
 
     @Test
-    fun `CalendarBookingOverlay status is used for active filtering`() {
-        val activeBooking = CalendarBookingOverlay(id = "b1", status = "confirmed")
-        val terminalBooking = CalendarBookingOverlay(id = "b2", status = "cancelled")
+    fun `ListingCalendarData uses days map structure matching backend`() {
+        // Backend returns: data.days = { "2026-04-03": { date, status, bookings, blocks } }
+        val data = ListingCalendarData(
+            listingId = "listing123",
+            listingTitle = "Test Listing",
+            month = 4,
+            year = 2026,
+            days = mapOf(
+                "2026-04-03" to CalendarDayData(
+                    date = "2026-04-03",
+                    status = "booked",
+                    bookings = listOf(
+                        CalendarDayBooking(id = "b1", startTime = "2026-04-03T09:00:00Z", endTime = "2026-04-03T11:00:00Z", status = "confirmed")
+                    ),
+                    blocks = emptyList()
+                ),
+                "2026-04-04" to CalendarDayData(
+                    date = "2026-04-04",
+                    status = "blocked",
+                    bookings = emptyList(),
+                    blocks = listOf(
+                        CalendarDayBlock(id = "block-1", startDate = "2026-04-04", endDate = "2026-04-04", reason = "personal")
+                    )
+                )
+            )
+        )
+        assertEquals("listing123", data.listingId)
+        assertEquals("Test Listing", data.listingTitle)
+        assertEquals(2, data.days.size)
+        assertEquals("booked", data.days["2026-04-03"]?.status)
+        assertEquals("blocked", data.days["2026-04-04"]?.status)
+        assertEquals(1, data.days["2026-04-03"]?.bookings?.size)
+        assertEquals("confirmed", data.days["2026-04-03"]?.bookings?.first()?.status)
+    }
 
-        assertTrue(BookingStatus.fromString(activeBooking.status).isActive)
-        assertTrue(BookingStatus.fromString(terminalBooking.status).isTerminal)
+    @Test
+    fun `CalendarDayData defaults to available status`() {
+        val day = CalendarDayData()
+        assertEquals("available", day.status)
+        assertTrue(day.bookings.isEmpty())
+        assertTrue(day.blocks.isEmpty())
+    }
+
+    @Test
+    fun `CalendarDayBooking uses startTime and endTime fields matching backend`() {
+        // Backend returns: { id, startTime (Date), endTime (Date), status }
+        val booking = CalendarDayBooking(
+            id = "b1",
+            startTime = "2026-04-03T09:00:00.000Z",
+            endTime = "2026-04-03T11:00:00.000Z",
+            status = "confirmed"
+        )
+        assertNotNull(booking.startTime)
+        assertNotNull(booking.endTime)
+        assertTrue(booking.startTime!!.contains("T"))
     }
 
     @Test
