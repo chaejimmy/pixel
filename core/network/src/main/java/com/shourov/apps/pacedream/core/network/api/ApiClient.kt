@@ -201,6 +201,42 @@ class ApiClient constructor(
     }
 
     /**
+     * Perform a multipart POST request with multiple parts (for file uploads).
+     * Used for chat media uploads (images, videos, documents).
+     */
+    suspend fun postMultipartParts(
+        url: HttpUrl,
+        parts: List<okhttp3.MultipartBody.Part>,
+        includeAuth: Boolean = true
+    ): ApiResult<String> = withContext(Dispatchers.IO) {
+        try {
+            val bodyBuilder = okhttp3.MultipartBody.Builder().setType(okhttp3.MultipartBody.FORM)
+            parts.forEach { bodyBuilder.addPart(it) }
+            val multipartBody = bodyBuilder.build()
+
+            val requestBuilder = Request.Builder()
+                .url(url)
+                .post(multipartBody)
+                .header("Accept", "application/json")
+
+            if (includeAuth) {
+                tokenProvider.getAccessToken()?.let { token ->
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+            }
+
+            val response = httpClient.newCall(requestBuilder.build()).execute()
+            processResponse(response)
+        } catch (e: SocketTimeoutException) {
+            ApiResult.Failure(ApiError.Timeout())
+        } catch (e: IOException) {
+            ApiResult.Failure(ApiError.NetworkError())
+        } catch (e: Exception) {
+            ApiResult.Failure(mapException(e))
+        }
+    }
+
+    /**
      * Execute GET request with retry logic
      */
     private suspend fun executeWithRetry(

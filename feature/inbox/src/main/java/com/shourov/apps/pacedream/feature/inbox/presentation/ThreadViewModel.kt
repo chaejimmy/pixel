@@ -1,5 +1,7 @@
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +18,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,7 +39,8 @@ import javax.inject.Inject
 class ThreadViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val inboxRepository: InboxRepository,
-    private val authSession: AuthSession
+    private val authSession: AuthSession,
+    @ApplicationContext private val appContext: Context
 ) : ViewModel() {
     
     private val threadId: String = savedStateHandle.get<String>("threadId") ?: ""
@@ -51,6 +55,7 @@ class ThreadViewModel @Inject constructor(
             loadThreadDetails()
             loadMessages()
             markThreadAsRead()
+            checkAttachmentStatus()
         } else {
             _uiState.value = ThreadDetailUiState.Error("Invalid thread ID")
         }
@@ -100,6 +105,9 @@ class ThreadViewModel @Inject constructor(
         when (event) {
             is ThreadDetailEvent.Refresh -> refresh()
             is ThreadDetailEvent.SendMessage -> sendMessage(event.text)
+            is ThreadDetailEvent.SendMediaMessage -> sendMediaMessage(event.text, event.photoUris)
+            is ThreadDetailEvent.AddPhotos -> addPhotos(event.uris)
+            is ThreadDetailEvent.RemovePhoto -> removePhoto(event.uri)
             is ThreadDetailEvent.RetryMessage -> retryMessage(event.tempId)
             is ThreadDetailEvent.DismissSendError -> dismissSendError()
             is ThreadDetailEvent.LoadMore -> loadMore()
@@ -224,6 +232,87 @@ class ThreadViewModel @Inject constructor(
                 val latestState = _uiState.value as? ThreadDetailUiState.Success
                 if (latestState != null) {
                     _uiState.value = latestState.copy(isLoadingMore = false)
+                }
+            }
+        }
+    }
+
+    private fun checkAttachmentStatus() {
+        viewModelScope.launch {
+            // Enable attachments by default; the backend will reject if not allowed
+            val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+            _uiState.value = currentState.copy(attachmentsEnabled = true)
+        }
+    }
+
+    private fun addPhotos(uris: List<Uri>) {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        val existing = currentState.pendingPhotoUris
+        val remaining = MAX_PHOTOS - existing.size
+        if (remaining <= 0) return
+        val newUris = uris.take(remaining)
+        _uiState.value = currentState.copy(pendingPhotoUris = existing + newUris)
+    }
+
+    private fun removePhoto(uri: Uri) {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        _uiState.value = currentState.copy(
+            pendingPhotoUris = currentState.pendingPhotoUris.filter { it != uri }
+        )
+    }
+
+    private fun sendMediaMessage(text: String, photoUris: List<Uri>) {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        if (photoUris.isEmpty()) return
+
+        val trimmedText = text.trim()
+        val tempId = "temp-${UUID.randomUUID()}"
+        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(Date())
+        val tempMessage = Message(
+            id = tempId,
+            text = trimmedText.ifBlank { "Sending ${photoUris.size} photo${if (photoUris.size > 1) "s" else ""}..." },
+            senderId = currentState.currentUserId,
+            timestamp = nowIso,
+            status = MessageStatus.SENDING
+        )
+
+        _uiState.value = currentState.copy(
+            messages = listOf(tempMessage) + currentState.messages,
+            isUploading = true,
+            pendingPhotoUris = emptyList(),
+            sendError = null
+        )
+
+        viewModelScope.launch {
+            val result = inboxRepository.uploadChatMedia(
+                context = appContext,
+                threadId = threadId,
+                imageUris = photoUris,
+                text = trimmedText.ifBlank { null }
+            )
+
+            val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return@launch
+
+            when (result) {
+                is ApiResult.Success -> {
+                    val serverMessage = result.data
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) serverMessage else msg
+                        },
+                        isUploading = false
+                    )
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("Failed to upload media: ${result.error.message}")
+                    _uiState.value = latestState.copy(
+                        messages = latestState.messages.map { msg ->
+                            if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
+                        },
+                        isUploading = false,
+                        pendingPhotoUris = photoUris,
+                        sendError = result.error.message ?: "Failed to upload photos"
+                    )
                 }
             }
         }
@@ -376,6 +465,10 @@ class ThreadViewModel @Inject constructor(
     private fun dismissSendError() {
         val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
         _uiState.value = currentState.copy(sendError = null)
+    }
+
+    companion object {
+        const val MAX_PHOTOS = 10
     }
 }
 

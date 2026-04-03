@@ -12,11 +12,13 @@ import com.pacedream.app.core.network.ApiResult
 import com.pacedream.app.feature.settings.AccountSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -222,14 +224,19 @@ class ThreadViewModel @Inject constructor(
     fun sendMediaFromUri(uri: Uri) {
         viewModelScope.launch {
             try {
-                val contentResolver = context.contentResolver
-                val mimeType = contentResolver.getType(uri) ?: "application/octet-stream"
-                val fileName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                    if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
-                } ?: "attachment"
+                // Read file bytes on a background thread to avoid blocking the
+                // main thread and causing ANR during large file reads.
+                val (bytes, fileName, mimeType) = withContext(Dispatchers.IO) {
+                    val contentResolver = context.contentResolver
+                    val mime = contentResolver.getType(uri) ?: "application/octet-stream"
+                    val name = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+                    } ?: "attachment"
+                    val data = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    Triple(data, name, mime)
+                }
 
-                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 if (bytes != null) {
                     sendMedia(bytes, fileName, mimeType)
                 } else {
