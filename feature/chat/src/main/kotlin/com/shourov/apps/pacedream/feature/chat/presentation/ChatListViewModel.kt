@@ -22,6 +22,7 @@ import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +39,7 @@ class ChatListViewModel @Inject constructor(
     val uiState: StateFlow<ChatListUiState> = _uiState.asStateFlow()
 
     fun loadChats() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             val userId = authSession.currentUserId ?: run {

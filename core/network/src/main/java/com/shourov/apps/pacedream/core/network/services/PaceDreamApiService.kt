@@ -286,7 +286,7 @@ interface PaceDreamApiService {
 
     // ── Messaging APIs ─────────────────────────────────────────
     @GET(ApiEndPoints.GET_USER_CHATS)
-    suspend fun getUserChats(@Path("userId") userId: String): Response<ApiListResponse<ChatResponse>>
+    suspend fun getUserChats(): Response<com.google.gson.JsonElement>
 
     @GET(ApiEndPoints.GET_CHAT_MESSAGES)
     suspend fun getChatMessages(
