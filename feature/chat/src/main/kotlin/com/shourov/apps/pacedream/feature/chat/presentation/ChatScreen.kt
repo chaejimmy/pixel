@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
@@ -280,13 +281,19 @@ private fun MessagesList(
         }
     }
 
+    // Deduplicate messages by ID to prevent LazyColumn key crash.
+    // Duplicates can come from Room cache, $or queries, or optimistic inserts.
+    val dedupedMessages = remember(messages) {
+        messages.distinctBy { it.id.ifBlank { it.hashCode().toString() } }
+    }
+
     LazyColumn(
         modifier = modifier,
         state = listState,
         contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
         verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM, Alignment.Bottom)
     ) {
-        items(messages, key = { it.id ?: it.hashCode().toString() }) { message ->
+        items(dedupedMessages, key = { it.id.ifBlank { "msg_${it.hashCode()}" } }) { message ->
             MessageBubble(
                 message = message,
                 isFromCurrentUser = message.senderId == currentUserId,
