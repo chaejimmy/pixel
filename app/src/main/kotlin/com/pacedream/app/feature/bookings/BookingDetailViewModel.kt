@@ -183,7 +183,7 @@ class BookingDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = true, error = null) }
                 }
 
-                val url = appConfig.buildApiUrl("bookings", bookingId)
+                val url = appConfig.buildApiUrl("booking", bookingId)
 
                 when (val res = apiClient.get(url, includeAuth = true)) {
                     is ApiResult.Success -> {
