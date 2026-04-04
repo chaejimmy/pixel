@@ -128,22 +128,17 @@ data class AttachmentResponse(
 )
 
 /**
- * Response model for messages from both inbox and legacy endpoints.
- * The inbox endpoint populates senderId as an object with user details.
- * The legacy endpoint populates sender as an object.
- * Gson deserializes the populated object into [MessageSender].
+ * Response model for messages from the inbox endpoint.
+ * The backend normalizes senderId to a string and text to always be present.
  */
 data class MessageResponse(
     @SerializedName("_id") val id: String = "",
     @SerializedName("threadId") val threadId: String = "",
     @SerializedName("chatId") val chatId: String = "",
-    // Inbox route: senderId is a populated object { _id, first_name, ... }
-    @SerializedName("senderId") val senderIdObj: MessageSender? = null,
-    // Legacy route: sender is a populated object { _id, first_name, ... }
-    @SerializedName("sender") val senderObj: MessageSender? = null,
+    @SerializedName("senderId") val senderId: String = "",
+    @SerializedName("senderName") val senderName: String = "",
+    @SerializedName("senderAvatar") val senderAvatar: String = "",
     @SerializedName("text") val text: String = "",
-    // Legacy route uses "message" field for text content
-    @SerializedName("message") val messageField: String = "",
     @SerializedName("content") val content: String = "",
     @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
     @SerializedName("messageType") val messageType: String? = null,
@@ -153,28 +148,14 @@ data class MessageResponse(
     @SerializedName("messageRead") val messageRead: Boolean = false,
     @SerializedName("status") val status: String? = null
 ) {
-    /** Resolve sender ID from inbox (senderId._id) or legacy (sender._id) format */
-    val resolvedSenderId: String
-        get() = senderIdObj?.id?.takeIf { it.isNotBlank() }
-            ?: senderObj?.id?.takeIf { it.isNotBlank() }
-            ?: ""
-
-    /** Resolve text from inbox (text) or legacy (message) format */
+    /** Resolve text (backend normalizes, but keep fallback for safety) */
     val resolvedText: String
-        get() = text.ifBlank { messageField.ifBlank { content } }
+        get() = text.ifBlank { content }
 
     /** Resolve read status */
     val resolvedIsRead: Boolean
         get() = isRead || messageRead
 }
-
-/** Sender details from populated senderId or sender field */
-data class MessageSender(
-    @SerializedName("_id") val id: String = "",
-    @SerializedName("first_name") val firstName: String = "",
-    @SerializedName("last_name") val lastName: String = "",
-    @SerializedName("profilePic") val profilePic: String = ""
-)
 
 /** Response wrapper for inbox GET /threads/:id/messages */
 data class InboxMessagesResponse(

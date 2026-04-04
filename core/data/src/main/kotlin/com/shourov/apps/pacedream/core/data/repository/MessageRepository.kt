@@ -60,7 +60,7 @@ class MessageRepository @Inject constructor(
                         MessageModel(
                             id = resp.id,
                             chatId = chatId,
-                            senderId = resp.resolvedSenderId,
+                            senderId = resp.senderId,
                             content = resp.resolvedText,
                             messageType = resp.messageType ?: resp.type ?: if (resp.attachments.isNotEmpty()) "IMAGE" else "TEXT",
                             attachments = resp.attachments.map { it.toModel() },
