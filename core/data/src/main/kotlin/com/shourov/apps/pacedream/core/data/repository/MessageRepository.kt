@@ -347,7 +347,7 @@ class MessageRepository @Inject constructor(
 
     suspend fun refreshUserChats(userId: String): Result<Unit> {
         return try {
-            val response = apiService.getUserChats(userId)
+            val response = apiService.getUserChats()
             if (response.isSuccessful) {
                 Result.Success(Unit)
             } else {
