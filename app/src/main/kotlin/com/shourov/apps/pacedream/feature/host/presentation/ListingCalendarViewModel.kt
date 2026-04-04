@@ -238,13 +238,49 @@ class ListingCalendarViewModel @Inject constructor(
     // ── Slot Generation (from backend days map) ──────────────
 
     /**
+     * Block a specific available slot inline (per-slot "Block" action).
+     * Creates a 1-hour block for that slot's time range on the selected date.
+     */
+    fun blockSlot(slot: CalendarTimeSlot) {
+        if (_uiState.value.isMutating) return
+        if (slot.status != TimeSlotStatus.AVAILABLE) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isMutating = true, error = null)
+
+            val request = BlockTimeRequest(
+                startDate = _uiState.value.selectedDate,
+                endDate = _uiState.value.selectedDate,
+                startTime = slot.startTime,
+                endTime = slot.endTime,
+                reason = "personal",
+                repeat = "none"
+            )
+
+            val result = hostRepository.blockListingTime(listingId, request)
+            result.fold(
+                onSuccess = {
+                    _uiState.value = _uiState.value.copy(isMutating = false)
+                    loadCalendarFromBackend()
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isMutating = false,
+                        error = error.message ?: "Failed to block time"
+                    )
+                }
+            )
+        }
+    }
+
+    /**
      * Rebuild time slots for the selected date using the backend `days` map.
      *
      * Backend returns: data.days["2026-04-03"] = { date, status, bookings[], blocks[] }
      * Each day already has its bookings/blocks pre-filtered by the backend.
      *
-     * Slot generation also considers listing availability settings
-     * (available_days, start_time, end_time) for showing off-hours/unavailable days.
+     * Only shows slots within the listing's available hours (not all 24 hours).
+     * Bookings/blocks outside available hours are still shown if they exist.
      */
     private fun rebuildDaySlots() {
         val data = calendarData ?: return
@@ -262,17 +298,49 @@ class ListingCalendarViewModel @Inject constructor(
         // Get available hours from listing settings
         val availStart = data.availability?.startTime ?: "09:00"
         val availEnd = data.availability?.endTime ?: "17:00"
-        val availStartMin = timeToMinutes(availStart)
-        val availEndMin = timeToMinutes(availEnd)
+        val availStartHour = timeToMinutes(availStart) / 60
+        val availEndHour = timeToMinutes(availEnd) / 60
 
         // Backend day-level status (pre-computed): "available", "blocked", "booked", "pending"
         val dayStatus = dayData?.status ?: "available"
 
-        // Generate hourly slots from 00:00 to 23:00
-        for (hour in 0..23) {
+        // Collect bookings/blocks outside available hours so we still show them
+        val outsideBookings = mutableSetOf<String>()
+        val outsideBlocks = mutableSetOf<String>()
+        if (dayData != null) {
+            for (booking in dayData.bookings) {
+                val bStart = extractTime(booking.startTime)
+                val bEnd = extractTime(booking.endTime)
+                if (bStart != null) {
+                    val bStartHour = timeToMinutes(bStart) / 60
+                    if (bStartHour < availStartHour || bStartHour >= availEndHour) {
+                        outsideBookings.add(booking.id)
+                    }
+                }
+            }
+            for (block in dayData.blocks) {
+                val bStart = block.startDate
+                if (bStart != null && bStart.length <= 5) {
+                    val bStartHour = timeToMinutes(bStart) / 60
+                    if (bStartHour < availStartHour || bStartHour >= availEndHour) {
+                        outsideBlocks.add(block.id)
+                    }
+                }
+            }
+        }
+
+        // Determine slot range: available hours, but extend to cover any outside bookings/blocks
+        val minHour = if (outsideBookings.isNotEmpty() || outsideBlocks.isNotEmpty()) {
+            minOf(availStartHour, getEarliestEventHour(dayData))
+        } else availStartHour
+        val maxHour = if (outsideBookings.isNotEmpty() || outsideBlocks.isNotEmpty()) {
+            maxOf(availEndHour, getLatestEventHour(dayData))
+        } else availEndHour
+
+        // Generate hourly slots within meaningful range
+        for (hour in minHour until maxHour) {
             val startTime = String.format("%02d:00", hour)
-            val endTime = String.format("%02d:00", (hour + 1) % 24)
-            val endLabel = if (hour == 23) "00:00" else endTime
+            val endTime = String.format("%02d:00", hour + 1)
             val slotMinutes = hour * 60
 
             // Check this day's bookings and blocks from backend
@@ -284,13 +352,23 @@ class ListingCalendarViewModel @Inject constructor(
             val bookingId: String?
 
             when {
-                // Active booking takes priority
+                // Active booking — check if it's a hold (pending status)
                 matchingBooking != null -> {
-                    status = TimeSlotStatus.BOOKED
-                    label = "Booked (${matchingBooking.status ?: ""})"
-                    bookingId = matchingBooking.id
+                    val bookingStatus = (matchingBooking.status ?: "").lowercase()
+                    val isHold = bookingStatus.contains("pending") ||
+                            bookingStatus == "created" ||
+                            bookingStatus == "requires_capture"
+                    if (isHold) {
+                        status = TimeSlotStatus.HOLD
+                        label = "Hold (${matchingBooking.status ?: "pending"})"
+                        bookingId = matchingBooking.id
+                    } else {
+                        status = TimeSlotStatus.BOOKED
+                        label = "Booked (${matchingBooking.status ?: "confirmed"})"
+                        bookingId = matchingBooking.id
+                    }
                 }
-                // Blocked time range
+                // Blocked time range (host-created)
                 matchingBlock != null -> {
                     status = TimeSlotStatus.BLOCKED
                     label = matchingBlock.reason?.ifBlank { "Blocked" } ?: "Blocked"
@@ -302,8 +380,8 @@ class ListingCalendarViewModel @Inject constructor(
                     label = "Unavailable day"
                     bookingId = null
                 }
-                // Outside available hours
-                slotMinutes < availStartMin || slotMinutes >= availEndMin -> {
+                // Outside available hours (only if we extended range for events)
+                slotMinutes < timeToMinutes(availStart) || slotMinutes >= timeToMinutes(availEnd) -> {
                     status = TimeSlotStatus.BLOCKED
                     label = "Outside hours"
                     bookingId = null
@@ -312,6 +390,12 @@ class ListingCalendarViewModel @Inject constructor(
                 dayStatus == "blocked" -> {
                     status = TimeSlotStatus.BLOCKED
                     label = "Blocked"
+                    bookingId = null
+                }
+                // Backend says day has a hold
+                dayStatus == "pending" -> {
+                    status = TimeSlotStatus.HOLD
+                    label = "Hold"
                     bookingId = null
                 }
                 else -> {
@@ -325,7 +409,7 @@ class ListingCalendarViewModel @Inject constructor(
                 CalendarTimeSlot(
                     id = "$selectedDate-$startTime",
                     startTime = startTime,
-                    endTime = endLabel,
+                    endTime = endTime,
                     status = status,
                     label = label,
                     bookingId = bookingId
@@ -334,6 +418,36 @@ class ListingCalendarViewModel @Inject constructor(
         }
 
         _uiState.value = _uiState.value.copy(timeSlots = slots)
+    }
+
+    /** Get earliest hour that has a booking or block event */
+    private fun getEarliestEventHour(dayData: CalendarDayData?): Int {
+        if (dayData == null) return 9
+        var earliest = 24
+        for (booking in dayData.bookings) {
+            val t = extractTime(booking.startTime)
+            if (t != null) earliest = minOf(earliest, timeToMinutes(t) / 60)
+        }
+        for (block in dayData.blocks) {
+            val t = block.startDate
+            if (t != null && t.length <= 5) earliest = minOf(earliest, timeToMinutes(t) / 60)
+        }
+        return if (earliest == 24) 9 else earliest
+    }
+
+    /** Get latest hour that has a booking or block event */
+    private fun getLatestEventHour(dayData: CalendarDayData?): Int {
+        if (dayData == null) return 17
+        var latest = 0
+        for (booking in dayData.bookings) {
+            val t = extractTime(booking.endTime)
+            if (t != null) latest = maxOf(latest, (timeToMinutes(t) + 59) / 60)
+        }
+        for (block in dayData.blocks) {
+            val t = block.endDate
+            if (t != null && t.length <= 5) latest = maxOf(latest, (timeToMinutes(t) + 59) / 60)
+        }
+        return if (latest == 0) 17 else latest
     }
 
     /**

@@ -500,10 +500,11 @@ class CalendarAvailabilityTest {
 
     @Test
     fun `TimeSlotStatus has all required states`() {
-        assertEquals(3, TimeSlotStatus.entries.size)
+        assertEquals(4, TimeSlotStatus.entries.size)
         assertNotNull(TimeSlotStatus.AVAILABLE)
         assertNotNull(TimeSlotStatus.BOOKED)
         assertNotNull(TimeSlotStatus.BLOCKED)
+        assertNotNull(TimeSlotStatus.HOLD)
     }
 
     @Test

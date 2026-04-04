@@ -27,6 +27,12 @@ import com.shourov.apps.pacedream.feature.host.data.CalendarTimeSlot
 import com.shourov.apps.pacedream.feature.host.data.TimeSlotStatus
 import java.util.*
 
+// ── Slot State Colors ──────────────────────────────────────────
+private val SlotGreen = Color(0xFF34C759)
+private val SlotBlue = Color(0xFF007AFF)
+private val SlotRed = Color(0xFFFF3B30)
+private val SlotAmber = Color(0xFFFF9500)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingCalendarScreen(
@@ -63,15 +69,6 @@ fun ListingCalendarScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        // Show listing timezone so host knows the time context
-                        if (uiState.listingTimezone.isNotBlank()) {
-                            Text(
-                                text = "Times in ${uiState.listingTimezone.replace("_", " ")}",
-                                style = PaceDreamTypography.Caption2,
-                                color = PaceDreamColors.TextTertiary,
-                                maxLines = 1
-                            )
-                        }
                     }
                 },
                 navigationIcon = {
@@ -85,25 +82,6 @@ fun ListingCalendarScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.showBlockTimeSheet() },
-                containerColor = PaceDreamColors.HostAccent,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(PaceDreamRadius.Round)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(PaceDreamIconSize.SM)
-                )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                Text(
-                    text = "Block Time",
-                    style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold)
-                )
-            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background
@@ -123,7 +101,7 @@ fun ListingCalendarScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 80.dp) // space for FAB
+                contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
             ) {
                 // Monthly Calendar
                 item {
@@ -137,26 +115,28 @@ fun ListingCalendarScreen(
                     )
                 }
 
-                // Section header
+                // Selected date header with timezone
+                item {
+                    SelectedDateHeader(
+                        selectedDate = uiState.selectedDate,
+                        timezone = uiState.listingTimezone,
+                        availableStartTime = uiState.availableStartTime,
+                        availableEndTime = uiState.availableEndTime
+                    )
+                }
+
+                // Legend row
                 item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
                     ) {
-                        Text(
-                            text = "Time Slots",
-                            style = PaceDreamTypography.Headline,
-                            color = PaceDreamColors.TextPrimary
-                        )
-                        // Legend
-                        Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                            SlotLegendDot(color = PaceDreamColors.HostAccent, label = "Free")
-                            SlotLegendDot(color = PaceDreamColors.Blue, label = "Booked")
-                            SlotLegendDot(color = PaceDreamColors.Error, label = "Blocked")
-                        }
+                        SlotLegendDot(color = SlotGreen, label = "Available")
+                        SlotLegendDot(color = SlotBlue, label = "Booked")
+                        SlotLegendDot(color = SlotRed, label = "Blocked")
+                        SlotLegendDot(color = SlotAmber, label = "Hold")
                     }
                 }
 
@@ -164,7 +144,35 @@ fun ListingCalendarScreen(
                 items(uiState.timeSlots, key = { it.id }) { slot ->
                     TimeSlotRow(
                         slot = slot,
-                        onRemoveBlock = { viewModel.removeBlockedTime(it) }
+                        isMutating = uiState.isMutating,
+                        onBlockSlot = { viewModel.blockSlot(slot) },
+                        onUnblockSlot = { blockId -> viewModel.removeBlockedTime(blockId) }
+                    )
+                }
+
+                // Empty state for no slots
+                if (uiState.timeSlots.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(PaceDreamSpacing.XL),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No time slots for this date",
+                                style = PaceDreamTypography.Body,
+                                color = PaceDreamColors.TextTertiary
+                            )
+                        }
+                    }
+                }
+
+                // Add Blocked Time CTA button
+                item {
+                    AddBlockedTimeCta(
+                        selectedDate = uiState.selectedDate,
+                        onClick = { viewModel.showBlockTimeSheet() }
                     )
                 }
             }
@@ -175,15 +183,66 @@ fun ListingCalendarScreen(
     if (uiState.showBlockTimeSheet) {
         BlockTimeBottomSheet(
             selectedDate = uiState.selectedDate,
+            timezone = uiState.listingTimezone,
             startTime = uiState.blockStartTime,
             endTime = uiState.blockEndTime,
             reason = uiState.blockReason,
+            isMutating = uiState.isMutating,
             onStartTimeChanged = { viewModel.updateBlockStartTime(it) },
             onEndTimeChanged = { viewModel.updateBlockEndTime(it) },
             onReasonChanged = { viewModel.updateBlockReason(it) },
             onSave = { viewModel.saveBlockedTime() },
             onDismiss = { viewModel.dismissBlockTimeSheet() }
         )
+    }
+}
+
+// ── Selected Date Header ───────────────────────────────────────
+
+@Composable
+private fun SelectedDateHeader(
+    selectedDate: String,
+    timezone: String,
+    availableStartTime: String,
+    availableEndTime: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+    ) {
+        Text(
+            text = formatDisplayDate(selectedDate),
+            style = PaceDreamTypography.Title3,
+            color = PaceDreamColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = PaceDreamIcons.Schedule,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "${formatTime12h(availableStartTime)} – ${formatTime12h(availableEndTime)}",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = "·",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = timezone.replace("_", " "),
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary
+            )
+        }
     }
 }
 
@@ -399,43 +458,41 @@ private fun CalendarDayCell(
 @Composable
 private fun TimeSlotRow(
     slot: CalendarTimeSlot,
-    onRemoveBlock: (String) -> Unit
+    isMutating: Boolean,
+    onBlockSlot: () -> Unit,
+    onUnblockSlot: (String) -> Unit
 ) {
-    val (bgColor, statusColor, statusIcon) = when (slot.status) {
-        TimeSlotStatus.AVAILABLE -> Triple(
-            Color.Transparent,
-            PaceDreamColors.HostAccent,
-            PaceDreamIcons.CheckCircle
-        )
-        TimeSlotStatus.BOOKED -> Triple(
-            PaceDreamColors.Blue.copy(alpha = 0.06f),
-            PaceDreamColors.Blue,
-            PaceDreamIcons.Person
-        )
-        TimeSlotStatus.BLOCKED -> Triple(
-            PaceDreamColors.Error.copy(alpha = 0.06f),
-            PaceDreamColors.Error,
-            PaceDreamIcons.Schedule
-        )
+    val (statusColor, statusIcon) = when (slot.status) {
+        TimeSlotStatus.AVAILABLE -> Pair(SlotGreen, PaceDreamIcons.CheckCircle)
+        TimeSlotStatus.BOOKED -> Pair(SlotBlue, PaceDreamIcons.Person)
+        TimeSlotStatus.BLOCKED -> Pair(SlotRed, PaceDreamIcons.Schedule)
+        TimeSlotStatus.HOLD -> Pair(SlotAmber, PaceDreamIcons.Schedule)
+    }
+
+    // Subtle tinted background only for booked and hold — no heavy red for blocked
+    val bgColor = when (slot.status) {
+        TimeSlotStatus.BOOKED -> SlotBlue.copy(alpha = 0.04f)
+        TimeSlotStatus.HOLD -> SlotAmber.copy(alpha = 0.04f)
+        else -> Color.Transparent
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(bgColor)
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Time range
-        Column(modifier = Modifier.width(64.dp)) {
+        Column(modifier = Modifier.width(56.dp)) {
             Text(
-                text = slot.startTime,
-                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold),
+                text = formatTime12h(slot.startTime),
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                 color = PaceDreamColors.TextPrimary
             )
             Text(
-                text = slot.endTime,
-                style = PaceDreamTypography.Caption,
+                text = formatTime12h(slot.endTime),
+                style = PaceDreamTypography.Caption2,
                 color = PaceDreamColors.TextTertiary
             )
         }
@@ -449,14 +506,14 @@ private fun TimeSlotRow(
                 .background(statusColor)
         )
 
-        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
         // Status icon
         Icon(
             imageVector = statusIcon,
             contentDescription = null,
             tint = statusColor,
-            modifier = Modifier.size(PaceDreamIconSize.SM)
+            modifier = Modifier.size(18.dp)
         )
 
         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -468,6 +525,7 @@ private fun TimeSlotRow(
                     TimeSlotStatus.AVAILABLE -> "Available"
                     TimeSlotStatus.BOOKED -> "Booked"
                     TimeSlotStatus.BLOCKED -> "Blocked"
+                    TimeSlotStatus.HOLD -> "Hold"
                 },
                 style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
                 color = statusColor
@@ -475,7 +533,7 @@ private fun TimeSlotRow(
             if (slot.label.isNotBlank() && slot.status != TimeSlotStatus.AVAILABLE) {
                 Text(
                     text = slot.label,
-                    style = PaceDreamTypography.Caption,
+                    style = PaceDreamTypography.Caption2,
                     color = PaceDreamColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -483,27 +541,92 @@ private fun TimeSlotRow(
             }
         }
 
-        // Remove block button — only show for host-created blocks (have a bookingId = blockId)
-        if (slot.status == TimeSlotStatus.BLOCKED && slot.bookingId != null) {
-            IconButton(
-                onClick = { onRemoveBlock(slot.bookingId) },
-                modifier = Modifier.size(32.dp)
-            ) {
+        // Per-slot actions
+        when (slot.status) {
+            TimeSlotStatus.AVAILABLE -> {
+                // "Block" button for available slots
+                TextButton(
+                    onClick = onBlockSlot,
+                    enabled = !isMutating,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = SlotRed)
+                ) {
+                    Text(
+                        text = "Block",
+                        style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
+            TimeSlotStatus.BLOCKED -> {
+                if (slot.bookingId != null) {
+                    // "Unblock" button for host-created blocks
+                    TextButton(
+                        onClick = { onUnblockSlot(slot.bookingId) },
+                        enabled = !isMutating,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.textButtonColors(contentColor = SlotGreen)
+                    ) {
+                        Text(
+                            text = "Unblock",
+                            style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
+                // System blocks (unavailable day, outside hours) show no action
+            }
+            TimeSlotStatus.BOOKED -> {
+                // Locked — show lock icon
                 Icon(
-                    imageVector = PaceDreamIcons.Close,
-                    contentDescription = "Remove block",
-                    tint = PaceDreamColors.Error,
-                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                    imageVector = PaceDreamIcons.Lock,
+                    contentDescription = "Locked",
+                    tint = PaceDreamColors.TextTertiary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .padding(end = 4.dp)
                 )
+            }
+            TimeSlotStatus.HOLD -> {
+                // Non-editable — no action button
             }
         }
     }
 
     HorizontalDivider(
-        color = PaceDreamColors.Border,
+        color = PaceDreamColors.Border.copy(alpha = 0.5f),
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = 64.dp + 3.dp + PaceDreamSpacing.SM2)
+        modifier = Modifier.padding(start = 56.dp + 3.dp + PaceDreamSpacing.SM)
     )
+}
+
+// ── Add Blocked Time CTA ────────────────────────────────────────
+
+@Composable
+private fun AddBlockedTimeCta(
+    selectedDate: String,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+        contentPadding = PaddingValues(vertical = 14.dp)
+    ) {
+        Icon(
+            imageVector = PaceDreamIcons.Add,
+            contentDescription = null,
+            tint = PaceDreamColors.HostAccent,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+        Text(
+            text = "Add Blocked Time for ${formatShortDate(selectedDate)}",
+            style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
+            color = PaceDreamColors.HostAccent
+        )
+    }
 }
 
 // ── Legend Dot ───────────────────────────────────────────────────
@@ -532,9 +655,11 @@ private fun SlotLegendDot(color: Color, label: String) {
 @Composable
 private fun BlockTimeBottomSheet(
     selectedDate: String,
+    timezone: String,
     startTime: String,
     endTime: String,
     reason: String,
+    isMutating: Boolean,
     onStartTimeChanged: (String) -> Unit,
     onEndTimeChanged: (String) -> Unit,
     onReasonChanged: (String) -> Unit,
@@ -555,17 +680,23 @@ private fun BlockTimeBottomSheet(
                 .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
         ) {
             Text(
-                text = "Block Time",
+                text = "Add Blocked Time",
                 style = PaceDreamTypography.Title3,
                 color = PaceDreamColors.TextPrimary
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
+            // Date and timezone context
             Text(
                 text = formatDisplayDate(selectedDate),
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary
+            )
+            Text(
+                text = "Timezone: ${timezone.replace("_", " ")}",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -631,20 +762,22 @@ private fun BlockTimeBottomSheet(
             // Save button
             Button(
                 onClick = onSave,
+                enabled = !isMutating && startTime.isNotBlank() && endTime.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Schedule,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                if (isMutating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                }
                 Text(
-                    text = "Block Time",
+                    text = if (isMutating) "Blocking…" else "Block Time",
                     style = PaceDreamTypography.Button,
                     color = Color.White
                 )
@@ -755,4 +888,14 @@ private fun formatDisplayDate(dateStr: String): String {
     val dayOfWeek = dayNames[cal.get(Calendar.DAY_OF_WEEK) - 1]
     val monthName = monthNames[month - 1]
     return "$dayOfWeek, $monthName $day, $year"
+}
+
+private fun formatShortDate(dateStr: String): String {
+    // "2026-04-03" -> "Apr 3"
+    val parts = dateStr.split("-")
+    if (parts.size != 3) return dateStr
+    val month = parts[1].toIntOrNull() ?: return dateStr
+    val day = parts[2].toIntOrNull() ?: return dateStr
+    val monthNames = arrayOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    return "${monthNames[month - 1]} $day"
 }
