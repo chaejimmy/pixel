@@ -191,6 +191,7 @@ class SessionManager @Inject constructor(
                 .withScope(appConfig.auth0Scopes)
                 .withAudience(appConfig.auth0Audience)
                 .withConnection(connection.connection)
+                .withParameters(mapOf("prompt" to "select_account"))
                 .start(activity, object : Callback<Credentials, AuthenticationException> {
                     override fun onSuccess(result: Credentials) {
                         Timber.d("Auth0 login successful")
