@@ -85,7 +85,7 @@ class MessageRepository @Inject constructor(
                     )
                     val cached = messageDao.getChatMessages(chatId).first()
                     if (cached.isNotEmpty()) {
-                        emit(Result.Success(cached.map { it.asExternalModel() }))
+                        emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
                     } else {
                         emit(Result.Error(Exception("Failed to load messages")))
                     }
@@ -95,7 +95,7 @@ class MessageRepository @Inject constructor(
                 // Fall back to cached messages (use first() to get a single snapshot
                 // instead of collect, which would never complete on Room's infinite Flow)
                 val cached = messageDao.getChatMessages(chatId).first()
-                emit(Result.Success(cached.map { it.asExternalModel() }))
+                emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
             }
         }.flowOn(Dispatchers.IO)
     }
