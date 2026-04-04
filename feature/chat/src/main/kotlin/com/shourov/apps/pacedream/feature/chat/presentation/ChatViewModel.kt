@@ -26,6 +26,7 @@ import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,25 +50,29 @@ class ChatViewModel @Inject constructor(
 
     fun loadMessages(chatId: String) {
         loadMessagesJob?.cancel()
-        loadMessagesJob = viewModelScope.launch {
+        loadMessagesJob = viewModelScope.launch(Dispatchers.IO) {
             val resolvedUserId = authSession.currentUserId ?: "unknown"
             _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId, currentUserId = resolvedUserId)
 
-            // Check attachment status
+            // Check attachment status (fire-and-forget on IO)
             launch {
-                when (val result = messageRepository.getAttachmentStatus(chatId)) {
-                    is Result.Success -> {
-                        _uiState.value = _uiState.value.copy(attachmentsEnabled = result.data)
+                try {
+                    when (val result = messageRepository.getAttachmentStatus(chatId)) {
+                        is Result.Success -> {
+                            _uiState.value = _uiState.value.copy(attachmentsEnabled = result.data)
+                        }
+                        is Result.Error -> {
+                            _uiState.value = _uiState.value.copy(attachmentsEnabled = false)
+                        }
                     }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(attachmentsEnabled = false)
-                    }
+                } catch (_: Exception) {
+                    _uiState.value = _uiState.value.copy(attachmentsEnabled = false)
                 }
             }
 
-            // Mark messages in this chat as read
+            // Mark messages in this chat as read (fire-and-forget)
             launch {
-                messageRepository.markChatAsReadOnServer(chatId)
+                try { messageRepository.markChatAsReadOnServer(chatId) } catch (_: Exception) { }
             }
 
             messageRepository.getChatMessages(chatId).collect { result ->
@@ -134,7 +139,7 @@ class ChatViewModel @Inject constructor(
         // Prevent rapid duplicate text sends (same content within 2 seconds)
         if (photos.isEmpty() && message == lastSentText && System.currentTimeMillis() - lastSentTimestamp < DUPLICATE_SEND_GUARD_MS) return
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             if (photos.isNotEmpty()) {
                 sendMediaMessage(message, photos)
             } else {
@@ -289,7 +294,7 @@ class ChatViewModel @Inject constructor(
             messages = _uiState.value.messages.filter { it.id != messageId }
         )
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             if (failedMessage.hasImageAttachments || _uiState.value.pendingPhotos.isNotEmpty()) {
                 sendMediaMessage(failedMessage.content, _uiState.value.pendingPhotos)
             } else {
