@@ -622,6 +622,7 @@ class InboxRepository @Inject constructor(
                 ?: "",
             text = obj["text"]?.jsonPrimitive?.content
                 ?: obj["content"]?.jsonPrimitive?.content
+                ?: obj["message"]?.jsonPrimitive?.content
                 ?: obj["body"]?.jsonPrimitive?.content
                 ?: "",
             senderId = try {
