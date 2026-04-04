@@ -308,7 +308,8 @@ fun formatDateTimeInListingTimezone(
 enum class TimeSlotStatus {
     AVAILABLE,
     BOOKED,
-    BLOCKED
+    BLOCKED,
+    HOLD
 }
 
 /** A single time slot shown in the calendar day view */
