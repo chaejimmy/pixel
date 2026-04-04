@@ -111,8 +111,17 @@ class MessageRepository @Inject constructor(
             val response = apiService.getChatMessagesLegacy(chatId, chatId)
             if (response.isSuccessful) {
                 val json = response.body() ?: return null
-                val dataArray = json.asJsonObject?.getAsJsonArray("data") ?: return emptyList()
-                dataArray.mapNotNull { element ->
+                val root = json.asJsonObject ?: return null
+                // chat_controller.getMessages wraps messages as:
+                // { data: { messages: [...], total, ... } }  (chat_controller)
+                // OR { data: [...] } (message_controller)
+                val dataElement = root.get("data") ?: return emptyList()
+                val messagesArray = when {
+                    dataElement.isJsonArray -> dataElement.asJsonArray
+                    dataElement.isJsonObject -> dataElement.asJsonObject.getAsJsonArray("messages")
+                    else -> null
+                } ?: return emptyList()
+                messagesArray.mapNotNull { element ->
                     try {
                         val msg = element.asJsonObject
                         val id = msg.get("_id")?.asString ?: return@mapNotNull null
