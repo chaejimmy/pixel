@@ -345,6 +345,20 @@ class MessageRepository @Inject constructor(
         }
     }
 
+    /**
+     * Fetch the raw chat list JSON from GET /chat/all.
+     * Returns the parsed JsonElement so the ViewModel can extract ChatItem data.
+     */
+    suspend fun fetchChatListRaw(): com.google.gson.JsonElement? {
+        return try {
+            val response = apiService.getUserChats()
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            timber.log.Timber.e(e, "Failed to fetch chat list")
+            null
+        }
+    }
+
     suspend fun refreshUserChats(userId: String): Result<Unit> {
         return try {
             val response = apiService.getUserChats()
