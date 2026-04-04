@@ -1,11 +1,13 @@
 package com.shourov.apps.pacedream.feature.host.data
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.shourov.apps.pacedream.model.Property
+import com.shourov.apps.pacedream.model.PropertyLocation
 import com.shourov.apps.pacedream.model.PropertyPricing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -784,7 +786,43 @@ class HostRepository @Inject constructor(
 
     // ── Flexible listings parser (iOS parity: HostListingsService.parseHostListings) ──
 
-    private val gson = Gson()
+    /**
+     * Custom Gson instance that handles polymorphic `location` field.
+     *
+     * The backend has two controllers serving /host/listings:
+     *   - host_controller.js returns `location` as a **string** (street address)
+     *   - hostDashboard/host_controller.js returns `location` as an **object**
+     *     ({ country, state, city, street_address, ... })
+     *
+     * Without this adapter, Gson throws when it encounters a string where it
+     * expects a PropertyLocation object, causing the entire listings array to
+     * parse as empty — which is why Android showed 0 listings while web/iOS worked.
+     */
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(PropertyLocation::class.java,
+            com.google.gson.JsonDeserializer<PropertyLocation> { json, _, _ ->
+                when {
+                    json.isJsonObject -> {
+                        val obj = json.asJsonObject
+                        PropertyLocation(
+                            city = obj.get("city")?.takeIf { it.isJsonPrimitive }?.asString ?: "",
+                            country = obj.get("country")?.takeIf { it.isJsonPrimitive }?.asString ?: "",
+                            address = obj.get("address")?.takeIf { it.isJsonPrimitive }?.asString
+                                ?: obj.get("street_address")?.takeIf { it.isJsonPrimitive }?.asString
+                                ?: obj.get("street")?.takeIf { it.isJsonPrimitive }?.asString ?: "",
+                            state = obj.get("state")?.takeIf { it.isJsonPrimitive }?.asString ?: "",
+                            latitude = obj.get("latitude")?.takeIf { it.isJsonPrimitive }?.asDouble ?: 0.0,
+                            longitude = obj.get("longitude")?.takeIf { it.isJsonPrimitive }?.asDouble ?: 0.0,
+                        )
+                    }
+                    json.isJsonPrimitive && json.asJsonPrimitive.isString -> {
+                        // host_controller.js returns location as a plain address string
+                        PropertyLocation(address = json.asString)
+                    }
+                    else -> PropertyLocation()
+                }
+            })
+        .create()
     private val propertyListType = object : TypeToken<List<Property>>() {}.type
 
     /**
@@ -992,12 +1030,37 @@ class HostRepository @Inject constructor(
                 } else resolved
             } else resolved
 
-            // Step 4: extract pricing from RentableItem price array.
+            // Step 3b: enrich location from top-level city/state fields.
+            // host_controller.js returns city and state as separate top-level
+            // fields (not inside the location object), so merge them in.
+            val withLocation = if (obj != null && withImages.location.city.isBlank()) {
+                val city = obj.getStringOrNull("city") ?: ""
+                val state = obj.getStringOrNull("state") ?: ""
+                if (city.isNotBlank() || state.isNotBlank()) {
+                    withImages.copy(
+                        location = withImages.location.copy(
+                            city = city.ifBlank { withImages.location.city },
+                            state = state.ifBlank { withImages.location.state },
+                        )
+                    )
+                } else withImages
+            } else withImages
+
+            // Step 4: extract pricing from RentableItem price array or top-level price.
             // RentableItem has price: [{ amount, pricing_type, currency, frequency }]
-            // but Property.pricing expects { basePrice, unit, currency }.
-            val withPricing = if (withImages.pricing.basePrice == 0.0 && obj != null) {
+            // but host_controller.js flattens it to a top-level `price` number.
+            // Property.pricing expects { basePrice, unit, currency }.
+            val withPricing = if (withLocation.pricing.basePrice == 0.0 && obj != null) {
                 val priceArr = obj.get("price")
-                if (priceArr != null && priceArr.isJsonArray && priceArr.asJsonArray.size() > 0) {
+                // host_controller.js returns price as a plain number
+                if (priceArr != null && priceArr.isJsonPrimitive) {
+                    val amount = try { priceArr.asDouble } catch (_: Exception) { 0.0 }
+                    if (amount > 0) {
+                        withLocation.copy(
+                            pricing = PropertyPricing(basePrice = amount)
+                        )
+                    } else withLocation
+                } else if (priceArr != null && priceArr.isJsonArray && priceArr.asJsonArray.size() > 0) {
                     val first = priceArr.asJsonArray[0]
                     if (first.isJsonObject) {
                         val p = first.asJsonObject
@@ -1012,7 +1075,7 @@ class HostRepository @Inject constructor(
                             else -> pricingType.ifBlank { "hour" }
                         }
                         if (amount > 0) {
-                            withImages.copy(
+                            withLocation.copy(
                                 pricing = PropertyPricing(
                                     basePrice = amount,
                                     currency = currency,
@@ -1020,10 +1083,10 @@ class HostRepository @Inject constructor(
                                     pricingType = pricingType
                                 )
                             )
-                        } else withImages
-                    } else withImages
-                } else withImages
-            } else withImages
+                        } else withLocation
+                    } else withLocation
+                } else withLocation
+            } else withLocation
 
             withPricing
         }
