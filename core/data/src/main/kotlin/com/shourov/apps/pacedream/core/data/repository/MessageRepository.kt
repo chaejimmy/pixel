@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -76,15 +77,27 @@ class MessageRepository @Inject constructor(
 
                     emit(Result.Success(messages))
                 } else {
-                    emit(Result.Error(Exception("Failed to load messages: ${response.message()}")))
+                    // Inbox endpoint returned error (e.g. 404 Thread not found).
+                    // Fall back to cached messages so the user still sees previous messages.
+                    timber.log.Timber.w(
+                        "Inbox messages failed (HTTP %d): %s — falling back to cache",
+                        response.code(), response.message()
+                    )
+                    val cached = messageDao.getChatMessages(chatId).first()
+                    if (cached.isNotEmpty()) {
+                        emit(Result.Success(cached.map { it.asExternalModel() }))
+                    } else {
+                        emit(Result.Error(Exception("Failed to load messages")))
+                    }
                 }
             } catch (e: Exception) {
+                timber.log.Timber.e(e, "getChatMessages exception — falling back to cache")
                 // Fall back to cached messages (use first() to get a single snapshot
                 // instead of collect, which would never complete on Room's infinite Flow)
                 val cached = messageDao.getChatMessages(chatId).first()
                 emit(Result.Success(cached.map { it.asExternalModel() }))
             }
-        }
+        }.flowOn(Dispatchers.IO)
     }
 
     fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {
@@ -112,42 +125,43 @@ class MessageRepository @Inject constructor(
     }
 
     suspend fun sendMessage(chatId: String, message: MessageModel): Result<MessageModel> {
-        return try {
-            // Inbox endpoint expects { text: "..." } body
-            val messageData = mapOf("text" to message.content)
-            val response = apiService.sendMessage(chatId, messageData)
-            if (response.isSuccessful) {
-                // Update optimistic message with server-assigned ID
-                val serverId = response.body()?.id
-                val confirmedMessage = if (!serverId.isNullOrBlank()) {
-                    message.copy(id = serverId, status = "sent")
-                } else {
-                    message.copy(status = "sent")
-                }
-                messageDao.insertMessage(confirmedMessage.asEntity())
-                Result.Success(confirmedMessage)
-            } else {
-                val errorMsg = when (response.code()) {
-                    429 -> "You're sending messages too quickly. Please wait a moment."
-                    403 -> {
-                        val errorBody = response.errorBody()?.string()
-                        val lower = errorBody?.lowercase() ?: ""
-                        when {
-                            lower.contains("spam") -> "This message was flagged as spam."
-                            lower.contains("restrict") || lower.contains("blocked") ->
-                                "Your account is restricted from sending messages."
-                            else -> "You don't have permission to send messages in this chat."
-                        }
+        return withContext(Dispatchers.IO) {
+            try {
+                // Inbox endpoint expects { text: "..." } body
+                val messageData = mapOf("text" to message.content)
+                val response = apiService.sendMessage(chatId, messageData)
+                if (response.isSuccessful) {
+                    // Update optimistic message with server-assigned ID
+                    val serverId = response.body()?.id
+                    val confirmedMessage = if (!serverId.isNullOrBlank()) {
+                        message.copy(id = serverId, status = "sent")
+                    } else {
+                        message.copy(status = "sent")
                     }
-                    else -> "Failed to send message: ${response.message()}"
+                    messageDao.insertMessage(confirmedMessage.asEntity())
+                    Result.Success(confirmedMessage)
+                } else {
+                    val errorMsg = when (response.code()) {
+                        429 -> "You're sending messages too quickly. Please wait a moment."
+                        403 -> {
+                            val errorBody = response.errorBody()?.string()
+                            val lower = errorBody?.lowercase() ?: ""
+                            when {
+                                lower.contains("spam") -> "This message was flagged as spam."
+                                lower.contains("restrict") || lower.contains("blocked") ->
+                                    "Your account is restricted from sending messages."
+                                else -> "You don't have permission to send messages in this chat."
+                            }
+                        }
+                        else -> "Failed to send message: ${response.message()}"
+                    }
+                    Result.Error(Exception(errorMsg))
                 }
-                Result.Error(Exception(errorMsg))
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "Failed to send message in chat $chatId")
+                Result.Error(classifyNetworkException(e))
             }
-        } catch (e: Exception) {
-            timber.log.Timber.e(e, "Failed to send message in chat $chatId")
-            Result.Error(classifyNetworkException(e))
         }
-    }
 
     /**
      * Upload images to a chat thread as attachments.
