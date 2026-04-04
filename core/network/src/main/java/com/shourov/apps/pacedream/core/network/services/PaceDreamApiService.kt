@@ -18,6 +18,7 @@ import com.shourov.apps.pacedream.core.network.model.HostListingResponse
 import com.shourov.apps.pacedream.core.network.model.AttachmentStatusResponse
 import com.shourov.apps.pacedream.core.network.model.MediaUploadResponse
 import com.shourov.apps.pacedream.core.network.model.InboxMessagesResponse
+import com.shourov.apps.pacedream.core.network.model.LegacyChatMessagesResponse
 import com.shourov.apps.pacedream.core.network.model.MessageResponse
 import com.shourov.apps.pacedream.core.network.model.SendMessageResponse
 import com.shourov.apps.pacedream.core.network.model.NotificationListData
@@ -293,6 +294,13 @@ interface PaceDreamApiService {
         @Query("limit") limit: Int = 50,
         @Query("before") before: String? = null
     ): Response<InboxMessagesResponse>
+
+    /** Legacy endpoint fallback — used when inbox endpoint returns 404 */
+    @GET(ApiEndPoints.GET_CHAT_MESSAGES_LEGACY)
+    suspend fun getChatMessagesLegacy(
+        @Path("chatId") chatId: String,
+        @Query("chatId") chatIdQuery: String? = null
+    ): Response<LegacyChatMessagesResponse>
 
     @POST(ApiEndPoints.CREATE_CHAT)
     suspend fun createChat(@Body chatData: Map<String, String>): Response<ApiResponse<ChatResponse>>
