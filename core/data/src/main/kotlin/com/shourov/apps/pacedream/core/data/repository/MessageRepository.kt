@@ -104,24 +104,42 @@ class MessageRepository @Inject constructor(
         }.flowOn(Dispatchers.IO)
     }
 
-    /** Fetch messages from the legacy GET /chat/:chatId/messages endpoint */
+    /** Fetch messages from the legacy GET /chat/:chatId/messages endpoint.
+     *  Uses raw JsonElement to avoid Gson crashes when sender is a string vs object. */
     private suspend fun fetchFromLegacyEndpoint(chatId: String): List<MessageModel>? {
         return try {
             val response = apiService.getChatMessagesLegacy(chatId, chatId)
             if (response.isSuccessful) {
-                response.body()?.data?.map { legacy ->
-                    MessageModel(
-                        id = legacy.id,
-                        chatId = chatId,
-                        senderId = legacy.sender?.id ?: "",
-                        content = legacy.message,
-                        messageType = legacy.type.uppercase().let { if (it == "TEXT" || it.isBlank()) "TEXT" else it },
-                        isRead = legacy.messageRead,
-                        timestamp = legacy.createdAt,
-                        createdAt = legacy.createdAt,
-                        status = "sent"
-                    )
-                }?.distinctBy { it.id }
+                val json = response.body() ?: return null
+                val dataArray = json.asJsonObject?.getAsJsonArray("data") ?: return emptyList()
+                dataArray.mapNotNull { element ->
+                    try {
+                        val msg = element.asJsonObject
+                        val id = msg.get("_id")?.asString ?: return@mapNotNull null
+                        // sender can be a string ObjectId or a populated object
+                        val senderElement = msg.get("sender")
+                        val senderId = when {
+                            senderElement == null || senderElement.isJsonNull -> ""
+                            senderElement.isJsonObject -> senderElement.asJsonObject.get("_id")?.asString ?: ""
+                            senderElement.isJsonPrimitive -> senderElement.asString
+                            else -> ""
+                        }
+                        val content = msg.get("message")?.asString ?: ""
+                        val type = msg.get("type")?.asString ?: "text"
+                        val createdAt = msg.get("createdAt")?.asString ?: ""
+                        MessageModel(
+                            id = id,
+                            chatId = chatId,
+                            senderId = senderId,
+                            content = content,
+                            messageType = type.uppercase().let { if (it == "TEXT" || it.isBlank()) "TEXT" else it },
+                            isRead = msg.get("messageRead")?.asBoolean ?: false,
+                            timestamp = createdAt,
+                            createdAt = createdAt,
+                            status = "sent"
+                        )
+                    } catch (_: Exception) { null }
+                }.distinctBy { it.id }
             } else {
                 timber.log.Timber.w("Legacy messages also failed (HTTP %d)", response.code())
                 null
