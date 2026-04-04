@@ -176,7 +176,14 @@ class ChatViewModel @Inject constructor(
 
         when (val result = messageRepository.sendMessage(snapshot.chatId, messageModel)) {
             is Result.Success -> {
-                _uiState.value = _uiState.value.copy(isSending = false)
+                // Update optimistic message with server-confirmed data
+                val confirmed = result.data
+                _uiState.value = _uiState.value.copy(
+                    isSending = false,
+                    messages = _uiState.value.messages.map {
+                        if (it.id == messageModel.id) confirmed else it
+                    }
+                )
             }
             is Result.Error -> {
                 val errorMsg = mapMessageError(result.exception)

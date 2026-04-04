@@ -127,17 +127,64 @@ data class AttachmentResponse(
     @SerializedName("mimeType") val mimeType: String? = null
 )
 
+/**
+ * Response model for messages from both inbox and legacy endpoints.
+ * The inbox endpoint populates senderId as an object with user details.
+ * The legacy endpoint populates sender as an object.
+ * Gson deserializes the populated object into [MessageSender].
+ */
 data class MessageResponse(
     @SerializedName("_id") val id: String = "",
+    @SerializedName("threadId") val threadId: String = "",
     @SerializedName("chatId") val chatId: String = "",
-    @SerializedName("senderId") val senderId: String = "",
+    // Inbox route: senderId is a populated object { _id, first_name, ... }
+    @SerializedName("senderId") val senderIdObj: MessageSender? = null,
+    // Legacy route: sender is a populated object { _id, first_name, ... }
+    @SerializedName("sender") val senderObj: MessageSender? = null,
     @SerializedName("text") val text: String = "",
+    // Legacy route uses "message" field for text content
+    @SerializedName("message") val messageField: String = "",
     @SerializedName("content") val content: String = "",
     @SerializedName("attachments") val attachments: List<AttachmentResponse> = emptyList(),
     @SerializedName("messageType") val messageType: String? = null,
+    @SerializedName("type") val type: String? = null,
     @SerializedName("createdAt") val createdAt: String = "",
     @SerializedName("isRead") val isRead: Boolean = false,
+    @SerializedName("messageRead") val messageRead: Boolean = false,
     @SerializedName("status") val status: String? = null
+) {
+    /** Resolve sender ID from inbox (senderId._id) or legacy (sender._id) format */
+    val resolvedSenderId: String
+        get() = senderIdObj?.id?.takeIf { it.isNotBlank() }
+            ?: senderObj?.id?.takeIf { it.isNotBlank() }
+            ?: ""
+
+    /** Resolve text from inbox (text) or legacy (message) format */
+    val resolvedText: String
+        get() = text.ifBlank { messageField.ifBlank { content } }
+
+    /** Resolve read status */
+    val resolvedIsRead: Boolean
+        get() = isRead || messageRead
+}
+
+/** Sender details from populated senderId or sender field */
+data class MessageSender(
+    @SerializedName("_id") val id: String = "",
+    @SerializedName("first_name") val firstName: String = "",
+    @SerializedName("last_name") val lastName: String = "",
+    @SerializedName("profilePic") val profilePic: String = ""
+)
+
+/** Response wrapper for inbox GET /threads/:id/messages */
+data class InboxMessagesResponse(
+    @SerializedName("items") val items: List<MessageResponse> = emptyList(),
+    @SerializedName("nextCursor") val nextCursor: String? = null
+)
+
+/** Response wrapper for inbox POST /threads/:id/messages */
+data class SendMessageResponse(
+    @SerializedName("id") val id: String = ""
 )
 
 data class MediaUploadResponse(

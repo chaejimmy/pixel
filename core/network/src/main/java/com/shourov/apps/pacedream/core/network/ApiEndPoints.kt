@@ -62,11 +62,11 @@ object ApiEndPoints {
     const val GET_BOOKING_AVAILABILITY = "bookings/availability/{propertyId}"
 
     // ── Messaging / Chat ──────────────────────────────────
-    const val GET_USER_CHATS = "chats/user/{userId}"
-    const val GET_CHAT_MESSAGES = "chats/{chatId}/messages"
-    const val CREATE_CHAT = "chats"
-    const val SEND_MESSAGE = "chats/{chatId}/messages"
-    const val MARK_MESSAGE_READ = "chats/{chatId}/messages/{messageId}/read"
+    const val GET_USER_CHATS = "chat/all"
+    const val GET_CHAT_MESSAGES = "inbox/threads/{chatId}/messages"
+    const val CREATE_CHAT = "chat/create"
+    const val SEND_MESSAGE = "inbox/threads/{chatId}/messages"
+    const val MARK_MESSAGE_READ = "chat/{chatId}/messages/{messageId}/read"
     const val MARK_CHAT_AS_READ = "chat/mark-chat-as-read"
 
     // ── Notifications ─────────────────────────────────────

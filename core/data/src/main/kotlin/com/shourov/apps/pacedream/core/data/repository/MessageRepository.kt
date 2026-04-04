@@ -56,15 +56,15 @@ class MessageRepository @Inject constructor(
             try {
                 val response = apiService.getChatMessages(chatId)
                 if (response.isSuccessful) {
-                    val messages = response.body()?.data?.map { resp ->
+                    val messages = response.body()?.items?.map { resp ->
                         MessageModel(
                             id = resp.id,
                             chatId = chatId,
-                            senderId = resp.senderId,
-                            content = resp.text.ifBlank { resp.content },
-                            messageType = resp.messageType ?: if (resp.attachments.isNotEmpty()) "IMAGE" else "TEXT",
+                            senderId = resp.resolvedSenderId,
+                            content = resp.resolvedText,
+                            messageType = resp.messageType ?: resp.type ?: if (resp.attachments.isNotEmpty()) "IMAGE" else "TEXT",
                             attachments = resp.attachments.map { it.toModel() },
-                            isRead = resp.isRead,
+                            isRead = resp.resolvedIsRead,
                             timestamp = resp.createdAt,
                             createdAt = resp.createdAt,
                             status = resp.status
@@ -113,10 +113,19 @@ class MessageRepository @Inject constructor(
 
     suspend fun sendMessage(chatId: String, message: MessageModel): Result<MessageModel> {
         return try {
-            val response = apiService.sendMessage(chatId, message)
+            // Inbox endpoint expects { text: "..." } body
+            val messageData = mapOf("text" to message.content)
+            val response = apiService.sendMessage(chatId, messageData)
             if (response.isSuccessful) {
-                messageDao.insertMessage(message.asEntity())
-                Result.Success(message)
+                // Update optimistic message with server-assigned ID
+                val serverId = response.body()?.id
+                val confirmedMessage = if (!serverId.isNullOrBlank()) {
+                    message.copy(id = serverId, status = "sent")
+                } else {
+                    message.copy(status = "sent")
+                }
+                messageDao.insertMessage(confirmedMessage.asEntity())
+                Result.Success(confirmedMessage)
             } else {
                 val errorMsg = when (response.code()) {
                     429 -> "You're sending messages too quickly. Please wait a moment."
