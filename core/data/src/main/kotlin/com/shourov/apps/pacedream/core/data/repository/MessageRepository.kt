@@ -162,6 +162,7 @@ class MessageRepository @Inject constructor(
                 Result.Error(classifyNetworkException(e))
             }
         }
+    }
 
     /**
      * Upload images to a chat thread as attachments.
