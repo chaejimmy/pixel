@@ -172,9 +172,9 @@ class ChatViewModel @Inject constructor(
         lastSentText = text
         lastSentTimestamp = System.currentTimeMillis()
 
-        // Optimistic insert
+        // Optimistic insert (dedup by ID to prevent LazyColumn key crash)
         _uiState.value = _uiState.value.copy(
-            messages = _uiState.value.messages + messageModel,
+            messages = (_uiState.value.messages + messageModel).distinctBy { it.id },
             newMessage = "",
             isSending = true
         )
