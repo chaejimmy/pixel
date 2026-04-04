@@ -130,8 +130,11 @@ fun ListingCalendarScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
-                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                            .background(PaceDreamColors.Card)
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         SlotLegendDot(color = SlotGreen, label = "Available")
                         SlotLegendDot(color = SlotBlue, label = "Booked")
@@ -465,15 +468,16 @@ private fun TimeSlotRow(
     val (statusColor, statusIcon) = when (slot.status) {
         TimeSlotStatus.AVAILABLE -> Pair(SlotGreen, PaceDreamIcons.CheckCircle)
         TimeSlotStatus.BOOKED -> Pair(SlotBlue, PaceDreamIcons.Person)
-        TimeSlotStatus.BLOCKED -> Pair(SlotRed, PaceDreamIcons.Schedule)
-        TimeSlotStatus.HOLD -> Pair(SlotAmber, PaceDreamIcons.Schedule)
+        TimeSlotStatus.BLOCKED -> Pair(SlotRed, PaceDreamIcons.Cancel)
+        TimeSlotStatus.HOLD -> Pair(SlotAmber, PaceDreamIcons.AccessTime)
     }
 
-    // Subtle tinted background only for booked and hold — no heavy red for blocked
+    // Light tinted background per state so each row is scannable at a glance
     val bgColor = when (slot.status) {
-        TimeSlotStatus.BOOKED -> SlotBlue.copy(alpha = 0.04f)
-        TimeSlotStatus.HOLD -> SlotAmber.copy(alpha = 0.04f)
-        else -> Color.Transparent
+        TimeSlotStatus.AVAILABLE -> SlotGreen.copy(alpha = 0.04f)
+        TimeSlotStatus.BOOKED -> SlotBlue.copy(alpha = 0.06f)
+        TimeSlotStatus.BLOCKED -> SlotRed.copy(alpha = 0.04f)
+        TimeSlotStatus.HOLD -> SlotAmber.copy(alpha = 0.06f)
     }
 
     Row(
@@ -500,8 +504,8 @@ private fun TimeSlotRow(
         // Vertical status indicator
         Box(
             modifier = Modifier
-                .width(3.dp)
-                .height(36.dp)
+                .width(4.dp)
+                .height(40.dp)
                 .clip(RoundedCornerShape(2.dp))
                 .background(statusColor)
         )
@@ -513,12 +517,12 @@ private fun TimeSlotRow(
             imageVector = statusIcon,
             contentDescription = null,
             tint = statusColor,
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(20.dp)
         )
 
         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
 
-        // Label
+        // Label — status name is the primary visual anchor
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = when (slot.status) {
@@ -527,13 +531,16 @@ private fun TimeSlotRow(
                     TimeSlotStatus.BLOCKED -> "Blocked"
                     TimeSlotStatus.HOLD -> "Hold"
                 },
-                style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
+                style = PaceDreamTypography.Subheadline.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                ),
                 color = statusColor
             )
             if (slot.label.isNotBlank() && slot.status != TimeSlotStatus.AVAILABLE) {
                 Text(
                     text = slot.label,
-                    style = PaceDreamTypography.Caption2,
+                    style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -594,7 +601,7 @@ private fun TimeSlotRow(
     HorizontalDivider(
         color = PaceDreamColors.Border.copy(alpha = 0.5f),
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = 56.dp + 3.dp + PaceDreamSpacing.SM)
+        modifier = Modifier.padding(start = 56.dp + 4.dp + PaceDreamSpacing.SM)
     )
 }
 
@@ -636,15 +643,15 @@ private fun SlotLegendDot(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(10.dp)
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = label,
-            style = PaceDreamTypography.Caption2,
-            color = PaceDreamColors.TextTertiary
+            style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.Medium),
+            color = PaceDreamColors.TextSecondary
         )
     }
 }
