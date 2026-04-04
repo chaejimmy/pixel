@@ -157,9 +157,86 @@ class InboxRepository @Inject constructor(
                 }
             }
             is ApiResult.Failure -> {
-                Timber.e("InboxRepository: getMessages FAILED — ${result.error.message}")
-                result
+                Timber.e("InboxRepository: getMessages FAILED — ${result.error.message}, trying legacy endpoint")
+                // Fall back to legacy: GET /chat/{threadId}/messages
+                getMessagesFromLegacyEndpoint(threadId, limit)
             }
+        }
+    }
+
+    /**
+     * Fallback: fetch messages from legacy GET /chat/:chatId/messages endpoint.
+     * This works when the inbox endpoint returns 404 (Thread not found for Chat IDs).
+     */
+    private suspend fun getMessagesFromLegacyEndpoint(
+        chatId: String,
+        limit: Int
+    ): ApiResult<MessagesResult> {
+        try {
+            val url = appConfig.buildApiUrlWithQuery(
+                "chat", chatId, "messages",
+                queryParams = mapOf("limit" to limit.toString())
+            )
+            Timber.d("InboxRepository: trying legacy endpoint for chatId=$chatId")
+            return when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    try {
+                        val messagesResult = withContext(Dispatchers.Default) {
+                            parseLegacyMessagesResponse(result.data)
+                        }
+                        Timber.d("InboxRepository: legacy parsed ${messagesResult.messages.size} messages")
+                        ApiResult.Success(messagesResult)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to parse legacy messages response")
+                        // Try second legacy: GET /messages?chatId=xxx
+                        getMessagesFromMessageEndpoint(chatId, limit)
+                    }
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("InboxRepository: legacy also failed — ${result.error.message}")
+                    // Try second legacy: GET /messages?chatId=xxx
+                    getMessagesFromMessageEndpoint(chatId, limit)
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Legacy messages endpoint exception")
+            return getMessagesFromMessageEndpoint(chatId, limit)
+        }
+    }
+
+    /**
+     * Second fallback: GET /messages?chatId=xxx (message_controller)
+     */
+    private suspend fun getMessagesFromMessageEndpoint(
+        chatId: String,
+        limit: Int
+    ): ApiResult<MessagesResult> {
+        try {
+            val url = appConfig.buildApiUrlWithQuery(
+                "messages",
+                queryParams = mapOf("chatId" to chatId, "limit" to limit.toString())
+            )
+            Timber.d("InboxRepository: trying message_controller endpoint for chatId=$chatId")
+            return when (val result = apiClient.get(url, includeAuth = true)) {
+                is ApiResult.Success -> {
+                    try {
+                        val messagesResult = withContext(Dispatchers.Default) {
+                            parseLegacyFlatMessagesResponse(result.data)
+                        }
+                        Timber.d("InboxRepository: message_controller parsed ${messagesResult.messages.size} messages")
+                        ApiResult.Success(messagesResult)
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to parse message_controller response")
+                        ApiResult.Failure(ApiError.DecodingError("All message endpoints failed for chatId=$chatId", e))
+                    }
+                }
+                is ApiResult.Failure -> {
+                    Timber.e("InboxRepository: message_controller also failed — ${result.error.message}")
+                    ApiResult.Failure(ApiError.NetworkError("All message endpoints failed for chatId=$chatId"))
+                }
+            }
+        } catch (e: Exception) {
+            return ApiResult.Failure(ApiError.NetworkError("All message endpoints failed: ${e.message}"))
         }
     }
     
@@ -596,6 +673,20 @@ class InboxRepository @Inject constructor(
     @VisibleForTesting
     internal fun parseThreadsResponseForTest(responseBody: String): ThreadsResult =
         parseThreadsResponse(responseBody)
+
+    /**
+     * Parse legacy chat_controller response: { data: { messages: [...] } }
+     * Delegates to the same tolerant parser since it handles nested formats.
+     */
+    private fun parseLegacyMessagesResponse(responseBody: String): MessagesResult =
+        parseMessagesResponse(responseBody)
+
+    /**
+     * Parse message_controller response: { data: [...messages] }
+     * The data field is a flat array of message documents.
+     */
+    private fun parseLegacyFlatMessagesResponse(responseBody: String): MessagesResult =
+        parseMessagesResponse(responseBody)
 
     @VisibleForTesting
     internal fun parseMessagesResponseForTest(responseBody: String): MessagesResult =
