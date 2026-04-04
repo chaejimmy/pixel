@@ -65,6 +65,7 @@ object ApiEndPoints {
     const val GET_USER_CHATS = "chat/all"
     const val GET_CHAT_MESSAGES = "inbox/threads/{chatId}/messages"
     const val GET_CHAT_MESSAGES_LEGACY = "chat/{chatId}/messages"
+    const val GET_MESSAGES_FALLBACK = "messages"
     const val CREATE_CHAT = "chat/create"
     const val SEND_MESSAGE = "inbox/threads/{chatId}/messages"
     const val MARK_MESSAGE_READ = "chat/{chatId}/messages/{messageId}/read"
