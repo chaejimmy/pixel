@@ -17,7 +17,9 @@ import com.shourov.apps.pacedream.core.network.model.HostEarningsResponse
 import com.shourov.apps.pacedream.core.network.model.HostListingResponse
 import com.shourov.apps.pacedream.core.network.model.AttachmentStatusResponse
 import com.shourov.apps.pacedream.core.network.model.MediaUploadResponse
+import com.shourov.apps.pacedream.core.network.model.InboxMessagesResponse
 import com.shourov.apps.pacedream.core.network.model.MessageResponse
+import com.shourov.apps.pacedream.core.network.model.SendMessageResponse
 import com.shourov.apps.pacedream.core.network.model.NotificationListData
 import com.shourov.apps.pacedream.core.network.model.NotificationResponse
 import com.shourov.apps.pacedream.core.network.model.UnreadCountData
@@ -288,9 +290,9 @@ interface PaceDreamApiService {
     @GET(ApiEndPoints.GET_CHAT_MESSAGES)
     suspend fun getChatMessages(
         @Path("chatId") chatId: String,
-        @Query("page") page: Int = 1,
-        @Query("limit") limit: Int = 50
-    ): Response<ApiListResponse<MessageResponse>>
+        @Query("limit") limit: Int = 50,
+        @Query("before") before: String? = null
+    ): Response<InboxMessagesResponse>
 
     @POST(ApiEndPoints.CREATE_CHAT)
     suspend fun createChat(@Body chatData: Map<String, String>): Response<ApiResponse<ChatResponse>>
@@ -298,8 +300,8 @@ interface PaceDreamApiService {
     @POST(ApiEndPoints.SEND_MESSAGE)
     suspend fun sendMessage(
         @Path("chatId") chatId: String,
-        @Body message: MessageModel
-    ): Response<ApiResponse<MessageResponse>>
+        @Body messageData: Map<String, String>
+    ): Response<SendMessageResponse>
 
     @PUT(ApiEndPoints.MARK_MESSAGE_READ)
     suspend fun markMessageAsRead(
