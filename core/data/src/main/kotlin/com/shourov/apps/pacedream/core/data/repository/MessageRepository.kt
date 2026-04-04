@@ -70,7 +70,7 @@ class MessageRepository @Inject constructor(
                             createdAt = resp.createdAt,
                             status = resp.status
                         )
-                    } ?: emptyList()
+                    }?.distinctBy { it.id } ?: emptyList()
 
                     // Cache to local database
                     messages.forEach { messageDao.insertMessage(it.asEntity()) }
