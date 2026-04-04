@@ -168,6 +168,31 @@ data class SendMessageResponse(
     @SerializedName("id") val id: String = ""
 )
 
+/** Response wrapper for legacy GET /chat/:chatId/messages */
+data class LegacyChatMessagesResponse(
+    @SerializedName("status") val status: Boolean = false,
+    @SerializedName("data") val data: List<LegacyMessageResponse> = emptyList()
+)
+
+/** Legacy message format from GET /chat/:chatId/messages (populated sender, message field) */
+data class LegacyMessageResponse(
+    @SerializedName("_id") val id: String = "",
+    @SerializedName("chat") val chat: String = "",
+    @SerializedName("sender") val sender: LegacyMessageSender? = null,
+    @SerializedName("message") val message: String = "",
+    @SerializedName("type") val type: String = "text",
+    @SerializedName("url") val url: String = "",
+    @SerializedName("messageRead") val messageRead: Boolean = false,
+    @SerializedName("createdAt") val createdAt: String = ""
+)
+
+data class LegacyMessageSender(
+    @SerializedName("_id") val id: String = "",
+    @SerializedName("first_name") val firstName: String = "",
+    @SerializedName("last_name") val lastName: String = "",
+    @SerializedName("profilePic") val profilePic: String = ""
+)
+
 data class MediaUploadResponse(
     @SerializedName("id") val id: String = "",
     @SerializedName("text") val text: String = "",

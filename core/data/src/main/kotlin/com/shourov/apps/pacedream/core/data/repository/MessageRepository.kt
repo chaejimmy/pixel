@@ -55,6 +55,7 @@ class MessageRepository @Inject constructor(
     fun getChatMessages(chatId: String): Flow<Result<List<MessageModel>>> {
         return flow {
             try {
+                // Try modern inbox endpoint first
                 val response = apiService.getChatMessages(chatId)
                 if (response.isSuccessful) {
                     val messages = response.body()?.items?.map { resp ->
@@ -72,32 +73,63 @@ class MessageRepository @Inject constructor(
                         )
                     }?.distinctBy { it.id } ?: emptyList()
 
-                    // Cache to local database
                     messages.forEach { messageDao.insertMessage(it.asEntity()) }
-
                     emit(Result.Success(messages))
                 } else {
-                    // Inbox endpoint returned error (e.g. 404 Thread not found).
-                    // Fall back to cached messages so the user still sees previous messages.
+                    // Inbox endpoint failed (e.g. 404 Thread not found).
+                    // Fall back to legacy chat endpoint which works with Chat IDs.
                     timber.log.Timber.w(
-                        "Inbox messages failed (HTTP %d): %s — falling back to cache",
-                        response.code(), response.message()
+                        "Inbox messages failed (HTTP %d), trying legacy endpoint",
+                        response.code()
                     )
-                    val cached = messageDao.getChatMessages(chatId).first()
-                    if (cached.isNotEmpty()) {
-                        emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
+                    val legacyMessages = fetchFromLegacyEndpoint(chatId)
+                    if (legacyMessages != null) {
+                        legacyMessages.forEach { messageDao.insertMessage(it.asEntity()) }
+                        emit(Result.Success(legacyMessages))
                     } else {
-                        emit(Result.Error(Exception("Failed to load messages")))
+                        // Both endpoints failed — fall back to cache
+                        val cached = messageDao.getChatMessages(chatId).first()
+                        if (cached.isNotEmpty()) {
+                            emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
+                        } else {
+                            emit(Result.Error(Exception("Failed to load messages")))
+                        }
                     }
                 }
             } catch (e: Exception) {
                 timber.log.Timber.e(e, "getChatMessages exception — falling back to cache")
-                // Fall back to cached messages (use first() to get a single snapshot
-                // instead of collect, which would never complete on Room's infinite Flow)
                 val cached = messageDao.getChatMessages(chatId).first()
                 emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
             }
         }.flowOn(Dispatchers.IO)
+    }
+
+    /** Fetch messages from the legacy GET /chat/:chatId/messages endpoint */
+    private suspend fun fetchFromLegacyEndpoint(chatId: String): List<MessageModel>? {
+        return try {
+            val response = apiService.getChatMessagesLegacy(chatId, chatId)
+            if (response.isSuccessful) {
+                response.body()?.data?.map { legacy ->
+                    MessageModel(
+                        id = legacy.id,
+                        chatId = chatId,
+                        senderId = legacy.sender?.id ?: "",
+                        content = legacy.message,
+                        messageType = legacy.type.uppercase().let { if (it == "TEXT" || it.isBlank()) "TEXT" else it },
+                        isRead = legacy.messageRead,
+                        timestamp = legacy.createdAt,
+                        createdAt = legacy.createdAt,
+                        status = "sent"
+                    )
+                }?.distinctBy { it.id }
+            } else {
+                timber.log.Timber.w("Legacy messages also failed (HTTP %d)", response.code())
+                null
+            }
+        } catch (e: Exception) {
+            timber.log.Timber.w(e, "Legacy messages endpoint exception")
+            null
+        }
     }
 
     fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {
