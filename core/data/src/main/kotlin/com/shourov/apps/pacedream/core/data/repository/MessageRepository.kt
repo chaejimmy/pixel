@@ -76,23 +76,26 @@ class MessageRepository @Inject constructor(
                     messages.forEach { messageDao.insertMessage(it.asEntity()) }
                     emit(Result.Success(messages))
                 } else {
-                    // Inbox endpoint failed (e.g. 404 Thread not found).
-                    // Fall back to legacy chat endpoint which works with Chat IDs.
-                    timber.log.Timber.w(
-                        "Inbox messages failed (HTTP %d), trying legacy endpoint",
-                        response.code()
-                    )
+                    val inboxCode = response.code()
+                    // Try legacy: GET /chat/{chatId}/messages (chat_controller)
                     val legacyMessages = fetchFromLegacyEndpoint(chatId)
                     if (legacyMessages != null) {
                         legacyMessages.forEach { messageDao.insertMessage(it.asEntity()) }
                         emit(Result.Success(legacyMessages))
                     } else {
-                        // Both endpoints failed — fall back to cache
-                        val cached = messageDao.getChatMessages(chatId).first()
-                        if (cached.isNotEmpty()) {
-                            emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
+                        // Try second legacy: GET /messages?chatId=xxx (message_controller)
+                        val fallbackMessages = fetchFromMessageEndpoint(chatId)
+                        if (fallbackMessages != null) {
+                            fallbackMessages.forEach { messageDao.insertMessage(it.asEntity()) }
+                            emit(Result.Success(fallbackMessages))
                         } else {
-                            emit(Result.Error(Exception("Failed to load messages")))
+                            val cached = messageDao.getChatMessages(chatId).first()
+                            if (cached.isNotEmpty()) {
+                                emit(Result.Success(cached.map { it.asExternalModel() }.distinctBy { it.id }))
+                            } else {
+                                // Show actual error details so user can report
+                                emit(Result.Error(Exception("All endpoints failed (inbox=$inboxCode). chatId=$chatId")))
+                            }
                         }
                     }
                 }
@@ -157,6 +160,40 @@ class MessageRepository @Inject constructor(
             timber.log.Timber.w(e, "Legacy messages endpoint exception")
             null
         }
+    }
+
+    /** Fallback: GET /messages?chatId=xxx (message_controller, flat data array) */
+    private suspend fun fetchFromMessageEndpoint(chatId: String): List<MessageModel>? {
+        return try {
+            val response = apiService.getMessagesFallback(chatId)
+            if (response.isSuccessful) {
+                val json = response.body() ?: return null
+                val root = json.asJsonObject ?: return null
+                val dataArray = root.getAsJsonArray("data") ?: return emptyList()
+                dataArray.mapNotNull { element ->
+                    try {
+                        val msg = element.asJsonObject
+                        val id = msg.get("_id")?.asString ?: return@mapNotNull null
+                        val senderElement = msg.get("sender")
+                        val senderId = when {
+                            senderElement == null || senderElement.isJsonNull -> ""
+                            senderElement.isJsonObject -> senderElement.asJsonObject.get("_id")?.asString ?: ""
+                            senderElement.isJsonPrimitive -> senderElement.asString
+                            else -> ""
+                        }
+                        MessageModel(
+                            id = id, chatId = chatId, senderId = senderId,
+                            content = msg.get("message")?.asString ?: "",
+                            messageType = "TEXT",
+                            isRead = msg.get("messageRead")?.asBoolean ?: false,
+                            timestamp = msg.get("createdAt")?.asString ?: "",
+                            createdAt = msg.get("createdAt")?.asString ?: "",
+                            status = "sent"
+                        )
+                    } catch (_: Exception) { null }
+                }.distinctBy { it.id }
+            } else null
+        } catch (_: Exception) { null }
     }
 
     fun getUserMessages(userName: String): Flow<Result<List<MessageModel>>> {

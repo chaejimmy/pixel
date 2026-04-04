@@ -302,6 +302,12 @@ interface PaceDreamApiService {
         @Query("chatId") chatIdQuery: String? = null
     ): Response<com.google.gson.JsonElement>
 
+    /** Second legacy fallback: GET /messages?chatId=xxx (message_controller) */
+    @GET(ApiEndPoints.GET_MESSAGES_FALLBACK)
+    suspend fun getMessagesFallback(
+        @Query("chatId") chatId: String
+    ): Response<com.google.gson.JsonElement>
+
     @POST(ApiEndPoints.CREATE_CHAT)
     suspend fun createChat(@Body chatData: Map<String, String>): Response<ApiResponse<ChatResponse>>
 
