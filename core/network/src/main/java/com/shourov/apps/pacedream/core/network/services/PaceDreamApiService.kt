@@ -295,12 +295,12 @@ interface PaceDreamApiService {
         @Query("before") before: String? = null
     ): Response<InboxMessagesResponse>
 
-    /** Legacy endpoint fallback — used when inbox endpoint returns 404 */
+    /** Legacy endpoint fallback — returns raw JSON to avoid Gson type crashes */
     @GET(ApiEndPoints.GET_CHAT_MESSAGES_LEGACY)
     suspend fun getChatMessagesLegacy(
         @Path("chatId") chatId: String,
         @Query("chatId") chatIdQuery: String? = null
-    ): Response<LegacyChatMessagesResponse>
+    ): Response<com.google.gson.JsonElement>
 
     @POST(ApiEndPoints.CREATE_CHAT)
     suspend fun createChat(@Body chatData: Map<String, String>): Response<ApiResponse<ChatResponse>>
