@@ -49,26 +49,54 @@ class ChatListViewModel @Inject constructor(
                 )
                 return@launch
             }
-            
-            messageRepository.getUserMessages(userId).collect { result ->
-                when (result) {
-                    is Result.Success -> {
-                        val chats = groupMessagesIntoChats(result.data, userId)
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            chats = chats,
-                            error = null
-                        )
-                    }
-                    is Result.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = result.exception.message
-                        )
-                    }
-                }
-            }
+
+            // Fetch chat list from the server API
+            val json = messageRepository.fetchChatListRaw()
+            val chats = parseChatListResponse(json, userId)
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                chats = chats,
+                error = null
+            )
         }
+    }
+
+    private fun parseChatListResponse(
+        json: com.google.gson.JsonElement?,
+        currentUserId: String
+    ): List<ChatItem> {
+        if (json == null || !json.isJsonObject) return emptyList()
+        val dataArray = json.asJsonObject.getAsJsonArray("data") ?: return emptyList()
+
+        return dataArray.mapNotNull { element ->
+            try {
+                val chat = element.asJsonObject
+                val chatId = chat.get("_id")?.asString ?: return@mapNotNull null
+                val users = chat.getAsJsonArray("users") ?: return@mapNotNull null
+                val latestMessage = chat.getAsJsonObject("latestMessage")
+
+                val otherUser = users.firstOrNull { user ->
+                    user.asJsonObject.get("_id")?.asString != currentUserId
+                }?.asJsonObject
+
+                val otherUserName = if (otherUser != null) {
+                    val first = otherUser.get("first_name")?.asString ?: ""
+                    val last = otherUser.get("last_name")?.asString ?: ""
+                    "$first $last".trim().ifBlank { "Unknown" }
+                } else "Unknown"
+
+                ChatItem(
+                    chatId = chatId,
+                    otherUserId = otherUser?.get("_id")?.asString ?: "",
+                    otherUserName = otherUserName,
+                    otherUserAvatar = otherUser?.get("profilePic")?.asString?.takeIf { it.isNotBlank() },
+                    lastMessage = latestMessage?.get("message")?.asString ?: "",
+                    lastMessageTime = latestMessage?.get("updatedAt")?.asString
+                        ?: latestMessage?.get("createdAt")?.asString ?: "",
+                    unreadCount = 0
+                )
+            } catch (_: Exception) { null }
+        }.sortedByDescending { it.lastMessageTime }
     }
     
     private fun groupMessagesIntoChats(messages: List<MessageModel>, currentUserId: String): List<ChatItem> {
