@@ -229,16 +229,16 @@ class OneSignalService @Inject constructor(
         try {
             OneSignal.login(userId)
             externalUserIdBound = true
-            Timber.d("[OneSignalService] login() succeeded for $userId")
+            android.util.Log.i("PushInit", "✅ OneSignal login() succeeded for $userId. subscriptionId=${getSubscriptionId()} optedIn=${OneSignal.User.pushSubscription.optedIn}")
         } catch (e: Exception) {
-            Timber.w(e, "[OneSignalService] login() failed for $userId, retrying in 3s...")
+            android.util.Log.w("PushInit", "OneSignal login() failed for $userId, retrying in 3s...", e)
             delay(3000)
             try {
                 OneSignal.login(userId)
                 externalUserIdBound = true
-                Timber.d("[OneSignalService] login() succeeded on retry for $userId")
+                android.util.Log.i("PushInit", "✅ OneSignal login() succeeded on retry for $userId")
             } catch (e2: Exception) {
-                Timber.e(e2, "[OneSignalService] login() failed after retry for $userId")
+                android.util.Log.e("PushInit", "❌ OneSignal login() failed after retry for $userId", e2)
             }
         }
 
@@ -248,9 +248,11 @@ class OneSignalService @Inject constructor(
         // not subscribed". Must be called after login() so OneSignal can
         // associate the permission grant with the correct external user ID.
         if (!OneSignal.Notifications.permission) {
-            Timber.d("[OneSignalService] Push permission not granted, requesting...")
+            android.util.Log.w("PushInit", "Push permission NOT granted, requesting...")
             val granted = OneSignal.Notifications.requestPermission(false)
-            Timber.d("[OneSignalService] Push permission %s", if (granted) "granted" else "denied")
+            android.util.Log.i("PushInit", "Push permission request result: granted=$granted")
+        } else {
+            android.util.Log.i("PushInit", "Push permission already granted ✅")
         }
     }
 }

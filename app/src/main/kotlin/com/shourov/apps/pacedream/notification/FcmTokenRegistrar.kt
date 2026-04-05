@@ -49,15 +49,15 @@ class FcmTokenRegistrar @Inject constructor(
         try {
             FirebaseMessaging.getInstance().token
                 .addOnSuccessListener { token ->
-                    Timber.d("FCM token retrieved: %s...", token.take(10))
+                    android.util.Log.i("PushInit", "FCM token retrieved: ${token.take(15)}...")
                     fcmTokenStore.saveToken(token)
                     scope.launch { sendTokenToServer(token) }
                 }
                 .addOnFailureListener { e ->
-                    Timber.e(e, "Failed to retrieve FCM token")
+                    android.util.Log.e("PushInit", "Failed to retrieve FCM token", e)
                 }
         } catch (e: Exception) {
-            Timber.e(e, "Firebase not available; skipping FCM token registration")
+            android.util.Log.e("PushInit", "Firebase not available; skipping FCM token registration", e)
         }
     }
 
@@ -144,7 +144,7 @@ class FcmTokenRegistrar @Inject constructor(
 
                 when (val result = apiClient.post(url, body, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        Timber.d("FCM token registered with server via /push-devices (attempt ${attempt + 1})")
+                        android.util.Log.i("PushInit", "✅ FCM token registered with /push-devices (attempt ${attempt + 1}) userId=${tokenStorage.userId}")
                         fcmTokenStore.markRegistered(token, tokenStorage.userId)
                         registered = true
                         break
@@ -168,7 +168,7 @@ class FcmTokenRegistrar @Inject constructor(
                         fcmTokenStore.markRegistered(token, tokenStorage.userId)
                     }
                     is ApiResult.Failure -> {
-                        Timber.e("Failed to register FCM token after all retries: ${legacyResult.error.message}")
+                        android.util.Log.e("PushInit", "❌ Failed to register FCM token after all retries: ${legacyResult.error.message}")
                     }
                 }
             }

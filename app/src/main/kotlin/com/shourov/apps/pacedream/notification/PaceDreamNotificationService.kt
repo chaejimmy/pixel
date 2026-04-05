@@ -94,6 +94,8 @@ class PaceDreamNotificationService @Inject constructor(
                     group = GROUP_ID_ACTIVITY
                     enableVibration(true)
                     enableLights(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setShowBadge(true)
                 },
                 NotificationChannel(
                     CHANNEL_ID_BOOKINGS,
@@ -104,6 +106,8 @@ class PaceDreamNotificationService @Inject constructor(
                     group = GROUP_ID_ACTIVITY
                     enableVibration(true)
                     enableLights(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setShowBadge(true)
                 },
                 NotificationChannel(
                     CHANNEL_ID_PAYMENTS,
@@ -150,6 +154,8 @@ class PaceDreamNotificationService @Inject constructor(
                     group = GROUP_ID_ACCOUNT
                     enableVibration(true)
                     enableLights(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setShowBadge(true)
                 },
                 NotificationChannel(
                     CHANNEL_ID_MARKETING,
@@ -222,14 +228,24 @@ class PaceDreamNotificationService @Inject constructor(
             .setPriority(priority)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            // Lock screen: show full notification content (not just icon)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Help Android categorize for priority treatment (Samsung/Pixel)
+            .setCategory(
+                if (data.type == NotificationType.MESSAGE_RECEIVED) NotificationCompat.CATEGORY_MESSAGE
+                else NotificationCompat.CATEGORY_EVENT
+            )
+            // Samsung: show on lock screen even when DND is partially enabled
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
 
         // Add sub-text for context
         getSubText(data)?.let { builder.setSubText(it) }
 
         try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+            android.util.Log.d("PushNotif", "Notification displayed: id=$notificationId title=$title channel=${data.channelId} type=${data.type}")
         } catch (e: SecurityException) {
-            Timber.e(e, "Failed to show notification — permission denied")
+            android.util.Log.e("PushNotif", "Failed to show notification — permission denied", e)
         }
     }
 

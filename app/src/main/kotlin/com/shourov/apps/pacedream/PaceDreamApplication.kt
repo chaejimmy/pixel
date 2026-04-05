@@ -81,8 +81,10 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
         // Non-blocking; must run after Firebase init so FCM token is available.
         try {
             oneSignalService.initialize(BuildConfig.ONESIGNAL_APP_ID)
+            // Log push readiness for production debugging (Samsung lock screen issues)
+            android.util.Log.i("PushInit", "OneSignal initialized. permission=${com.onesignal.OneSignal.Notifications.permission} subscriptionId=${com.onesignal.OneSignal.User.pushSubscription.id} token=${com.onesignal.OneSignal.User.pushSubscription.token?.take(15)}...")
         } catch (e: Exception) {
-            Timber.e(e, "OneSignal initialization failed; push notifications disabled")
+            android.util.Log.e("PushInit", "OneSignal initialization failed", e)
         }
 
         // iOS parity: bootstrap session on app start if tokens exist.
@@ -99,7 +101,7 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
                 // OneSignal owns the FirebaseMessagingService (via manifest merger),
                 // so we retrieve the token explicitly here instead of relying on
                 // onNewToken(). Safe to call on every launch; deduplicates internally.
-                Timber.d("[App] Auth initialized, registering FCM token")
+                android.util.Log.i("PushInit", "Auth initialized, registering FCM token")
                 fcmTokenRegistrar.registerCurrentToken()
             } catch (e: Exception) {
                 Timber.e(e, "Auth/FCM initialization failed; app will show unauthenticated state")
@@ -113,7 +115,7 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             try {
                 authSession.currentUser.collect { user ->
                     if (user != null && user.id.isNotBlank()) {
-                        Timber.d("[App] User authenticated (id=%s), binding OneSignal + FCM", user.id)
+                        android.util.Log.i("PushInit", "User authenticated (id=${user.id}), binding OneSignal + FCM. permission=${com.onesignal.OneSignal.Notifications.permission}")
                         oneSignalService.setExternalUserId(user.id)
                         // Clear dedup cache so the device always re-registers after
                         // login. This fixes the case where a previous registration
