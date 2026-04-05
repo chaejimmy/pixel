@@ -141,23 +141,30 @@ class InboxRepository @Inject constructor(
                 "before" to before
             )
         )
-        
-        Timber.d("InboxRepository: getMessages — threadId=$threadId, limit=$limit, before=$before")
+
+        val TAG = "InboxRepo"
+        android.util.Log.d(TAG, "getMessages: threadId=$threadId url=$url")
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
+                    // Log raw response (first 500 chars) for debugging
+                    android.util.Log.d(TAG, "getMessages SUCCESS: rawLen=${result.data.length} raw=${result.data.take(500)}")
                     val messagesResult = withContext(Dispatchers.Default) {
                         parseMessagesResponse(result.data)
                     }
-                    Timber.d("InboxRepository: parsed ${messagesResult.messages.size} messages, hasMore=${messagesResult.hasMore}")
+                    // Log each parsed message's fields
+                    messagesResult.messages.forEachIndexed { i, msg ->
+                        android.util.Log.d(TAG, "  msg[$i]: id=${msg.id} text='${msg.text.take(50)}' senderId=${msg.senderId} status=${msg.status}")
+                    }
+                    android.util.Log.d(TAG, "getMessages: parsed ${messagesResult.messages.size} messages, hasMore=${messagesResult.hasMore}")
                     ApiResult.Success(messagesResult)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse messages response — raw length=${result.data.length}")
+                    android.util.Log.e(TAG, "getMessages PARSE FAILED: ${e.message}", e)
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse messages", e))
                 }
             }
             is ApiResult.Failure -> {
-                Timber.e("InboxRepository: getMessages FAILED — ${result.error.message}, trying legacy endpoint")
+                android.util.Log.e(TAG, "getMessages FAILED: ${result.error.message}, trying legacy")
                 // Fall back to legacy: GET /chat/{threadId}/messages
                 getMessagesFromLegacyEndpoint(threadId, limit)
             }
@@ -177,10 +184,11 @@ class InboxRepository @Inject constructor(
                 "chat", chatId, "messages",
                 queryParams = mapOf("limit" to limit.toString())
             )
-            Timber.d("InboxRepository: trying legacy endpoint for chatId=$chatId")
+            android.util.Log.d("InboxRepo", "LEGACY: trying GET /chat/$chatId/messages url=$url")
             return when (val result = apiClient.get(url, includeAuth = true)) {
                 is ApiResult.Success -> {
                     try {
+                        android.util.Log.d("InboxRepo", "LEGACY SUCCESS: rawLen=${result.data.length} raw=${result.data.take(500)}")
                         val messagesResult = withContext(Dispatchers.Default) {
                             parseLegacyMessagesResponse(result.data)
                         }
@@ -261,19 +269,26 @@ class InboxRepository @Inject constructor(
         }
         val body = bodyObj.toString()
         
+        val TAG = "InboxRepo"
+        android.util.Log.d(TAG, "sendMessage: threadId=$threadId text='${text.take(50)}' url=$url body=$body")
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
             is ApiResult.Success -> {
                 try {
+                    android.util.Log.d(TAG, "sendMessage SUCCESS: raw=${result.data.take(500)}")
                     val message = withContext(Dispatchers.Default) {
                         parseMessageFromResponse(result.data)
                     }
+                    android.util.Log.d(TAG, "sendMessage parsed: id=${message.id} text='${message.text.take(50)}' senderId=${message.senderId}")
                     ApiResult.Success(message)
                 } catch (e: Exception) {
-                    Timber.e(e, "Failed to parse sent message response")
+                    android.util.Log.e(TAG, "sendMessage PARSE FAILED: ${e.message}", e)
                     ApiResult.Failure(ApiError.DecodingError("Failed to parse message", e))
                 }
             }
-            is ApiResult.Failure -> result
+            is ApiResult.Failure -> {
+                android.util.Log.e(TAG, "sendMessage FAILED: ${result.error.message}")
+                result
+            }
         }
     }
     
@@ -616,6 +631,14 @@ class InboxRepository @Inject constructor(
     }
     
     private fun parseMessage(obj: JsonObject): Message {
+        // Debug: log available fields for diagnosing blank messages
+        val rawText = obj["text"]?.toString()
+        val rawContent = obj["content"]?.toString()
+        val rawMessage = obj["message"]?.toString()
+        val rawSenderId = obj["senderId"]?.toString()
+        val rawSender = obj["sender"]?.toString()
+        android.util.Log.d("InboxRepo", "parseMessage: keys=${obj.keys.take(15)} text=$rawText content=$rawContent message=$rawMessage senderId=$rawSenderId sender=${rawSender?.take(60)}")
+
         return Message(
             id = obj["_id"]?.jsonPrimitive?.content
                 ?: obj["id"]?.jsonPrimitive?.content
