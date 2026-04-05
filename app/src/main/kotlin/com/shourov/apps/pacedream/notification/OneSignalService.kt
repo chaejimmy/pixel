@@ -269,5 +269,20 @@ class OneSignalService @Inject constructor(
         } else {
             android.util.Log.i("PushInit", "Push permission already granted ✅")
         }
+
+        // Final verification: log the subscription state so we can diagnose
+        // "invalid_aliases.external_id" errors from the backend.
+        val finalSubId = getSubscriptionId()
+        val finalOptedIn = OneSignal.User.pushSubscription.optedIn
+        val finalToken = OneSignal.User.pushSubscription.token
+        if (finalOptedIn && finalSubId != null) {
+            android.util.Log.i("PushInit", "✅ Push ready: subscriptionId=$finalSubId optedIn=true token=${finalToken?.take(15)}...")
+        } else {
+            // This is the root cause of include_aliases failures.
+            // If optedIn=false, OneSignal won't bind the external_id to any
+            // active subscription → backend's include_aliases returns
+            // "invalid_aliases.external_id" → push silently fails.
+            android.util.Log.e("PushInit", "❌ Push NOT ready after login+permission: subscriptionId=$finalSubId optedIn=$finalOptedIn token=${finalToken?.take(15)}... — include_aliases WILL FAIL on backend")
+        }
     }
 }
