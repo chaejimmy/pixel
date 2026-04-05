@@ -21,7 +21,14 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
                 // fatal NoClassDefFoundError at runtime.
                 if (hasGoogleServices) {
                     apply("com.google.gms.google-services")
-                    apply("com.google.firebase.firebase-perf")
+                    // firebase-perf plugin is incompatible with AGP 9+ (Transform API removed).
+                    // Performance monitoring still works via the SDK dependency — only the
+                    // automatic HTTP/screen-trace instrumentation is lost.
+                    try {
+                        apply("com.google.firebase.firebase-perf")
+                    } catch (e: Exception) {
+                        project.logger.warn("firebase-perf plugin skipped (incompatible with current AGP): ${e.message}")
+                    }
                     apply("com.google.firebase.crashlytics")
                 }
             }
@@ -55,10 +62,14 @@ class AndroidApplicationFirebaseConventionPlugin : Plugin<Project> {
                     // google-services.json typically does not cover, so FirebaseApp
                     // cannot initialise and the instrumented OkHttp calls crash with
                     // ExceptionInInitializerError at runtime.
-                    buildTypes.getByName("debug") {
-                        configure<FirebasePerfExtension> {
-                            setInstrumentationEnabled(false)
+                    try {
+                        buildTypes.getByName("debug") {
+                            configure<FirebasePerfExtension> {
+                                setInstrumentationEnabled(false)
+                            }
                         }
+                    } catch (_: Exception) {
+                        // firebase-perf plugin not applied (AGP 9+ incompatible)
                     }
                 }
             }
