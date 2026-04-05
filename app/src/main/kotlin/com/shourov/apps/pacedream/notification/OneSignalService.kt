@@ -138,7 +138,7 @@ class OneSignalService @Inject constructor(
     }
 
     /**
-     * Set external user ID for targeting.
+     * Set external user ID for targeting (fire-and-forget version).
      *
      * iOS parity: matches OneSignalService.setExternalUserId(_:)
      * OneSignal v5 SDK uses login() instead of setExternalUserId().
@@ -163,6 +163,21 @@ class OneSignalService @Inject constructor(
                 OneSignal.logout()
             }
         }
+    }
+
+    /**
+     * Suspend version: sets external user ID and waits for login() to complete.
+     * Use this when you need to register FCM tokens AFTER login() finishes,
+     * so the captured OneSignal subscription ID is the post-login one.
+     */
+    suspend fun setExternalUserIdAndAwait(userId: String) {
+        Timber.d("[OneSignalService] setExternalUserIdAndAwait: $userId")
+        pendingExternalUserId = userId
+        if (!initialized) {
+            Timber.w("[OneSignalService] SDK not initialized, skipping login for $userId")
+            return
+        }
+        setExternalUserIdWithRetry(userId)
     }
 
     /**

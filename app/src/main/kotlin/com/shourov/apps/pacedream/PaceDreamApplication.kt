@@ -111,12 +111,22 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
         // iOS parity: bind OneSignal external user ID when user is authenticated.
         // Mirrors iOS OneSignalService.setExternalUserId() called after auth.
         // Also re-registers FCM token when user changes so backend has the correct mapping.
-        ProcessLifecycleOwner.get().lifecycleScope.launch {
+        //
+        // CRITICAL: We must await login() BEFORE registering the FCM token.
+        // Previously setExternalUserId() launched a fire-and-forget coroutine,
+        // so registerCurrentToken() ran before login() finished. The captured
+        // OneSignal subscription ID was pre-login (stale) or null, causing the
+        // backend to create a conflicting REST player. Chat push notifications
+        // then silently failed because the stale player ID reported recipients=1
+        // but FCM delivery failed (token owned by the SDK subscription).
+        ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             try {
                 authSession.currentUser.collect { user ->
                     if (user != null && user.id.isNotBlank()) {
                         android.util.Log.i("PushInit", "User authenticated (id=${user.id}), binding OneSignal + FCM. permission=${com.onesignal.OneSignal.Notifications.permission}")
-                        oneSignalService.setExternalUserId(user.id)
+                        // Await login() so the subscription ID is post-login
+                        oneSignalService.setExternalUserIdAndAwait(user.id)
+                        android.util.Log.i("PushInit", "OneSignal login() completed. subscriptionId=${oneSignalService.getSubscriptionId()} — now registering FCM token")
                         // Clear dedup cache so the device always re-registers after
                         // login. This fixes the case where a previous registration
                         // was marked as done but the backend lost the PushDevice record.
