@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,7 @@ import com.pacedream.common.composables.components.PaceDreamUserAvatar
 import com.pacedream.common.composables.theme.PaceDreamDesignSystem
 import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
+import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -274,11 +276,51 @@ private fun MessagesList(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val density = LocalDensity.current
 
+    // Track keyboard visibility via IME insets
+    val imeBottomPx = WindowInsets.ime.getBottom(density)
+    val isKeyboardVisible = imeBottomPx > 0
+
+    // Determine if user is near the bottom of the list (within last 3 items)
+    val isNearBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) true
+            else lastVisibleItem != null && lastVisibleItem.index >= totalItems - 3
+        }
+    }
+
+    // Auto-scroll when new message arrives (only if user is near bottom)
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+        if (messages.isNotEmpty() && isNearBottom) {
             listState.animateScrollToItem(messages.size - 1)
         }
+    }
+
+    // Auto-scroll when keyboard opens (only if user is near bottom)
+    LaunchedEffect(isKeyboardVisible) {
+        if (isKeyboardVisible && messages.isNotEmpty() && isNearBottom) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
+    // Debug: log keyboard height changes
+    LaunchedEffect(imeBottomPx) {
+        val imeHeightDp = with(density) { imeBottomPx.toDp() }
+        Timber.d("Chat: keyboard height=%s (visible=%s)", imeHeightDp, isKeyboardVisible)
+    }
+
+    // Debug: log scroll position and message count
+    LaunchedEffect(listState.firstVisibleItemIndex, messages.size) {
+        Timber.d(
+            "Chat: scrollPosition=%d, totalMessages=%d, nearBottom=%s",
+            listState.firstVisibleItemIndex,
+            messages.size,
+            isNearBottom
+        )
     }
 
     // Deduplicate messages by ID to prevent LazyColumn key crash.
@@ -288,7 +330,7 @@ private fun MessagesList(
     }
 
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         state = listState,
         contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
         verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM, Alignment.Bottom)
