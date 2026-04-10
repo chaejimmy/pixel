@@ -320,10 +320,31 @@ class SessionManager @Inject constructor(
     }
     
     /**
-     * Sign out - clear all tokens and state
+     * Sign out - revoke server-side session, then clear all local tokens and state.
+     *
+     * The backend call is fire-and-forget: local cleanup always happens even if
+     * the network request fails, matching iOS behavior.
      */
     fun signOut() {
-        Timber.d("SessionManager: signOut — clearing tokens and state")
+        Timber.d("SessionManager: signOut — starting")
+
+        // Capture tokens before clearing so we can send them to the backend
+        val refreshToken = tokenStorage.refreshToken
+
+        // Fire-and-forget: revoke refresh token on the server
+        scope.launch {
+            try {
+                val result = authRepository.logout(refreshToken)
+                when (result) {
+                    is ApiResult.Success -> Timber.d("SessionManager: backend logout successful")
+                    is ApiResult.Failure -> Timber.w("SessionManager: backend logout failed: ${result.error.message}")
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "SessionManager: backend logout request failed (continuing)")
+            }
+        }
+
+        // Clear local state immediately (don't wait for network)
         try {
             tokenStorage.clearAll()
         } catch (e: Exception) {
