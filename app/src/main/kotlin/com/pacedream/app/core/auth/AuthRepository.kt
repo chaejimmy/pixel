@@ -199,9 +199,25 @@ class AuthRepository @Inject constructor(
         return lastFailure ?: ApiResult.Failure(com.pacedream.app.core.network.ApiError.Unknown("Failed to fetch profile"))
     }
 
+    /**
+     * Logout: POST /v1/auth/logout { refreshToken }
+     * Revokes the refresh token server-side.
+     */
+    suspend fun logout(refreshToken: String?): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "logout")
+        val body = json.encodeToString(
+            LogoutRequest.serializer(),
+            LogoutRequest(refreshToken = refreshToken)
+        )
+        return apiClient.post(url, body, includeAuth = true)
+    }
+
     // Expose for logging/testing if needed
     fun buildApiUrl(vararg segments: String): HttpUrl = appConfig.buildApiUrl(*segments)
 }
+
+@Serializable
+data class LogoutRequest(val refreshToken: String? = null)
 
 @Serializable
 data class RefreshTokenRequest(val refreshToken: String)
