@@ -13,7 +13,10 @@ import timber.log.Timber
  * Persists in-progress listing drafts to SharedPreferences (iOS: UserDefaults)
  * so the user can resume after leaving and coming back.
  *
- * The draft is keyed per-user (or "anon" for unauthenticated sessions).
+ * The draft is keyed per-user. An unscoped "anon" draft exists only for the
+ * rare path where the wizard is opened before the SessionManager emits the
+ * current user; it is cleared whenever a real user id is supplied so that it
+ * cannot leak to the next signed-in user on a shared device.
  */
 class CreateListingDraftStore(
     context: Context,
@@ -30,6 +33,20 @@ class CreateListingDraftStore(
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
+    }
+
+    init {
+        // As soon as we have a real user id, nuke any orphaned anon draft from
+        // a previous (possibly different) signed-out session so that the next
+        // user does not see someone else's work when the "Continue draft"
+        // banner loads.
+        if (!userId.isNullOrBlank()) {
+            try {
+                prefs.edit().remove(ANON_KEY).apply()
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to clear anon draft (best-effort)")
+            }
+        }
     }
 
     fun save(draft: ListingDraftData) {
@@ -55,14 +72,25 @@ class CreateListingDraftStore(
         prefs.edit().remove(key).apply()
     }
 
+    /** Called when a user signs out to guarantee no draft bleeds into the next session. */
+    fun clearForSignOut() {
+        try {
+            prefs.edit().remove(key).remove(ANON_KEY).apply()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to clear drafts on sign-out (best-effort)")
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "pd_listing_draft_prefs"
+        private const val ANON_KEY = "pd_create_listing_draft_v2_anon"
     }
 }
 
 /**
  * Serializable snapshot of in-progress listing form data.
- * Matches the fields in CreateListingScreen's wizard state.
+ * Matches the fields in CreateListingScreen's wizard state. All new fields
+ * default to their wizard defaults so older drafts still decode cleanly.
  */
 @Serializable
 data class ListingDraftData(
@@ -74,10 +102,26 @@ data class ListingDraftData(
     val address: String = "",
     val city: String = "",
     val state: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
     val basePrice: String = "",
     val totalCost: String = "",
     val pricingUnit: String = "hour",
     val amenities: List<String> = emptyList(),
     val deadlineAt: String = "",
     val requirements: String = "",
+    /** Cloudinary URLs (or data URLs) for photos the host already uploaded in this draft. */
+    val uploadedImageUrls: List<String> = emptyList(),
+    // Schedule / availability
+    val selectedDurations: List<Int> = emptyList(),
+    val selectedDays: List<Int> = emptyList(),
+    val startTime: String = "09:00",
+    val endTime: String = "17:00",
+    val timezone: String = "",
+    val minStay: Int = 1,
+    val maxStay: Int = 7,
+    val checkinTime: String = "15:00",
+    val checkoutTime: String = "11:00",
+    val minMonths: Int = 1,
+    val availableFrom: String = "",
 )

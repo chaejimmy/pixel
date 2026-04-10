@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -78,17 +79,24 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
+import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.model.PricingUnit
 import com.shourov.apps.pacedream.model.Property
 import com.shourov.apps.pacedream.model.PropertyLocation
 import com.shourov.apps.pacedream.model.PropertyPricing
+import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
+
+/** Max photos the host can attach to a listing (matches create-listing cap). */
+private const val MAX_EDIT_IMAGES = 10
 
 // ── UI State ────────────────────────────────────────────────────────────────
 data class EditListingUiState(
@@ -108,6 +116,11 @@ data class EditListingUiState(
     val longitude: Double = 0.0,
     val amenities: List<String> = emptyList(),
     val images: List<String> = emptyList(),
+    /** Locally-selected new image URIs, not yet uploaded. */
+    val pendingNewImageUris: List<Uri> = emptyList(),
+    /** True while new images are being uploaded to Cloudinary before the save call. */
+    val isUploadingImages: Boolean = false,
+    val uploadProgressText: String = "",
     val isAvailable: Boolean = true,
     val propertyType: String = "",
     val bedrooms: Int = 0,
@@ -115,12 +128,14 @@ data class EditListingUiState(
     val maxGuests: Int = 1,
 ) {
     val hasChanges: Boolean get() = title.isNotBlank()
+    val totalImageCount: Int get() = images.size + pendingNewImageUris.size
 }
 
 // ── ViewModel ───────────────────────────────────────────────────────────────
 @HiltViewModel
 class EditListingViewModel @Inject constructor(
-    private val hostRepository: HostRepository
+    private val hostRepository: HostRepository,
+    private val imageUploadService: ImageUploadService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditListingUiState())
@@ -203,6 +218,117 @@ class EditListingViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(images = current)
     }
 
+    /** Track newly picked local image URIs; they are uploaded when the host taps Save. */
+    fun addPendingImageUris(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        val s = _uiState.value
+        val remaining = (MAX_EDIT_IMAGES - s.totalImageCount).coerceAtLeast(0)
+        if (remaining == 0) return
+        val toAdd = uris.take(remaining)
+        _uiState.value = s.copy(pendingNewImageUris = s.pendingNewImageUris + toAdd)
+    }
+
+    fun removePendingImageUri(index: Int) {
+        val current = _uiState.value.pendingNewImageUris.toMutableList()
+        if (index in current.indices) {
+            current.removeAt(index)
+            _uiState.value = _uiState.value.copy(pendingNewImageUris = current)
+        }
+    }
+
+    /**
+     * Upload any locally picked images to Cloudinary, then PATCH the listing.
+     * Photos are NEVER silently dropped: on upload failure we fall back to a
+     * compressed base64 data URL so the backend can still persist the image.
+     */
+    fun uploadPendingImagesAndSave(context: Context) {
+        val snapshot = _uiState.value
+        val pending = snapshot.pendingNewImageUris
+        if (pending.isEmpty()) {
+            saveListing()
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = snapshot.copy(
+                isUploadingImages = true,
+                uploadProgressText = "Uploading photos…",
+                error = null,
+            )
+            val uploaded = mutableListOf<String>()
+            val failed = mutableListOf<Uri>()
+            val total = pending.size
+            var completed = 0
+            for (uri in pending) {
+                val pct = ((completed.toFloat() / total) * 100).toInt()
+                _uiState.value = _uiState.value.copy(
+                    uploadProgressText = "Uploading photos… $pct%"
+                )
+                when (val result = imageUploadService.uploadImage(context, uri)) {
+                    is ApiResult.Success -> uploaded.add(result.data)
+                    is ApiResult.Failure -> {
+                        // Fallback: compress + base64 so the image is not silently dropped.
+                        val b64 = encodeUriToBase64JpegOrNull(context, uri)
+                        if (b64 != null) {
+                            uploaded.add(b64)
+                        } else {
+                            failed.add(uri)
+                        }
+                    }
+                }
+                completed++
+            }
+            if (failed.isNotEmpty()) {
+                // Surface a visible error and abort the save so the host is not
+                // misled into thinking everything was saved.
+                _uiState.value = _uiState.value.copy(
+                    isUploadingImages = false,
+                    uploadProgressText = "",
+                    error = "Couldn't upload ${failed.size} photo${if (failed.size == 1) "" else "s"}. Remove them or try again.",
+                )
+                return@launch
+            }
+            val mergedImages = _uiState.value.images + uploaded
+            _uiState.value = _uiState.value.copy(
+                images = mergedImages,
+                pendingNewImageUris = emptyList(),
+                isUploadingImages = false,
+                uploadProgressText = "",
+            )
+            saveListing()
+        }
+    }
+
+    private fun encodeUriToBase64JpegOrNull(context: Context, uri: Uri): String? {
+        return try {
+            val stream = context.contentResolver.openInputStream(uri) ?: return null
+            val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
+            stream.close()
+            if (bitmap == null) return null
+            val maxDim = 1024
+            val ratio = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height)
+            } else 1f
+            val scaled = if (ratio < 1f) {
+                android.graphics.Bitmap.createScaledBitmap(
+                    bitmap,
+                    (bitmap.width * ratio).toInt().coerceAtLeast(1),
+                    (bitmap.height * ratio).toInt().coerceAtLeast(1),
+                    true,
+                )
+            } else bitmap
+            val baos = java.io.ByteArrayOutputStream()
+            scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, baos)
+            if (scaled !== bitmap) scaled.recycle()
+            bitmap.recycle()
+            val bytes = baos.toByteArray()
+            val b64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+            "data:image/jpeg;base64,$b64"
+        } catch (e: Exception) {
+            Timber.w(e, "Base64 fallback failed for edit image upload")
+            null
+        }
+    }
+
     fun saveListing() {
         val s = _uiState.value
         if (s.title.isBlank()) { _uiState.value = s.copy(error = "Title is required."); return }
@@ -244,9 +370,11 @@ fun EditListingScreen(
     viewModel: EditListingViewModel,
     onBackClick: () -> Unit = {},
     onSaveSuccess: () -> Unit = {},
+    onManageCalendarClick: ((String) -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(listingId) { viewModel.loadListing(listingId) }
     LaunchedEffect(uiState.saveSuccess) {
@@ -271,11 +399,12 @@ fun EditListingScreen(
                 },
                 actions = {
                     if (!uiState.isLoading) {
+                        val savingOrUploading = uiState.isSaving || uiState.isUploadingImages
                         TextButton(
-                            onClick = { viewModel.saveListing() },
-                            enabled = !uiState.isSaving && uiState.hasChanges,
+                            onClick = { viewModel.uploadPendingImagesAndSave(context) },
+                            enabled = !savingOrUploading && uiState.hasChanges,
                         ) {
-                            if (uiState.isSaving) {
+                            if (savingOrUploading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
                                     color = PaceDreamColors.HostAccent, strokeWidth = 2.dp,
@@ -334,8 +463,12 @@ fun EditListingScreen(
                 onToggleAmenity = viewModel::toggleAmenity,
                 onAvailabilityChange = viewModel::updateAvailability,
                 onRemoveImage = viewModel::removeImage,
-                onAddImageUrls = viewModel::addImageUrls,
-                onSave = viewModel::saveListing,
+                onAddPendingUris = viewModel::addPendingImageUris,
+                onRemovePendingUri = viewModel::removePendingImageUri,
+                onManageCalendarClick = if (onManageCalendarClick != null) {
+                    { onManageCalendarClick(uiState.listingId) }
+                } else null,
+                onSave = { viewModel.uploadPendingImagesAndSave(context) },
                 modifier = Modifier.padding(padding),
             )
         }
@@ -357,17 +490,19 @@ private fun EditListingForm(
     onToggleAmenity: (String) -> Unit,
     onAvailabilityChange: (Boolean) -> Unit,
     onRemoveImage: (Int) -> Unit,
-    onAddImageUrls: (List<String>) -> Unit,
+    onAddPendingUris: (List<Uri>) -> Unit,
+    onRemovePendingUri: (Int) -> Unit,
+    onManageCalendarClick: (() -> Unit)? = null,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Image picker for adding new photos
-    val newImageUris = remember { mutableStateListOf<Uri>() }
+    // Image picker forwards the URIs to the ViewModel so they survive
+    // recomposition and get uploaded on save.
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            newImageUris.addAll(uris)
+            onAddPendingUris(uris)
         }
     }
     Column(
@@ -440,11 +575,11 @@ private fun EditListingForm(
 
         // Images – iOS parity: show actual thumbnails with remove, working add button
         CollapsibleSection(
-            "Images" + if (uiState.images.isNotEmpty() || newImageUris.isNotEmpty())
-                " (${uiState.images.size + newImageUris.size})" else "",
+            "Images" + if (uiState.totalImageCount > 0)
+                " (${uiState.totalImageCount})" else "",
             PaceDreamIcons.CameraAlt,
         ) {
-            if (uiState.images.isEmpty() && newImageUris.isEmpty()) {
+            if (uiState.totalImageCount == 0) {
                 Text("No images yet. Tap + to add photos.",
                     style = PaceDreamTypography.Callout, color = PaceDreamColors.TextSecondary)
             }
@@ -480,8 +615,8 @@ private fun EditListingForm(
                         }
                     }
                 }
-                // Show newly selected (not yet uploaded) image URIs
-                newImageUris.forEachIndexed { index, uri ->
+                // Show newly selected (not yet uploaded) image URIs from the VM
+                uiState.pendingNewImageUris.forEachIndexed { index, uri ->
                     Box(modifier = Modifier.size(92.dp)) {
                         AsyncImage(
                             model = uri,
@@ -497,7 +632,7 @@ private fun EditListingForm(
                                 .size(22.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.6f))
-                                .clickable { if (index in newImageUris.indices) newImageUris.removeAt(index) },
+                                .clickable { onRemovePendingUri(index) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -508,9 +643,17 @@ private fun EditListingForm(
                     }
                 }
                 // Add photo button
-                if (uiState.images.size + newImageUris.size < 10) {
+                if (uiState.totalImageCount < MAX_EDIT_IMAGES) {
                     EditPhotoPlaceholder(onClick = { imagePickerLauncher.launch("image/*") })
                 }
+            }
+            if (uiState.isUploadingImages && uiState.uploadProgressText.isNotBlank()) {
+                Spacer(Modifier.height(PaceDreamSpacing.SM))
+                Text(
+                    uiState.uploadProgressText,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
             }
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
@@ -541,23 +684,68 @@ private fun EditListingForm(
                     ),
                 )
             }
+            if (onManageCalendarClick != null) {
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                        .clickable(onClick = onManageCalendarClick)
+                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f))
+                        .padding(PaceDreamSpacing.MD),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        PaceDreamIcons.Schedule,
+                        contentDescription = null,
+                        tint = PaceDreamColors.HostAccent,
+                        modifier = Modifier.size(PaceDreamIconSize.SM),
+                    )
+                    Spacer(Modifier.width(PaceDreamSpacing.SM))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Manage availability & blocked dates",
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "Open the calendar to block days or edit hours.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                    Icon(
+                        PaceDreamIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(PaceDreamIconSize.SM),
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(PaceDreamSpacing.XXL))
 
         // Save button
+        val busy = uiState.isSaving || uiState.isUploadingImages
         Button(
             onClick = onSave,
             modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.LG),
-            enabled = !uiState.isSaving && uiState.hasChanges,
+            enabled = !busy && uiState.hasChanges,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
-            if (uiState.isSaving) {
+            if (busy) {
                 CircularProgressIndicator(Modifier.size(20.dp), Color.White, strokeWidth = 2.dp)
                 Spacer(Modifier.width(PaceDreamSpacing.SM))
             }
-            Text(if (uiState.isSaving) "Saving..." else "Save Changes", style = PaceDreamTypography.Button)
+            val label = when {
+                uiState.isUploadingImages -> "Uploading photos…"
+                uiState.isSaving -> "Saving..."
+                else -> "Save Changes"
+            }
+            Text(label, style = PaceDreamTypography.Button)
         }
         Spacer(Modifier.height(PaceDreamSpacing.LG))
     }

@@ -282,15 +282,21 @@ fun CreateListingScreen(
     onPublishListing: (CreateListingRequest) -> Unit = {},
     viewModel: CreateListingViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
-    // iOS parity: draft persistence
+    // iOS parity: draft persistence — scoped to the authenticated user so
+    // drafts never leak between accounts on a shared device.
     val context = LocalContext.current
-    val draftStore = remember { CreateListingDraftStore(context) }
+    val currentUserId by viewModel.currentUserId.collectAsState()
+    val draftStore = remember(currentUserId) {
+        CreateListingDraftStore(context, userId = currentUserId)
+    }
 
     // Phase: entry → subcategory → wizard → success
     var phase by remember { mutableStateOf("entry") }
     var selectedMode by remember { mutableStateOf(listingMode) }
     var selectedResourceKind by remember { mutableStateOf(ResourceKind.SPACES) }
     var selectedSubCategory by remember { mutableStateOf("") }
+    /** Draft to rehydrate into the wizard when the host taps "Continue your draft". */
+    var resumedDraft by remember { mutableStateOf<ListingDraftData?>(null) }
     var publishedTitle by remember { mutableStateOf("") }
     var publishedListingId by remember { mutableStateOf("") }
     var publishedCoverUrl by remember { mutableStateOf<String?>(null) }
@@ -322,6 +328,7 @@ fun CreateListingScreen(
             onResourceKindSelected = { kind ->
                 selectedResourceKind = kind
                 selectedMode = kind.listingMode
+                resumedDraft = null  // fresh flow discards any prior resume attempt
                 phase = "subcategory"
             },
             onBackClick = onBackClick,
@@ -331,6 +338,7 @@ fun CreateListingScreen(
                 selectedMode = ListingMode.entries.firstOrNull { it.backendValue == draft.listingMode } ?: ListingMode.SHARE
                 selectedResourceKind = ResourceKind.entries.firstOrNull { it.name.equals(draft.resourceKind, ignoreCase = true) } ?: ResourceKind.SPACES
                 selectedSubCategory = draft.subCategory
+                resumedDraft = draft
                 phase = if (draft.subCategory.isNotBlank()) "wizard" else "subcategory"
             },
         )
@@ -348,8 +356,10 @@ fun CreateListingScreen(
             CreateListingWizardScreen(
                 listingMode = selectedMode,
                 subCategory = selectedSubCategory,
+                resourceKind = selectedResourceKind,
                 imageUploadService = imageUploadService,
                 draftStore = draftStore,
+                initialDraft = resumedDraft,
                 onBackClick = { phase = "subcategory" },
                 onPublishListing = { request ->
                     publishError = null
@@ -774,8 +784,10 @@ private fun SubcategoryCard(
 private fun CreateListingWizardScreen(
     listingMode: ListingMode,
     subCategory: String,
+    resourceKind: ResourceKind,
     imageUploadService: ImageUploadService? = null,
     draftStore: CreateListingDraftStore? = null,
+    initialDraft: ListingDraftData? = null,
     onBackClick: () -> Unit,
     onPublishListing: (CreateListingRequest) -> Unit,
     isApiPublishing: Boolean = false,
@@ -791,49 +803,78 @@ private fun CreateListingWizardScreen(
     val totalSteps = steps.size
     var currentStep by remember { mutableIntStateOf(0) }
 
-    // Form state – iOS parity (ListingDraft fields)
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    // Form state – iOS parity (ListingDraft fields). All `remember` calls are
+    // keyed on the draft identity so resuming a saved draft hydrates the wizard
+    // with the saved values instead of blank strings.
+    val draftKey = initialDraft?.hashCode() ?: 0
+    var title by remember(draftKey) { mutableStateOf(initialDraft?.title.orEmpty()) }
+    var description by remember(draftKey) { mutableStateOf(initialDraft?.description.orEmpty()) }
 
     // Split-specific
-    var deadlineAt by remember { mutableStateOf("") }
-    var requirements by remember { mutableStateOf("") }
-    var totalCost by remember { mutableStateOf("") }
+    var deadlineAt by remember(draftKey) { mutableStateOf(initialDraft?.deadlineAt.orEmpty()) }
+    var requirements by remember(draftKey) { mutableStateOf(initialDraft?.requirements.orEmpty()) }
+    var totalCost by remember(draftKey) { mutableStateOf(initialDraft?.totalCost.orEmpty()) }
 
-    // Photos – iOS parity: selected image URIs + uploaded Cloudinary URLs
-    val selectedImageUris = remember { mutableStateListOf<Uri>() }
-    val uploadedImageUrls = remember { mutableStateListOf<String>() }
+    // Photos – iOS parity: selected image URIs + uploaded Cloudinary URLs.
+    // Already-uploaded URLs from the draft seed the uploaded list so resuming
+    // does not re-upload them; locally-picked URIs (not serializable) start empty.
+    val selectedImageUris = remember(draftKey) { mutableStateListOf<Uri>() }
+    val uploadedImageUrls = remember(draftKey) {
+        mutableStateListOf<String>().apply {
+            initialDraft?.uploadedImageUrls?.let { addAll(it) }
+        }
+    }
     var isUploadingImages by remember { mutableStateOf(false) }
 
     // Photos/Location/Pricing
-    var address by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
-    var state by remember { mutableStateOf("") }
-    var locationLat by remember { mutableStateOf(0.0) }
-    var locationLng by remember { mutableStateOf(0.0) }
-    var basePrice by remember { mutableStateOf("") }
-    val amenities = remember { mutableStateListOf<String>() }
+    var address by remember(draftKey) { mutableStateOf(initialDraft?.address.orEmpty()) }
+    var city by remember(draftKey) { mutableStateOf(initialDraft?.city.orEmpty()) }
+    var state by remember(draftKey) { mutableStateOf(initialDraft?.state.orEmpty()) }
+    var locationLat by remember(draftKey) { mutableStateOf(initialDraft?.latitude ?: 0.0) }
+    var locationLng by remember(draftKey) { mutableStateOf(initialDraft?.longitude ?: 0.0) }
+    var basePrice by remember(draftKey) { mutableStateOf(initialDraft?.basePrice.orEmpty()) }
+    val amenities = remember(draftKey) {
+        mutableStateListOf<String>().apply {
+            initialDraft?.amenities?.let { addAll(it) }
+        }
+    }
 
-    // Pricing unit – iOS parity
+    // Pricing unit – iOS parity. Resumed drafts try to restore the saved unit;
+    // if it's not allowed under the current subcategory, fall back to the first
+    // allowed unit for this listing type.
     val allowedUnits = getAllowedPricingUnits(listingMode, subCategory)
-    var selectedPricingUnit by remember { mutableStateOf(allowedUnits.firstOrNull() ?: PricingUnit.HOUR) }
+    val initialPricingUnit = initialDraft?.pricingUnit
+        ?.let { saved -> allowedUnits.firstOrNull { it.value == saved } }
+        ?: allowedUnits.firstOrNull() ?: PricingUnit.HOUR
+    var selectedPricingUnit by remember(draftKey) { mutableStateOf(initialPricingUnit) }
 
-    // Schedule/Availability – use device timezone (iOS parity: TimeZone.current.identifier)
-    val selectedDurations = remember { mutableStateListOf<Int>() }
-    val selectedDays = remember { mutableStateListOf<Int>() }
-    var startTime by remember { mutableStateOf("09:00") }
-    var endTime by remember { mutableStateOf("17:00") }
-    var timezone by remember { mutableStateOf(TimeZone.getDefault().id) }
+    // Schedule/Availability – use device timezone (iOS parity: TimeZone.current.identifier).
+    val defaultTimezone = TimeZone.getDefault().id
+    val selectedDurations = remember(draftKey) {
+        mutableStateListOf<Int>().apply {
+            initialDraft?.selectedDurations?.let { addAll(it) }
+        }
+    }
+    val selectedDays = remember(draftKey) {
+        mutableStateListOf<Int>().apply {
+            initialDraft?.selectedDays?.let { addAll(it) }
+        }
+    }
+    var startTime by remember(draftKey) { mutableStateOf(initialDraft?.startTime?.ifBlank { "09:00" } ?: "09:00") }
+    var endTime by remember(draftKey) { mutableStateOf(initialDraft?.endTime?.ifBlank { "17:00" } ?: "17:00") }
+    var timezone by remember(draftKey) {
+        mutableStateOf(initialDraft?.timezone?.ifBlank { defaultTimezone } ?: defaultTimezone)
+    }
 
     // Daily-mode fields
-    var minStay by remember { mutableIntStateOf(1) }
-    var maxStay by remember { mutableIntStateOf(7) }
-    var checkinTime by remember { mutableStateOf("15:00") }
-    var checkoutTime by remember { mutableStateOf("11:00") }
+    var minStay by remember(draftKey) { mutableIntStateOf(initialDraft?.minStay ?: 1) }
+    var maxStay by remember(draftKey) { mutableIntStateOf(initialDraft?.maxStay ?: 7) }
+    var checkinTime by remember(draftKey) { mutableStateOf(initialDraft?.checkinTime?.ifBlank { "15:00" } ?: "15:00") }
+    var checkoutTime by remember(draftKey) { mutableStateOf(initialDraft?.checkoutTime?.ifBlank { "11:00" } ?: "11:00") }
 
     // Monthly-mode fields
-    var minMonths by remember { mutableIntStateOf(1) }
-    var availableFrom by remember { mutableStateOf("") }
+    var minMonths by remember(draftKey) { mutableIntStateOf(initialDraft?.minMonths ?: 1) }
+    var availableFrom by remember(draftKey) { mutableStateOf(initialDraft?.availableFrom.orEmpty()) }
 
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isUploadingOverlay by remember { mutableStateOf(false) }
@@ -860,14 +901,18 @@ private fun CreateListingWizardScreen(
     fun validateStep(step: Int): String? {
         return when (step) {
             0 -> {
-                if (title.isBlank()) return "Title is required."
-                if (title.trim().length < 10) return "Title must be at least 10 characters."
-                if (title.trim().length > 100) return "Title must be 100 characters or fewer."
-                // Website parity: description is required (20-2000 chars)
-                if (description.isNotBlank()) {
-                    if (description.trim().length < 20) return "Description must be at least 20 characters."
-                    if (description.trim().length > 2000) return "Description must be 2,000 characters or fewer."
-                }
+                val trimmedTitle = title.trim()
+                if (trimmedTitle.isEmpty()) return "Title is required."
+                if (trimmedTitle.length < 10) return "Title must be at least 10 characters."
+                if (trimmedTitle.length > 100) return "Title must be 100 characters or fewer."
+                // Website parity: description is REQUIRED (20-2000 chars). The
+                // previous implementation guarded these checks behind a
+                // `isNotBlank()` test, so empty descriptions silently passed and
+                // the host only saw a generic 400 from the backend.
+                val trimmedDesc = description.trim()
+                if (trimmedDesc.isEmpty()) return "Description is required."
+                if (trimmedDesc.length < 20) return "Description must be at least 20 characters."
+                if (trimmedDesc.length > 2000) return "Description must be 2,000 characters or fewer."
                 null
             }
             1 -> {
@@ -883,8 +928,13 @@ private fun CreateListingWizardScreen(
                 }
                 if (listingMode != ListingMode.SPLIT) {
                     if (address.isBlank()) return "Address is required."
-                    if (city.isBlank() && !address.contains(",")) {
-                        return "Please select an address from the suggestions for accurate location."
+                    // Require the host to pick a place from the suggestions so
+                    // we have a reliable city/state instead of guessing from
+                    // the free-text address. The old fallback parser produced
+                    // values like city="IL 62701", state="USA" which corrupted
+                    // location metadata and broke search filters.
+                    if (city.isBlank() || state.isBlank()) {
+                        return "Please select an address from the suggestions so we capture the correct city and state."
                     }
                 }
                 null
@@ -968,22 +1018,39 @@ private fun CreateListingWizardScreen(
                         return@WizardBottomBar
                     }
                     if (currentStep < totalSteps - 1) {
-                        // iOS parity: auto-save draft when navigating between steps
+                        // iOS parity: auto-save draft when navigating between steps.
+                        // Persist everything the wizard will need to rehydrate,
+                        // including already-uploaded photo URLs so Resume does
+                        // not lose them.
                         draftStore?.save(ListingDraftData(
                             listingMode = listingMode.backendValue,
-                            resourceKind = "",
+                            resourceKind = resourceKind.name,
                             subCategory = subCategory,
                             title = title.trim(),
                             description = description.trim(),
                             address = address,
                             city = city,
                             state = state,
+                            latitude = locationLat,
+                            longitude = locationLng,
                             basePrice = basePrice,
                             totalCost = totalCost,
                             pricingUnit = selectedPricingUnit.value,
                             amenities = amenities.toList(),
                             deadlineAt = deadlineAt,
                             requirements = requirements,
+                            uploadedImageUrls = uploadedImageUrls.toList(),
+                            selectedDurations = selectedDurations.toList(),
+                            selectedDays = selectedDays.toList(),
+                            startTime = startTime,
+                            endTime = endTime,
+                            timezone = timezone,
+                            minStay = minStay,
+                            maxStay = maxStay,
+                            checkinTime = checkinTime,
+                            checkoutTime = checkoutTime,
+                            minMonths = minMonths,
+                            availableFrom = availableFrom,
                         ))
                         currentStep++
                     } else {
@@ -1101,22 +1168,16 @@ private fun CreateListingWizardScreen(
                                 )
                             }
 
-                            // Web parity: location includes street (address), city, state, country
-                            // Parse city/state from address string as fallback when not set by autocomplete
-                            val resolvedCity = city.ifBlank {
-                                val parts = address.split(",").map { it.trim() }
-                                if (parts.size >= 2) parts[parts.size - 2] else ""
-                            }
-                            val resolvedState = state.ifBlank {
-                                val parts = address.split(",").map { it.trim() }
-                                if (parts.size >= 3) parts.last().split(" ").firstOrNull() ?: "" else ""
-                            }
+                            // Web parity: location includes street (address), city, state, country.
+                            // We rely on the autocomplete picker (validated at step 1) to
+                            // populate city/state; the previous fallback comma-parser
+                            // produced garbage values like city="IL 62701", state="USA".
                             val locationPayload = if (listingMode != ListingMode.SPLIT) {
                                 LocationPayload(
                                     street = address,
                                     street_address = address,
-                                    city = resolvedCity,
-                                    state = resolvedState,
+                                    city = city,
+                                    state = state,
                                     country = "US",
                                     latitude = if (locationLat != 0.0) locationLat else null,
                                     longitude = if (locationLng != 0.0) locationLng else null,

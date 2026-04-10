@@ -2,14 +2,18 @@ package com.shourov.apps.pacedream.feature.host.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.net.SocketTimeoutException
@@ -18,8 +22,22 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CreateListingViewModel @Inject constructor(
-    private val hostRepository: HostRepository
+    private val hostRepository: HostRepository,
+    sessionManager: SessionManager,
 ) : ViewModel() {
+
+    /**
+     * The authenticated user id (or null when unauthenticated). Exposed so the
+     * create-listing screen can scope the draft store per-user and prevent
+     * drafts from leaking across accounts on shared devices.
+     */
+    val currentUserId: StateFlow<String?> = sessionManager.currentUser
+        .map { it?.id }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
 
     sealed class Effect {
         data class PublishSuccess(
