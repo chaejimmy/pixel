@@ -879,7 +879,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                     listingId = listingId,
                                     viewModel = editListingViewModel,
                                     onBackClick = { navController.popBackStack() },
-                                    onSaveSuccess = { navController.popBackStack() }
+                                    onSaveSuccess = { navController.popBackStack() },
+                                    onManageCalendarClick = { id ->
+                                        if (id.isNotBlank()) {
+                                            navController.navigate("listing_calendar/$id")
+                                        }
+                                    },
                                 )
                             }
 
