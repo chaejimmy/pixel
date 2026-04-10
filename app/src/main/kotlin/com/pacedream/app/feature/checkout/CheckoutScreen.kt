@@ -182,6 +182,7 @@ fun CheckoutScreen(
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 if (uiState.bookingId != null) {
+                    // Booking confirmed — normal success path
                     Button(
                         onClick = { uiState.bookingId?.let(onConfirmSuccess) },
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -190,7 +191,8 @@ fun CheckoutScreen(
                     ) {
                         Text("View Booking", style = PaceDreamTypography.Button, fontWeight = FontWeight.Bold)
                     }
-                } else {
+                } else if (uiState.isConfirmingBooking) {
+                    // Actively confirming
                     CircularProgressIndicator(color = PaceDreamColors.Primary, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Text(
@@ -198,6 +200,43 @@ fun CheckoutScreen(
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
+                } else {
+                    // Payment succeeded but booking confirmation failed — show retry
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PaceDreamSpacing.MD)
+                            .background(
+                                color = PaceDreamColors.Warning.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(PaceDreamRadius.SM)
+                            )
+                            .padding(PaceDreamSpacing.SM2),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Info,
+                            contentDescription = null,
+                            tint = PaceDreamColors.Warning,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            "Your payment was received. Your booking is being finalized \u2014 it will appear in the Bookings tab shortly.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    if (uiState.confirmRetryCount < 3) {
+                        Button(
+                            onClick = { viewModel.retryConfirmBooking() },
+                            shape = RoundedCornerShape(PaceDreamRadius.MD),
+                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 14.dp)
+                        ) {
+                            Text("Retry", style = PaceDreamTypography.Button, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

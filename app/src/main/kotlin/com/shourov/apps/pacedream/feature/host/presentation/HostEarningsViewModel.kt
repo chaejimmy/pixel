@@ -198,6 +198,19 @@ class HostEarningsViewModel @Inject constructor(
 
     fun requestPayout(amount: Double) {
         if (_earningsUiState.value.isRequestingPayout) return
+
+        // Guard: block payout requests when Stripe payouts are not enabled.
+        // This prevents confusing API errors when the host's account is restricted.
+        val dashboard = _earningsUiState.value.dashboard
+        val payoutsEnabled = dashboard?.stripe?.payoutsEnabled ?: false
+        if (!payoutsEnabled) {
+            Timber.w("[Earnings] Payout request blocked: payoutsEnabled=false")
+            _earningsUiState.value = _earningsUiState.value.copy(
+                payoutError = "Payouts are not yet enabled on your account. Please complete Stripe setup first."
+            )
+            return
+        }
+
         viewModelScope.launch {
             _earningsUiState.value = _earningsUiState.value.copy(
                 isRequestingPayout = true, payoutError = null

@@ -42,7 +42,10 @@ data class CheckoutUiState(
     val paymentSheetConfig: PaymentSheetConfig? = null,
     val publishableKey: String? = null,
     // Booking result
-    val bookingId: String? = null
+    val bookingId: String? = null,
+    // Confirm-booking retry state (payment succeeded but booking pending)
+    val isConfirmingBooking: Boolean = false,
+    val confirmRetryCount: Int = 0
 )
 
 @HiltViewModel
@@ -124,12 +127,38 @@ class CheckoutViewModel @Inject constructor(
         }
     }
 
+    /** Check whether the current quote has expired based on its expiresAt ISO 8601 timestamp. */
+    private fun isQuoteExpired(quote: QuoteResponse): Boolean {
+        val expiresAt = quote.expiresAt ?: return false
+        return try {
+            val expiry = java.time.Instant.parse(expiresAt)
+            java.time.Instant.now() >= expiry
+        } catch (e: Exception) {
+            Timber.w("Could not parse quote expiresAt: $expiresAt")
+            false // Assume valid — server will reject if truly stale
+        }
+    }
+
     // ── Step 2: Create PaymentIntent & Present Sheet ──
 
     fun submitPayment() {
         val quote = _uiState.value.quote ?: return
         if (_uiState.value.status == CheckoutStatus.PROCESSING ||
             _uiState.value.status == CheckoutStatus.SUCCEEDED) return
+
+        // Quote expiry protection: refresh stale quotes before creating a PaymentIntent
+        if (isQuoteExpired(quote)) {
+            Timber.w("Quote expired, prompting user to retry")
+            _uiState.update {
+                it.copy(
+                    status = CheckoutStatus.FAILED,
+                    errorMessage = "Price quote expired. Please tap Pay again to get an updated price."
+                )
+            }
+            // Auto-refresh the quote so the next tap uses fresh pricing
+            _uiState.value.draft?.let { fetchQuote(it) }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(status = CheckoutStatus.PROCESSING, errorMessage = null) }
@@ -207,6 +236,8 @@ class CheckoutViewModel @Inject constructor(
     // ── Step 4: Confirm booking on backend after successful payment ──
 
     private suspend fun confirmBookingOnBackend() {
+        _uiState.update { it.copy(isConfirmingBooking = true) }
+
         val clientSecret = currentClientSecret
         val paymentIntentId = clientSecret?.let {
             nativePaymentRepository.extractPaymentIntentId(it)
@@ -215,9 +246,11 @@ class CheckoutViewModel @Inject constructor(
         if (paymentIntentId == null) {
             // Fallback: mark as succeeded — webhook will handle booking creation
             Timber.w("Could not extract PaymentIntent ID; relying on webhook fallback")
-            _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED) }
+            _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED, isConfirmingBooking = false) }
             return
         }
+
+        Timber.d("confirm-booking started for $paymentIntentId")
 
         when (val result = nativePaymentRepository.confirmBooking(paymentIntentId)) {
             is ApiResult.Success -> {
@@ -225,20 +258,42 @@ class CheckoutViewModel @Inject constructor(
                 if (bookingId != null) {
                     cacheConfirmedBooking(bookingId, result.data)
                 }
+                Timber.d("confirm-booking succeeded, bookingId=$bookingId")
                 _uiState.update {
-                    it.copy(status = CheckoutStatus.SUCCEEDED, bookingId = bookingId)
+                    it.copy(
+                        status = CheckoutStatus.SUCCEEDED,
+                        bookingId = bookingId,
+                        isConfirmingBooking = false
+                    )
                 }
                 if (bookingId != null) {
                     _effects.send(Effect.NavigateToConfirmation(bookingId))
                 }
             }
             is ApiResult.Failure -> {
-                // Payment succeeded but confirm call failed — still show success.
-                // The webhook fallback will create the booking.
-                Timber.w("confirm-booking call failed (webhook fallback): ${result.error.message}")
-                _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED) }
+                // Payment succeeded but confirm call failed.
+                // Show success with retry option instead of infinite spinner.
+                val retryCount = _uiState.value.confirmRetryCount + 1
+                Timber.w("confirm-booking failed (attempt $retryCount): ${result.error.message}")
+                _uiState.update {
+                    it.copy(
+                        status = CheckoutStatus.SUCCEEDED,
+                        isConfirmingBooking = false,
+                        confirmRetryCount = retryCount
+                    )
+                }
             }
         }
+    }
+
+    /** Manually retry confirm-booking (called from the UI retry button). */
+    fun retryConfirmBooking() {
+        if (_uiState.value.confirmRetryCount >= MAX_CONFIRM_RETRIES) return
+        viewModelScope.launch { confirmBookingOnBackend() }
+    }
+
+    companion object {
+        private const val MAX_CONFIRM_RETRIES = 3
     }
 
     private suspend fun cacheConfirmedBooking(bookingId: String, response: ConfirmBookingResponse) {
