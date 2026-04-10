@@ -153,6 +153,19 @@ class AuthRepository @Inject constructor(
         return apiClient.post(url, body, includeAuth = false)
     }
 
+    /**
+     * Forgot password: send a reset link to the user's email.
+     * iOS parity: POST /v1/auth/forgot-password { email, method: "custom_email" }
+     */
+    suspend fun forgotPassword(email: String): ApiResult<String> {
+        val url = appConfig.buildApiUrl("auth", "forgot-password")
+        val body = json.encodeToString(
+            ForgotPasswordRequest.serializer(),
+            ForgotPasswordRequest(email = email.trim().lowercase(), method = "custom_email")
+        )
+        return apiClient.post(url, body, includeAuth = false)
+    }
+
     suspend fun auth0Callback(auth0AccessToken: String, auth0IdToken: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("auth", "auth0", "callback")
         val body = json.encodeToString(
@@ -221,6 +234,9 @@ data class EmailSignupRequest(
     val dob: String? = null,
     val gender: String? = null
 )
+
+@Serializable
+data class ForgotPasswordRequest(val email: String, val method: String = "custom_email")
 
 // Website parity: 3-step signup completion request models
 @Serializable

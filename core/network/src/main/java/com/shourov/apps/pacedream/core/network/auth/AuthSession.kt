@@ -416,10 +416,13 @@ class AuthSession constructor(
                     }
 
                     override fun onFailure(error: AuthenticationException) {
-                        Timber.e(error, "Auth0 login failed")
                         if (error.isCanceled) {
-                            continuation.resume(Result.failure(Exception("Login cancelled")))
+                            // iOS parity: cancellation is not an error — return success(Unit)
+                            // so callers don't show error toasts/snackbars.
+                            Timber.d("Auth0 login cancelled by user")
+                            continuation.resume(Result.success(Unit))
                         } else {
+                            Timber.e(error, "Auth0 login failed")
                             continuation.resume(Result.failure(Exception(error.getDescription())))
                         }
                     }

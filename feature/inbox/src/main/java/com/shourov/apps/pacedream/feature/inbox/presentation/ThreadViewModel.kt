@@ -19,9 +19,12 @@ import java.util.Locale
 import java.util.UUID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -49,16 +52,79 @@ class ThreadViewModel @Inject constructor(
     val uiState: StateFlow<ThreadDetailUiState> = _uiState.asStateFlow()
     
     private var beforeCursor: String? = null
-    
+
+    /**
+     * Lightweight polling job that periodically refetches messages while the
+     * thread is open. This bridges the realtime gap until Ably SDK is added.
+     * iOS parity: iOS uses Ably realtime subscriptions for live message delivery.
+     * Android fallback: poll every 5 seconds (stops when ViewModel is cleared).
+     */
+    private var pollingJob: Job? = null
+
     init {
         if (threadId.isNotBlank()) {
             loadThreadDetails()
             loadMessages()
             markThreadAsRead()
             checkAttachmentStatus()
+            startMessagePolling()
         } else {
             _uiState.value = ThreadDetailUiState.Error("Invalid thread ID")
         }
+    }
+
+    private fun startMessagePolling() {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            // Initial delay before first poll — give loadMessages() time to complete
+            delay(POLL_INTERVAL_MS)
+            while (isActive) {
+                silentRefreshMessages()
+                delay(POLL_INTERVAL_MS)
+            }
+        }
+    }
+
+    /**
+     * Refetch messages without showing loading indicators.
+     * Only merges new messages; does not disrupt the current scroll position.
+     */
+    private suspend fun silentRefreshMessages() {
+        val currentState = _uiState.value as? ThreadDetailUiState.Success ?: return
+        // Don't poll while user is actively sending
+        if (currentState.isSending || currentState.isUploading) return
+
+        try {
+            val result = inboxRepository.getMessages(
+                threadId = threadId,
+                limit = 50,
+                before = null
+            )
+            if (result is ApiResult.Success) {
+                val latestState = _uiState.value as? ThreadDetailUiState.Success ?: return
+                val existingIds = latestState.messages.map { it.id }.toSet()
+                val newMessages = result.data.messages.filterNot { it.id in existingIds || it.id.startsWith("temp-") }
+
+                if (newMessages.isNotEmpty()) {
+                    Timber.d("[ThreadVM] Polling found ${newMessages.size} new message(s)")
+                    // Preserve temp (sending/failed) messages at the top
+                    val tempMessages = latestState.messages.filter { it.id.startsWith("temp-") }
+                    val serverMessages = result.data.messages
+                    _uiState.value = latestState.copy(
+                        messages = tempMessages + serverMessages,
+                        hasMore = result.data.hasMore
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            // Polling failures are silent — user can still manually refresh
+            Timber.d(e, "[ThreadVM] Polling refresh failed (silent)")
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        pollingJob?.cancel()
     }
 
     /**
@@ -469,6 +535,8 @@ class ThreadViewModel @Inject constructor(
 
     companion object {
         const val MAX_PHOTOS = 10
+        /** Polling interval for message refresh (iOS parity: Ably realtime fallback) */
+        private const val POLL_INTERVAL_MS = 5_000L
     }
 }
 

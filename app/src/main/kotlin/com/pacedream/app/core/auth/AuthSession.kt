@@ -320,10 +320,38 @@ class SessionManager @Inject constructor(
     }
     
     /**
-     * Sign out - clear all tokens and state
+     * Forgot password: send a reset link to the user's email.
+     * iOS parity: matches AuthService.forgotPassword(email:).
+     * POST /v1/auth/forgot-password { email, method: "custom_email" }
      */
-    fun signOut() {
-        Timber.d("SessionManager: signOut — clearing tokens and state")
+    suspend fun forgotPassword(email: String): Result<String> {
+        val result = authRepository.forgotPassword(email)
+        return when (result) {
+            is ApiResult.Success -> Result.success("Password reset link sent to your email.")
+            is ApiResult.Failure -> Result.failure(Exception(result.error.message ?: "Failed to send reset link"))
+        }
+    }
+
+    /**
+     * Sign out - clear all tokens and state.
+     *
+     * iOS parity: deregisters push devices from the backend BEFORE clearing
+     * tokens so the Authorization header is still available for the DELETE call.
+     *
+     * @param fcmTokenRegistrar Optional registrar for push deregistration.
+     *   Passed explicitly to avoid a circular dependency in the DI graph.
+     */
+    fun signOut(fcmTokenRegistrar: Any? = null) {
+        Timber.d("SessionManager: signOut — deregistering push devices and clearing tokens")
+
+        // iOS parity: deregister push devices while auth token is still available.
+        try {
+            @Suppress("UNCHECKED_CAST")
+            (fcmTokenRegistrar as? com.shourov.apps.pacedream.notification.FcmTokenRegistrar)?.deregister()
+        } catch (e: Exception) {
+            Timber.w(e, "Push deregistration failed during signOut (non-fatal)")
+        }
+
         try {
             tokenStorage.clearAll()
         } catch (e: Exception) {

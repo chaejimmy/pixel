@@ -71,6 +71,34 @@ class FcmTokenRegistrar @Inject constructor(
         Timber.d("FCM registration cache cleared — next registerCurrentToken() will re-register")
     }
 
+    /**
+     * Deregister all push devices for the current user from the backend.
+     * iOS parity: mirrors PushDeviceRegistrar.deregister(authToken:).
+     *
+     * Fire-and-forget: logout must not block on this network call.
+     * Called from SessionManager.signOut() BEFORE tokens are cleared,
+     * so includeAuth = true will attach the current Bearer token.
+     */
+    fun deregister() {
+        fcmTokenStore.reset()
+        scope.launch {
+            try {
+                val url = appConfig.buildApiUrl("push-devices")
+                val result = apiClient.delete(url, includeAuth = true)
+                when (result) {
+                    is ApiResult.Success -> {
+                        Timber.d("[FcmTokenRegistrar] Push devices deregistered from backend")
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.w("[FcmTokenRegistrar] Push deregistration failed: ${result.error.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "[FcmTokenRegistrar] Push deregistration exception (fire-and-forget)")
+            }
+        }
+    }
+
     private suspend fun sendTokenToServer(token: String) {
         val hasTokens = tokenStorage.hasTokens()
         val userId = tokenStorage.userId
