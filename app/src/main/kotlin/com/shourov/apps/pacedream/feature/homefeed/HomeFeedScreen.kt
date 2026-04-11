@@ -90,6 +90,7 @@ fun HomeFeedScreen(
     onSeeAll: (HomeSectionKey) -> Unit,
     onShowAuthSheet: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
 ) {
@@ -140,7 +141,8 @@ fun HomeFeedScreen(
                 item(key = "discover_header", contentType = "header") {
                     DiscoverHeader(
                         onSearchClick = onSearchClick,
-                        onFilterClick = onSearchClick
+                        onFilterClick = onSearchClick,
+                        onNotificationClick = onNotificationClick
                     )
                 }
 
@@ -248,7 +250,8 @@ private data class SectionContentState(
 @Composable
 private fun DiscoverHeader(
     onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit
+    onFilterClick: () -> Unit,
+    onNotificationClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -280,7 +283,9 @@ private fun DiscoverHeader(
                 )
             }
             Surface(
-                modifier = Modifier.size(PaceDreamButtonHeight.MD),
+                modifier = Modifier
+                    .size(PaceDreamButtonHeight.MD)
+                    .clickable(onClick = onNotificationClick),
                 shape = CircleShape,
                 color = PaceDreamColors.Gray50
             ) {

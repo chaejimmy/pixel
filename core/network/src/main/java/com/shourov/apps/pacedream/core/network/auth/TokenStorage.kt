@@ -28,46 +28,55 @@ class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) : TokenProvider {
 
-    private val prefsRef = AtomicReference<SharedPreferences>()
+    private val prefsRef = AtomicReference<SharedPreferences?>()
     private val prefsLatch = CountDownLatch(1)
 
-    private val fallbackPrefs: SharedPreferences by lazy {
-        context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
-    }
-
     init {
+        // Defensively remove any legacy plaintext fallback file that earlier
+        // builds may have created. We no longer use a plaintext fallback
+        // because it caused ghost logouts (and could leak tokens at rest).
+        try {
+            context.deleteSharedPreferences(PREFS_NAME_FALLBACK)
+        } catch (_: Exception) {
+            // Best-effort; ignore.
+        }
+
         Thread({
             try {
-                prefsRef.set(createEncryptedPrefsWithFallback())
+                prefsRef.set(createEncryptedPrefsOrNull())
             } catch (e: Exception) {
                 Timber.e(e, "EncryptedSharedPreferences init failed completely")
-                prefsRef.set(fallbackPrefs)
+                prefsRef.set(null)
             } finally {
                 prefsLatch.countDown()
             }
         }, "TokenStorage-init").start()
     }
 
-    private val encryptedPrefs: SharedPreferences
+    /**
+     * Returns the encrypted SharedPreferences, or null if they are not ready
+     * yet. Never returns a plaintext fallback file (callers tolerate null).
+     */
+    private val encryptedPrefs: SharedPreferences?
         get() {
             // Fast path: already initialised.
             prefsRef.get()?.let { return it }
 
-            // On the main thread, never block — return the empty fallback instead.
+            // On the main thread, never block.
             if (Looper.myLooper() == Looper.getMainLooper()) {
-                Timber.w("TokenStorage: main-thread access before encrypted prefs ready — using fallback")
-                return fallbackPrefs
+                Timber.w("TokenStorage: main-thread access before encrypted prefs ready — returning null")
+                return null
             }
 
             // Background / IO thread: wait for the init thread to finish.
             if (!prefsLatch.await(10, TimeUnit.SECONDS)) {
-                Timber.e("TokenStorage: encrypted prefs init timed out after 10 s — using fallback")
-                return fallbackPrefs
+                Timber.e("TokenStorage: encrypted prefs init timed out after 10 s — returning null")
+                return null
             }
-            return prefsRef.get() ?: fallbackPrefs
+            return prefsRef.get()
         }
 
-    private fun createEncryptedPrefsWithFallback(): SharedPreferences {
+    private fun createEncryptedPrefsOrNull(): SharedPreferences? {
         return try {
             createEncryptedPrefs()
         } catch (e: Exception) {
@@ -77,8 +86,8 @@ class TokenStorage @Inject constructor(
             try {
                 createEncryptedPrefs()
             } catch (retryException: Exception) {
-                Timber.e(retryException, "EncryptedSharedPreferences retry also failed, falling back to plain SharedPreferences")
-                fallbackPrefs
+                Timber.e(retryException, "EncryptedSharedPreferences retry also failed; no plaintext fallback")
+                null
             }
         }
     }
@@ -166,7 +175,7 @@ class TokenStorage @Inject constructor(
 
     private fun safeGetString(key: String): String? {
         return try {
-            encryptedPrefs.getString(key, null)
+            encryptedPrefs?.getString(key, null)
         } catch (e: Exception) {
             Timber.e(e, "Failed to read key: $key from encrypted prefs")
             null
@@ -175,7 +184,12 @@ class TokenStorage @Inject constructor(
 
     private fun safePutString(key: String, value: String?) {
         try {
-            encryptedPrefs.edit().apply {
+            val p = encryptedPrefs
+            if (p == null) {
+                Timber.w("Dropping write for $key: encrypted prefs not ready")
+                return
+            }
+            p.edit().apply {
                 if (value != null) {
                     putString(key, value)
                 } else {
@@ -206,7 +220,12 @@ class TokenStorage @Inject constructor(
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
         try {
-            encryptedPrefs.edit().apply {
+            val p = encryptedPrefs
+            if (p == null) {
+                Timber.w("Dropping storeTokens: encrypted prefs not ready")
+                return
+            }
+            p.edit().apply {
                 if (accessToken != null) putString(KEY_ACCESS_TOKEN, accessToken) else remove(KEY_ACCESS_TOKEN)
                 if (refreshToken != null) putString(KEY_REFRESH_TOKEN, refreshToken) else remove(KEY_REFRESH_TOKEN)
             }.apply()
@@ -220,7 +239,12 @@ class TokenStorage @Inject constructor(
      */
     fun clearAll() {
         try {
-            encryptedPrefs.edit()
+            val p = encryptedPrefs
+            if (p == null) {
+                Timber.w("Dropping clearAll: encrypted prefs not ready")
+                return
+            }
+            p.edit()
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_AUTH0_ACCESS_TOKEN)
@@ -240,7 +264,12 @@ class TokenStorage @Inject constructor(
      */
     fun clearBackendTokens() {
         try {
-            encryptedPrefs.edit()
+            val p = encryptedPrefs
+            if (p == null) {
+                Timber.w("Dropping clearBackendTokens: encrypted prefs not ready")
+                return
+            }
+            p.edit()
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .apply()

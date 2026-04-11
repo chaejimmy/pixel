@@ -3,9 +3,14 @@ package com.shourov.apps.pacedream.stability
 import timber.log.Timber
 
 /**
- * Global uncaught exception handler that logs and prevents app crashes
- * for non-fatal errors. Fatal errors (OOM, StackOverflow) are still
- * forwarded to the default handler (which sends to Crashlytics).
+ * Global uncaught exception handler that logs uncaught exceptions and then
+ * forwards them to the default handler (which in turn lets Crashlytics
+ * record the crash and lets the system show its "app has stopped" dialog).
+ *
+ * We intentionally do NOT swallow main-thread exceptions: a half-rendered /
+ * frozen UI is worse than a clean crash, and swallowing breaks Crashlytics
+ * reporting for non-fatal Compose/NPE/IllegalState crashes — which masks real
+ * bugs in production and was a Google Play stability risk.
  *
  * Install in Application.onCreate() via GlobalExceptionHandler.install().
  */
@@ -14,9 +19,9 @@ object GlobalExceptionHandler {
     private var defaultHandler: Thread.UncaughtExceptionHandler? = null
 
     /**
-     * Installs a wrapper around the default uncaught exception handler.
-     * Non-fatal UI exceptions are logged but do not kill the process.
-     * Truly fatal errors (OOM, StackOverflow, etc.) are still forwarded.
+     * Installs a thin logging wrapper around the default uncaught exception
+     * handler. All exceptions are logged via Timber and then forwarded to the
+     * default handler so Crashlytics and the OS can do their job.
      */
     fun install() {
         if (defaultHandler != null) return // already installed
@@ -24,29 +29,14 @@ object GlobalExceptionHandler {
         defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // Always log
+            // Always log first so we have a trace even if the default handler
+            // decides to terminate the process immediately.
             Timber.e(throwable, "Uncaught exception on thread ${thread.name}")
 
-            // Fatal errors that we should NOT swallow
-            if (throwable is OutOfMemoryError ||
-                throwable is StackOverflowError ||
-                throwable is VirtualMachineError
-            ) {
-                defaultHandler?.uncaughtException(thread, throwable)
-                return@setDefaultUncaughtExceptionHandler
-            }
-
-            // Background thread crashes: log but don't kill the app.
-            // Main thread crashes: also attempt to swallow to prevent "app has a bug"
-            // system dialog. Fatal errors (OOM etc.) are already forwarded above.
-            if (thread.name == "main") {
-                Timber.e(throwable, "Non-fatal main thread crash, swallowed to prevent app termination")
-                // Do NOT forward to default handler - this prevents the system
-                // "app has a bug" dialog and force-close. The app may be in a
-                // partially broken state but won't hard-crash for the user.
-            } else {
-                Timber.e(throwable, "Non-fatal background thread crash on ${thread.name}, swallowed")
-            }
+            // Always forward to the default handler. This is what routes the
+            // crash to Crashlytics and lets the OS show its standard dialog /
+            // terminate the process cleanly.
+            defaultHandler?.uncaughtException(thread, throwable)
         }
     }
 }

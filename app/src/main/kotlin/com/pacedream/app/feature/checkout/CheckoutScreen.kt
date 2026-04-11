@@ -160,22 +160,31 @@ fun CheckoutScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Only show the green CheckCircle when the backend has actually
+                // confirmed the booking. Otherwise show a neutral icon and truthful
+                // "payment received, still finalizing" copy so the user is not told
+                // the booking is confirmed before it actually is.
+                val bookingConfirmed = uiState.bookingId != null
                 Icon(
-                    imageVector = PaceDreamIcons.CheckCircle,
+                    imageVector = if (bookingConfirmed) PaceDreamIcons.CheckCircle else PaceDreamIcons.Info,
                     contentDescription = null,
-                    tint = PaceDreamColors.Success,
+                    tint = if (bookingConfirmed) PaceDreamColors.Success else PaceDreamColors.Primary,
                     modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 Text(
-                    "Payment Successful",
+                    if (bookingConfirmed) "Booking Confirmed" else "Payment Received",
                     style = PaceDreamTypography.Title2,
                     fontWeight = FontWeight.Bold,
                     color = PaceDreamColors.TextPrimary
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
-                    "Your booking has been confirmed.",
+                    if (bookingConfirmed) {
+                        "Your booking has been confirmed."
+                    } else {
+                        "Payment received \u2014 finalizing your booking\u2026"
+                    },
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextSecondary,
                     textAlign = TextAlign.Center
