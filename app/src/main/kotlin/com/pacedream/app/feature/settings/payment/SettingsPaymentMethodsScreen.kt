@@ -164,6 +164,7 @@ fun SettingsPaymentMethodsScreen(
         },
         onSetDefault = { id -> viewModel.setDefault(id) },
         onDelete = { id -> viewModel.deletePaymentMethod(id) },
+        onRetry = { viewModel.loadPaymentMethods() },
         snackbarHostState = snackbarHostState
     )
 }
@@ -177,6 +178,7 @@ private fun SettingsPaymentMethodsContent(
     onAddCardClick: () -> Unit,
     onSetDefault: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onRetry: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     val showDeleteDialog: MutableState<PaymentMethod?> = remember { mutableStateOf(null) }
@@ -235,7 +237,7 @@ private fun SettingsPaymentMethodsContent(
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadPaymentMethods() }) {
+                        Button(onClick = onRetry) {
                             Text("Retry")
                         }
                     }
