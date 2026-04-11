@@ -58,6 +58,23 @@ data class ConfirmBookingResponse(
     val booking: ConfirmBookingData? = null
 )
 
+/**
+ * Response for POST /payments/native/report-failure.
+ *
+ * When the backend determines that a booking already exists for the
+ * reported PaymentIntent, `alreadyBooked == true` and `bookingId`
+ * carries the resolved id — the caller should then clear any local
+ * pending-payment state and treat the booking as confirmed.
+ */
+@Serializable
+data class ReportFailureResponse(
+    val success: Boolean = false,
+    val recorded: Boolean? = null,
+    @SerialName("already_booked") val alreadyBooked: Boolean? = null,
+    @SerialName("booking_id") val bookingId: String? = null,
+    val id: String? = null,
+)
+
 // ── Repository ──────────────────────────────────────────────────────
 
 /**
@@ -216,5 +233,53 @@ class NativePaymentRepository @Inject constructor(
         val parts = clientSecret.split("_secret_")
         val piId = parts.firstOrNull()
         return piId?.takeIf { it.startsWith("pi_") }
+    }
+
+    /**
+     * Report a post-capture confirm-booking failure to the backend
+     * reconciliation queue.  Called after local retries are exhausted
+     * or when the app detects an unresolved pending payment on launch
+     * and still cannot confirm it.
+     *
+     * The backend writes a FailedPaymentAttempt row so admin can see
+     * and resolve the orphaned PaymentIntent.  A successful response
+     * with `alreadyBooked == true` means the caller should clear its
+     * persisted pending-payment state — the booking eventually got
+     * created (usually by the Stripe webhook).
+     */
+    suspend fun reportFailure(
+        paymentIntentId: String,
+        quoteId: String?,
+        retryCount: Int,
+        errorMessage: String?,
+        errorCode: String? = null,
+    ): ApiResult<ReportFailureResponse> {
+        val url = appConfig.buildApiUrl("payments", "native", "report-failure")
+        val body = buildJsonObject {
+            put("payment_intent_id", paymentIntentId)
+            put("platform", "android")
+            put("retry_count", retryCount)
+            if (!quoteId.isNullOrBlank()) put("quote_id", quoteId)
+            if (!errorMessage.isNullOrBlank()) {
+                // Backend enforces a 1 KB max on `error`.
+                put("error", errorMessage.take(1024))
+            }
+            if (!errorCode.isNullOrBlank()) put("error_code", errorCode)
+        }.toString()
+
+        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+            is ApiResult.Success -> {
+                try {
+                    val response = withContext(Dispatchers.Default) {
+                        json.decodeFromString(ReportFailureResponse.serializer(), result.data)
+                    }
+                    ApiResult.Success(response)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to parse report-failure response")
+                    ApiResult.Failure(ApiError.DecodingError())
+                }
+            }
+            is ApiResult.Failure -> result
+        }
     }
 }
