@@ -29,15 +29,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -200,6 +205,17 @@ fun CheckoutScreen(
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
+                } else if (uiState.hasExhaustedRetries && uiState.pendingPaymentIntentId != null) {
+                    // Local retries exhausted — truthful stuck copy
+                    // with payment reference + copy + contact support.
+                    StuckFallbackBanner(
+                        paymentIntentId = uiState.pendingPaymentIntentId!!,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    SupportActionRow(
+                        paymentIntentId = uiState.pendingPaymentIntentId!!,
+                        listingTitle = uiState.draft?.listingId ?: "",
+                    )
                 } else {
                     // Payment succeeded but booking confirmation failed — show retry
                     Row(
@@ -227,7 +243,7 @@ fun CheckoutScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    if (uiState.confirmRetryCount < 3) {
+                    if (uiState.confirmRetryCount < CheckoutViewModel.MAX_CONFIRM_RETRIES) {
                         Button(
                             onClick = { viewModel.retryConfirmBooking() },
                             shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -660,6 +676,134 @@ private fun CancellationPolicyCard() {
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary
             )
+        }
+    }
+}
+
+// ── Stuck / Support Fallback (post-payment, retries exhausted) ──
+
+/**
+ * Shown after local confirm-booking retries are exhausted.  Truthful
+ * copy: payment IS captured, booking has not yet been created, this
+ * is the reference the user should quote to support.  The backend
+ * has been notified via /payments/native/report-failure by the
+ * ViewModel, so admin can reconcile while the user reads this.
+ */
+@Composable
+private fun StuckFallbackBanner(paymentIntentId: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .background(
+                color = PaceDreamColors.Warning.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            .padding(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Warning,
+                contentDescription = null,
+                tint = PaceDreamColors.Warning,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "We received your payment, but we couldn\u2019t finish creating your booking.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                Text(
+                    "Our team has been notified and is reconciling your payment. You don\u2019t need to pay again.",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Payment reference",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Text(
+                text = paymentIntentId,
+                style = PaceDreamTypography.Caption,
+                fontFamily = FontFamily.Monospace,
+                color = PaceDreamColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = PaceDreamSpacing.SM),
+            )
+        }
+    }
+}
+
+/**
+ * Two-button row under the stuck banner: copies the PaymentIntent id
+ * to the clipboard, or launches a pre-filled support email intent.
+ */
+@Composable
+private fun SupportActionRow(paymentIntentId: String, listingTitle: String) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        OutlinedButton(
+            onClick = { clipboard.setText(AnnotatedString(paymentIntentId)) },
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            Text(
+                "Copy payment reference",
+                style = PaceDreamTypography.Button,
+                fontWeight = FontWeight.SemiBold,
+                color = PaceDreamColors.Primary,
+            )
+        }
+        Button(
+            onClick = {
+                val subject = "PaceDream payment reference $paymentIntentId"
+                val body = buildString {
+                    append("Hi PaceDream support,\n\n")
+                    append("My payment went through but the booking wasn\u2019t created.\n\n")
+                    append("Payment reference: $paymentIntentId\n")
+                    if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
+                    append("\nPlease reconcile and confirm my booking.")
+                }
+                val uri = android.net.Uri.parse(
+                    "mailto:support@pacedream.com" +
+                        "?subject=" + android.net.Uri.encode(subject) +
+                        "&body=" + android.net.Uri.encode(body)
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
+                try {
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to launch mailto intent")
+                }
+            },
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Text("Contact support", style = PaceDreamTypography.Button, fontWeight = FontWeight.Bold)
         }
     }
 }

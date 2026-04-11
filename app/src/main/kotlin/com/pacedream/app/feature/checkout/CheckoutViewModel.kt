@@ -45,7 +45,18 @@ data class CheckoutUiState(
     val bookingId: String? = null,
     // Confirm-booking retry state (payment succeeded but booking pending)
     val isConfirmingBooking: Boolean = false,
-    val confirmRetryCount: Int = 0
+    val confirmRetryCount: Int = 0,
+    /**
+     * PaymentIntent id for the current/last-known pending payment.
+     * Surfaced as a support reference when retries are exhausted.
+     */
+    val pendingPaymentIntentId: String? = null,
+    /**
+     * True once local retries are exhausted.  UI shows the stuck
+     * fallback with PI reference + copy + contact support instead
+     * of the regular retry row.
+     */
+    val hasExhaustedRetries: Boolean = false,
 )
 
 @HiltViewModel
@@ -54,7 +65,8 @@ class CheckoutViewModel @Inject constructor(
     private val appConfig: AppConfig,
     private val json: Json,
     private val nativePaymentRepository: NativePaymentRepository,
-    private val coreBookingRepository: CoreBookingRepository
+    private val coreBookingRepository: CoreBookingRepository,
+    private val pendingPaymentStore: PendingPaymentStore,
 ) : ViewModel() {
 
     sealed class Effect {
@@ -80,8 +92,31 @@ class CheckoutViewModel @Inject constructor(
 
     /** Stored client secret to extract PaymentIntent ID after payment */
     private var currentClientSecret: String? = null
+    /** Cached quoteId for the in-flight payment (survives via PendingPaymentStore). */
+    private var currentQuoteId: String? = null
+
+    init {
+        // Process-death recovery: if the previous instance of the app
+        // was killed between a successful PaymentSheet and a successful
+        // confirm-booking call, the persisted record drives us straight
+        // into the post-payment state and we auto-retry the confirm
+        // call exactly once.  The user's manual retry button stays
+        // available within the retry budget.
+        attemptRecoveryIfNeeded()
+    }
 
     fun setDraft(draft: BookingDraft) {
+        // If recovery has already promoted this ViewModel into a
+        // post-payment state for a pending PaymentIntent, do NOT
+        // re-fetch a fresh quote on top of it — that would clobber
+        // the recovery UI back to READY.  Only set the draft for
+        // reference so we know which listing the stuck payment was
+        // for.
+        val current = _uiState.value
+        if (current.status == CheckoutStatus.SUCCEEDED && current.pendingPaymentIntentId != null) {
+            _uiState.update { it.copy(draft = draft) }
+            return
+        }
         _uiState.update { it.copy(draft = draft, errorMessage = null) }
         fetchQuote(draft)
     }
@@ -182,11 +217,34 @@ class CheckoutViewModel @Inject constructor(
 
                     // Store for later extraction of PI ID
                     currentClientSecret = config.paymentIntentClientSecret
+                    currentQuoteId = quote.quoteId
+                    val piId = nativePaymentRepository.extractPaymentIntentId(
+                        config.paymentIntentClientSecret
+                    )
+
+                    // Crash-resilient: persist the pending payment
+                    // BEFORE we hand control to the Stripe PaymentSheet
+                    // so a process death during the sheet is recoverable
+                    // on next launch.  commit() (not apply()) is used
+                    // inside the store so the write is on disk.
+                    pendingPaymentStore.save(
+                        PendingNativePayment(
+                            clientSecret = config.paymentIntentClientSecret,
+                            quoteId = quote.quoteId,
+                            paymentIntentId = piId,
+                            listingId = _uiState.value.draft?.listingId,
+                            retryCount = 0,
+                            paymentSucceededLocally = false,
+                        )
+                    )
 
                     _uiState.update {
                         it.copy(
                             paymentSheetConfig = config,
-                            publishableKey = stripeKey
+                            publishableKey = stripeKey,
+                            pendingPaymentIntentId = piId,
+                            confirmRetryCount = 0,
+                            hasExhaustedRetries = false,
                         )
                     }
 
@@ -217,19 +275,46 @@ class CheckoutViewModel @Inject constructor(
     // ── Step 3: Handle PaymentSheet result (called by UI) ──
 
     fun onPaymentSheetCompleted() {
+        // Payment captured locally.  Mark the persisted record so
+        // recovery on the next launch knows this is a paid-but-
+        // unconfirmed session (not a sheet-abandoned one) and then
+        // run confirm-booking.
+        pendingPaymentStore.markPaymentSucceededLocally()
         viewModelScope.launch {
             confirmBookingOnBackend()
         }
     }
 
     fun onPaymentSheetCancelled() {
-        // User cancelled — allow retry
-        _uiState.update { it.copy(status = CheckoutStatus.READY, errorMessage = null) }
+        // User intentionally cancelled — no money captured, clear
+        // the pending record and allow a fresh attempt.
+        pendingPaymentStore.clear()
+        currentClientSecret = null
+        currentQuoteId = null
+        _uiState.update {
+            it.copy(
+                status = CheckoutStatus.READY,
+                errorMessage = null,
+                pendingPaymentIntentId = null,
+                hasExhaustedRetries = false,
+                confirmRetryCount = 0,
+            )
+        }
     }
 
     fun onPaymentSheetFailed(errorMessage: String) {
+        // PaymentSheet-internal failure — no capture, clear state.
+        pendingPaymentStore.clear()
+        currentClientSecret = null
+        currentQuoteId = null
         _uiState.update {
-            it.copy(status = CheckoutStatus.FAILED, errorMessage = errorMessage)
+            it.copy(
+                status = CheckoutStatus.FAILED,
+                errorMessage = errorMessage,
+                pendingPaymentIntentId = null,
+                hasExhaustedRetries = false,
+                confirmRetryCount = 0,
+            )
         }
     }
 
@@ -244,12 +329,26 @@ class CheckoutViewModel @Inject constructor(
         }
 
         if (paymentIntentId == null) {
-            // Fallback: mark as succeeded — webhook will handle booking creation
+            // Cannot extract a PI id — we have nothing to persist or
+            // report, and the webhook path is our fallback.  Clear
+            // any stale record and let the user see the post-payment
+            // screen with the standard "finalizing" copy.
             Timber.w("Could not extract PaymentIntent ID; relying on webhook fallback")
-            _uiState.update { it.copy(status = CheckoutStatus.SUCCEEDED, isConfirmingBooking = false) }
+            pendingPaymentStore.clear()
+            _uiState.update {
+                it.copy(
+                    status = CheckoutStatus.SUCCEEDED,
+                    isConfirmingBooking = false,
+                    pendingPaymentIntentId = null,
+                )
+            }
             return
         }
 
+        // Bump the persisted retry counter so process-death recovery
+        // can see the same value the in-memory counter will show
+        // after the result lands.
+        pendingPaymentStore.recordRetryAttempt()
         Timber.d("confirm-booking started for $paymentIntentId")
 
         when (val result = nativePaymentRepository.confirmBooking(paymentIntentId)) {
@@ -259,11 +358,18 @@ class CheckoutViewModel @Inject constructor(
                     cacheConfirmedBooking(bookingId, result.data)
                 }
                 Timber.d("confirm-booking succeeded, bookingId=$bookingId")
+                // Booking is live on the backend — we no longer need
+                // the pending-payment recovery record.
+                pendingPaymentStore.clear()
+                currentClientSecret = null
+                currentQuoteId = null
                 _uiState.update {
                     it.copy(
                         status = CheckoutStatus.SUCCEEDED,
                         bookingId = bookingId,
-                        isConfirmingBooking = false
+                        isConfirmingBooking = false,
+                        hasExhaustedRetries = false,
+                        pendingPaymentIntentId = paymentIntentId,
                     )
                 }
                 if (bookingId != null) {
@@ -274,12 +380,22 @@ class CheckoutViewModel @Inject constructor(
                 // Payment succeeded but confirm call failed.
                 // Show success with retry option instead of infinite spinner.
                 val retryCount = _uiState.value.confirmRetryCount + 1
-                Timber.w("confirm-booking failed (attempt $retryCount): ${result.error.message}")
+                val errorMessage = result.error.message
+                Timber.w("confirm-booking failed (attempt $retryCount): $errorMessage")
+                val exhausted = retryCount >= MAX_CONFIRM_RETRIES
                 _uiState.update {
                     it.copy(
                         status = CheckoutStatus.SUCCEEDED,
                         isConfirmingBooking = false,
-                        confirmRetryCount = retryCount
+                        confirmRetryCount = retryCount,
+                        pendingPaymentIntentId = paymentIntentId,
+                        hasExhaustedRetries = exhausted,
+                    )
+                }
+                if (exhausted) {
+                    sendFailureReport(
+                        paymentIntentId = paymentIntentId,
+                        errorMessage = errorMessage ?: "confirm-booking failed",
                     )
                 }
             }
@@ -292,8 +408,110 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch { confirmBookingOnBackend() }
     }
 
+    // ── Recovery & failure reporting ─────────────────────────────
+
+    /**
+     * Called from `init`.  If a persisted record exists with
+     * `paymentSucceededLocally == true`, hydrate in-memory state and
+     * auto-retry confirm-booking exactly once.  If the persisted
+     * retryCount is already at MAX, skip the retry, flip the stuck
+     * UI immediately, and post the failure report.
+     */
+    private fun attemptRecoveryIfNeeded() {
+        val record = pendingPaymentStore.load() ?: return
+        if (!record.paymentSucceededLocally) {
+            // Sheet was abandoned before it reported — leave the
+            // record in place; a fresh submitPayment overwrites it.
+            return
+        }
+        val piId = record.paymentIntentId
+            ?: record.clientSecret.let { nativePaymentRepository.extractPaymentIntentId(it) }
+        if (piId == null) {
+            // Corrupt record — clear it and let the normal flow run.
+            pendingPaymentStore.clear()
+            return
+        }
+
+        Timber.d("Recovering pending payment pi=$piId retryCount=${record.retryCount}")
+
+        currentClientSecret = record.clientSecret
+        currentQuoteId = record.quoteId
+        _uiState.update {
+            it.copy(
+                status = CheckoutStatus.SUCCEEDED,
+                pendingPaymentIntentId = piId,
+                confirmRetryCount = record.retryCount,
+                hasExhaustedRetries = record.retryCount >= MAX_CONFIRM_RETRIES,
+                isConfirmingBooking = false,
+            )
+        }
+
+        viewModelScope.launch {
+            if (record.retryCount >= MAX_CONFIRM_RETRIES) {
+                // Already exhausted before the process restart — post
+                // a report so the backend knows we're blocked and the
+                // admin can reconcile.
+                sendFailureReport(
+                    paymentIntentId = piId,
+                    errorMessage = "Retry exhausted before process restart",
+                )
+                return@launch
+            }
+            // Auto-retry exactly once per recovery.  The user can
+            // continue tapping Retry within the remaining budget.
+            confirmBookingOnBackend()
+        }
+    }
+
+    /**
+     * POST /payments/native/report-failure.  Best-effort — when the
+     * backend answers `alreadyBooked == true`, the booking was
+     * eventually created (usually by the Stripe webhook) and we can
+     * clear local state + surface the booking id.
+     */
+    private suspend fun sendFailureReport(paymentIntentId: String, errorMessage: String) {
+        val quoteId = currentQuoteId ?: pendingPaymentStore.load()?.quoteId
+        val retryCount = _uiState.value.confirmRetryCount
+        val result = nativePaymentRepository.reportFailure(
+            paymentIntentId = paymentIntentId,
+            quoteId = quoteId,
+            retryCount = retryCount,
+            errorMessage = errorMessage,
+            errorCode = "CLIENT_CONFIRM_BOOKING_FAILED",
+        )
+        when (result) {
+            is ApiResult.Success -> {
+                val response = result.data
+                if (response.alreadyBooked == true) {
+                    // Webhook already created the booking — adopt it,
+                    // clear the pending record, and let the UI show
+                    // the happy path.
+                    val bookingId = response.bookingId
+                    pendingPaymentStore.clear()
+                    currentClientSecret = null
+                    currentQuoteId = null
+                    _uiState.update {
+                        it.copy(
+                            bookingId = bookingId ?: it.bookingId,
+                            hasExhaustedRetries = false,
+                        )
+                    }
+                    if (bookingId != null) {
+                        _effects.send(Effect.NavigateToConfirmation(bookingId))
+                    }
+                }
+            }
+            is ApiResult.Failure -> {
+                // Reporting itself failed — log and leave the pending
+                // record in place so a future launch can try again.
+                Timber.w("report-failure call failed: ${result.error.message}")
+            }
+        }
+    }
+
     companion object {
-        private const val MAX_CONFIRM_RETRIES = 3
+        /** Public so the UI can reference the bound for the retry button. */
+        const val MAX_CONFIRM_RETRIES = 3
     }
 
     private suspend fun cacheConfirmedBooking(bookingId: String, response: ConfirmBookingResponse) {
