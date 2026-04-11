@@ -299,7 +299,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onSeeAll = { section ->
                                             navController.navigate("home_section/${section.name}")
                                         },
-                                        onShowAuthSheet = { showAuthSheet = true }
+                                        onShowAuthSheet = { showAuthSheet = true },
+                                        onNotificationClick = {
+                                            navController.navigate("notifications")
+                                        }
                                     )
 
                                     if (showAuthSheet) {

@@ -235,7 +235,7 @@ private fun SettingsPaymentMethodsContent(
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { /* reload */ }) {
+                        Button(onClick = { viewModel.loadPaymentMethods() }) {
                             Text("Retry")
                         }
                     }

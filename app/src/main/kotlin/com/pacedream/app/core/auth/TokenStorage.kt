@@ -26,64 +26,73 @@ import javax.inject.Singleton
  * EncryptedSharedPreferences is eagerly initialised on a background thread
  * during construction. The [prefs] getter will:
  *   - Return immediately if init has already completed.
- *   - Block up to 10 s on background / IO threads (normal path).
- *   - **Never block** the main thread: returns a plain-text fallback
- *     SharedPreferences instead (tokens will appear empty until the real
- *     encrypted prefs are ready, which is safe — callers already handle
- *     null tokens).
+ *   - Block up to 10 s on background / IO threads (normal path — auth init
+ *     runs from `Dispatchers.IO` in `PaceDreamApplication.onCreate`).
+ *   - **Never block** the main thread, and return `null` if the encrypted
+ *     prefs are not ready yet. Callers treat a null return as "not
+ *     initialised yet" and must tolerate it.
  *
- * This prevents ANR ("Input dispatching timed out") that was caused by
- * MasterKey / KeyStore IPC blocking the main thread for > 5 s on some
- * devices and emulators.
+ * We deliberately do NOT fall back to a plaintext SharedPreferences file:
+ * writing auth tokens to a separate unencrypted file would both (a) leak
+ * tokens at rest and (b) cause ghost logouts when the fallback file is
+ * empty but the encrypted file is populated. This structure still prevents
+ * the ANR that was caused by MasterKey / KeyStore IPC blocking the main
+ * thread on some devices and emulators.
  */
 @Singleton
 class TokenStorage @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    private val prefsRef = AtomicReference<SharedPreferences>()
+    private val prefsRef = AtomicReference<SharedPreferences?>()
     private val prefsLatch = CountDownLatch(1)
 
-    // Plain-text fallback used when the main thread needs prefs before
-    // the encrypted variant is ready.  Reads will return null (no tokens)
-    // which is safe — the UI shows a loading / unauthenticated state.
-    private val fallbackPrefs: SharedPreferences by lazy {
-        context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
-    }
-
     init {
+        // Proactively delete any legacy plaintext fallback file that earlier
+        // builds may have created. Defensive: any stale tokens that leaked
+        // into it should be removed.
+        try {
+            context.deleteSharedPreferences(PREFS_NAME_FALLBACK)
+        } catch (_: Exception) {
+            // Best-effort; ignore.
+        }
+
         Thread({
             try {
-                prefsRef.set(createEncryptedPrefsWithFallback())
+                prefsRef.set(createEncryptedPrefsOrNull())
             } catch (e: Exception) {
                 Timber.e(e, "EncryptedSharedPreferences init failed completely")
-                prefsRef.set(fallbackPrefs)
+                prefsRef.set(null)
             } finally {
                 prefsLatch.countDown()
             }
         }, "TokenStorage-init").start()
     }
 
-    private val prefs: SharedPreferences
+    /**
+     * Returns the encrypted SharedPreferences, or null if they are not
+     * ready yet. Never returns a plaintext fallback file.
+     */
+    private val prefs: SharedPreferences?
         get() {
             // Fast path: already initialised.
             prefsRef.get()?.let { return it }
 
-            // On the main thread, never block — return the empty fallback instead.
+            // On the main thread, never block.
             if (Looper.myLooper() == Looper.getMainLooper()) {
-                Timber.w("TokenStorage: main-thread access before encrypted prefs ready — using fallback")
-                return fallbackPrefs
+                Timber.w("TokenStorage: main-thread access before encrypted prefs ready — returning null")
+                return null
             }
 
             // Background / IO thread: wait for the init thread to finish.
             if (!prefsLatch.await(10, TimeUnit.SECONDS)) {
-                Timber.e("TokenStorage: encrypted prefs init timed out after 10 s — using fallback")
-                return fallbackPrefs
+                Timber.e("TokenStorage: encrypted prefs init timed out after 10 s — returning null")
+                return null
             }
-            return prefsRef.get() ?: fallbackPrefs
+            return prefsRef.get()
         }
 
-    private fun createEncryptedPrefsWithFallback(): SharedPreferences {
+    private fun createEncryptedPrefsOrNull(): SharedPreferences? {
         return try {
             createEncryptedPrefs()
         } catch (e: Exception) {
@@ -93,8 +102,8 @@ class TokenStorage @Inject constructor(
             try {
                 createEncryptedPrefs()
             } catch (retryException: Exception) {
-                Timber.e(retryException, "EncryptedSharedPreferences retry also failed, falling back to plain SharedPreferences")
-                fallbackPrefs
+                Timber.e(retryException, "EncryptedSharedPreferences retry also failed; no plaintext fallback")
+                null
             }
         }
     }
@@ -147,10 +156,35 @@ class TokenStorage @Inject constructor(
         get() = safeGetString(KEY_USER_ID)
         set(value) = safePutString(KEY_USER_ID, value)
 
-    /** Cached user summary JSON (for offline display) */
+    /**
+     * Cached user summary JSON (for offline display).
+     *
+     * Reads from the shared canonical key [KEY_CACHED_USER_SHARED] first. If
+     * missing, falls back to the legacy key [KEY_CACHED_USER_SUMMARY] once,
+     * then migrates the value to the shared key. This collapses the two
+     * TokenStorage classes (`pacedream.app.core.auth` and
+     * `shourov.apps.pacedream.core.network.auth`) onto a single key so the
+     * two `User` caches never drift.
+     */
     var cachedUserSummary: String?
-        get() = safeGetString(KEY_CACHED_USER_SUMMARY)
-        set(value) = safePutString(KEY_CACHED_USER_SUMMARY, value)
+        get() {
+            val shared = safeGetString(KEY_CACHED_USER_SHARED)
+            if (!shared.isNullOrBlank()) return shared
+            // Legacy fallback + one-time migration to the shared key.
+            val legacy = safeGetString(KEY_CACHED_USER_SUMMARY)
+            if (!legacy.isNullOrBlank()) {
+                safePutString(KEY_CACHED_USER_SHARED, legacy)
+                return legacy
+            }
+            return null
+        }
+        set(value) {
+            // Always write to the shared key. Also mirror to the legacy key
+            // so older code paths / the legacy TokenStorage keep working
+            // until the code is fully removed.
+            safePutString(KEY_CACHED_USER_SHARED, value)
+            safePutString(KEY_CACHED_USER_SUMMARY, value)
+        }
 
     /** Last checkout session ID (for resume after relaunch) */
     var lastCheckoutSessionId: String?
@@ -164,12 +198,19 @@ class TokenStorage @Inject constructor(
 
     /** Guest/Host mode */
     var isHostMode: Boolean
-        get() = try { prefs.getBoolean(KEY_IS_HOST_MODE, false) } catch (e: Exception) { Timber.e(e, "Failed to read isHostMode"); false }
-        set(value) { try { prefs.edit().putBoolean(KEY_IS_HOST_MODE, value).apply() } catch (e: Exception) { Timber.e(e, "Failed to write isHostMode") } }
+        get() = try {
+            prefs?.getBoolean(KEY_IS_HOST_MODE, false) ?: false
+        } catch (e: Exception) { Timber.e(e, "Failed to read isHostMode"); false }
+        set(value) {
+            try {
+                prefs?.edit()?.putBoolean(KEY_IS_HOST_MODE, value)?.apply()
+                    ?: Timber.w("Dropping isHostMode write: encrypted prefs not ready")
+            } catch (e: Exception) { Timber.e(e, "Failed to write isHostMode") }
+        }
 
     private fun safeGetString(key: String): String? {
         return try {
-            prefs.getString(key, null)
+            prefs?.getString(key, null)
         } catch (e: Exception) {
             Timber.e(e, "Failed to read key: $key from encrypted prefs")
             null
@@ -178,14 +219,25 @@ class TokenStorage @Inject constructor(
 
     private fun safePutString(key: String, value: String?) {
         try {
-            prefs.edit().putString(key, value).apply()
+            val p = prefs
+            if (p == null) {
+                Timber.w("Dropping write for $key: encrypted prefs not ready")
+                return
+            }
+            p.edit().putString(key, value).apply()
         } catch (e: Exception) {
             Timber.e(e, "Failed to write key: $key to encrypted prefs")
         }
     }
 
     /**
-     * Check if tokens exist
+     * Check if tokens exist.
+     *
+     * Returns false only when the encrypted prefs are initialised and empty.
+     * When prefs are not yet initialised on the main thread, this returns
+     * false, but callers (e.g. `SessionManager.initialize()`) always run
+     * from `Dispatchers.IO` so they block on the init latch instead of
+     * hitting this path.
      */
     fun hasTokens(): Boolean = try { !accessToken.isNullOrBlank() } catch (e: Exception) { Timber.e(e, "Failed to check tokens"); false }
 
@@ -194,7 +246,12 @@ class TokenStorage @Inject constructor(
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
         try {
-            prefs.edit()
+            val p = prefs
+            if (p == null) {
+                Timber.w("Dropping storeTokens: encrypted prefs not ready")
+                return
+            }
+            p.edit()
                 .putString(KEY_ACCESS_TOKEN, accessToken)
                 .putString(KEY_REFRESH_TOKEN, refreshToken)
                 .apply()
@@ -225,13 +282,19 @@ class TokenStorage @Inject constructor(
      */
     fun clearAll() {
         try {
-            prefs.edit()
+            val p = prefs
+            if (p == null) {
+                Timber.w("Dropping clearAll: encrypted prefs not ready")
+                return
+            }
+            p.edit()
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_AUTH0_ACCESS_TOKEN)
                 .remove(KEY_AUTH0_ID_TOKEN)
                 .remove(KEY_USER_ID)
                 .remove(KEY_CACHED_USER_SUMMARY)
+                .remove(KEY_CACHED_USER_SHARED)
                 .apply()
             Timber.d("All tokens cleared")
         } catch (e: Exception) {
@@ -257,7 +320,14 @@ class TokenStorage @Inject constructor(
         private const val KEY_AUTH0_ACCESS_TOKEN = "auth0_access_token"
         private const val KEY_AUTH0_ID_TOKEN = "auth0_id_token"
         private const val KEY_USER_ID = "user_id"
+        /** Legacy key kept for one-time migration. */
         private const val KEY_CACHED_USER_SUMMARY = "cached_user_summary"
+        /**
+         * Canonical cached-user key, shared with the legacy
+         * `core/network/.../auth/TokenStorage.kt` TokenStorage so that the
+         * two user caches stay in sync.
+         */
+        private const val KEY_CACHED_USER_SHARED = "cached_user"
         private const val KEY_LAST_CHECKOUT_SESSION_ID = "last_checkout_session_id"
         private const val KEY_LAST_CHECKOUT_BOOKING_TYPE = "last_checkout_booking_type"
         private const val KEY_IS_HOST_MODE = "is_host_mode"
