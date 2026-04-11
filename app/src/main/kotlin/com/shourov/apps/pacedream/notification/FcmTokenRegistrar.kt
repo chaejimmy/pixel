@@ -49,15 +49,15 @@ class FcmTokenRegistrar @Inject constructor(
         try {
             FirebaseMessaging.getInstance().token
                 .addOnSuccessListener { token ->
-                    android.util.Log.i("PushInit", "FCM token retrieved: ${token.take(15)}...")
+                    Timber.tag("PushInit").i("FCM token retrieved: %s...", token.take(15))
                     fcmTokenStore.saveToken(token)
                     scope.launch { sendTokenToServer(token) }
                 }
                 .addOnFailureListener { e ->
-                    android.util.Log.e("PushInit", "Failed to retrieve FCM token", e)
+                    Timber.tag("PushInit").e(e, "Failed to retrieve FCM token")
                 }
         } catch (e: Exception) {
-            android.util.Log.e("PushInit", "Firebase not available; skipping FCM token registration", e)
+            Timber.tag("PushInit").e(e, "Firebase not available; skipping FCM token registration")
         }
     }
 
@@ -144,7 +144,10 @@ class FcmTokenRegistrar @Inject constructor(
 
                 when (val result = apiClient.post(url, body, includeAuth = true)) {
                     is ApiResult.Success -> {
-                        android.util.Log.i("PushInit", "✅ FCM token registered with /push-devices (attempt ${attempt + 1}) userId=${tokenStorage.userId}")
+                        Timber.tag("PushInit").i(
+                            "FCM token registered with /push-devices (attempt %d)",
+                            attempt + 1
+                        )
                         fcmTokenStore.markRegistered(token, tokenStorage.userId)
                         registered = true
                         break
@@ -168,7 +171,10 @@ class FcmTokenRegistrar @Inject constructor(
                         fcmTokenStore.markRegistered(token, tokenStorage.userId)
                     }
                     is ApiResult.Failure -> {
-                        android.util.Log.e("PushInit", "❌ Failed to register FCM token after all retries: ${legacyResult.error.message}")
+                        Timber.tag("PushInit").e(
+                            "Failed to register FCM token after all retries: %s",
+                            legacyResult.error.message
+                        )
                     }
                 }
             }
