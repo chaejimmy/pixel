@@ -41,3 +41,8 @@ secrets.local.properties
 .env
 .env.*
 !.env.example
+
+# JVM fatal error logs (Hotspot crash dumps) — local dev machine OOM artifacts,
+# never useful on remote, and easily mistaken for production runtime crashes.
+hs_err_pid*.log
+replay_pid*.log
