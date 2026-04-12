@@ -69,6 +69,12 @@ fun ChatListScreen(
             uiState.isLoading -> {
                 ChatListLoadingState()
             }
+            uiState.error != null -> {
+                ChatListErrorState(
+                    message = uiState.error ?: "Something went wrong",
+                    onRetry = { viewModel.loadChats() }
+                )
+            }
             uiState.chats.isEmpty() -> {
                 ChatListEmptyState()
             }
@@ -225,6 +231,40 @@ private fun ChatListEmptyState() {
                 style = PaceDreamDesignSystem.PaceDreamTypography.Body,
                 color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.7f)
             )
+        }
+    }
+}
+
+@Composable
+private fun ChatListErrorState(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(PaceDreamDesignSystem.PaceDreamSpacing.LG)
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Error,
+                contentDescription = "Error",
+                tint = PaceDreamDesignSystem.PaceDreamColors.Error,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            Text(
+                text = message,
+                style = PaceDreamDesignSystem.PaceDreamTypography.Body,
+                color = PaceDreamDesignSystem.PaceDreamColors.OnBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.MD))
+            androidx.compose.material3.OutlinedButton(onClick = onRetry) {
+                Text("Try Again")
+            }
         }
     }
 }

@@ -94,6 +94,11 @@ class SettingsPersonalInfoViewModel @Inject constructor(
             _uiState.update { it.copy(errorMessage = "First name, last name, and email are required.") }
             return
         }
+        val emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$".toRegex()
+        if (!emailRegex.matches(state.email.trim())) {
+            _uiState.update { it.copy(errorMessage = "Please enter a valid email address.") }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }

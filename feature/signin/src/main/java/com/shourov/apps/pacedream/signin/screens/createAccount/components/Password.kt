@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.inputfields.CustomInputField
 import com.pacedream.common.composables.inputfields.InputType.PASSWORD
 import com.shourov.apps.pacedream.core.ui.R
-import com.shourov.apps.pacedream.core.ui.textFieldStates.ConfirmPasswordState
+import com.shourov.apps.pacedream.core.ui.textFieldStates.LiveConfirmPasswordState
 import com.shourov.apps.pacedream.core.ui.textFieldStates.PasswordValidationState
 import com.pacedream.common.icon.PaceDreamIcons
 import com.pacedream.common.composables.theme.PaceDreamTheme
@@ -53,11 +53,7 @@ fun Password(
     }
 
     val confirmPassword by remember {
-        mutableStateOf(
-            ConfirmPasswordState(
-                newPassword = newPassword.text,
-            ),
-        )
+        mutableStateOf(LiveConfirmPasswordState { newPassword.text })
     }
 
     Column(

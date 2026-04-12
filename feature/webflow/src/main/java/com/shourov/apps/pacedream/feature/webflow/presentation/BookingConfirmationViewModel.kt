@@ -24,7 +24,7 @@ class BookingConfirmationViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BookingConfirmationUiState>(
-        BookingConfirmationUiState.Loading
+        BookingConfirmationUiState.Idle
     )
     val uiState: StateFlow<BookingConfirmationUiState> = _uiState.asStateFlow()
 
@@ -32,8 +32,9 @@ class BookingConfirmationViewModel @Inject constructor(
      * Confirm booking based on session ID and booking type
      */
     fun confirmBooking(sessionId: String, bookingTypeString: String) {
-        // Prevent double-tap — ignore if already loading
-        if (_uiState.value is BookingConfirmationUiState.Loading) return
+        // Prevent double-tap — ignore if already in-flight loading
+        val current = _uiState.value
+        if (current is BookingConfirmationUiState.Loading) return
         viewModelScope.launch {
             _uiState.value = BookingConfirmationUiState.Loading
 
@@ -96,6 +97,8 @@ class BookingConfirmationViewModel @Inject constructor(
  * UI State for booking confirmation
  */
 sealed class BookingConfirmationUiState {
+    /** Initial state before confirmBooking() is called. */
+    object Idle : BookingConfirmationUiState()
     object Loading : BookingConfirmationUiState()
     data class Success(val confirmation: BookingConfirmation) : BookingConfirmationUiState()
     data class Error(val message: String) : BookingConfirmationUiState()

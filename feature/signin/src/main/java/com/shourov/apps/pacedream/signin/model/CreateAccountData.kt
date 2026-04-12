@@ -37,5 +37,10 @@ fun CreateAccountData.userProfileDetailsValid(): Boolean {
 }
 
 fun CreateAccountData.dateOfBirthValid(): Boolean {
-    return dateOfBirthMillis != null && dateOfBirthMillis < System.currentTimeMillis() // todo check if the user is older than 13
+    if (dateOfBirthMillis == null) return false
+    if (dateOfBirthMillis >= System.currentTimeMillis()) return false
+    // Enforce minimum age of 13 (COPPA compliance)
+    val calendar = java.util.Calendar.getInstance()
+    calendar.add(java.util.Calendar.YEAR, -13)
+    return dateOfBirthMillis <= calendar.timeInMillis
 }

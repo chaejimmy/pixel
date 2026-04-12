@@ -18,3 +18,18 @@ class ConfirmPasswordState(
     errorFor = { passwordConfirmationError() },
     initialText = "",
 )
+
+/**
+ * A confirm-password state that reads the current password dynamically via a lambda,
+ * instead of capturing a stale snapshot at creation time.
+ */
+class LiveConfirmPasswordState(
+    private val newPasswordProvider: () -> String,
+) : GenericTextFieldState<String>(
+    validator = { true }, // overridden below
+    errorFor = { passwordConfirmationError() },
+    initialText = "",
+) {
+    override val isValid: Boolean
+        get() = passwordAndConfirmationValid(newPasswordProvider(), text)
+}

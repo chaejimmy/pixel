@@ -169,7 +169,7 @@ fun ReportBlockSheet(
                                     errorMessage = "Cannot report: missing user information"
                                     return@launch
                                 }
-                                when (repository.reportContent(
+                                when (val result = repository.reportContent(
                                     reportedUserId = reportedUserId,
                                     reason = reason.label,
                                     details = additionalDetails.ifBlank { null }
@@ -180,14 +180,13 @@ fun ReportBlockSheet(
                                     }
                                     is ApiResult.Failure -> {
                                         isSubmitting = false
-                                        // Still show success since the report intent was captured
-                                        showSuccess = true
+                                        errorMessage = result.error.message ?: "Failed to submit report. Please try again."
                                     }
                                 }
                             } catch (e: Exception) {
                                 Timber.w(e, "Report submission failed unexpectedly")
                                 isSubmitting = false
-                                showSuccess = true
+                                errorMessage = "Failed to submit report. Please try again."
                             }
                         }
                     },
@@ -252,22 +251,21 @@ fun ReportBlockSheet(
                         isBlocking = true
                         scope.launch {
                             try {
-                                when (repository.blockUser(reportedUserId)) {
+                                when (val result = repository.blockUser(reportedUserId)) {
                                     is ApiResult.Success -> {
                                         isBlocking = false
                                         showSuccess = true
                                     }
                                     is ApiResult.Failure -> {
                                         isBlocking = false
-                                        Timber.w("Block user endpoint may not be available yet")
-                                        // Still show success - graceful degradation
-                                        showSuccess = true
+                                        Timber.w("Block user failed: ${result.error.message}")
+                                        errorMessage = "Failed to block user. Please try again."
                                     }
                                 }
                             } catch (e: Exception) {
                                 Timber.w(e, "Block user failed unexpectedly")
                                 isBlocking = false
-                                showSuccess = true
+                                errorMessage = "Failed to block user. Please try again."
                             }
                         }
                     },
