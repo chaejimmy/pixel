@@ -62,6 +62,7 @@ import com.pacedream.app.feature.profile.EditProfileScreen
 import com.pacedream.app.feature.checkout.BookingDraft
 import com.pacedream.app.feature.checkout.BookingDraftCodec
 import com.pacedream.app.feature.checkout.CheckoutScreen
+import com.pacedream.app.feature.checkout.ConfirmationScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeFeedScreen
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionKey
 import com.shourov.apps.pacedream.feature.homefeed.HomeSectionListScreen
@@ -475,6 +476,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val isHostMode by hostModeManager.isHostMode.collectAsStateWithLifecycle()
                                     var showAuthSheet by remember { mutableStateOf(false) }
                                 val context = androidx.compose.ui.platform.LocalContext.current
+                                val profileAuthGate = hiltViewModel<AuthGateViewModel>()
                                 ProfileTabScreen(
                                         onShowAuthSheet = { showAuthSheet = true },
                                     onEditProfileClick = {
@@ -522,6 +524,15 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     },
                                     onLogoutClick = {
+                                        // Clear BOTH auth systems. ProfileTabViewModel
+                                        // already invokes the legacy AuthSession.signOut()
+                                        // before this callback runs, but SessionManager
+                                        // also holds its own _authState / _currentUser.
+                                        // Call signOut() here so both sources flip to
+                                        // Unauthenticated in the same pass (was a no-op
+                                        // in 2026-04-12 E2E review → users could not
+                                        // actually sign out without an app restart).
+                                        profileAuthGate.signOut()
                                         hostModeManager.setHostMode(false)
                                         navigateToTab(navController, DashboardDestination.HOME.name)
                                     },
@@ -652,13 +663,18 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     }
                                 } else if (draft != null) {
-                                    // Use CheckoutScreen with the real BookingDraft and backend API
+                                    // Use CheckoutScreen with the real BookingDraft and backend API.
+                                    // On success, navigate to the native booking success screen
+                                    // (ConfirmationScreen) — previously went straight to the
+                                    // booking detail screen, which meant users never got an explicit
+                                    // "Booking Confirmed" moment after Stripe PaymentSheet completed.
                                     CheckoutScreen(
                                         draft = draft,
                                         onBackClick = { navController.popBackStack() },
                                         onConfirmSuccess = { bookingId ->
-                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId") {
-                                                // Pop checkout off the stack so back goes to detail
+                                            navController.navigate("booking_success/$bookingId") {
+                                                // Pop checkout off the stack so back goes home/detail,
+                                                // not back to a re-payable checkout screen.
                                                 popUpTo("${BookingDestination.BOOKING_FORM.name}/$propertyId") {
                                                     inclusive = true
                                                 }
@@ -670,7 +686,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     BookingFormScreen(
                                         propertyId = propertyId,
                                         onBookingCreated = { bookingId ->
-                                            navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
+                                            navController.navigate("booking_success/$bookingId")
                                         }
                                     )
                                 }
@@ -777,6 +793,34 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
                             
+                            // Native Booking Success (post Stripe PaymentSheet).
+                            // Shown after CheckoutScreen -> onConfirmSuccess so the user gets
+                            // an explicit "Booking confirmed" moment with a reference code and
+                            // clear next actions. Different from BOOKING_CONFIRMATION below,
+                            // which is the web/deep-link landing target (driven by Stripe
+                            // Checkout session redirect + server webhook).
+                            composable(
+                                route = "booking_success/{bookingId}",
+                                arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+                            ) { backStackEntry ->
+                                val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                                ConfirmationScreen(
+                                    bookingId = bookingId,
+                                    onBackClick = {
+                                        // Back from success goes home, never back to checkout
+                                        navigateToTab(navController, DashboardDestination.HOME.name)
+                                    },
+                                    onViewBooking = {
+                                        navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId") {
+                                            popUpTo("booking_success/$bookingId") { inclusive = true }
+                                        }
+                                    },
+                                    onDone = {
+                                        navigateToTab(navController, DashboardDestination.HOME.name)
+                                    }
+                                )
+                            }
+
                             // Booking Confirmation Screen (Deep link target)
                             composable(
                                 route = "${BookingDestination.BOOKING_CONFIRMATION.name}/{sessionId}/{bookingType}",

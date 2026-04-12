@@ -84,7 +84,12 @@ class ListingDetailViewModel @Inject constructor(
         }
 
         refresh()
-        // Reviews are lazy-loaded only when user opens the reviews sheet (iOS parity)
+        // Eagerly fetch review summary + first-page reviews so the listing detail
+        // renders real rating + preview cards on first view (E2E 2026-04-12 review
+        // flagged the section as a "Reviews preview coming soon" stub because it was
+        // lazy-loaded only when the user tapped "See all"). This is the small
+        // network call that gates conversion the most on first-time guests.
+        loadReviews()
     }
 
     fun refresh() {

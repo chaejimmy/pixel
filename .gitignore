@@ -41,3 +41,7 @@ secrets.local.properties
 .env
 .env.*
 !.env.example
+
+# JVM / Gradle crash dumps (local OOM events, never shipped)
+hs_err_pid*.log
+replay_pid*.log
