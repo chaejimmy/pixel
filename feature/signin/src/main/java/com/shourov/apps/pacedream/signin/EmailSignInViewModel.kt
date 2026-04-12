@@ -147,11 +147,17 @@ class EmailSignInViewModel @Inject constructor(
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
-        if (email.isBlank()) {
+        if (_uiState.value.isLoading) return
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank()) {
             onError("Please enter your email address")
             return
         }
-        if (_uiState.value.isLoading) return
+        val emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$".toRegex()
+        if (!emailRegex.matches(trimmedEmail)) {
+            onError("Please enter a valid email address")
+            return
+        }
 
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 

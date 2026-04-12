@@ -175,8 +175,8 @@ class HomeFeedViewModel @Inject constructor(
                     // Network error: keep the optimistic update, queue for retry
                     favoritesCache.addPendingToggle(listingId)
                     Timber.w("Favorite toggle queued for retry (offline): $listingId")
-                    // Return success to the UI so the heart stays and snackbar shows "Saved"
-                    ApiResult.Success(!wasFavorited)
+                    // Return the failure so the UI can show an offline indicator
+                    res
                 } else {
                     // Non-network error (auth, server, etc.): roll back
                     _favoriteIds.value = if (wasFavorited) _favoriteIds.value + listingId else _favoriteIds.value - listingId

@@ -67,9 +67,14 @@ class SignInViewModel @Inject constructor(
 
     fun forgotPassword(onSuccess: (String) -> Unit) {
         if (_uiState.value.isLoading) return // Prevent duplicate submissions
-        val email = _uiState.value.email
+        val email = _uiState.value.email.trim()
         if (email.isBlank()) {
             _uiState.value = _uiState.value.copy(error = "Please enter your email first")
+            return
+        }
+        val emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$".toRegex()
+        if (!emailRegex.matches(email)) {
+            _uiState.value = _uiState.value.copy(error = "Please enter a valid email address")
             return
         }
 

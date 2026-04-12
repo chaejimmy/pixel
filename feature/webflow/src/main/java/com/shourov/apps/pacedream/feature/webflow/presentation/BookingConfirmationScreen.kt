@@ -84,6 +84,7 @@ fun BookingConfirmationScreen(
             contentAlignment = Alignment.Center
         ) {
             when (val state = uiState) {
+                is BookingConfirmationUiState.Idle,
                 is BookingConfirmationUiState.Loading -> LoadingState()
                 is BookingConfirmationUiState.Success -> SuccessState(
                     state = state,
@@ -151,7 +152,12 @@ private fun SuccessState(
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         
         Text(
-            text = "Booking Confirmed!",
+            text = when (confirmation.status) {
+                "confirmed" -> "Booking Confirmed!"
+                "pending" -> "Booking Pending"
+                "processing" -> "Booking Processing"
+                else -> "Booking Received"
+            },
             style = PaceDreamTypography.Title1,
             color = PaceDreamColors.TextPrimary,
             textAlign = TextAlign.Center

@@ -186,8 +186,15 @@ class BookingRepository @Inject constructor(
         return try {
             val response = apiService.createBooking(booking)
             if (response.isSuccessful) {
-                booking.asEntity()?.let { bookingDao.insertBooking(it) }
-                Result.Success(booking)
+                // Use the server response to get the real booking ID and status
+                val serverBooking = response.body()?.data?.let { serverData ->
+                    booking.copy(
+                        id = serverData.id.ifBlank { booking.id },
+                        bookingStatus = serverData.status.ifBlank { booking.bookingStatus }
+                    )
+                } ?: booking
+                serverBooking.asEntity()?.let { bookingDao.insertBooking(it) }
+                Result.Success(serverBooking)
             } else {
                 // Parse error body for security-related responses
                 val errorBody = response.errorBody()?.string()

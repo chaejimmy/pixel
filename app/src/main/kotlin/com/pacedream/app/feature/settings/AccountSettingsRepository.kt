@@ -151,7 +151,24 @@ class AccountSettingsRepository @Inject constructor(
         val url = appConfig.buildFrontendUrl("api", "proxy", "account", "deactivate")
         val body = "{}"
         return when (val result = apiClient.post(url, body, includeAuth = true)) {
-            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Success -> {
+                try {
+                    val envelope = json.decodeFromString(Envelope.serializer(UnitSerializer), result.data)
+                    if (envelope.isOk) {
+                        ApiResult.Success(Unit)
+                    } else {
+                        ApiResult.Failure(
+                            ApiError.ServerError(
+                                envelope.code ?: 400,
+                                envelope.error ?: envelope.message ?: "Unable to deactivate account."
+                            )
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Fallback if body is not envelope; treat 2xx as success
+                    ApiResult.Success(Unit)
+                }
+            }
             is ApiResult.Failure -> result
         }
     }
@@ -159,7 +176,24 @@ class AccountSettingsRepository @Inject constructor(
     suspend fun deleteAccount(): ApiResult<Unit> {
         val url = appConfig.buildFrontendUrl("api", "proxy", "users", "delete", "account")
         return when (val result = apiClient.delete(url, includeAuth = true)) {
-            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Success -> {
+                try {
+                    val envelope = json.decodeFromString(Envelope.serializer(UnitSerializer), result.data)
+                    if (envelope.isOk) {
+                        ApiResult.Success(Unit)
+                    } else {
+                        ApiResult.Failure(
+                            ApiError.ServerError(
+                                envelope.code ?: 400,
+                                envelope.error ?: envelope.message ?: "Unable to delete account."
+                            )
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Fallback if body is not envelope; treat 2xx as success
+                    ApiResult.Success(Unit)
+                }
+            }
             is ApiResult.Failure -> result
         }
     }

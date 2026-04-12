@@ -141,6 +141,7 @@ fun BookingScreen(
                             UnifiedBookingCard(
                                 booking = booking,
                                 statusConfig = viewModel.statusConfig(booking),
+                                actionInFlight = uiState.actionInFlight,
                                 onViewDetails = { viewModel.onBookingClick(booking.id) },
                                 onCancel = { viewModel.cancelBooking(booking.id) },
                                 onConfirm = { viewModel.confirmBooking(booking.id) }
@@ -234,6 +235,7 @@ private fun BookingTabPicker(
 private fun UnifiedBookingCard(
     booking: BookingModel,
     statusConfig: BookingStatusConfig,
+    actionInFlight: Boolean = false,
     onViewDetails: () -> Unit,
     onCancel: () -> Unit,
     onConfirm: () -> Unit
@@ -356,6 +358,7 @@ private fun UnifiedBookingCard(
                 if (isCancelable) {
                     OutlinedButton(
                         onClick = onCancel,
+                        enabled = !actionInFlight,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -382,6 +385,7 @@ private fun UnifiedBookingCard(
                 if (booking.status == BookingStatus.PENDING) {
                     Button(
                         onClick = onConfirm,
+                        enabled = !actionInFlight,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(

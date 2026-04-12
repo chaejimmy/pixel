@@ -389,9 +389,8 @@ class HostRepository @Inject constructor(
                         property.id, property.status, property.images.size, recentlyCreatedListings.size)
                     Result.success(property)
                 } else {
-                    val fallback = Property(id = "", title = request.title, status = "pending_review", images = request.images ?: emptyList())
-                    recentlyCreatedListings.add(fallback)
-                    Result.success(fallback)
+                    Timber.w("createListing: server returned null body despite 2xx status")
+                    Result.failure(Exception("Server returned an empty response. Your listing may have been created — please check My Listings."))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()

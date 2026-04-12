@@ -51,13 +51,27 @@ class ChatListViewModel @Inject constructor(
             }
 
             // Fetch chat list from the server API
-            val json = messageRepository.fetchChatListRaw()
-            val chats = parseChatListResponse(json, userId)
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                chats = chats,
-                error = null
-            )
+            try {
+                val json = messageRepository.fetchChatListRaw()
+                if (json == null) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Unable to load chats. Please check your connection."
+                    )
+                    return@launch
+                }
+                val chats = parseChatListResponse(json, userId)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    chats = chats,
+                    error = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Failed to load chats. Please try again."
+                )
+            }
         }
     }
 

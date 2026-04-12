@@ -387,8 +387,10 @@ class MessageRepository @Inject constructor(
             if (response.isSuccessful) {
                 // Also update local cache
                 messageDao.markMessagesAsRead(chatId)
+                Result.Success(Unit)
+            } else {
+                Result.Error(Exception("Failed to mark chat as read: ${response.message()}"))
             }
-            Result.Success(Unit)
         } catch (e: Exception) {
             timber.log.Timber.w(e, "Failed to mark chat $chatId as read on server")
             Result.Error(e)

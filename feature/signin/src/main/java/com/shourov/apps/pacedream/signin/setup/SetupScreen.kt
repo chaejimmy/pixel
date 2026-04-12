@@ -56,7 +56,7 @@ fun SetupScreen(
             shouldShowPreviousButton = accountSetupScreenData.processIndex > 0,
             shouldShowDoneButton = accountSetupScreenData.shouldShowDoneButton,
             onPreviousPressed = setupViewModel::onPreviousClicked,
-            isContinueEnabled = true,
+            isContinueEnabled = setupViewModel.isContinueEnabled,
             onContinueClick = setupViewModel::onContinueClicked,
             onHelpClick = {},
             onDoneClick = {
