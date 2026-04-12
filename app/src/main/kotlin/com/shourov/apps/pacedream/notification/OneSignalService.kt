@@ -244,16 +244,19 @@ class OneSignalService @Inject constructor(
         try {
             OneSignal.login(userId)
             externalUserIdBound = true
-            android.util.Log.i("PushInit", "✅ OneSignal login() succeeded for $userId. subscriptionId=${getSubscriptionId()} optedIn=${OneSignal.User.pushSubscription.optedIn}")
+            Timber.tag("PushInit").i(
+                "OneSignal login() succeeded. optedIn=%s",
+                OneSignal.User.pushSubscription.optedIn
+            )
         } catch (e: Exception) {
-            android.util.Log.w("PushInit", "OneSignal login() failed for $userId, retrying in 3s...", e)
+            Timber.tag("PushInit").w(e, "OneSignal login() failed, retrying in 3s...")
             delay(3000)
             try {
                 OneSignal.login(userId)
                 externalUserIdBound = true
-                android.util.Log.i("PushInit", "✅ OneSignal login() succeeded on retry for $userId")
+                Timber.tag("PushInit").i("OneSignal login() succeeded on retry")
             } catch (e2: Exception) {
-                android.util.Log.e("PushInit", "❌ OneSignal login() failed after retry for $userId", e2)
+                Timber.tag("PushInit").e(e2, "OneSignal login() failed after retry")
             }
         }
 
@@ -263,26 +266,34 @@ class OneSignalService @Inject constructor(
         // not subscribed". Must be called after login() so OneSignal can
         // associate the permission grant with the correct external user ID.
         if (!OneSignal.Notifications.permission) {
-            android.util.Log.w("PushInit", "Push permission NOT granted, requesting...")
+            Timber.tag("PushInit").w("Push permission NOT granted, requesting...")
             val granted = OneSignal.Notifications.requestPermission(false)
-            android.util.Log.i("PushInit", "Push permission request result: granted=$granted")
+            Timber.tag("PushInit").i("Push permission request result: granted=%s", granted)
         } else {
-            android.util.Log.i("PushInit", "Push permission already granted ✅")
+            Timber.tag("PushInit").i("Push permission already granted")
         }
 
         // Final verification: log the subscription state so we can diagnose
         // "invalid_aliases.external_id" errors from the backend.
+        // Release builds never reach these calls because Timber plants no tree
+        // in release, so push tokens / subscription IDs never hit logcat.
         val finalSubId = getSubscriptionId()
         val finalOptedIn = OneSignal.User.pushSubscription.optedIn
         val finalToken = OneSignal.User.pushSubscription.token
         if (finalOptedIn && finalSubId != null) {
-            android.util.Log.i("PushInit", "✅ Push ready: subscriptionId=$finalSubId optedIn=true token=${finalToken?.take(15)}...")
+            Timber.tag("PushInit").i(
+                "Push ready: subscriptionId=%s optedIn=true token=%s...",
+                finalSubId, finalToken?.take(15)
+            )
         } else {
             // This is the root cause of include_aliases failures.
             // If optedIn=false, OneSignal won't bind the external_id to any
             // active subscription → backend's include_aliases returns
             // "invalid_aliases.external_id" → push silently fails.
-            android.util.Log.e("PushInit", "❌ Push NOT ready after login+permission: subscriptionId=$finalSubId optedIn=$finalOptedIn token=${finalToken?.take(15)}... — include_aliases WILL FAIL on backend")
+            Timber.tag("PushInit").e(
+                "Push NOT ready after login+permission: subscriptionId=%s optedIn=%s token=%s... — include_aliases WILL FAIL on backend",
+                finalSubId, finalOptedIn, finalToken?.take(15)
+            )
         }
     }
 }
