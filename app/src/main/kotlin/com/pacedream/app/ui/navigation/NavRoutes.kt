@@ -39,8 +39,6 @@ object NavRoutes {
     const val IDENTITY_VERIFICATION = "profile/identity-verification"
     const val FAQ = "profile/faq"
     const val ABOUT_US = "profile/about"
-    const val ROOMMATE_FINDER = "roommate-finder"
-
     // Collections / Lists
     const val COLLECTIONS = "collections"
     // Webflow / Booking routes

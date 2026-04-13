@@ -60,13 +60,21 @@ fun HostModeScreen(
                 onSwitchToGuestMode = onSwitchToGuestMode,
                 onSignOut = onSignOut,
                 onNavigateToProperty = onNavigateToProperty,
-                onNavigateToBooking = onNavigateToBooking,
+                onNavigateToBooking = { bookingId ->
+                    navController.navigate("booking_details/$bookingId") {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToAddListing = {
                     navController.navigate(HostNavigationDestinations.ADD_LISTING) {
                         launchSingleTop = true
                     }
                 },
-                onNavigateToEditListing = onNavigateToEditListing,
+                onNavigateToEditListing = { listingId ->
+                    navController.navigate("edit_listing/$listingId") {
+                        launchSingleTop = true
+                    }
+                },
                 onNavigateToAnalytics = {
                     navController.navigate(HostScreen.Analytics.route) {
                         launchSingleTop = true
