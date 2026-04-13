@@ -106,3 +106,17 @@
 # ── Google Maps Compose ─────────────────────────────────────────────────────
 -keep class com.google.maps.** { *; }
 -dontwarn com.google.maps.**
+
+# ── Dokka / Freemarker / KSP / Jaxen / Jython / JRebel ────────────────────
+# These are build-time / JVM-only dependencies that leak into the runtime
+# classpath via transitive dependencies. They are never used at runtime.
+-dontwarn org.jetbrains.dokka.**
+-dontwarn freemarker.**
+-dontwarn org.jaxen.**
+-dontwarn org.python.**
+-dontwarn org.zeroturnaround.**
+-dontwarn com.fasterxml.jackson.dataformat.xml.**
+-dontwarn com.google.devtools.ksp.**
+-dontwarn com.sun.org.apache.xml.internal.**
+-dontwarn java.beans.**
+-dontwarn javax.swing.**
