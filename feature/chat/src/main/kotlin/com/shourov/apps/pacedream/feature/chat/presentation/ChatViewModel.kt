@@ -52,7 +52,18 @@ class ChatViewModel @Inject constructor(
         loadMessagesJob?.cancel()
         loadMessagesJob = viewModelScope.launch(Dispatchers.IO) {
             val resolvedUserId = authSession.currentUserId ?: "unknown"
-            _uiState.value = _uiState.value.copy(isLoading = true, chatId = chatId, currentUserId = resolvedUserId)
+            // Reset messages and composer state when switching to a different chat
+            // to prevent stale data from the previous conversation being briefly visible.
+            val isNewChat = _uiState.value.chatId != chatId && _uiState.value.chatId.isNotEmpty()
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                chatId = chatId,
+                currentUserId = resolvedUserId,
+                messages = if (isNewChat) emptyList() else _uiState.value.messages,
+                newMessage = if (isNewChat) "" else _uiState.value.newMessage,
+                pendingPhotos = if (isNewChat) emptyList() else _uiState.value.pendingPhotos,
+                error = null
+            )
 
             // Check attachment status (fire-and-forget on IO)
             launch {
