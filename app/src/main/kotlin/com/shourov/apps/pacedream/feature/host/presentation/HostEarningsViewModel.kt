@@ -216,7 +216,7 @@ class HostEarningsViewModel @Inject constructor(
                 isRequestingPayout = true, payoutError = null
             )
 
-            val amountInCents = (amount * 100).toInt()
+            val amountInCents = Math.round(amount * 100).toInt()
             stripeConnectRepository.createPayout(amountInCents)
                 .onSuccess {
                     _earningsUiState.value = _earningsUiState.value.copy(

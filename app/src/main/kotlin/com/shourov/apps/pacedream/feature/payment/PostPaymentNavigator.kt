@@ -1,14 +1,10 @@
 package com.shourov.apps.pacedream.feature.payment
 
-import com.shourov.apps.pacedream.navigation.BookingDestination
 import com.shourov.apps.pacedream.navigation.DashboardDestination
 import com.shourov.apps.pacedream.navigation.TabRouter
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -24,6 +20,10 @@ import timber.log.Timber
  *
  * The DashboardNavigation composable should collect [navigationEvents] to
  * perform the actual navigation.
+ *
+ * Note: [navigateToBookingDetail] must be called from a coroutine scope
+ * managed by the caller (e.g. viewModelScope) — never from a fire-and-forget
+ * CoroutineScope that leaks beyond the lifecycle of the hosting component.
  */
 object PostPaymentNavigator {
 
@@ -33,20 +33,20 @@ object PostPaymentNavigator {
     /**
      * Trigger post-payment navigation to booking detail.
      * This matches the iOS behavior of posting PD_DidCompletePayment notification.
+     *
+     * Must be called from a lifecycle-aware coroutine scope (e.g. viewModelScope).
      */
-    fun navigateToBookingDetail(bookingId: String?) {
+    suspend fun navigateToBookingDetail(bookingId: String?) {
         Timber.d("PostPaymentNavigator: navigating to booking detail bookingId=$bookingId")
 
-        CoroutineScope(Dispatchers.Main).launch {
-            // Switch to bookings tab first
-            TabRouter.switchTo(DashboardDestination.BOOKINGS)
+        // Switch to bookings tab first
+        TabRouter.switchTo(DashboardDestination.BOOKINGS)
 
-            // Then navigate to detail if we have an ID
-            if (!bookingId.isNullOrBlank()) {
-                _navigationEvents.emit(
-                    PostPaymentEvent.NavigateToBookingDetail(bookingId)
-                )
-            }
+        // Then navigate to detail if we have an ID
+        if (!bookingId.isNullOrBlank()) {
+            _navigationEvents.emit(
+                PostPaymentEvent.NavigateToBookingDetail(bookingId)
+            )
         }
     }
 }
