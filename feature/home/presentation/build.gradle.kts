@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.shourov.apps.pacedream.feature.home.presentation"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24

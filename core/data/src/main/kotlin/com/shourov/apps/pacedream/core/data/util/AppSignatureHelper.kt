@@ -61,17 +61,19 @@ class AppSignatureHelper(context: Context?) : ContextWrapper(context) {
                         PackageManager.GET_SIGNING_CERTIFICATES,
                     )
 
-                val signatures: Array<Signature> = if (packageInfo.signingInfo != null) {
+                val signingInfo = packageInfo.signingInfo
+                val signatures: Array<out Signature> = if (signingInfo != null) {
                     // New method (API level 28 and above)
-                    if (packageInfo.signingInfo.hasMultipleSigners()) {
+                    if (signingInfo.hasMultipleSigners()) {
                         // Handle multiple signers if necessary
-                        packageInfo.signingInfo.apkContentsSigners
+                        signingInfo.apkContentsSigners
                     } else {
                         // Single signer
-                        packageInfo.signingInfo.signingCertificateHistory
+                        signingInfo.signingCertificateHistory
                     }
                 } else {
                     // Old method (deprecated)
+                    @Suppress("DEPRECATION")
                     packageInfo.signatures
                 }
 
