@@ -74,7 +74,7 @@ class AppSignatureHelper(context: Context?) : ContextWrapper(context) {
                 } else {
                     // Old method (deprecated)
                     @Suppress("DEPRECATION")
-                    packageInfo.signatures
+                    packageInfo.signatures ?: emptyArray()
                 }
 
                 // For each signature create a compatible hash
