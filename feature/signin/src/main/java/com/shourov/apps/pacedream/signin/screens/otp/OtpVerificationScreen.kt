@@ -15,16 +15,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.buttons.PrimaryTextButton
 import com.pacedream.common.composables.buttons.ProcessButton
@@ -32,12 +29,12 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.core.ui.otp.OtpInputField
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * OTP Verification Screen
- * User enters 6-digit OTP code received via SMS
+ * User enters 6-digit OTP code received via SMS.
+ * Resend cooldown is managed by the ViewModel (survives rotation/recomposition).
  */
 @Composable
 fun OtpVerificationScreen(
@@ -49,25 +46,16 @@ fun OtpVerificationScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var resendCountdown by remember { mutableStateOf(60) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    
-    // Countdown timer
-    LaunchedEffect(resendCountdown) {
-        if (resendCountdown > 0) {
-            delay(1000)
-            resendCountdown--
-        }
-    }
-    
+
     // Show error snackbar
     LaunchedEffect(uiState.otpError) {
         uiState.otpError?.let { error ->
             snackbarHostState.showSnackbar(error)
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background,
@@ -129,7 +117,7 @@ fun OtpVerificationScreen(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-            // Verify Button — iOS primary action pattern
+            // Verify Button
             ProcessButton(
                 onClick = {
                     viewModel.verifyAndLogin(
@@ -156,19 +144,18 @@ fun OtpVerificationScreen(
                 modifier = Modifier.padding(bottom = PaceDreamSpacing.SM)
             )
 
-            // Resend Button — disabled during cooldown and while loading
+            // Resend Button — cooldown managed by ViewModel (survives rotation)
             PrimaryTextButton(
-                text = if (resendCountdown > 0) {
-                    "Resend code in ${resendCountdown}s"
+                text = if (uiState.resendCooldownSeconds > 0) {
+                    "Resend code in ${uiState.resendCooldownSeconds}s"
                 } else {
                     "Resend code"
                 },
                 onClick = {
-                    if (resendCountdown == 0 && !uiState.isLoading) {
+                    if (uiState.resendCooldownSeconds == 0 && !uiState.isLoading) {
                         viewModel.resendOTP(
                             phoneNumber = phoneNumber,
-                            onSuccess = { cooldownSeconds ->
-                                resendCountdown = cooldownSeconds
+                            onSuccess = {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("New OTP sent successfully")
                                 }
@@ -185,7 +172,7 @@ fun OtpVerificationScreen(
 
             // Change phone number link
             PrimaryTextButton(
-                text = "← Change phone number",
+                text = "\u2190 Change phone number",
                 onClick = onBackToPhone,
             )
         }
@@ -194,7 +181,7 @@ fun OtpVerificationScreen(
 
 /**
  * Mask phone number for display
- * Example: +12345678901 -> +1******8901
+ * Example: +12345678901 -> +1****8901
  */
 private fun maskPhone(phone: String): String {
     if (phone.length <= 4) return "****"

@@ -142,12 +142,24 @@ class EmailSignInViewModel @Inject constructor(
         }
     }
 
+    /** Cooldown tracking for forgot-password from this screen. */
+    private var forgotPasswordCooldownEndMs: Long = 0L
+
     fun forgotPassword(
         email: String,
         onSuccess: (String) -> Unit,
         onError: (String) -> Unit
     ) {
         if (_uiState.value.isLoading) return
+
+        // Enforce cooldown
+        val now = System.currentTimeMillis()
+        if (now < forgotPasswordCooldownEndMs) {
+            val remainingSec = ((forgotPasswordCooldownEndMs - now) / 1000).toInt()
+            onError("Please wait $remainingSec seconds before requesting another reset link.")
+            return
+        }
+
         val trimmedEmail = email.trim()
         if (trimmedEmail.isBlank()) {
             onError("Please enter your email address")
@@ -162,15 +174,33 @@ class EmailSignInViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
-            val result = authSession.forgotPassword(email)
+            val result = authSession.forgotPassword(trimmedEmail)
+            // Start 60s cooldown regardless of outcome
+            forgotPasswordCooldownEndMs = System.currentTimeMillis() + 60_000L
+
             result.fold(
-                onSuccess = { message ->
+                onSuccess = { _ ->
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    onSuccess(message)
+                    // Uniform message to prevent account enumeration
+                    onSuccess("If an account with this email exists, you'll receive a password reset link shortly.")
                 },
                 onFailure = { error ->
-                    val errorMessage = error.message ?: "Failed to send reset link"
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMessage)
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    val errorMessage = when {
+                        error.message?.contains("429", ignoreCase = true) == true ||
+                        error.message?.contains("rate", ignoreCase = true) == true -> {
+                            forgotPasswordCooldownEndMs = System.currentTimeMillis() + 120_000L
+                            "Too many requests. Please try again later."
+                        }
+                        error.message?.contains("network", ignoreCase = true) == true ->
+                            "Something went wrong. Please check your connection."
+                        else -> {
+                            // Uniform message for non-network errors to prevent enumeration
+                            onSuccess("If an account with this email exists, you'll receive a password reset link shortly.")
+                            return@launch
+                        }
+                    }
+                    _uiState.value = _uiState.value.copy(error = errorMessage)
                     onError(errorMessage)
                 }
             )

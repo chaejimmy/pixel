@@ -135,6 +135,25 @@ fun ForgotPasswordScreen(
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
+                // Show cooldown on resend button after success
+                if (uiState.cooldownSeconds > 0) {
+                    ProcessButton(
+                        onClick = { viewModel.sendResetLink() },
+                        isEnabled = false,
+                        text = "Resend in ${uiState.cooldownSeconds}s",
+                    )
+
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                } else {
+                    ProcessButton(
+                        onClick = { viewModel.sendResetLink() },
+                        isEnabled = uiState.email.isNotBlank(),
+                        text = "Resend Reset Link",
+                    )
+
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                }
+
                 ProcessButton(
                     onClick = onBackClick,
                     text = "Back to Sign In",
@@ -142,9 +161,15 @@ fun ForgotPasswordScreen(
             } else {
                 ProcessButton(
                     onClick = { viewModel.sendResetLink() },
-                    isEnabled = uiState.email.isNotBlank() && !uiState.isLoading,
+                    isEnabled = uiState.email.isNotBlank()
+                            && !uiState.isLoading
+                            && uiState.cooldownSeconds == 0,
                     isProcessing = uiState.isLoading,
-                    text = "Send Reset Link",
+                    text = if (uiState.cooldownSeconds > 0) {
+                        "Resend in ${uiState.cooldownSeconds}s"
+                    } else {
+                        "Send Reset Link"
+                    },
                 )
             }
         }

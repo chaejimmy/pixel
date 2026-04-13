@@ -9,6 +9,8 @@ import com.shourov.apps.pacedream.model.response.otp.OtpError
 import com.shourov.apps.pacedream.model.response.otp.OtpUserData
 import com.shourov.apps.pacedream.model.response.otp.getUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +19,8 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * ViewModel for OTP Verification Screen
- * Handles OTP verification and login
+ * ViewModel for OTP Verification Screen.
+ * Handles OTP verification, login, and ViewModel-managed resend cooldown.
  */
 @HiltViewModel
 class OtpVerificationViewModel @Inject constructor(
@@ -26,10 +28,18 @@ class OtpVerificationViewModel @Inject constructor(
     private val tokenStorage: TokenStorage,
     private val authSession: AuthSession
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(OtpVerificationUiState())
     val uiState: StateFlow<OtpVerificationUiState> = _uiState.asStateFlow()
-    
+
+    private var cooldownJob: Job? = null
+
+    init {
+        // Start initial cooldown when the screen first appears
+        // (OTP was just sent by the phone entry screen)
+        startResendCooldown(DEFAULT_RESEND_COOLDOWN)
+    }
+
     /**
      * Update OTP code
      */
@@ -41,7 +51,7 @@ class OtpVerificationViewModel @Inject constructor(
             otpError = null
         )
     }
-    
+
     /**
      * Verify OTP and login.
      * Prevents rapid repeated taps — ignored while a request is already in flight.
@@ -61,7 +71,7 @@ class OtpVerificationViewModel @Inject constructor(
         if (_uiState.value.isLoading) return
 
         _uiState.value = _uiState.value.copy(isLoading = true, otpError = null)
-        
+
         viewModelScope.launch {
             // Step 1: Verify OTP
             val verifyResult = otpRepository.verifyOTP(phoneNumber, code)
@@ -133,18 +143,18 @@ class OtpVerificationViewModel @Inject constructor(
             )
         }
     }
-    
+
     /**
      * Resend OTP.
-     * Prevents rapid repeated taps — ignored while loading or during cooldown.
+     * Cooldown is managed by the ViewModel (survives recomposition/rotation).
      */
     fun resendOTP(
         phoneNumber: String,
-        onSuccess: (cooldownSeconds: Int) -> Unit,
+        onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        // Prevent taps while in flight or during active cooldown
-        if (_uiState.value.isLoading || _uiState.value.isResendCooldown) return
+        // Block during active cooldown or in-flight request
+        if (_uiState.value.isLoading || _uiState.value.resendCooldownSeconds > 0) return
 
         _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -153,28 +163,45 @@ class OtpVerificationViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    onSuccess(DEFAULT_RESEND_COOLDOWN)
+                    startResendCooldown(DEFAULT_RESEND_COOLDOWN)
+                    onSuccess()
                 },
                 onFailure = { error ->
                     val errorMessage = when (error) {
                         is OtpError -> error.getUserMessage()
                         else -> error.message ?: "Failed to resend OTP"
                     }
-                    // Use server Retry-After if available, otherwise default cooldown
+                    // Apply server Retry-After if available, otherwise default cooldown
                     val cooldown = (error as? OtpError.RateLimited)?.retryAfterSeconds
                         ?: DEFAULT_RESEND_COOLDOWN
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         otpError = errorMessage
                     )
-                    // Still apply cooldown even on error to prevent hammering
+                    // Always apply cooldown on failure to prevent hammering
+                    startResendCooldown(cooldown)
                     if (error is OtpError.RateLimited) {
-                        onSuccess(cooldown)
-                    } else {
-                        onError(errorMessage)
+                        Timber.w("[SECURITY] OTP resend rate limited for $phoneNumber")
                     }
+                    onError(errorMessage)
                 }
             )
+        }
+    }
+
+    /**
+     * Start a ViewModel-managed cooldown that survives recomposition and rotation.
+     */
+    private fun startResendCooldown(seconds: Int) {
+        cooldownJob?.cancel()
+        _uiState.value = _uiState.value.copy(resendCooldownSeconds = seconds)
+        cooldownJob = viewModelScope.launch {
+            var remaining = seconds
+            while (remaining > 0) {
+                delay(1_000)
+                remaining--
+                _uiState.value = _uiState.value.copy(resendCooldownSeconds = remaining)
+            }
         }
     }
 
@@ -184,12 +211,13 @@ class OtpVerificationViewModel @Inject constructor(
 }
 
 /**
- * UI State for OTP Verification Screen
+ * UI State for OTP Verification Screen.
+ * Cooldown is managed by the ViewModel, not local Composable state.
  */
 data class OtpVerificationUiState(
     val otpCode: String = "",
     val otpError: String? = null,
     val isLoading: Boolean = false,
-    /** True while the resend cooldown timer is active. */
-    val isResendCooldown: Boolean = false
+    /** Remaining resend cooldown seconds managed by ViewModel. 0 = can resend. */
+    val resendCooldownSeconds: Int = 0
 )
