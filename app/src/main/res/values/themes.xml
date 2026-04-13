@@ -4,7 +4,7 @@
 
     <!-- Allows us to override night specific attributes in the
          values-night folder. -->
-    <style name="NightAdjusted.Theme.PaceDream" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="NightAdjusted.Theme.PaceDream" parent="Theme.Material3.Light.NoActionBar" />
 
     <!-- The final theme we use -->
     <style name="Theme.Nia" parent="NightAdjusted.Theme.PaceDream" />
