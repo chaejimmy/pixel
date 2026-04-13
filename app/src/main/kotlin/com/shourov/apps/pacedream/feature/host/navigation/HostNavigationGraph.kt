@@ -7,6 +7,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.presentation.CreateListingScreen
+import com.shourov.apps.pacedream.feature.host.presentation.EditListingScreen
 import com.shourov.apps.pacedream.feature.host.presentation.ListingMode
 import com.shourov.apps.pacedream.feature.host.presentation.HostAnalyticsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.HostBookingsScreen
@@ -19,8 +20,10 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.ListingCalendarScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.profile.EditProfileScreen
+import com.pacedream.app.feature.bookings.BookingDetailScreen
 import com.pacedream.app.feature.inbox.InboxScreen
 import com.pacedream.app.feature.inbox.ThreadScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import dagger.hilt.EntryPoint
@@ -82,6 +85,34 @@ fun NavGraphBuilder.HostNavigationGraph(
     composable(HostScreen.Bookings.route) {
         HostBookingsScreen(
             onBookingClick = onNavigateToBooking
+        )
+    }
+
+    // Host-side booking detail — reuses the shared BookingDetailScreen.
+    // The ViewModel reads bookingId from SavedStateHandle automatically.
+    composable(
+        route = HostNavigationDestinations.BOOKING_DETAILS,
+        arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+    ) {
+        BookingDetailScreen(
+            onBack = { navController.popBackStack() }
+        )
+    }
+
+    // Host-side edit listing
+    composable(
+        route = HostNavigationDestinations.EDIT_LISTING,
+        arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+    ) { backStackEntry ->
+        val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
+        EditListingScreen(
+            listingId = listingId,
+            viewModel = hiltViewModel(),
+            onBackClick = { navController.popBackStack() },
+            onSaveSuccess = { navController.popBackStack() },
+            onManageCalendarClick = { id ->
+                navController.navigate("listing_calendar/$id")
+            }
         )
     }
 
