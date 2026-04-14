@@ -28,12 +28,13 @@ import com.pacedream.common.composables.texts.ViewAllText
 fun TitleViewAll(
     headline: String,
     isViewAll: Boolean,
-    bottomVerticalSpacer: Int = 0
+    bottomVerticalSpacer: Int = 0,
+    onViewAllClick: () -> Unit = {},
 ) {
     VerticalSpacer(20)
     Row(verticalAlignment = Alignment.CenterVertically) {
         MediumTitleText(modifier = Modifier.weight(1F), text = headline)
-        if (isViewAll) ViewAllText()
+        if (isViewAll) ViewAllText(onClick = onViewAllClick)
     }
     VerticalSpacer(bottomVerticalSpacer)
 }

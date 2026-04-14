@@ -200,7 +200,7 @@ fun FilterScreen(
                     CompactProcessButton(
                         onClick = onApplyFilters,
                         modifier = Modifier.weight(1f),
-                        text = "Apply Filters",
+                        text = "Done",
                     )
                 }
             }

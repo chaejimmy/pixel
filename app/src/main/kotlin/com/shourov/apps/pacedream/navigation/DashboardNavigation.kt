@@ -866,8 +866,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                     bookingId = bookingId,
                                     onBack = { navController.popBackStack() },
                                     onWriteReview = { bId, lId, title, location, _ ->
-                                        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
-                                        val encodedLocation = java.net.URLEncoder.encode(location, "UTF-8")
+                                        val encodedTitle = android.net.Uri.encode(title)
+                                        val encodedLocation = android.net.Uri.encode(location)
                                         navController.navigate("write_review/$bId/$lId/$encodedTitle/$encodedLocation")
                                     }
                                 )
