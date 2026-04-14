@@ -51,6 +51,9 @@ fun PaceDreamApp(
     
     if (isHostMode) {
         // Show host mode interface
+        // Booking, edit-listing, add-listing, analytics, and withdraw navigation
+        // are handled internally by HostModeScreen using its own NavHost.
+        // Only onNavigateToProperty escapes to guest mode (intentional mode switch).
         HostModeScreen(
             hostModeManager = appState.hostModeManager,
             onSwitchToGuestMode = {
@@ -61,26 +64,6 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
                 try { appState.navController.navigate(com.pacedream.app.ui.navigation.NavRoutes.listingDetail(propertyId)) }
                 catch (e: Exception) { timber.log.Timber.e(e, "Navigate to property failed: $propertyId") }
-            },
-            onNavigateToBooking = { bookingId ->
-                try { appState.navController.navigate("booking_details/$bookingId") }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to booking failed: $bookingId") }
-            },
-            onNavigateToAddListing = {
-                try { appState.navController.navigate("add_listing") }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to add listing failed") }
-            },
-            onNavigateToEditListing = { listingId ->
-                try { appState.navController.navigate("edit_listing/$listingId") }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to edit listing failed: $listingId") }
-            },
-            onNavigateToAnalytics = {
-                try { appState.navController.navigate("host_analytics") }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to analytics failed") }
-            },
-            onNavigateToWithdraw = {
-                try { appState.navController.navigate("withdraw_earnings") }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to withdraw failed") }
             }
         )
     } else {
