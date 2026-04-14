@@ -19,15 +19,10 @@ object NavRoutes {
     const val HOME_SECTION_LIST = "home/section/{sectionType}"
     const val LISTING_DETAIL = "listing/{listingId}"
     
-    // Wishlist sub-routes
-    const val WISHLIST_ITEM_DETAIL = "wishlist/item/{itemId}"
-    
     // Inbox sub-routes
     const val THREAD_DETAIL = "inbox/thread/{threadId}"
     
     // Profile sub-routes
-    const val HOST_HOME = "profile/host"
-    const val HOST_LISTINGS = "profile/host/listings"
     const val EDIT_PROFILE = "profile/edit"
     const val SETTINGS = "profile/settings"
     const val SETTINGS_PERSONAL_INFO = "profile/settings/personal-info"
@@ -39,10 +34,6 @@ object NavRoutes {
     const val IDENTITY_VERIFICATION = "profile/identity-verification"
     const val FAQ = "profile/faq"
     const val ABOUT_US = "profile/about"
-    const val ROOMMATE_FINDER = "roommate-finder"
-
-    // Collections / Lists
-    const val COLLECTIONS = "collections"
     // Webflow / Booking routes
     const val BOOKING_CONFIRMATION_TIMEBASED = "booking/confirmation/timebased/{sessionId}"
     const val BOOKING_CONFIRMATION_GEAR = "booking/confirmation/gear/{sessionId}"
@@ -65,7 +56,6 @@ object NavRoutes {
     fun listingDetail(listingId: String) = "listing/$listingId"
     fun threadDetail(threadId: String) = "inbox/thread/$threadId"
     fun bookingDetail(bookingId: String) = "bookingDetail/$bookingId"
-    fun wishlistItemDetail(itemId: String) = "wishlist/item/$itemId"
     fun confirmation(bookingId: String) = "confirmation/$bookingId"
     fun checkout(listingId: String) = "checkout/$listingId"
     fun writeReview(bookingId: String) = "writeReview/$bookingId"

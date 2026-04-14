@@ -51,6 +51,9 @@ fun PaceDreamApp(
     
     if (isHostMode) {
         // Show host mode interface
+        // Booking, edit-listing, add-listing, analytics, and withdraw navigation
+        // are handled internally by HostModeScreen using its own NavHost.
+        // Only onNavigateToProperty escapes to guest mode (intentional mode switch).
         HostModeScreen(
             hostModeManager = appState.hostModeManager,
             onSwitchToGuestMode = {
@@ -61,11 +64,6 @@ fun PaceDreamApp(
                 // Cross-NavHost navigation is not possible, so we land on the Home tab.
                 appState.hostModeManager.setHostMode(false)
                 timber.log.Timber.d("Switched to guest mode for property: $propertyId")
-            },
-            onNavigateToBooking = { bookingId ->
-                // Switch to guest mode — bookings tab will show the booking.
-                appState.hostModeManager.setHostMode(false)
-                timber.log.Timber.d("Switched to guest mode for booking: $bookingId")
             }
         )
     } else {

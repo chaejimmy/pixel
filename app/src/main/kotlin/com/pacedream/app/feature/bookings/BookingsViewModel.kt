@@ -101,6 +101,8 @@ data class BookingsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val error: String? = null,
+    /** Non-null when host bookings specifically failed to load; guest bookings may still be shown. */
+    val hostBookingsError: String? = null,
     val allBookings: List<BookingListItem> = emptyList(),
     val selectedTab: BookingTab = BookingTab.ALL,
     val upcomingBookings: List<BookingListItem> = emptyList(),
@@ -200,6 +202,7 @@ class BookingsViewModel @Inject constructor(
                     }
                 }
 
+                // Surface errors: full error when both fail, partial warning for host-only
                 val error = if (guestError != null && hostError != null) {
                     "Couldn't load bookings."
                 } else null
@@ -212,7 +215,10 @@ class BookingsViewModel @Inject constructor(
                         upcomingBookings = upcoming,
                         pastBookings = past,
                         cancelledBookings = cancelled,
-                        error = error
+                        error = error,
+                        hostBookingsError = if (guestError == null && hostError != null) {
+                            "Could not load your host bookings. Pull to refresh to try again."
+                        } else null
                     )
                 }
             } catch (e: Exception) {
@@ -229,24 +235,12 @@ class BookingsViewModel @Inject constructor(
     }
 
     // ============================================================================
-    // Status resolution — matching iOS GuestBookingsViewModel.statusConfig()
+    // Status resolution — maps backend status string to display config.
+    // The backend status field is the source of truth; we never override it
+    // with client-side date logic (e.g. auto-promoting to "Completed").
     // ============================================================================
     private fun resolveStatusConfig(item: BookingListItem): BookingStatusConfig {
         val status = item.status.lowercase().trim()
-        val now = Date()
-
-        // Smart date logic: if checkout/end date has passed and status is still active,
-        // auto-promote to "Completed" → past category (matching iOS)
-        val endDate = parseIsoDate(item.checkOutDate)
-        if (endDate != null && endDate.before(now)) {
-            val upcomingStatuses = setOf(
-                "confirmed", "upcoming", "active", "ongoing",
-                "booked", "accepted", "paid", "succeeded"
-            )
-            if (status in upcomingStatuses) {
-                return BookingStatusConfig("Completed", BookingFilterCategory.PAST, "green")
-            }
-        }
 
         // Pending statuses → Upcoming
         val pendingStatuses = setOf(
@@ -329,8 +323,7 @@ class BookingsViewModel @Inject constructor(
                 BookingsResult.Success(list)
             }
             is ApiResult.Failure -> {
-                // Host bookings failure is non-fatal
-                BookingsResult.Success(emptyList())
+                BookingsResult.Failure(res.error.message ?: "Failed to load host bookings")
             }
         }
     }

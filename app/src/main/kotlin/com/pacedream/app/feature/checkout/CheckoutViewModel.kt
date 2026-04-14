@@ -57,6 +57,15 @@ data class CheckoutUiState(
      * of the regular retry row.
      */
     val hasExhaustedRetries: Boolean = false,
+    /**
+     * True when the booking was recovered via the server-side webhook
+     * rather than explicitly confirmed by the client's confirm-booking
+     * call. The UI should indicate that the booking was completed by
+     * the server (e.g. "Your booking was confirmed") rather than showing
+     * the normal confirmation flow, so the user understands this was a
+     * recovery rather than a fresh confirmation.
+     */
+    val isRecoveredByServer: Boolean = false,
 )
 
 @HiltViewModel
@@ -483,9 +492,11 @@ class CheckoutViewModel @Inject constructor(
             is ApiResult.Success -> {
                 val response = result.data
                 if (response.alreadyBooked == true) {
-                    // Webhook already created the booking — adopt it,
-                    // clear the pending record, and let the UI show
-                    // the happy path.
+                    // Webhook already created the booking. Surface the
+                    // booking id but mark it as server-recovered so the
+                    // UI can distinguish it from a normal client-confirmed
+                    // booking. Do NOT auto-navigate — let the user
+                    // acknowledge the recovery state first.
                     val bookingId = response.bookingId
                     pendingPaymentStore.clear()
                     currentClientSecret = null
@@ -494,10 +505,8 @@ class CheckoutViewModel @Inject constructor(
                         it.copy(
                             bookingId = bookingId ?: it.bookingId,
                             hasExhaustedRetries = false,
+                            isRecoveredByServer = true,
                         )
-                    }
-                    if (bookingId != null) {
-                        _effects.send(Effect.NavigateToConfirmation(bookingId))
                     }
                 }
             }

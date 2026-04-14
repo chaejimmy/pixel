@@ -239,19 +239,8 @@ class BookingTabViewModel @Inject constructor(
      * 5. Cancelled → Cancelled (red)
      */
     private fun resolveStatusConfig(item: BookingItem): BookingStatusConfig {
-        val status = item.status.name.lowercase()
-        val now = Date()
-
-        // Smart date logic: if checkout/end date has passed and status is still active,
-        // auto-promote to "Completed" → past category (matching iOS)
-        val endDate = parseIsoDate(item.endDate)
-        if (endDate != null && endDate.before(now)) {
-            val upcomingStatuses = setOf("confirmed", "pending")
-            if (upcomingStatuses.contains(status)) {
-                return BookingStatusConfig("Completed", BookingFilterCategory.PAST, "green")
-            }
-        }
-
+        // The backend status is the source of truth; we do not override
+        // it with client-side date logic.
         return when (item.status) {
             BookingStatus.PENDING -> BookingStatusConfig("Pending", BookingFilterCategory.UPCOMING, "yellow")
             BookingStatus.PENDING_HOST -> BookingStatusConfig("Awaiting Host", BookingFilterCategory.UPCOMING, "yellow")

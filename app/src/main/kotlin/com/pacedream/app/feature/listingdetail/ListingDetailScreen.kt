@@ -2543,7 +2543,8 @@ private fun SectionCancellationPolicy(
     cancellationPolicy: CancellationPolicy?,
     modifier: Modifier = Modifier
 ) {
-    val policy = cancellationPolicy ?: CancellationPolicy()
+    // Do not fabricate a default policy when the backend omits one.
+    val policy = cancellationPolicy ?: return
     Column(modifier = modifier) {
         Text(
             "Cancellation Policy",
