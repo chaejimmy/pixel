@@ -127,6 +127,17 @@ fun BookingDetailScreen(
                         .padding(padding)
                         .verticalScroll(rememberScrollState())
                 ) {
+                    // Inline warning when showing cached/stale data or refresh failed
+                    if (uiState.isFromCache || uiState.error != null) {
+                        com.pacedream.common.composables.components.InlineErrorBanner(
+                            message = uiState.error ?: "Showing cached data \u2014 updating\u2026",
+                            onAction = { viewModel.loadBookingDetail() },
+                            actionText = "Retry",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
+                        )
+                    }
                     // ── Hero Image with status badge overlay ──
                     HeroImage(
                         imageUrl = booking.propertyImageUrl,

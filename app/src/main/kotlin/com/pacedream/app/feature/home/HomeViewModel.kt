@@ -540,7 +540,7 @@ data class HomeUiState(
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays
 
     val hasErrors: Boolean
-        get() = hourlySpacesError != null || rentGearError != null || splitStaysError != null
+        get() = hourlySpacesError != null || rentGearError != null || splitStaysError != null || favoritesError != null
 
     val isEmpty: Boolean
         get() = filteredHourlySpaces.isEmpty() && filteredRentGear.isEmpty() && filteredSplitStays.isEmpty()

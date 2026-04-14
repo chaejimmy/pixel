@@ -170,6 +170,7 @@ fun CheckoutScreen(
                 // "payment received, still finalizing" copy so the user is not told
                 // the booking is confirmed before it actually is.
                 val bookingConfirmed = uiState.bookingId != null
+                val recoveredByServer = uiState.isRecoveredByServer
                 Icon(
                     imageVector = if (bookingConfirmed) PaceDreamIcons.CheckCircle else PaceDreamIcons.Info,
                     contentDescription = null,
@@ -178,17 +179,24 @@ fun CheckoutScreen(
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 Text(
-                    if (bookingConfirmed) "Booking Confirmed" else "Payment Received",
+                    when {
+                        bookingConfirmed && recoveredByServer -> "Booking Recovered"
+                        bookingConfirmed -> "Booking Confirmed"
+                        else -> "Payment Received"
+                    },
                     style = PaceDreamTypography.Title2,
                     fontWeight = FontWeight.Bold,
                     color = PaceDreamColors.TextPrimary
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
-                    if (bookingConfirmed) {
-                        "Your booking has been confirmed."
-                    } else {
-                        "Payment received \u2014 finalizing your booking\u2026"
+                    when {
+                        bookingConfirmed && recoveredByServer ->
+                            "Your payment was processed and the booking was confirmed by our server."
+                        bookingConfirmed ->
+                            "Your booking has been confirmed."
+                        else ->
+                            "Payment received \u2014 finalizing your booking\u2026"
                     },
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextSecondary,

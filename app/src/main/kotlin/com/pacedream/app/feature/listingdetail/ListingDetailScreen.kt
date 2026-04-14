@@ -198,6 +198,17 @@ fun ListingDetailScreen(
                         }
                     }
 
+                    if (uiState.isFromSeed && uiState.isLoading) {
+                        item {
+                            InlineErrorBanner(
+                                message = "Loading latest details\u2026",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                            )
+                        }
+                    }
+
                     if (uiState.inlineErrorMessage != null) {
                         item {
                             InlineErrorBanner(

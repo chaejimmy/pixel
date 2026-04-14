@@ -160,6 +160,16 @@ fun BookingsScreen(
                             }
                         }
 
+                        if (uiState.hostBookingsError != null) {
+                            item {
+                                com.pacedream.common.composables.components.InlineErrorBanner(
+                                    message = uiState.hostBookingsError ?: "",
+                                    onAction = { viewModel.refresh() },
+                                    actionText = "Retry"
+                                )
+                            }
+                        }
+
                         items(uiState.filteredBookings, key = { it.id }) { booking ->
                             UnifiedBookingCard(
                                 item = booking,
