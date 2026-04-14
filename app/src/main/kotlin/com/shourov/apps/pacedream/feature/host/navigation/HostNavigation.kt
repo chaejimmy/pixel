@@ -34,9 +34,6 @@ object HostNavigationDestinations {
     const val HOST_PAYMENT_SETUP = "host_payment_setup"
     const val ADD_LISTING = "add_listing"
     const val EDIT_LISTING = "edit_listing/{listingId}"
-    const val LISTING_DETAILS = "listing_details/{listingId}"
     const val BOOKING_DETAILS = "booking_details/{bookingId}"
     const val LISTING_CALENDAR = "listing_calendar/{listingId}"
-    const val EARNINGS_DETAILS = "earnings_details"
-    const val WITHDRAW_EARNINGS = "withdraw_earnings"
 }
