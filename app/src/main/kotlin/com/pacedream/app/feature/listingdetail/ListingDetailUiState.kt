@@ -7,6 +7,13 @@ data class ListingDetailUiState(
     val errorMessage: String? = null,
     val inlineErrorMessage: String? = null,
     val listing: ListingDetailModel? = null,
+    /**
+     * True when the displayed listing data was seeded from navigation
+     * arguments (list card) and has not yet been confirmed by a fresh
+     * API response. The UI should show a loading overlay or shimmer
+     * rather than presenting seed data as authoritative.
+     */
+    val isFromSeed: Boolean = false,
     val isFavorite: Boolean = false,
     val isTogglingFavorite: Boolean = false,
     val wishlistItemId: String? = null,

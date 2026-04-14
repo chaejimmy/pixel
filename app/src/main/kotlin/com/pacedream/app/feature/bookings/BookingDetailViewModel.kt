@@ -23,7 +23,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.text.SimpleDateFormat
-import java.util.Date
+
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
@@ -77,7 +77,7 @@ data class BookingDetail(
     val hostName: String,
     val hostAvatarUrl: String?,
     val hostId: String?,
-    val cancellationPolicy: String,
+    val cancellationPolicy: String?,
     val verificationPin: String?,
     val pinStatus: String?,
     val locationCity: String?,
@@ -92,6 +92,13 @@ data class BookingDetailUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val booking: BookingDetail? = null,
+    /**
+     * True when the displayed booking data originates from cached navigation
+     * arguments (SavedStateHandle) rather than a fresh API response. The UI
+     * should visually distinguish this state (e.g. muted styling, a small
+     * "updating..." indicator) so users know the data may be stale.
+     */
+    val isFromCache: Boolean = false,
     val isCancelling: Boolean = false,
     val cancelSuccess: Boolean = false,
     val cancelError: String? = null
@@ -119,7 +126,7 @@ class BookingDetailViewModel @Inject constructor(
             val cachedTitle = savedStateHandle.get<String>("cached_title")
             if (cachedTitle != null) {
                 val cached = buildCachedBookingDetail(savedStateHandle)
-                _uiState.update { it.copy(isLoading = false, booking = cached) }
+                _uiState.update { it.copy(isLoading = false, booking = cached, isFromCache = true) }
             }
             loadBookingDetail()
         } else {
@@ -159,14 +166,13 @@ class BookingDetailViewModel @Inject constructor(
             hostName = handle.get<String>("cached_hostName") ?: "Host",
             hostAvatarUrl = handle.get<String>("cached_hostAvatarUrl"),
             hostId = handle.get<String>("cached_hostId"),
-            cancellationPolicy = "Free cancellation up to 24 hours before check-in. After that, the first night is non-refundable.",
+            cancellationPolicy = null,
             verificationPin = handle.get<String>("cached_verificationPin"),
             pinStatus = handle.get<String>("cached_pinStatus"),
             locationCity = null,
             locationState = null,
             statusLabel = resolveStatusLabel(
-                handle.get<String>("cached_status") ?: "",
-                handle.get<String>("cached_checkOutDate")
+                handle.get<String>("cached_status") ?: ""
             )
         )
     }
@@ -189,9 +195,9 @@ class BookingDetailViewModel @Inject constructor(
                     is ApiResult.Success -> {
                         val detail = parseBookingDetail(res.data)
                         if (detail != null) {
-                            _uiState.update { it.copy(isLoading = false, booking = detail, error = null) }
+                            _uiState.update { it.copy(isLoading = false, booking = detail, isFromCache = false, error = null) }
                         } else {
-                            // Parse failed, but if we have cached data, keep it (matching iOS)
+                            // Parse failed — keep cached data if available but surface a warning
                             if (_uiState.value.booking != null) {
                                 _uiState.update { it.copy(isLoading = false, error = null) }
                             } else {
@@ -200,9 +206,11 @@ class BookingDetailViewModel @Inject constructor(
                         }
                     }
                     is ApiResult.Failure -> {
-                        // If we already have cached data, don't overwrite with error (matching iOS 404 handling)
+                        // Keep cached data visible but surface an inline error so the
+                        // user knows it may be stale, rather than silently showing
+                        // outdated data as if it were fresh.
                         if (_uiState.value.booking != null) {
-                            _uiState.update { it.copy(isLoading = false, error = null) }
+                            _uiState.update { it.copy(isLoading = false, error = "Could not refresh booking details.") }
                         } else {
                             _uiState.update { it.copy(isLoading = false, error = res.error.message) }
                         }
@@ -278,9 +286,11 @@ class BookingDetailViewModel @Inject constructor(
     }
 
     // ============================================================================
-    // Status label resolution — matching iOS BookingStatusHelper.resolveLabel
+    // Status label resolution — maps backend status to a display label.
+    // The backend status is the source of truth; we do not override it
+    // with client-side date logic.
     // ============================================================================
-    private fun resolveStatusLabel(rawStatus: String, checkOutRaw: String?): String {
+    private fun resolveStatusLabel(rawStatus: String): String {
         val s = rawStatus.trim().lowercase()
 
         if (s in setOf("issue_reported", "under_review")) return "Issue Reported"
@@ -290,8 +300,6 @@ class BookingDetailViewModel @Inject constructor(
 
         val activeStatuses = setOf("confirmed", "upcoming", "active", "ongoing", "booked", "paid", "succeeded", "accepted")
         if (s in activeStatuses) {
-            val endDate = BookingsViewModel.parseIsoDate(checkOutRaw)
-            if (endDate != null && endDate.before(Date())) return "Completed"
             if (s == "ongoing") return "In Progress"
             return "Upcoming"
         }
@@ -383,7 +391,7 @@ class BookingDetailViewModel @Inject constructor(
                 referenceId = obj.str("referenceId", "reference", "bookingRef", "confirmationCode")
                     ?: id.takeLast(10),
                 status = BookingStatus.from(rawStatus),
-                statusLabel = resolveStatusLabel(rawStatus, checkOutRaw),
+                statusLabel = resolveStatusLabel(rawStatus),
                 propertyName = title,
                 propertyLocation = displayLocation,
                 propertyImageUrl = imageUrl,
@@ -405,8 +413,7 @@ class BookingDetailViewModel @Inject constructor(
                 hostAvatarUrl = host?.str("avatarUrl", "avatar", "profileImage", "imageUrl"),
                 hostId = host?.str("_id", "id", "userId") ?: obj.str("hostId"),
                 cancellationPolicy = obj.str("cancellationPolicy", "cancelPolicy")
-                    ?: listing?.str("cancellationPolicy")
-                    ?: "Free cancellation up to 24 hours before check-in. After that, the first night is non-refundable.",
+                    ?: listing?.str("cancellationPolicy"),
                 verificationPin = obj.str("verificationPin", "verification_pin", "verificationCode"),
                 pinStatus = obj.str("pinStatus", "pin_status", "verificationStatus"),
                 locationCity = city,

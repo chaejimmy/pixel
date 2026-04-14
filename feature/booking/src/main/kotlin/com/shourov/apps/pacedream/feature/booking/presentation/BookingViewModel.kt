@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+
 import java.util.*
 import javax.inject.Inject
 
@@ -58,8 +58,6 @@ class BookingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(BookingUiState())
     val uiState: StateFlow<BookingUiState> = _uiState.asStateFlow()
-
-    private val dateParser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     fun loadBookings() {
         viewModelScope.launch {
@@ -117,24 +115,9 @@ class BookingViewModel @Inject constructor(
 
     fun statusConfig(booking: BookingModel): BookingStatusConfig {
         val status = (booking.bookingStatus ?: booking.status.name).lowercase()
-        val now = Date()
 
-        // Auto-promote: if checkout/end date has passed and status is confirmed/active → Completed
-        val endDateStr = booking.endDate.ifEmpty { booking.checkOutTime.orEmpty() }
-        if (endDateStr.isNotEmpty()) {
-            try {
-                val endDate = dateParser.parse(endDateStr)
-                if (endDate != null && endDate.before(now)) {
-                    val upcomingStatuses = setOf(
-                        "confirmed", "upcoming", "active", "ongoing",
-                        "booked", "accepted", "paid", "succeeded", "captured"
-                    )
-                    if (upcomingStatuses.contains(status)) {
-                        return BookingStatusConfig("Completed", BookingFilterCategory.PAST, "green")
-                    }
-                }
-            } catch (_: Exception) { }
-        }
+        // The backend status field is the source of truth; we do not
+        // override it with client-side date logic.
 
         // Pending statuses → Upcoming
         val pendingStatuses = setOf(

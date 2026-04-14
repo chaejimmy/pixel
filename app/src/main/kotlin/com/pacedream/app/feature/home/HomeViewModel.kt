@@ -125,6 +125,9 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (sessionManager.authState.value != AuthState.Authenticated) return@launch
 
+            // Clear any previous favorites error on retry
+            _uiState.update { it.copy(favoritesError = null) }
+
             // Try primary endpoint first (matches iOS), fallback to legacy
             val primaryUrl = appConfig.buildApiUrl("wishlists")
             val primary = apiClient.get(primaryUrl, includeAuth = true)
@@ -145,6 +148,9 @@ class HomeViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     Timber.w("Failed to load favorites: ${result.error.message}")
+                    _uiState.update {
+                        it.copy(favoritesError = "Could not load your favorites. Pull to refresh to try again.")
+                    }
                 }
             }
         }
@@ -526,7 +532,9 @@ data class HomeUiState(
     val splitStaysError: String? = null,
     val heroImageUrl: String? = null,
     val selectedCategory: String = "All",
-    val favoriteListingIds: Set<String> = emptySet()
+    val favoriteListingIds: Set<String> = emptySet(),
+    /** Non-null when loading wishlists failed; UI should display a dismissible banner or snackbar. */
+    val favoritesError: String? = null
 ) {
     val isLoading: Boolean
         get() = isLoadingHourlySpaces || isLoadingRentGear || isLoadingSplitStays

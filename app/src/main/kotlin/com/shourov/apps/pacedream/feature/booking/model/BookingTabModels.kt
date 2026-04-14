@@ -40,31 +40,13 @@ enum class BookingStatusFilter(val displayName: String) {
     PAST("Past"),
     CANCELLED("Cancelled");
 
-    fun matches(status: BookingStatus, endDate: String): Boolean {
+    fun matches(status: BookingStatus): Boolean {
         return when (this) {
             ALL -> true
             UPCOMING -> status == BookingStatus.CONFIRMED || status == BookingStatus.PENDING
-            PAST -> status == BookingStatus.COMPLETED || (status == BookingStatus.CONFIRMED && isEndDatePast(endDate))
+            PAST -> status == BookingStatus.COMPLETED
             CANCELLED -> status == BookingStatus.CANCELLED || status == BookingStatus.REJECTED
         }
-    }
-
-    private fun isEndDatePast(endDate: String): Boolean {
-        if (endDate.isBlank()) return false
-        val formats = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd"
-        )
-        for (fmt in formats) {
-            try {
-                val inputFormat = SimpleDateFormat(fmt, Locale.US)
-                val date = inputFormat.parse(endDate) ?: continue
-                return date.before(Date())
-            } catch (_: Exception) { continue }
-        }
-        return false
     }
 }
 
