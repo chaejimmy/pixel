@@ -864,12 +864,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
                                 BookingDetailScreen(
                                     bookingId = bookingId,
-                                    onBack = { navController.popBackStack() },
-                                    onWriteReview = { bId, lId, title, location, _ ->
-                                        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
-                                        val encodedLocation = java.net.URLEncoder.encode(location, "UTF-8")
-                                        navController.navigate("write_review/$bId/$lId/$encodedTitle/$encodedLocation")
-                                    }
+                                    onBack = { navController.popBackStack() }
                                 )
                             }
 
@@ -977,6 +972,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                             // Settings Root Screen
                             composable("settings_root") {
+                                val settingsAuthGate = hiltViewModel<AuthGateViewModel>()
                                 com.pacedream.app.feature.settings.SettingsRootScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onPersonalInfoClick = { navController.navigate("settings_personal_info") },
@@ -987,7 +983,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onHelpSupportClick = { navController.navigate("support") },
                                     onIdentityVerificationClick = { navController.navigate("settings_identity_verification") },
                                     onLogoutClick = {
-                                        profileAuthGate.signOut()
+                                        settingsAuthGate.signOut()
                                         hostModeManager.setHostMode(false)
                                         navigateToTab(navController, DashboardDestination.HOME.name)
                                     }
