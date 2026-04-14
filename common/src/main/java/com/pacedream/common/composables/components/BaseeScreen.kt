@@ -38,6 +38,7 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 @Composable
 fun BaseeScreen(
     title: String,
+    onBackClick: () -> Unit = {},
     content: @Composable (Modifier) -> Unit,
 ) {
     Scaffold(
@@ -52,9 +53,7 @@ fun BaseeScreen(
                 navigationIcon = {
                     RoundIconButton(
                         icon = ImageVector.vectorResource(id = R.drawable.ic_chevron_left),
-                        onclick = {
-                            //TODO on click implementation, navigate back}
-                        },
+                        onclick = onBackClick,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

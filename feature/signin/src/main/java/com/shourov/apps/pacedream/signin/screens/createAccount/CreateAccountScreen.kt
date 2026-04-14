@@ -147,27 +147,33 @@ fun CreateAccountScreen(
 
                 VerticalSpacer(height = 12)
 
-                Text(
-                    text = buildAnnotatedString {
-                        append("By continuing, you agree to PaceDream's ")
-                        pushStringAnnotation(tag = "terms", annotation = "https://www.pacedream.com/terms")
-                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
-                            append("Terms of Service")
-                        }
-                        pop()
-                        append(" and ")
-                        pushStringAnnotation(tag = "privacy", annotation = "https://www.pacedream.com/privacy")
-                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
-                            append("Privacy Policy")
-                        }
-                        pop()
-                        append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
-                    },
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary,
+                val termsAnnotatedString = buildAnnotatedString {
+                    append("By continuing, you agree to PaceDream's ")
+                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/terms")
+                    withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                        append("Terms of Service")
+                    }
+                    pop()
+                    append(" and ")
+                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/privacy")
+                    withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                        append("Privacy Policy")
+                    }
+                    pop()
+                    append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
+                }
+                androidx.compose.foundation.text.ClickableText(
+                    text = termsAnnotatedString,
+                    style = PaceDreamTypography.Caption.copy(color = PaceDreamColors.TextSecondary),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp)
+                        .padding(horizontal = 4.dp),
+                    onClick = { offset ->
+                        termsAnnotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                uriHandler.openUri(annotation.item)
+                            }
+                    }
                 )
 
             }

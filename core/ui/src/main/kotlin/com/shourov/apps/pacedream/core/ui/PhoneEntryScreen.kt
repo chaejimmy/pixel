@@ -110,10 +110,9 @@ fun PhoneEntryScreen(
         ProcessButton(
             onClick = {
                 phoneNumberState.enableShowErrors()
-//                if (phoneNumberState.isValid) {
-//                    onProceedToOtpVerification()
-//                }
-                onNavigateToAccountSetup()
+                if (phoneNumberState.isValid) {
+                    onProceedToOtpVerification()
+                }
             },
             modifier = Modifier
                 .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),

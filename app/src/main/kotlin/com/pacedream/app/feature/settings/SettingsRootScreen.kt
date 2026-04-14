@@ -67,8 +67,8 @@ fun SettingsRootScreen(
     onPreferencesClick: () -> Unit,
     onPaymentMethodsClick: () -> Unit,
     onHelpSupportClick: () -> Unit,
-    onIdentityVerificationClick: () -> Unit = {},
-    onLogoutClick: () -> Unit = {}
+    onIdentityVerificationClick: () -> Unit,
+    onLogoutClick: () -> Unit
 ) {
     var showLogoutConfirm by remember { mutableStateOf(false) }
 

@@ -60,10 +60,10 @@ fun PaceDreamApp(
                 appState.hostModeManager.setHostMode(false)
             },
             onNavigateToProperty = { propertyId ->
-                // Switch to guest mode to show listing detail (host mode has no detail screen)
+                // Switch to guest mode — the dashboard's inner NavHost handles property detail.
+                // Cross-NavHost navigation is not possible, so we land on the Home tab.
                 appState.hostModeManager.setHostMode(false)
-                try { appState.navController.navigate(com.pacedream.app.ui.navigation.NavRoutes.listingDetail(propertyId)) }
-                catch (e: Exception) { timber.log.Timber.e(e, "Navigate to property failed: $propertyId") }
+                timber.log.Timber.d("Switched to guest mode for property: $propertyId")
             }
         )
     } else {

@@ -16,6 +16,7 @@
 
 package com.pacedream.common.composables.texts
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,9 +93,10 @@ fun NormalTitleText(
 fun ViewAllText(
     modifier: Modifier = Modifier,
     color: Color = ViewAllColor,
+    onClick: () -> Unit = {},
 ) {
     Text(
-        modifier = modifier,
+        modifier = modifier.clickable { onClick() },
         text = "View All",
         style = MaterialTheme.typography.titleSmall.copy(
             fontWeight = FontWeight.Medium,

@@ -17,11 +17,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.SnackbarHostState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.pacedream.common.R
@@ -37,6 +40,7 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
 import com.shourov.apps.pacedream.signin.navigation.SignInRoutes
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +50,8 @@ fun SignIn(
 ) {
     val viewModel: SignInViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
         topBar = {
@@ -132,7 +138,7 @@ fun SignIn(
                     onClick = {
                         viewModel.forgotPassword(
                             onSuccess = { message ->
-                                // Show success via snackbar (handled by LaunchedEffect)
+                                snackbarHostState.currentSnackbarData?.dismiss()
                             }
                         )
                     },
@@ -142,7 +148,9 @@ fun SignIn(
                     onClick = {
                         viewModel.login(
                             onSuccess = {
-                                navController.navigate(route = SignInRoutes.CREATE_ACCOUNT.name)
+                                navController.navigate(route = DASHBOARD_ROUTE) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             }
                         )
                     },
@@ -162,23 +170,33 @@ fun SignIn(
 
                 VerticalSpacer(height = 12)
 
-                Text(
-                    text = buildAnnotatedString {
-                        append("By continuing, you agree to PaceDream's ")
-                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
-                            append("Terms of Service")
-                        }
-                        append(" and ")
-                        withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
-                            append("Privacy Policy")
-                        }
-                        append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
-                    },
-                    style = PaceDreamTypography.Caption,
-                    color = PaceDreamColors.TextSecondary,
+                val termsAnnotatedString = buildAnnotatedString {
+                    append("By continuing, you agree to PaceDream's ")
+                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/terms")
+                    withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                        append("Terms of Service")
+                    }
+                    pop()
+                    append(" and ")
+                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/privacy")
+                    withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
+                        append("Privacy Policy")
+                    }
+                    pop()
+                    append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
+                }
+                ClickableText(
+                    text = termsAnnotatedString,
+                    style = PaceDreamTypography.Caption.copy(color = PaceDreamColors.TextSecondary),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp),
+                    onClick = { offset ->
+                        termsAnnotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                            .firstOrNull()?.let { annotation ->
+                                uriHandler.openUri(annotation.item)
+                            }
+                    }
                 )
             }
         }

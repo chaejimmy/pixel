@@ -61,7 +61,8 @@ fun HomeScreen(
     onSearchClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
-    onShowAuthSheet: () -> Unit = {}
+    onShowAuthSheet: () -> Unit = {},
+    onNotificationClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -94,7 +95,7 @@ fun HomeScreen(
                     heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
-                    onNotificationClick = {}
+                    onNotificationClick = onNotificationClick
                 )
             }
 
