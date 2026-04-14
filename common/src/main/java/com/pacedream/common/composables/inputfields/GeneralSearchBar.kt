@@ -46,7 +46,8 @@ fun GeneralSearchBar(
     modifier: Modifier = Modifier,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
-    placeholderText: String = "Search for a places"
+    placeholderText: String = "Search for a places",
+    onValueChange: (String) -> Unit = {},
 ) {
     var text by rememberSaveable { mutableStateOf("") }
     BasicTextField(
@@ -57,6 +58,7 @@ fun GeneralSearchBar(
         value = text,
         onValueChange = {
             text = it
+            onValueChange(it)
         },
         singleLine = true,
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

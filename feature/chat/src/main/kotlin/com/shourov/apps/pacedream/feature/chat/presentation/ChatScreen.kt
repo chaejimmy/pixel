@@ -248,21 +248,7 @@ private fun ChatHeader(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            IconButton(onClick = { /* Handle call */ }) {
-                Icon(
-                    imageVector = PaceDreamIcons.Call,
-                    contentDescription = "Call",
-                    tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
-                )
-            }
-
-            IconButton(onClick = { /* Handle video call */ }) {
-                Icon(
-                    imageVector = PaceDreamIcons.Videocam,
-                    contentDescription = "Video call",
-                    tint = PaceDreamDesignSystem.PaceDreamColors.OnSurface
-                )
-            }
+            // Call and Video call buttons hidden until calling feature is implemented
         }
     }
 }

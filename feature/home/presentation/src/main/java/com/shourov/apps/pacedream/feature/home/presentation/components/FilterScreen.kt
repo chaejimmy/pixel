@@ -52,7 +52,11 @@ fun FilterScreen(
         MinimalDashboardHeader(
             title = "Filters",
             onBackClick = onBackClick,
-            onActionClick = { /* Clear all filters */ }
+            onActionClick = {
+                selectedAmenities = emptySet()
+                priceRange = 0f..1000f
+                selectedPropertyType = ""
+            }
         )
         
         // Filter Content
@@ -105,13 +109,12 @@ fun FilterScreen(
                     color = PaceDreamColors.TextSecondary
                 )
                 
-                // Price range slider would go here
-                // RangeSlider(
-                //     value = priceRange,
-                //     onValueChange = { priceRange = it },
-                //     valueRange = 0f..2000f,
-                //     steps = 19
-                // )
+                RangeSlider(
+                    value = priceRange,
+                    onValueChange = { priceRange = it },
+                    valueRange = 0f..2000f,
+                    steps = 19
+                )
             }
             
             item {

@@ -153,7 +153,7 @@ fun DealsCard(
                 ProcessButton(
                     text = stringResource(R.string.feature_home_rent_now),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {},
+                    onClick = onClick,
                 )
 
             }
@@ -278,7 +278,7 @@ fun LastMinuteDealCard(
                 ProcessButton(
                     text = stringResource(R.string.feature_home_book_now),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {},
+                    onClick = onClick,
                 )
             }
         }
@@ -346,7 +346,7 @@ fun RentedGearDealsCard(
                 ProcessButton(
                     text = stringResource(R.string.feature_home_rent_now),
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = {},
+                    onClick = onClick,
                 )
             }
         }

@@ -743,7 +743,7 @@ fun NavGraphBuilder.DashboardNavigation(
                             composable(PropertyDestination.FILTER.name) {
                                 FilterScreen(
                                     onBackClick = { navController.popBackStack() },
-                                    onApplyFilters = { /* Handle filter application */ }
+                                    onApplyFilters = { navController.popBackStack() }
                                 )
                             }
                             
@@ -864,7 +864,28 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
                                 BookingDetailScreen(
                                     bookingId = bookingId,
-                                    onBack = { navController.popBackStack() }
+                                    onBack = { navController.popBackStack() },
+                                    onWriteReview = { bId, lId, title, location, _ ->
+                                        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+                                        val encodedLocation = java.net.URLEncoder.encode(location, "UTF-8")
+                                        navController.navigate("write_review/$bId/$lId/$encodedTitle/$encodedLocation")
+                                    }
+                                )
+                            }
+
+                            // Write Review Screen
+                            composable(
+                                route = "write_review/{bookingId}/{listingId}/{bookingTitle}/{bookingLocation}",
+                                arguments = listOf(
+                                    navArgument("bookingId") { type = NavType.StringType },
+                                    navArgument("listingId") { type = NavType.StringType },
+                                    navArgument("bookingTitle") { type = NavType.StringType },
+                                    navArgument("bookingLocation") { type = NavType.StringType },
+                                )
+                            ) {
+                                com.pacedream.app.feature.reviews.WriteReviewScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onReviewSubmitted = { navController.popBackStack() }
                                 )
                             }
 
@@ -935,6 +956,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
+                            // Listing Calendar Screen (shared with host mode)
+                            composable(
+                                route = "listing_calendar/{listingId}",
+                                arguments = listOf(navArgument("listingId") { type = NavType.StringType })
+                            ) {
+                                com.shourov.apps.pacedream.feature.host.presentation.ListingCalendarScreen(
+                                    onBackClick = { navController.popBackStack() }
+                                )
+                            }
+
                             // Edit Profile Screen (with photo editing)
                             composable("edit_profile") {
                                 EditProfileScreen(
@@ -954,7 +985,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onPreferencesClick = { navController.navigate("settings_preferences") },
                                     onPaymentMethodsClick = { navController.navigate("settings_payment_methods") },
                                     onHelpSupportClick = { navController.navigate("support") },
-                                    onIdentityVerificationClick = { navController.navigate("settings_identity_verification") }
+                                    onIdentityVerificationClick = { navController.navigate("settings_identity_verification") },
+                                    onLogoutClick = {
+                                        profileAuthGate.signOut()
+                                        hostModeManager.setHostMode(false)
+                                        navigateToTab(navController, DashboardDestination.HOME.name)
+                                    }
                                 )
                             }
 

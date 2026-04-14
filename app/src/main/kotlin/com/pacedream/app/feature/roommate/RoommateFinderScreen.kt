@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,8 +35,11 @@ fun RoommateFinderScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
     val filterOptions = listOf("All", "Looking", "Offering", "Near Me")
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
         topBar = {
             TopAppBar(
@@ -77,7 +81,9 @@ fun RoommateFinderScreen(
                         Icon(PaceDreamIcons.Search, contentDescription = null)
                     },
                     trailingIcon = {
-                        IconButton(onClick = { /* TODO: Open advanced filters */ }) {
+                        IconButton(onClick = {
+                            scope.launch { snackbarHostState.showSnackbar("Advanced filters coming soon") }
+                        }) {
                             Icon(PaceDreamIcons.FilterList, contentDescription = "Filters")
                         }
                     },
@@ -232,7 +238,9 @@ fun RoommateFinderScreen(
             item {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Button(
-                    onClick = { /* TODO: Navigate to post roommate listing */ },
+                    onClick = {
+                        scope.launch { snackbarHostState.showSnackbar("Roommate listings coming soon") }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = ButtonDefaults.buttonColors(

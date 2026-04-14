@@ -53,6 +53,11 @@ fun DashboardContent(
     gearsState: HomeScreenRentedGearsState,
     onTimeBasedRoomsChanged: (String) -> Unit,
     onRentedGearsChanged: (String) -> Unit,
+    onCategoryClick: (CategoryModel) -> Unit = {},
+    onDestinationClick: (DestinationModel) -> Unit = {},
+    onRoomClick: (com.shourov.apps.pacedream.feature.home.domain.models.rooms.RoomModel) -> Unit = {},
+    onGearClick: (com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel) -> Unit = {},
+    onViewAllClick: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     LaunchedEffect(roomsState.error) {
@@ -119,16 +124,12 @@ fun DashboardContent(
         )
         TitleViewAll(stringResource(R.string.feature_home_categories), true, 8)
         LazyRow {
-            items(categories) {
-                CategoryCard(it) {
-
-                }
+            items(categories) { category ->
+                CategoryCard(category) { onCategoryClick(category) }
             }
         }
         TitleViewAll(stringResource(R.string.recent_searches), false, 12)
-        RecentSearchCard(Modifier) {
-
-        }
+        RecentSearchCard(Modifier) { onViewAllClick("recent_searches") }
         TitleViewAll(stringResource(R.string.browse_by_destination), true)
         Text(
             stringResource(R.string.feature_home_explore_perfect_places_by_destination),
@@ -136,10 +137,8 @@ fun DashboardContent(
             color = PaceDreamColors.TextSecondary,
         )
         LazyRow {
-            items(destinations) {
-                DestinationCard(it) {
-
-                }
+            items(destinations) { destination ->
+                DestinationCard(destination) { onDestinationClick(destination) }
             }
         }
 
@@ -170,10 +169,8 @@ fun DashboardContent(
             ShimmerEffect()
         } else {
             LazyRow {
-                items(roomsState.rooms) {
-                    DealsCard(it) {
-
-                    }
+                items(roomsState.rooms) { room ->
+                    DealsCard(room) { onRoomClick(room) }
                 }
             }
         }
@@ -204,10 +201,8 @@ fun DashboardContent(
             ShimmerEffect()
         } else {
             LazyRow {
-                items(gearsState.rentedGears) {
-                    RentedGearDealsCard(it) {
-
-                    }
+                items(gearsState.rentedGears) { gear ->
+                    RentedGearDealsCard(gear) { onGearClick(gear) }
                 }
             }
         }
