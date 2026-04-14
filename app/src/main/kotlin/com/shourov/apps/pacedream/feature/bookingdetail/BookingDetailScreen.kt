@@ -47,7 +47,7 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.shourov.apps.pacedream.model.BookingStatus
 import java.text.SimpleDateFormat
-import java.util.Date
+
 import java.util.Locale
 
 /**
@@ -108,7 +108,7 @@ fun BookingDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
                 ) {
                     // Status Badge (iOS BookingStatusHelper parity)
-                    val statusLabel = resolveStatusLabel(booking.status, booking.endDate)
+                    val statusLabel = resolveStatusLabel(booking.status)
                     val statusColor = statusColor(statusLabel)
                     val statusIcon = statusIcon(statusLabel)
 
@@ -401,15 +401,16 @@ fun BookingDetailScreen(
     }
 }
 
-// ── BookingStatusHelper (iOS parity) ─────────────────────────────
+// ── BookingStatusHelper ──────────────────────────────────────────
+// The backend status is the source of truth. We do not override it
+// with client-side date logic.
 
-private fun resolveStatusLabel(status: BookingStatus, endDate: String): String {
+private fun resolveStatusLabel(status: BookingStatus): String {
     val normalized = status.name.lowercase()
     return when {
         normalized == "cancelled" || normalized == "rejected" -> "Cancelled"
         normalized == "completed" -> "Completed"
         normalized == "pending" -> "Pending"
-        normalized == "confirmed" && isEndDatePast(endDate) -> "Completed"
         normalized == "confirmed" -> "Upcoming"
         else -> status.name.lowercase().replaceFirstChar { it.uppercase() }
     }
@@ -433,23 +434,6 @@ private fun statusIcon(label: String): androidx.compose.ui.graphics.vector.Image
         "cancelled", "rejected" -> PaceDreamIcons.Cancel
         else -> PaceDreamIcons.Info
     }
-}
-
-private fun isEndDatePast(endDate: String): Boolean {
-    if (endDate.isBlank()) return false
-    val formats = listOf(
-        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-        "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyy-MM-dd"
-    )
-    for (fmt in formats) {
-        try {
-            val date = SimpleDateFormat(fmt, Locale.US).parse(endDate) ?: continue
-            return date.before(Date())
-        } catch (_: Exception) { continue }
-    }
-    return false
 }
 
 private fun formatFullDate(dateString: String): String {

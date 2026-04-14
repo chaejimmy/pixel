@@ -68,7 +68,10 @@ class ListingDetailViewModel @Inject constructor(
         currentListingId = listingId
         currentListingType = listingType
 
-        // Seed cached/partial content immediately.
+        // Seed cached/partial content for immediate display while the API
+        // call is in flight. isFromSeed=true tells the UI this data has not
+        // been confirmed by the backend yet and should be visually
+        // distinguished (e.g. shimmer overlay).
         if (initialListing != null) {
             _uiState.update {
                 it.copy(
@@ -78,7 +81,8 @@ class ListingDetailViewModel @Inject constructor(
                         imageUrls = listOfNotNull(initialListing.imageUrl),
                         rating = initialListing.rating
                     ),
-                    isFavorite = false
+                    isFavorite = false,
+                    isFromSeed = true
                 )
             }
         }
@@ -104,6 +108,7 @@ class ListingDetailViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             listing = listing,
+                            isFromSeed = false,
                             isFavorite = listing.isFavorite ?: it.isFavorite,
                             errorMessage = null,
                             inlineErrorMessage = null
@@ -118,7 +123,7 @@ class ListingDetailViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                inlineErrorMessage = result.error.message ?: "Failed to load"
+                                inlineErrorMessage = result.error.message ?: "Failed to refresh listing details"
                             )
                         }
                     } else {
