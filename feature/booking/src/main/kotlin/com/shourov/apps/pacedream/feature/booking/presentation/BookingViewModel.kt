@@ -31,7 +31,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 import com.pacedream.common.util.UserFacingErrorMapper
-import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
@@ -95,7 +94,7 @@ class BookingViewModel @Inject constructor(
                                 rebuildCategoryCaches(result.data)
                             }
                             is Result.Error -> {
-                                Timber.e(result.exception, "Failed to load bookings from cache")
+                                android.util.Log.e("BookingVM", "Failed to load bookings from cache", result.exception)
                                 _uiState.value = _uiState.value.copy(
                                     isLoading = false,
                                     error = UserFacingErrorMapper.forLoadBookings(result.exception)
@@ -202,7 +201,7 @@ class BookingViewModel @Inject constructor(
                     loadBookings()
                 }
                 is Result.Error -> {
-                    Timber.e(result.exception, "Failed to cancel booking")
+                    android.util.Log.e("BookingVM", "Failed to cancel booking", result.exception)
                     _uiState.value = _uiState.value.copy(
                         actionInFlight = false,
                         error = UserFacingErrorMapper.forBookingCancel(result.exception)
@@ -223,7 +222,7 @@ class BookingViewModel @Inject constructor(
                     loadBookings()
                 }
                 is Result.Error -> {
-                    Timber.e(result.exception, "Failed to confirm booking")
+                    android.util.Log.e("BookingVM", "Failed to confirm booking", result.exception)
                     _uiState.value = _uiState.value.copy(
                         actionInFlight = false,
                         error = UserFacingErrorMapper.forBookingConfirm(result.exception)
