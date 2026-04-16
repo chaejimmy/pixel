@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
+import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateListingViewModel @Inject constructor(
     private val hostRepository: HostRepository,
+    private val stripeConnectRepository: StripeConnectRepository,
     sessionManager: SessionManager,
 ) : ViewModel() {
 
@@ -46,6 +48,15 @@ class CreateListingViewModel @Inject constructor(
             val coverUrl: String? = null,
         ) : Effect()
         data class PublishError(val message: String) : Effect()
+
+        /**
+         * Raised before the network call when the host has not yet completed
+         * Stripe Connect payout onboarding. The screen should surface this as
+         * a blocking prompt that routes to /host earnings > Setup payouts
+         * instead of hitting the listings API (which would create a listing
+         * that can take bookings but cannot actually pay out).
+         */
+        data class PayoutSetupRequired(val reason: String) : Effect()
     }
 
     private val _isPublishing = MutableStateFlow(false)
@@ -63,6 +74,31 @@ class CreateListingViewModel @Inject constructor(
                     request.listing_type, request.subCategory, request.title,
                     request.price, request.images?.size ?: 0, request.address ?: "",
                 )
+
+                // Payout gate: refuse to publish a monetized listing when the
+                // host has not completed Stripe Connect onboarding. Without
+                // this check a new host can take bookings against a Connect
+                // account that cannot receive transfers, and we would owe
+                // them money we cannot actually pay out. We treat a network
+                // failure on the status lookup as *non-fatal* — the backend
+                // is the real enforcement point, and punishing the host for
+                // a transient network blip would be worse than the rare
+                // case where our client cache disagrees with Stripe.
+                val status = stripeConnectRepository.getConnectAccountStatus()
+                val canPayout = status.getOrNull()?.resolvedPayoutsEnabled
+                if (canPayout == false) {
+                    Timber.w("Publish blocked: Stripe Connect payouts not enabled")
+                    _effects.send(
+                        Effect.PayoutSetupRequired(
+                            "Finish your payout setup before publishing. You won\u2019t be able to receive payments from bookings until your Stripe account is active."
+                        )
+                    )
+                    return@launch
+                }
+                if (canPayout == null) {
+                    Timber.w("Publish allowed but Stripe status fetch failed; relying on backend enforcement")
+                }
+
                 val result = hostRepository.createListing(request)
                 result.onSuccess { property ->
                     Timber.d("Listing created successfully: id=%s title=%s images=%d", property.id, property.title, property.images.size)
@@ -85,6 +121,21 @@ class CreateListingViewModel @Inject constructor(
             } finally {
                 _isPublishing.value = false
             }
+        }
+    }
+
+    /**
+     * Checks current Stripe Connect payout eligibility without publishing.
+     * Used by the Create Listing screen to render a warning banner before
+     * the host fills out the wizard so they are not surprised at Publish.
+     */
+    suspend fun isPayoutReady(): Boolean {
+        return try {
+            stripeConnectRepository.getConnectAccountStatus()
+                .getOrNull()?.resolvedPayoutsEnabled == true
+        } catch (e: Exception) {
+            Timber.w(e, "isPayoutReady check failed; assuming ready")
+            true
         }
     }
 

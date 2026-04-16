@@ -458,3 +458,103 @@ private fun ListingCardGrid(listing: DestinationListing, onClick: () -> Unit) {
         }
     }
 }
+
+// ── Destinations Index / Picker ──────────────────────────────────
+//
+// Top-level destinations screen. Replaces the previous broken path where
+// tapping "Destinations" in Profile tried to render DestinationListingsScreen
+// with an empty destinationId and always landed on the error state.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DestinationsIndexScreen(
+    onBackClick: () -> Unit = {},
+    onDestinationClick: (String) -> Unit = {},
+    viewModel: DestinationViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Destinations", style = PaceDreamTypography.Headline) },
+                navigationIcon = { IconButton(onClick = onBackClick) { Icon(PaceDreamIcons.ArrowBack, "Back") } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
+            )
+        },
+        containerColor = PaceDreamColors.Background
+    ) { padding ->
+        when {
+            uiState.isLoading && uiState.destinations.isEmpty() -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = PaceDreamColors.Primary)
+                }
+            }
+            uiState.error != null && uiState.destinations.isEmpty() -> {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(uiState.error ?: "Couldn't load destinations", color = PaceDreamColors.TextSecondary)
+                        Spacer(Modifier.height(PaceDreamSpacing.MD))
+                        Button(onClick = { viewModel.loadDestinations() }) { Text("Retry") }
+                    }
+                }
+            }
+            uiState.destinations.isEmpty() -> {
+                PaceDreamEmptyState(
+                    title = "No destinations yet",
+                    description = "Check back soon for curated places to visit.",
+                    icon = PaceDreamIcons.Search,
+                    modifier = Modifier.fillMaxSize().padding(padding)
+                )
+            }
+            else -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(PaceDreamSpacing.MD),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    items(uiState.destinations, key = { it.id }) { dest ->
+                        DestinationIndexCard(dest = dest, onClick = { onDestinationClick(dest.id) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DestinationIndexCard(dest: TravelDestination, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.CardBackground)
+    ) {
+        Column {
+            AsyncImage(
+                model = dest.resolvedImage(),
+                contentDescription = dest.name,
+                modifier = Modifier.fillMaxWidth().height(120.dp)
+                    .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD)),
+                contentScale = ContentScale.Crop
+            )
+            Column(Modifier.padding(PaceDreamSpacing.SM)) {
+                Text(
+                    dest.name,
+                    style = PaceDreamTypography.Body,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (dest.subtitle.isNotBlank()) {
+                    Text(
+                        dest.subtitle,
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
