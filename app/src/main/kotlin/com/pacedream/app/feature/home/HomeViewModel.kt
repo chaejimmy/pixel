@@ -62,12 +62,12 @@ class HomeViewModel @Inject constructor(
     init {
         loadAllSections()
         loadFavorites()
-        // Set default hero image URL (can be fetched from API/config later)
-        _uiState.update {
-            it.copy(
-                heroImageUrl = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" // Default scenic image
-            )
-        }
+        // heroImageUrl is intentionally left null until the backend / remote config
+        // returns a branded asset. Previously we seeded a hardcoded Unsplash URL,
+        // which shipped a third-party CDN image in production UI with no content
+        // licence review and a trust-breaking "stock photo" feel. The hero header
+        // renders a brand gradient fine without a photo, so null is preferable
+        // to a placeholder.
     }
 
     fun refresh() {

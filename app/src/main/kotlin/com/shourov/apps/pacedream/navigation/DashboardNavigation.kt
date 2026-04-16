@@ -864,7 +864,18 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
                                 BookingDetailScreen(
                                     bookingId = bookingId,
-                                    onBack = { navController.popBackStack() }
+                                    onBack = { navController.popBackStack() },
+                                    onWriteReview = { bId, lId, title, location ->
+                                        // Nav arguments are path segments, so any slashes or empty
+                                        // strings would either be misrouted or crash. We URL-encode
+                                        // each dynamic value and fall back to "-" for blanks so the
+                                        // route always matches the declared pattern below.
+                                        val safeB = bId.ifBlank { "-" }.encodePathSegment()
+                                        val safeL = lId.ifBlank { "-" }.encodePathSegment()
+                                        val safeT = title.ifBlank { "-" }.encodePathSegment()
+                                        val safeLoc = location.ifBlank { "-" }.encodePathSegment()
+                                        navController.navigate("write_review/$safeB/$safeL/$safeT/$safeLoc")
+                                    }
                                 )
                             }
 
@@ -908,12 +919,24 @@ fun NavGraphBuilder.DashboardNavigation(
                             }
 
                             // Destination Screens
+                            //
+                            // The no-arg "destinations" route previously passed an empty
+                            // destinationId down to DestinationListingsScreen, which then
+                            // called repository.getDestination("") and always landed on
+                            // the Failure branch. The user saw "Failed to load destination"
+                            // with no way to recover — this looked like a broken feature.
+                            //
+                            // We now show the destination picker (DestinationsIndexScreen)
+                            // so that entering this flow from Profile actually yields a
+                            // list the user can pick from, and only then navigate to
+                            // the detail route with a real id.
                             composable("destinations") {
-                                com.pacedream.app.feature.destination.DestinationListingsScreen(
-                                    destinationId = "",
+                                com.pacedream.app.feature.destination.DestinationsIndexScreen(
                                     onBackClick = { navController.popBackStack() },
-                                    onListingClick = { listingId ->
-                                        selectedListingId = listingId
+                                    onDestinationClick = { destId ->
+                                        if (destId.isNotBlank()) {
+                                            navController.navigate("destination_listings/$destId")
+                                        }
                                     }
                                 )
                             }
@@ -1165,4 +1188,18 @@ fun navigateToTab(
         timber.log.Timber.e(e, "navigateToTab failed for route: $route")
     }
 }
+
+/**
+ * URL-encodes a string for use as a NavController path segment.
+ *
+ * NavHost splits routes on "/" and parses the URI, so raw strings with
+ * slashes, spaces or reserved characters break matching. We percent-encode
+ * via URLEncoder, then convert "+" back to "%20" because URLEncoder uses
+ * form-encoding, but path segments expect "%20" for spaces. Consumers are
+ * expected to pair this with [decodePathSegment] when reading the value
+ * out of SavedStateHandle — if we skipped decoding, the user-visible text
+ * on the Write Review header would include "%20" instead of real spaces.
+ */
+private fun String.encodePathSegment(): String =
+    java.net.URLEncoder.encode(this, Charsets.UTF_8.name()).replace("+", "%20")
 

@@ -319,6 +319,12 @@ fun CreateListingScreen(
                 is CreateListingViewModel.Effect.PublishError -> {
                     publishError = effect.message
                 }
+                is CreateListingViewModel.Effect.PayoutSetupRequired -> {
+                    // Surface as a blocking prompt on the wizard screen so the
+                    // host sees the reason and a clear next step instead of a
+                    // generic "publish failed" toast.
+                    publishError = effect.reason
+                }
             }
         }
     }

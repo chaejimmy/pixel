@@ -78,11 +78,27 @@ class WriteReviewViewModel @Inject constructor(
     private val json: Json
 ) : ViewModel() {
 
-    private val bookingId: String = savedStateHandle.get<String>("bookingId").orEmpty()
-    private val listingId: String = savedStateHandle.get<String>("listingId").orEmpty()
-    private val bookingTitle: String = savedStateHandle.get<String>("bookingTitle").orEmpty()
-    private val bookingLocation: String = savedStateHandle.get<String>("bookingLocation").orEmpty()
-    private val bookingStatus: String = savedStateHandle.get<String>("bookingStatus").orEmpty()
+    // Nav path segments are URL-encoded by the caller (DashboardNavigation
+    // .encodePathSegment) to survive "/" and whitespace inside titles /
+    // locations. We decode here so that the values displayed on the
+    // Write Review header are real strings, not "%20"-ridden URIs. We
+    // also collapse the "-" blank sentinel to empty so eligibility checks
+    // that key on blankness (bookingId.isBlank) still behave correctly.
+    private fun SavedStateHandle.arg(key: String): String {
+        val raw = get<String>(key).orEmpty()
+        if (raw.isEmpty() || raw == "-") return ""
+        return try {
+            java.net.URLDecoder.decode(raw, Charsets.UTF_8.name())
+        } catch (_: Exception) {
+            raw
+        }
+    }
+
+    private val bookingId: String = savedStateHandle.arg("bookingId")
+    private val listingId: String = savedStateHandle.arg("listingId")
+    private val bookingTitle: String = savedStateHandle.arg("bookingTitle")
+    private val bookingLocation: String = savedStateHandle.arg("bookingLocation")
+    private val bookingStatus: String = savedStateHandle.arg("bookingStatus")
 
     private val _uiState = MutableStateFlow(
         WriteReviewUiState(

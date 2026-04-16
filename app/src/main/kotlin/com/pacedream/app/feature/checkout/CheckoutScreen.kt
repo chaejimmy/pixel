@@ -104,15 +104,25 @@ fun CheckoutScreen(
                         // Initialize Stripe with the resolved publishable key
                         PaymentConfiguration.init(context, effect.publishableKey)
 
-                        // Configure PaymentSheet with Google Pay (iOS parity: Apple Pay)
+                        // Configure PaymentSheet with Google Pay (iOS parity: Apple Pay).
+                        //
+                        // Environment selection MUST come from the build type, not the
+                        // publishable key prefix. Deriving env from the key means a mis-
+                        // provisioned release build that accidentally pulls a pk_test_*
+                        // key from the backend will silently route live shoppers into
+                        // Google Pay TEST mode (or vice versa), producing either fake
+                        // charges that do not settle or real charges in a "test" flow
+                        // that has no audit trail. BuildConfig.DEBUG is set by the
+                        // Android build system and cannot be overridden at runtime.
+                        val googlePayEnvironment = if (com.shourov.apps.pacedream.BuildConfig.DEBUG) {
+                            PaymentSheet.GooglePayConfiguration.Environment.Test
+                        } else {
+                            PaymentSheet.GooglePayConfiguration.Environment.Production
+                        }
                         val configBuilder = PaymentSheet.Configuration.Builder(effect.merchantDisplayName)
                             // Enable Google Pay (Android equivalent of iOS Apple Pay)
                             .googlePay(PaymentSheet.GooglePayConfiguration(
-                                environment = if (effect.publishableKey.startsWith("pk_test_")) {
-                                    PaymentSheet.GooglePayConfiguration.Environment.Test
-                                } else {
-                                    PaymentSheet.GooglePayConfiguration.Environment.Production
-                                },
+                                environment = googlePayEnvironment,
                                 countryCode = "US",
                                 currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
                             ))

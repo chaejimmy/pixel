@@ -66,6 +66,7 @@ fun BookingDetailScreen(
     bookingId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onWriteReview: (bookingId: String, listingId: String, title: String, location: String) -> Unit = { _, _, _, _ -> },
     viewModel: BookingDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -383,6 +384,37 @@ fun BookingDetailScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
+                        }
+                    } else if (booking.status == BookingStatus.COMPLETED) {
+                        // Completed bookings: surface the "Write a Review" CTA.
+                        // WriteReviewViewModel performs its own eligibility check
+                        // (ALREADY_REVIEWED / BOOKING_NOT_COMPLETED) so tapping this
+                        // on an ineligible booking lands on a truthful state instead
+                        // of a dead end.
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        Button(
+                            onClick = {
+                                onWriteReview(
+                                    booking.id,
+                                    booking.propertyId,
+                                    booking.propertyName.ifBlank { "Booking" },
+                                    booking.hostName,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PaceDreamColors.Primary,
+                                contentColor = PaceDreamColors.OnPrimary
+                            ),
+                            shape = RoundedCornerShape(PaceDreamRadius.MD)
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(PaceDreamIconSize.SM)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                            Text("Write a Review", fontWeight = FontWeight.SemiBold)
                         }
                     }
 

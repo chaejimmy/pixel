@@ -243,9 +243,13 @@ class PaceDreamNotificationService @Inject constructor(
 
         try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
-            android.util.Log.d("PushNotif", "Notification displayed: id=$notificationId title=$title channel=${data.channelId} type=${data.type}")
+            // Use Timber so release builds (which plant no tree) do not emit
+            // notification metadata to logcat where any app with READ_LOGS can
+            // scrape it. Title/channel/type can reveal PII like message
+            // previews or booking context.
+            Timber.tag("PushNotif").d("Notification displayed: id=$notificationId title=$title channel=${data.channelId} type=${data.type}")
         } catch (e: SecurityException) {
-            android.util.Log.e("PushNotif", "Failed to show notification — permission denied", e)
+            Timber.tag("PushNotif").e(e, "Failed to show notification — permission denied")
         }
     }
 
