@@ -38,7 +38,7 @@ class HomeRepositoryImpl(
                 it.toRentedGearModel()
             }
             emit(models)
-        } else throw Throwable(response.message)
+        } else throw Throwable("Failed to load gear listings")
     }.flowOn(dispatcher)
 
     override suspend fun getTimeBasedRooms(itemType: String) = flow {
@@ -48,7 +48,7 @@ class HomeRepositoryImpl(
                 it.toRoomModel()
             }
             emit(rooms)
-        } else throw Throwable(response.message)
+        } else throw Throwable("Failed to load listings")
     }.flowOn(dispatcher)
 
     override suspend fun getSplitStays() = flow {
@@ -61,7 +61,7 @@ class HomeRepositoryImpl(
                 .map { it.toSplitStayModel() }
             emit(services)
         } else {
-            throw Throwable(response.message ?: "Failed to load services")
+            throw Throwable("Failed to load services")
         }
     }.flowOn(dispatcher)
 }

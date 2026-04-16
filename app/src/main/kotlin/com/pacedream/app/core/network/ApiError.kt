@@ -12,13 +12,13 @@ sealed class ApiError(
 ) : Exception(message) {
     
     /** 401 - Token invalid or expired */
-    data object Unauthorized : ApiError("Unauthorized. Please sign in again.")
+    data object Unauthorized : ApiError("Your session has expired. Please sign in again.")
     
     /** 403 - Access denied */
-    data object Forbidden : ApiError("Access denied.")
+    data object Forbidden : ApiError("You don't have permission to perform this action.")
     
     /** 404 - Resource not found */
-    data object NotFound : ApiError("Resource not found.")
+    data object NotFound : ApiError("The item you're looking for could not be found.")
     
     /** 429 - Rate limited */
     data class RateLimited(
@@ -49,7 +49,7 @@ sealed class ApiError(
     
     /** JSON decoding failed */
     data class DecodingError(
-        override val message: String = "Failed to parse server response."
+        override val message: String = "Something went wrong. Please try again."
     ) : ApiError(message)
     
     /** Server error with extracted message */
@@ -81,7 +81,7 @@ sealed class ApiError(
                 )
                 else -> ServerError(
                     code,
-                    serverMessage ?: "Request failed with status $code"
+                    serverMessage ?: "Something went wrong. Please try again."
                 )
             }
         }

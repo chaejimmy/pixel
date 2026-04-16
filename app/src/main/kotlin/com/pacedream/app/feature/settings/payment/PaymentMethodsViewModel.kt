@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,12 +62,10 @@ class PaymentMethodsViewModel @Inject constructor(
                                 }
                             }
                             is ApiError.Forbidden -> {
-                                // Backend returned 403 — may be an account restriction or fraud block.
-                                // Surface the server message directly (it carries the reason).
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = result.error.message
+                                        errorMessage = UserFacingErrorMapper.forPaymentMethods(result.error)
                                     )
                                 }
                             }
@@ -74,7 +73,7 @@ class PaymentMethodsViewModel @Inject constructor(
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = result.error.message
+                                        errorMessage = "Too many attempts. Please wait a moment and try again."
                                     )
                                 }
                             }
@@ -82,7 +81,7 @@ class PaymentMethodsViewModel @Inject constructor(
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        errorMessage = result.error.message
+                                        errorMessage = UserFacingErrorMapper.forPaymentMethods(result.error)
                                     )
                                 }
                             }
@@ -124,12 +123,12 @@ class PaymentMethodsViewModel @Inject constructor(
                     }
                     is ApiResult.Failure -> {
                         _uiState.update {
-                            it.copy(isActionInFlight = false, errorMessage = result.error.message)
+                            it.copy(isActionInFlight = false, errorMessage = UserFacingErrorMapper.forPaymentMethods(result.error))
                         }
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "An unexpected error occurred.") }
+                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "Something went wrong. Please try again.") }
             }
         }
     }
@@ -151,12 +150,12 @@ class PaymentMethodsViewModel @Inject constructor(
                     }
                     is ApiResult.Failure -> {
                         _uiState.update {
-                            it.copy(isActionInFlight = false, errorMessage = result.error.message)
+                            it.copy(isActionInFlight = false, errorMessage = UserFacingErrorMapper.forPaymentMethods(result.error))
                         }
                     }
                 }
             } catch (e: Exception) {
-                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "An unexpected error occurred.") }
+                _uiState.update { it.copy(isActionInFlight = false, errorMessage = "Something went wrong. Please try again.") }
             }
         }
     }

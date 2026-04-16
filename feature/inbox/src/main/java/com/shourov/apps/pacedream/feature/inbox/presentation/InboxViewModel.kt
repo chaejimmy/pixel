@@ -11,6 +11,7 @@ import com.shourov.apps.pacedream.feature.inbox.model.InboxEvent
 import com.shourov.apps.pacedream.feature.inbox.model.InboxMode
 import com.shourov.apps.pacedream.feature.inbox.model.InboxUiState
 import com.shourov.apps.pacedream.feature.inbox.model.UnreadCounts
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -165,7 +166,7 @@ class InboxViewModel @Inject constructor(
                         }
                         else -> {
                             _uiState.value = InboxUiState.Error(
-                                threadsResult.error.message ?: "Failed to load messages"
+                                UserFacingErrorMapper.forLoadMessages(threadsResult.error)
                             )
                         }
                     }
@@ -175,7 +176,7 @@ class InboxViewModel @Inject constructor(
             // Catch any unexpected exception to guarantee we leave Loading state
             Timber.e(e, "InboxViewModel: loadThreadsAndCounts EXCEPTION")
             _uiState.value = InboxUiState.Error(
-                e.message ?: "An unexpected error occurred"
+                UserFacingErrorMapper.forLoadMessages(e)
             )
         }
         Timber.d("InboxViewModel: loadThreadsAndCounts END — state=${_uiState.value::class.simpleName}")

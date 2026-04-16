@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pacedream.common.util.UserFacingErrorMapper
 import javax.inject.Inject
 
 @HiltViewModel
@@ -58,7 +59,7 @@ class SignInViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = error.message ?: "Login failed"
+                        error = UserFacingErrorMapper.forLogin(error)
                     )
                 }
             )
@@ -90,7 +91,7 @@ class SignInViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = error.message ?: "Failed to send reset link"
+                        error = UserFacingErrorMapper.forPasswordReset(error)
                     )
                 }
             )
@@ -112,14 +113,14 @@ class SignInViewModel @Inject constructor(
                     onFailure = { error ->
                         _uiState.value = _uiState.value.copy(
                             isGoogleLoading = false,
-                            error = error.message ?: "Google login failed"
+                            error = UserFacingErrorMapper.forGoogleLogin(error)
                         )
                     }
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isGoogleLoading = false,
-                    error = e.message ?: "Google login failed"
+                    error = UserFacingErrorMapper.forGoogleLogin(e)
                 )
             }
         }

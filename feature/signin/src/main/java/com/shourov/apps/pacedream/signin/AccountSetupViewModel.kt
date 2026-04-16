@@ -12,6 +12,7 @@ import com.shourov.apps.pacedream.core.data.AccountSetupScreenData
 import com.shourov.apps.pacedream.core.data.dateOfBirthValid
 import com.shourov.apps.pacedream.core.data.userProfileDetailsValid
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -165,10 +166,10 @@ class AccountSetupViewModel @Inject constructor(
                     onSuccess()
                 },
                 onFailure = { error ->
-                    val errorMessage = error.message ?: "Failed to save profile"
+                    val errorMessage = UserFacingErrorMapper.forProfileUpdate(error)
                     _isSubmitting.value = false
                     _setupError.value = errorMessage
-                    Timber.e("Account setup failed: $errorMessage")
+                    Timber.e(error, "Account setup failed")
                     onError(errorMessage)
                 }
             )

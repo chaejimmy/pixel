@@ -13,6 +13,7 @@ import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItem
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItemType
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistNavigation
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistUiState
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -119,7 +120,7 @@ class WishlistViewModel @Inject constructor(
                     }
                     else -> {
                         _uiState.value = WishlistUiState.Error(
-                            result.error.message ?: "Failed to load wishlist"
+                            UserFacingErrorMapper.forLoadWishlist(result.error)
                         )
                     }
                 }

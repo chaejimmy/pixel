@@ -26,6 +26,7 @@ import com.shourov.apps.pacedream.signin.model.AccountCreationScreenState
 import com.shourov.apps.pacedream.signin.model.CreateAccountComponents
 import com.shourov.apps.pacedream.signin.model.CreateAccountComponents.HOBBIES_AND_INTERESTS
 import com.shourov.apps.pacedream.signin.model.CreateAccountData
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -128,14 +129,14 @@ class CreateAccountViewModel @Inject constructor(
                     },
                     onFailure = { error ->
                         isSubmitting = false
-                        Timber.e("Account creation profile update failed: ${error.message}")
-                        toastMessage.value = error.message ?: "Failed to create account"
+                        Timber.e(error, "Account creation profile update failed")
+                        toastMessage.value = UserFacingErrorMapper.forProfileUpdate(error)
                     }
                 )
             } catch (e: Exception) {
                 isSubmitting = false
-                Timber.e("Account creation profile update crashed: ${e.message}")
-                toastMessage.value = e.message ?: "Failed to create account"
+                Timber.e(e, "Account creation profile update crashed")
+                toastMessage.value = UserFacingErrorMapper.forProfileUpdate(e)
             }
         }
     }

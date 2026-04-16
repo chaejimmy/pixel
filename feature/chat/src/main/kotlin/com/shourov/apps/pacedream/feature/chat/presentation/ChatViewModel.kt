@@ -24,6 +24,7 @@ import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
 import com.shourov.apps.pacedream.model.MessageAttachment
 import com.shourov.apps.pacedream.model.MessageModel
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -107,7 +108,7 @@ class ChatViewModel @Inject constructor(
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = result.exception.message
+                            error = UserFacingErrorMapper.forLoadMessages(result.exception)
                         )
                     }
                 }
@@ -216,29 +217,10 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Map message send errors, surfacing rate-limit, spam blocks, and
-     * network/SSL failures (e.g. caused by device-level SPU/KeyMint issues).
+     * Map message send errors to user-friendly messages using the centralized mapper.
      */
     private fun mapMessageError(exception: Throwable): String {
-        val msg = exception.message ?: "Failed to send message"
-        val lower = msg.lowercase()
-        return when {
-            lower.contains("secure connection failed") || lower.contains("ssl") ->
-                "Secure connection failed. Please restart your device and try again."
-            lower.contains("timed out") || lower.contains("timeout") ->
-                "Connection timed out. Please check your internet and try again."
-            lower.contains("no internet") || lower.contains("unable to resolve") || lower.contains("unknownhost") ->
-                "No internet connection. Please check your network and try again."
-            lower.contains("unable to reach") || lower.contains("connect") && lower.contains("fail") ->
-                "Unable to reach the server. Please check your connection and try again."
-            lower.contains("rate") || lower.contains("too many") || lower.contains("429") ->
-                "You're sending messages too quickly. Please wait a moment."
-            lower.contains("spam") || lower.contains("blocked") || lower.contains("fraud") ->
-                "This message was blocked. Please contact support if you believe this is an error."
-            lower.contains("restricted") || lower.contains("suspended") ->
-                "Your account is currently restricted from sending messages."
-            else -> msg
-        }
+        return UserFacingErrorMapper.forSendMessage(exception)
     }
 
     private suspend fun sendMediaMessage(text: String, photos: List<PendingPhoto>) {
@@ -288,7 +270,7 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isUploading = false,
                     uploadProgress = 0f,
-                    uploadError = result.exception.message,
+                    uploadError = UserFacingErrorMapper.forUploadMedia(result.exception),
                     pendingPhotos = photos,
                     messages = _uiState.value.messages.map {
                         if (it.id == tempId) it.copy(status = "failed") else it

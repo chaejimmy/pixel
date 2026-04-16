@@ -89,10 +89,10 @@ fun SettingsPaymentMethodsScreen(
                     // No-op
                 }
                 is PaymentSheetResult.Failed -> {
+                    Timber.e(result.error, "PaymentSheet failed")
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            result.error.localizedMessage
-                                ?: "Unable to add card. Please try again."
+                            "Unable to add card. Please try again."
                         )
                     }
                 }
@@ -154,9 +154,9 @@ fun SettingsPaymentMethodsScreen(
                         }
                     }
                     is com.pacedream.app.core.network.ApiResult.Failure -> {
+                        Timber.e("Setup intent creation failed: ${result.error.message}")
                         snackbarHostState.showSnackbar(
-                            result.error.message
-                                ?: "Unable to start card setup. Please try again."
+                            "Unable to start card setup. Please try again."
                         )
                     }
                 }

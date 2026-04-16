@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.pacedream.common.util.UserFacingErrorMapper
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
@@ -93,9 +95,10 @@ class BookingViewModel @Inject constructor(
                                 rebuildCategoryCaches(result.data)
                             }
                             is Result.Error -> {
+                                Timber.e(result.exception, "Failed to load bookings from cache")
                                 _uiState.value = _uiState.value.copy(
                                     isLoading = false,
-                                    error = result.exception.message
+                                    error = UserFacingErrorMapper.forLoadBookings(result.exception)
                                 )
                             }
                             is Result.Loading -> {
@@ -199,9 +202,10 @@ class BookingViewModel @Inject constructor(
                     loadBookings()
                 }
                 is Result.Error -> {
+                    Timber.e(result.exception, "Failed to cancel booking")
                     _uiState.value = _uiState.value.copy(
                         actionInFlight = false,
-                        error = result.exception.message
+                        error = UserFacingErrorMapper.forBookingCancel(result.exception)
                     )
                 }
                 is Result.Loading -> { /* No-op */ }
@@ -219,9 +223,10 @@ class BookingViewModel @Inject constructor(
                     loadBookings()
                 }
                 is Result.Error -> {
+                    Timber.e(result.exception, "Failed to confirm booking")
                     _uiState.value = _uiState.value.copy(
                         actionInFlight = false,
-                        error = result.exception.message
+                        error = UserFacingErrorMapper.forBookingConfirm(result.exception)
                     )
                 }
                 is Result.Loading -> { /* No-op */ }

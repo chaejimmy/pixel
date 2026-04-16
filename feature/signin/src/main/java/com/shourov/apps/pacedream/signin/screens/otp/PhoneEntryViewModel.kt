@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pacedream.common.util.UserFacingErrorMapper
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -77,9 +78,10 @@ class PhoneEntryViewModel @Inject constructor(
                     onSuccess(phone)
                 },
                 onFailure = { error ->
+                    Timber.e(error, "Failed to send OTP")
                     val errorMessage = when (error) {
                         is OtpError -> error.getUserMessage()
-                        else -> error.message ?: "Failed to send OTP"
+                        else -> UserFacingErrorMapper.map(error, "We couldn't send the verification code. Please try again.")
                     }
                     // For rate-limited errors, extract cooldown for the UI
                     val cooldownSeconds = (error as? OtpError.RateLimited)?.retryAfterSeconds
