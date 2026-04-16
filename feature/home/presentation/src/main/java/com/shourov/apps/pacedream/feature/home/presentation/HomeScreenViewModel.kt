@@ -33,6 +33,7 @@ import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.Refr
 import com.shourov.apps.pacedream.feature.home.presentation.HomeScreenEvent.ToggleFavorite
 import com.shourov.apps.pacedream.feature.wishlist.data.FavoritesCache
 import com.shourov.apps.pacedream.feature.wishlist.data.WishlistRepository
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
@@ -175,9 +176,10 @@ class HomeScreenViewModel @Inject constructor(
             .collectLatest { result ->
                 when (result) {
                     is Error -> _homeScreenRoomsState.update {
+                        Timber.e(result.exception, "Failed to load rooms")
                         it.copy(
                             loading = false,
-                            error = result.exception.message ?: "Failed to load properties",
+                            error = UserFacingErrorMapper.forLoadProperties(result.exception),
                         )
                     }
 
@@ -197,9 +199,10 @@ class HomeScreenViewModel @Inject constructor(
         homeRepository.getRentedGears(type).asResult().collectLatest { result ->
             when (result) {
                 is Error -> _homeScreenRentedGearsState.update {
+                    Timber.e(result.exception, "Failed to load gear")
                     it.copy(
                         loading = false,
-                        error = result.exception.message ?: "Failed to load gear",
+                        error = UserFacingErrorMapper.forLoadProperties(result.exception),
                     )
                 }
 
@@ -219,9 +222,10 @@ class HomeScreenViewModel @Inject constructor(
         homeRepository.getSplitStays().asResult().collectLatest { result ->
             when (result) {
                 is Error -> _homeScreenSplitStaysState.update {
+                    Timber.e(result.exception, "Failed to load split stays")
                     it.copy(
                         loading = false,
-                        error = result.exception.message ?: "Failed to load split stays",
+                        error = UserFacingErrorMapper.forLoadProperties(result.exception),
                     )
                 }
 

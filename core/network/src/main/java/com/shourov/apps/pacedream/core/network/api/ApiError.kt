@@ -7,11 +7,11 @@ import kotlinx.serialization.Serializable
  */
 sealed class ApiError : Exception() {
     
-    data class Unauthorized(override val message: String = "Unauthorized") : ApiError()
-    
-    data class Forbidden(override val message: String = "Access forbidden") : ApiError()
+    data class Unauthorized(override val message: String = "Your session has expired. Please sign in again.") : ApiError()
 
-    data class NotFound(override val message: String = "Resource not found") : ApiError()
+    data class Forbidden(override val message: String = "You don't have permission to perform this action.") : ApiError()
+
+    data class NotFound(override val message: String = "The item you're looking for could not be found.") : ApiError()
 
     data class AccountRestricted(
         override val message: String = "Your account has been temporarily restricted.",
@@ -58,7 +58,7 @@ sealed class ApiError : Exception() {
     ) : ApiError()
     
     data class HtmlResponse(
-        override val message: String = "Received unexpected response. Please try again later."
+        override val message: String = "Our service is temporarily unavailable. Please try again in a moment."
     ) : ApiError()
     
     data class ServerError(
@@ -66,14 +66,14 @@ sealed class ApiError : Exception() {
     ) : ApiError()
     
     data class DecodingError(
-        override val message: String = "Failed to process response.",
+        override val message: String = "Something went wrong. Please try again.",
         val underlyingCause: Throwable? = null
     ) : ApiError() {
         override val cause: Throwable? get() = underlyingCause
     }
     
     data class Unknown(
-        override val message: String = "An unexpected error occurred.",
+        override val message: String = "Something went wrong. Please try again.",
         val statusCode: Int? = null,
         val underlyingCause: Throwable? = null
     ) : ApiError() {

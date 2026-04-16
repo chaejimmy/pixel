@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pacedream.common.util.UserFacingErrorMapper
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -42,7 +43,8 @@ class EmailSignInViewModel @Inject constructor(
                     onSuccess()
                 },
                 onFailure = { error ->
-                    val errorMessage = error.message ?: "Login failed"
+                    Timber.e(error, "Email login failed")
+                    val errorMessage = UserFacingErrorMapper.forLogin(error)
                     _uiState.value = _uiState.value.copy(isLoading = false, error = errorMessage)
                     onError(errorMessage)
                 }
@@ -74,7 +76,8 @@ class EmailSignInViewModel @Inject constructor(
                     onSuccess()
                 },
                 onFailure = { error ->
-                    val errorMessage = error.message ?: "Registration failed"
+                    Timber.e(error, "Email registration failed")
+                    val errorMessage = UserFacingErrorMapper.forRegistration(error)
                     _uiState.value = _uiState.value.copy(isLoading = false, error = errorMessage)
                     onError(errorMessage)
                 }
@@ -99,13 +102,15 @@ class EmailSignInViewModel @Inject constructor(
                         onSuccess()
                     },
                     onFailure = { error ->
-                        val errorMessage = error.message ?: "Google login failed"
+                        Timber.e(error, "Google login failed")
+                        val errorMessage = UserFacingErrorMapper.forGoogleLogin(error)
                         _uiState.value = _uiState.value.copy(isGoogleLoading = false, error = errorMessage)
                         onError(errorMessage)
                     }
                 )
             } catch (e: Exception) {
-                val errorMessage = e.message ?: "Google login failed"
+                Timber.e(e, "Google login failed")
+                val errorMessage = UserFacingErrorMapper.forGoogleLogin(e)
                 _uiState.value = _uiState.value.copy(isGoogleLoading = false, error = errorMessage)
                 onError(errorMessage)
             }
@@ -129,13 +134,15 @@ class EmailSignInViewModel @Inject constructor(
                         onSuccess()
                     },
                     onFailure = { error ->
-                        val errorMessage = error.message ?: "Apple login failed"
+                        Timber.e(error, "Apple login failed")
+                        val errorMessage = UserFacingErrorMapper.forAppleLogin(error)
                         _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
                         onError(errorMessage)
                     }
                 )
             } catch (e: Exception) {
-                val errorMessage = e.message ?: "Apple login failed"
+                Timber.e(e, "Apple login failed")
+                val errorMessage = UserFacingErrorMapper.forAppleLogin(e)
                 _uiState.value = _uiState.value.copy(isAppleLoading = false, error = errorMessage)
                 onError(errorMessage)
             }

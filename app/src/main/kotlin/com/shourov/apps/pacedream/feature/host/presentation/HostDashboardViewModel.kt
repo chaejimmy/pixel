@@ -58,7 +58,7 @@ class HostDashboardViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     hasLoaded = true,
-                    error = e.message ?: "Failed to load dashboard"
+                    error = com.pacedream.common.util.UserFacingErrorMapper.map(e, "We couldn't load the dashboard. Please try again.")
                 )
                 return@launch
             }

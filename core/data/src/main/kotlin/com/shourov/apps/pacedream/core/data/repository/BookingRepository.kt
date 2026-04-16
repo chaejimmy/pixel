@@ -206,7 +206,7 @@ class BookingRepository @Inject constructor(
                 val errorMsg = if (securityError != null) {
                     com.shourov.apps.pacedream.core.network.api.SecurityErrorHandler.getUserMessage(securityError)
                 } else {
-                    "Failed to create booking: ${response.message()}"
+                    "We couldn't complete your booking. Please try again."
                 }
                 Result.Error(Exception(errorMsg))
             }
@@ -223,7 +223,7 @@ class BookingRepository @Inject constructor(
                 booking.asEntity()?.let { bookingDao.updateBooking(it) }
                 Result.Success(booking)
             } else {
-                Result.Error(Exception("Failed to update booking: ${response.message()}"))
+                Result.Error(Exception("We couldn't save your changes. Please try again."))
             }
         } catch (e: Exception) {
             Result.Error(e)
@@ -237,7 +237,7 @@ class BookingRepository @Inject constructor(
                 bookingDao.updateBookingStatus(bookingId, "CANCELLED")
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception("Failed to cancel booking: ${response.message()}"))
+                Result.Error(Exception("We couldn't cancel this booking. Please try again."))
             }
         } catch (e: Exception) {
             Result.Error(e)
@@ -251,7 +251,7 @@ class BookingRepository @Inject constructor(
                 bookingDao.updateBookingStatus(bookingId, "CONFIRMED")
                 Result.Success(Unit)
             } else {
-                Result.Error(Exception("Failed to confirm booking: ${response.message()}"))
+                Result.Error(Exception("We couldn't confirm this booking. Please try again."))
             }
         } catch (e: Exception) {
             Result.Error(e)
@@ -316,11 +316,11 @@ class BookingRepository @Inject constructor(
                         )
                     )
                 } else {
-                    Result.Error(Exception("Empty availability check response"))
+                    Result.Error(Exception("We couldn't check availability right now. Please try again."))
                 }
             } else {
                 Timber.w("Availability check failed [%d]", response.code())
-                Result.Error(Exception("Availability check failed: HTTP ${response.code()}"))
+                Result.Error(Exception("We couldn't check availability right now. Please try again."))
             }
         } catch (e: Exception) {
             Timber.e(e, "Availability check exception")
@@ -378,7 +378,7 @@ class BookingRepository @Inject constructor(
             reason.startsWith("LISTING_STATUS_NOT_BOOKABLE") -> "This listing is not currently accepting bookings"
             reason.startsWith("MODERATION_STATUS_NOT_BOOKABLE") -> "This listing is pending moderation review"
             !listingBookable -> "This listing is not available for booking"
-            else -> "This time is not available: $reason"
+            else -> "This time is not available"
         }
     }
 

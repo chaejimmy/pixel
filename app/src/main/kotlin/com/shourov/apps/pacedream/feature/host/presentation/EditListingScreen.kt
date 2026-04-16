@@ -175,7 +175,7 @@ class EditListingViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
-                        isLoading = false, error = e.message ?: "Failed to load listing."
+                        isLoading = false, error = com.pacedream.common.util.UserFacingErrorMapper.forLoadProperties(e)
                     )
                 }
         }
@@ -355,7 +355,7 @@ class EditListingViewModel @Inject constructor(
                 .onSuccess { _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true) }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
-                        isSaving = false, error = e.message ?: "Failed to save changes."
+                        isSaving = false, error = com.pacedream.common.util.UserFacingErrorMapper.map(e, "We couldn't save your changes. Please try again.")
                     )
                 }
         }

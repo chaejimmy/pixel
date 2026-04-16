@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.notification.data.NotificationRepository
 import com.shourov.apps.pacedream.feature.notification.model.NotificationGroup
 import com.shourov.apps.pacedream.feature.notification.model.NotificationUiState
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,8 +66,9 @@ class NotificationViewModel @Inject constructor(
                     }
                 },
                 onFailure = { error ->
+                    Timber.e(error, "Failed to load notifications")
                     _uiState.value = NotificationUiState.Error(
-                        error.message ?: "Failed to load notifications"
+                        UserFacingErrorMapper.forLoadNotifications(error)
                     )
                 }
             )

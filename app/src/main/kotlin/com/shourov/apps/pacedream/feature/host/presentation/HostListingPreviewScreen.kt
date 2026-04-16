@@ -323,7 +323,7 @@ class HostListingPreviewViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    _uiState.value = UiState(error = e.message ?: "Failed to load listing")
+                    _uiState.value = UiState(error = com.pacedream.common.util.UserFacingErrorMapper.forLoadProperties(e))
                 }
         }
     }

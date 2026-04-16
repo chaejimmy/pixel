@@ -94,7 +94,7 @@ class StripeConnectViewModel @Inject constructor(
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message ?: "Couldn't start Stripe setup. Please try again."
+                        errorMessage = com.pacedream.common.util.UserFacingErrorMapper.map(exception, "Couldn't start Stripe setup. Please try again.")
                     )
                 }
         }
@@ -112,7 +112,7 @@ class StripeConnectViewModel @Inject constructor(
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = exception.message ?: "Couldn't open Stripe dashboard. Please try again."
+                        errorMessage = com.pacedream.common.util.UserFacingErrorMapper.map(exception, "Couldn't open Stripe dashboard. Please try again.")
                     )
                 }
         }
@@ -125,7 +125,7 @@ class StripeConnectViewModel @Inject constructor(
                 loadConnectAccountStatus()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message ?: "Failed to refresh account status"
+                    errorMessage = com.pacedream.common.util.UserFacingErrorMapper.map(e, "Couldn't refresh account status. Please try again.")
                 )
             } finally {
                 _uiState.value = _uiState.value.copy(isRefreshing = false)

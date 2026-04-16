@@ -189,7 +189,7 @@ class WishlistViewModel @Inject constructor(
                             it.copy(
                                 isLoading = false,
                                 isRefreshing = false,
-                                error = result.error.message
+                                error = com.pacedream.common.util.UserFacingErrorMapper.forLoadWishlist(result.error)
                             )
                         }
                     }

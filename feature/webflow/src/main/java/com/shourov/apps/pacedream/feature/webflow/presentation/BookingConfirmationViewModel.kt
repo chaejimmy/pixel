@@ -9,6 +9,7 @@ import com.shourov.apps.pacedream.feature.webflow.data.BookingRepository
 import com.shourov.apps.pacedream.feature.webflow.data.BookingType
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,7 +60,7 @@ class BookingConfirmationViewModel @Inject constructor(
                     BookingConfirmationUiState.Success(result.data)
                 }
                 is ApiResult.Failure -> BookingConfirmationUiState.Error(
-                    result.error.message ?: "Failed to confirm booking"
+                    UserFacingErrorMapper.forBookingConfirm(result.error)
                 )
             }
         }

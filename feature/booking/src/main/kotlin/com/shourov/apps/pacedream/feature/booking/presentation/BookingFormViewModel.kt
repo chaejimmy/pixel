@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pacedream.common.util.UserFacingErrorMapper
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -71,7 +72,7 @@ class BookingFormViewModel @Inject constructor(
                     is Result.Error -> {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            error = result.exception.message
+                            error = UserFacingErrorMapper.forLoadProperties(result.exception)
                         )
                     }
                     is Result.Loading -> {
@@ -252,19 +253,7 @@ class BookingFormViewModel @Inject constructor(
      * Map booking errors, including security-related responses from the backend.
      */
     private fun mapBookingError(exception: Throwable): String {
-        val msg = exception.message ?: "Failed to create booking"
-        val lower = msg.lowercase()
-        return when {
-            lower.contains("fraud") || lower.contains("blocked") ->
-                "This booking has been blocked for security reasons. Please contact support."
-            lower.contains("review") || lower.contains("paused") ->
-                "Your booking is paused for review. We'll notify you once it's approved."
-            lower.contains("restricted") || lower.contains("suspended") ->
-                "Your account is currently restricted. Please contact support."
-            lower.contains("rate") || lower.contains("too many") ->
-                "Too many booking attempts. Please wait a moment and try again."
-            else -> msg
-        }
+        return UserFacingErrorMapper.forBookingCreate(exception)
     }
 
     fun clearError() {

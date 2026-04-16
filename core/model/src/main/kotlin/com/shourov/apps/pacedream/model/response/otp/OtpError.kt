@@ -25,8 +25,8 @@ sealed class OtpError(message: String) : Exception(message) {
  */
 fun OtpError.getUserMessage(): String {
     return when (this) {
-        is OtpError.ServiceUnavailable -> "OTP service is not configured"
-        is OtpError.InvalidPhone -> "Invalid phone number format. Use international format: +1234567890"
+        is OtpError.ServiceUnavailable -> "Phone verification is temporarily unavailable. Please try again later."
+        is OtpError.InvalidPhone -> "Please enter a valid phone number."
         is OtpError.VerificationFailed -> "Invalid verification code. Please try again."
         is OtpError.MaxAttemptsReached -> "Maximum number of attempts reached. Please request a new code."
         is OtpError.RateLimited -> {
@@ -45,7 +45,7 @@ fun OtpError.getUserMessage(): String {
         is OtpError.AccountBlocked -> message
         is OtpError.UnsupportedCountry -> message
         is OtpError.TooManyAttempts -> message
-        is OtpError.NetworkError -> "Network error. Please check your connection."
-        is OtpError.UnknownError -> "An unexpected error occurred"
+        is OtpError.NetworkError -> "Please check your internet connection and try again."
+        is OtpError.UnknownError -> "Something went wrong. Please try again."
     }
 }

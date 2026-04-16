@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.common.util.UserFacingErrorMapper
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.feature.inbox.data.InboxRepository
@@ -57,7 +58,7 @@ class ThreadViewModel @Inject constructor(
             markThreadAsRead()
             checkAttachmentStatus()
         } else {
-            _uiState.value = ThreadDetailUiState.Error("Invalid thread ID")
+            _uiState.value = ThreadDetailUiState.Error("We couldn't open this conversation. Please try again.")
         }
     }
 
@@ -165,7 +166,7 @@ class ThreadViewModel @Inject constructor(
                             _uiState.value = existing.copy(isRefreshing = false)
                         } else {
                             _uiState.value = ThreadDetailUiState.Error(
-                                result.error.message ?: "Failed to load messages"
+                                UserFacingErrorMapper.forLoadMessages(result.error)
                             )
                         }
                     }
@@ -178,7 +179,7 @@ class ThreadViewModel @Inject constructor(
                     _uiState.value = existing.copy(isRefreshing = false)
                 } else {
                     _uiState.value = ThreadDetailUiState.Error(
-                        e.message ?: "An unexpected error occurred"
+                        UserFacingErrorMapper.forLoadMessages(e)
                     )
                 }
             }
@@ -311,7 +312,7 @@ class ThreadViewModel @Inject constructor(
                         },
                         isUploading = false,
                         pendingPhotoUris = photoUris,
-                        sendError = result.error.message ?: "Failed to upload photos"
+                        sendError = UserFacingErrorMapper.forUploadMedia(result.error)
                     )
                 }
             }
@@ -384,7 +385,7 @@ class ThreadViewModel @Inject constructor(
                                 if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
                             },
                             isSending = false,
-                            sendError = result.error.message ?: "Failed to send message"
+                            sendError = UserFacingErrorMapper.forSendMessage(result.error)
                         )
                     }
                 }
@@ -396,7 +397,7 @@ class ThreadViewModel @Inject constructor(
                         if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
                     },
                     isSending = false,
-                    sendError = e.message ?: "Failed to send message"
+                    sendError = UserFacingErrorMapper.forSendMessage(e)
                 )
             }
         }
@@ -444,7 +445,7 @@ class ThreadViewModel @Inject constructor(
                                 if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
                             },
                             isSending = false,
-                            sendError = result.error.message ?: "Failed to send message"
+                            sendError = UserFacingErrorMapper.forSendMessage(result.error)
                         )
                     }
                 }
@@ -456,7 +457,7 @@ class ThreadViewModel @Inject constructor(
                         if (msg.id == tempId) msg.copy(status = MessageStatus.FAILED) else msg
                     },
                     isSending = false,
-                    sendError = e.message ?: "Failed to send message"
+                    sendError = UserFacingErrorMapper.forSendMessage(e)
                 )
             }
         }

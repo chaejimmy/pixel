@@ -863,7 +863,7 @@ private fun ErrorBanner(error: String, onDismiss: () -> Unit) {
             )
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
-                text = error.removePrefix("Server error 200: "),
+                text = error,
                 modifier = Modifier.weight(1f),
                 color = PaceDreamColors.TextPrimary,
                 style = PaceDreamTypography.Callout

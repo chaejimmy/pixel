@@ -7,6 +7,7 @@ import com.shourov.apps.pacedream.feature.host.data.HostBookingDTO
 import com.shourov.apps.pacedream.feature.host.data.HostBookingsData
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.parseDate
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +47,7 @@ class HostBookingsViewModel @Inject constructor(
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Failed to load bookings"
+                        error = UserFacingErrorMapper.forLoadBookings(exception)
                     )
                 }
         }
@@ -108,7 +109,7 @@ class HostBookingsViewModel @Inject constructor(
                 .onSuccess { refreshData() }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Failed to accept booking"
+                        error = UserFacingErrorMapper.map(e, "We couldn't accept this booking. Please try again.")
                     )
                 }
         }
@@ -120,7 +121,7 @@ class HostBookingsViewModel @Inject constructor(
                 .onSuccess { refreshData() }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Failed to decline booking"
+                        error = UserFacingErrorMapper.map(e, "We couldn't decline this booking. Please try again.")
                     )
                 }
         }
@@ -132,7 +133,7 @@ class HostBookingsViewModel @Inject constructor(
                 .onSuccess { refreshData() }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
-                        error = e.message ?: "Failed to cancel booking"
+                        error = UserFacingErrorMapper.forBookingCancel(e)
                     )
                 }
         }

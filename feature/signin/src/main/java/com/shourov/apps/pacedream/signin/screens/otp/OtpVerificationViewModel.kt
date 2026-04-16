@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.pacedream.common.util.UserFacingErrorMapper
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -108,7 +109,7 @@ class OtpVerificationViewModel @Inject constructor(
                                 _uiState.value = _uiState.value.copy(isLoading = false)
                                 onSuccess(data.user)
                             } else {
-                                val errorMsg = "Login response missing user data"
+                                val errorMsg = "We couldn't complete the login. Please try again."
                                 _uiState.value = _uiState.value.copy(
                                     isLoading = false,
                                     otpError = errorMsg
@@ -117,9 +118,10 @@ class OtpVerificationViewModel @Inject constructor(
                             }
                         },
                         onFailure = { error ->
+                            Timber.e(error, "OTP login failed")
                             val errorMessage = when (error) {
                                 is OtpError -> error.getUserMessage()
-                                else -> error.message ?: "Failed to login"
+                                else -> UserFacingErrorMapper.forLogin(error)
                             }
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
@@ -130,9 +132,10 @@ class OtpVerificationViewModel @Inject constructor(
                     )
                 },
                 onFailure = { error ->
+                    Timber.e(error, "OTP verification failed")
                     val errorMessage = when (error) {
                         is OtpError -> error.getUserMessage()
-                        else -> error.message ?: "Failed to verify OTP"
+                        else -> UserFacingErrorMapper.map(error, "Verification failed. Please try again.")
                     }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -167,9 +170,10 @@ class OtpVerificationViewModel @Inject constructor(
                     onSuccess()
                 },
                 onFailure = { error ->
+                    Timber.e(error, "OTP resend failed")
                     val errorMessage = when (error) {
                         is OtpError -> error.getUserMessage()
-                        else -> error.message ?: "Failed to resend OTP"
+                        else -> UserFacingErrorMapper.map(error, "We couldn't resend the code. Please try again.")
                     }
                     // Apply server Retry-After if available, otherwise default cooldown
                     val cooldown = (error as? OtpError.RateLimited)?.retryAfterSeconds

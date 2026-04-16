@@ -163,9 +163,9 @@ class HostEarningsViewModel @Inject constructor(
                                 exception is java.io.IOException ||
                                 rawMessage.contains("network", ignoreCase = true) ||
                                 rawMessage.contains("timeout", ignoreCase = true) ->
-                                    "Network error. Check your connection and try again."
+                                    "Please check your internet connection and try again."
                                 else ->
-                                    rawMessage.ifBlank { "Couldn't load earnings data. Pull to refresh." }
+                                    "Couldn't load earnings data. Pull to refresh."
                             }
                             EarningsScreenState.Error(userMessage)
                         }
@@ -227,9 +227,10 @@ class HostEarningsViewModel @Inject constructor(
                     refreshData()
                 }
                 .onFailure { exception ->
+                    Timber.e(exception, "[Earnings] Payout request failed")
                     _earningsUiState.value = _earningsUiState.value.copy(
                         isRequestingPayout = false,
-                        payoutError = exception.message ?: "Failed to request payout"
+                        payoutError = com.pacedream.common.util.UserFacingErrorMapper.map(exception, "We couldn't process your payout. Please try again.")
                     )
                 }
         }
@@ -261,7 +262,7 @@ class HostEarningsViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     Timber.e(e, "[Earnings] Failed to create onboarding link")
-                    _inlineError.value = e.message ?: "Couldn't start Stripe setup. Please try again."
+                    _inlineError.value = com.pacedream.common.util.UserFacingErrorMapper.map(e, "Couldn't start Stripe setup. Please try again.")
                 }
             _isBusy.value = false
         }
@@ -287,7 +288,7 @@ class HostEarningsViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     Timber.e(e, "[Earnings] Failed to create login link")
-                    _inlineError.value = e.message ?: "Couldn't open Stripe dashboard. Please try again."
+                    _inlineError.value = com.pacedream.common.util.UserFacingErrorMapper.map(e, "Couldn't open Stripe dashboard. Please try again.")
                 }
             _isBusy.value = false
         }
