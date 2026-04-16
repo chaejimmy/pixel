@@ -314,6 +314,9 @@ class CheckoutViewModel @Inject constructor(
 
     fun onPaymentSheetFailed(errorMessage: String) {
         // PaymentSheet-internal failure — no capture, clear state.
+        // errorMessage has already been mapped through StripeErrorMapper at the
+        // UI layer; route it through UserFacingErrorMapper as a safety net in
+        // case a caller passes a raw string.
         Timber.e("PaymentSheet failed: $errorMessage")
         pendingPaymentStore.clear()
         currentClientSecret = null
@@ -321,7 +324,10 @@ class CheckoutViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.FAILED,
-                errorMessage = UserFacingErrorMapper.mapMessage(errorMessage, "Your payment couldn't be completed. Please try again."),
+                errorMessage = com.pacedream.common.util.StripeErrorMapper.mapPaymentSheetMessage(
+                    errorMessage,
+                    fallback = "Your payment couldn't be completed. Please try again."
+                ),
                 pendingPaymentIntentId = null,
                 hasExhaustedRetries = false,
                 confirmRetryCount = 0,

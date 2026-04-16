@@ -90,10 +90,12 @@ fun SettingsPaymentMethodsScreen(
                 }
                 is PaymentSheetResult.Failed -> {
                     Timber.e(result.error, "PaymentSheet failed")
+                    val userMsg = com.pacedream.common.util.StripeErrorMapper.mapPaymentSheetError(
+                        result.error,
+                        fallback = "Unable to add card. Please try again."
+                    )
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            "Unable to add card. Please try again."
-                        )
+                        snackbarHostState.showSnackbar(userMsg)
                     }
                 }
             }
