@@ -227,7 +227,7 @@ class BookingsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = e.message ?: "Failed to load bookings"
+                        error = com.pacedream.common.util.UserFacingErrorMapper.forLoadBookings(e)
                     )
                 }
             }
@@ -308,7 +308,7 @@ class BookingsViewModel @Inject constructor(
                 when (val fallback = apiClient.get(fallbackUrl, includeAuth = true)) {
                     is ApiResult.Success -> BookingsResult.Success(parseGuestBookings(fallback.data))
                     is ApiResult.Failure -> BookingsResult.Failure(
-                        res.error.message ?: "Failed to load bookings"
+                        com.pacedream.common.util.UserFacingErrorMapper.forLoadBookings(res.error)
                     )
                 }
             }
@@ -323,7 +323,7 @@ class BookingsViewModel @Inject constructor(
                 BookingsResult.Success(list)
             }
             is ApiResult.Failure -> {
-                BookingsResult.Failure(res.error.message ?: "Failed to load host bookings")
+                BookingsResult.Failure(com.pacedream.common.util.UserFacingErrorMapper.forLoadBookings(res.error))
             }
         }
     }

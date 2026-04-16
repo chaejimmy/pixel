@@ -123,14 +123,14 @@ class ListingDetailViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                inlineErrorMessage = result.error.message ?: "Failed to refresh listing details"
+                                inlineErrorMessage = "We couldn't refresh this listing. Pull to try again."
                             )
                         }
                     } else {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = result.error.message ?: "Failed to load"
+                                errorMessage = com.pacedream.common.util.UserFacingErrorMapper.forLoadProperties(result.error)
                             )
                         }
                     }
@@ -178,7 +178,7 @@ class ListingDetailViewModel @Inject constructor(
                 is ApiResult.Failure -> {
                     // Revert on failure
                     _uiState.update { it.copy(isFavorite = previous, isTogglingFavorite = false) }
-                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to update favorite"))
+                    _effects.send(Effect.ShowToast("We couldn't update your favorites. Please try again."))
                 }
             }
         }
@@ -247,7 +247,7 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isSubmittingReview = false) }
-                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to submit review"))
+                    _effects.send(Effect.ShowToast("We couldn't submit your review. Please try again."))
                 }
             }
         }
@@ -298,7 +298,7 @@ class ListingDetailViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     Timber.e("Failed to create thread: ${result.error.message}")
-                    _effects.send(Effect.ShowToast(result.error.message ?: "Failed to contact host"))
+                    _effects.send(Effect.ShowToast("We couldn't start this conversation. Please try again."))
                 }
             }
         }

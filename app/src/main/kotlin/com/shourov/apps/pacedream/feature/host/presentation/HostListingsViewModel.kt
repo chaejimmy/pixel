@@ -50,7 +50,7 @@ class HostListingsViewModel @Inject constructor(
                 .onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = exception.message ?: "Unknown error occurred"
+                        error = com.pacedream.common.util.UserFacingErrorMapper.forLoadProperties(exception)
                     )
                 }
         }

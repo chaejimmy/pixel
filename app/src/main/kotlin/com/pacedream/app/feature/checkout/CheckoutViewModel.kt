@@ -8,6 +8,7 @@ import com.pacedream.app.core.network.ApiResult
 import com.shourov.apps.pacedream.core.data.repository.BookingRepository as CoreBookingRepository
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
+import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -163,7 +164,7 @@ class CheckoutViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             status = CheckoutStatus.FAILED,
-                            errorMessage = result.error.message
+                            errorMessage = UserFacingErrorMapper.map(result.error, "We couldn't get a price quote. Please try again.")
                         )
                     }
                 }
@@ -273,7 +274,7 @@ class CheckoutViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             status = CheckoutStatus.FAILED,
-                            errorMessage = result.error.message
+                            errorMessage = UserFacingErrorMapper.map(result.error, "We couldn't set up your payment. Please try again.")
                         )
                     }
                 }
@@ -313,13 +314,14 @@ class CheckoutViewModel @Inject constructor(
 
     fun onPaymentSheetFailed(errorMessage: String) {
         // PaymentSheet-internal failure — no capture, clear state.
+        Timber.e("PaymentSheet failed: $errorMessage")
         pendingPaymentStore.clear()
         currentClientSecret = null
         currentQuoteId = null
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.FAILED,
-                errorMessage = errorMessage,
+                errorMessage = UserFacingErrorMapper.mapMessage(errorMessage, "Your payment couldn't be completed. Please try again."),
                 pendingPaymentIntentId = null,
                 hasExhaustedRetries = false,
                 confirmRetryCount = 0,

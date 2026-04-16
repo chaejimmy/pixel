@@ -123,7 +123,7 @@ class SettingsNotificationsViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    errorMessage = result.error.message
+                                    errorMessage = com.pacedream.common.util.UserFacingErrorMapper.map(result.error, "We couldn't load your notification settings. Please try again.")
                                 )
                             }
                         } else {
@@ -239,7 +239,7 @@ class SettingsNotificationsViewModel @Inject constructor(
                         if (snapshotBeforeSave != null) {
                             _uiState.value = snapshotBeforeSave.copy(
                                 isLoading = false,
-                                errorMessage = "Failed to save: ${result.error.message}"
+                                errorMessage = "We couldn't save your settings. Please try again."
                             )
                             // Also revert local cache
                             saveToLocal(snapshotBeforeSave.toSettings())
@@ -247,7 +247,7 @@ class SettingsNotificationsViewModel @Inject constructor(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    errorMessage = "Failed to save: ${result.error.message}"
+                                    errorMessage = "We couldn't save your settings. Please try again."
                                 )
                             }
                         }

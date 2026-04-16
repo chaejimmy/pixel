@@ -104,7 +104,7 @@ class ListingCalendarViewModel @Inject constructor(
                         Timber.e(err, "Failed to load calendar from backend")
                         _uiState.value = state.copy(
                             isLoading = false,
-                            error = err.message ?: "Failed to load calendar"
+                            error = com.pacedream.common.util.UserFacingErrorMapper.map(err, "We couldn't load the calendar. Please try again.")
                         )
                     }
                 )
@@ -112,7 +112,7 @@ class ListingCalendarViewModel @Inject constructor(
                 Timber.e(e, "Calendar load exception")
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Failed to load calendar data"
+                    error = com.pacedream.common.util.UserFacingErrorMapper.map(e, "We couldn't load the calendar. Please try again.")
                 )
             }
         }
@@ -196,7 +196,7 @@ class ListingCalendarViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isMutating = false,
-                        error = error.message ?: "Failed to block time"
+                        error = com.pacedream.common.util.UserFacingErrorMapper.map(error, "We couldn't update the calendar. Please try again.")
                     )
                 }
             )
@@ -224,7 +224,7 @@ class ListingCalendarViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isMutating = false,
-                        error = error.message ?: "Failed to remove block"
+                        error = com.pacedream.common.util.UserFacingErrorMapper.map(error, "We couldn't update the calendar. Please try again.")
                     )
                 }
             )
@@ -266,7 +266,7 @@ class ListingCalendarViewModel @Inject constructor(
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isMutating = false,
-                        error = error.message ?: "Failed to block time"
+                        error = com.pacedream.common.util.UserFacingErrorMapper.map(error, "We couldn't update the calendar. Please try again.")
                     )
                 }
             )

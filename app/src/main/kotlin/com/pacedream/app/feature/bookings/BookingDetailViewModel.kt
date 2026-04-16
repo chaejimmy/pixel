@@ -212,14 +212,14 @@ class BookingDetailViewModel @Inject constructor(
                         if (_uiState.value.booking != null) {
                             _uiState.update { it.copy(isLoading = false, error = "Could not refresh booking details.") }
                         } else {
-                            _uiState.update { it.copy(isLoading = false, error = res.error.message) }
+                            _uiState.update { it.copy(isLoading = false, error = com.pacedream.common.util.UserFacingErrorMapper.forLoadBookings(res.error)) }
                         }
                     }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load booking detail")
                 _uiState.update {
-                    it.copy(isLoading = false, error = e.message ?: "Failed to load booking details")
+                    it.copy(isLoading = false, error = com.pacedream.common.util.UserFacingErrorMapper.forLoadBookings(e))
                 }
             }
         }
@@ -266,7 +266,7 @@ class BookingDetailViewModel @Inject constructor(
                             }
                             is ApiResult.Failure -> {
                                 _uiState.update {
-                                    it.copy(isCancelling = false, cancelError = fallback.error.message)
+                                    it.copy(isCancelling = false, cancelError = com.pacedream.common.util.UserFacingErrorMapper.forBookingCancel(fallback.error))
                                 }
                             }
                         }
@@ -275,7 +275,7 @@ class BookingDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.e(e, "Failed to cancel booking")
                 _uiState.update {
-                    it.copy(isCancelling = false, cancelError = e.message ?: "Failed to cancel booking")
+                    it.copy(isCancelling = false, cancelError = com.pacedream.common.util.UserFacingErrorMapper.forBookingCancel(e))
                 }
             }
         }

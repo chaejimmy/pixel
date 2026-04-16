@@ -48,7 +48,7 @@ class CollectionsViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = result.error.message)
+                        it.copy(isLoading = false, errorMessage = com.pacedream.common.util.UserFacingErrorMapper.map(result.error, "We couldn't load your lists. Please try again."))
                     }
                 }
             }
@@ -76,7 +76,7 @@ class CollectionsViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isCreating = false) }
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
                 }
             }
         }
@@ -94,7 +94,7 @@ class CollectionsViewModel @Inject constructor(
                     _effects.send(Effect.ShowToast("List deleted"))
                 }
                 is ApiResult.Failure -> {
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
                 }
             }
         }
@@ -114,7 +114,7 @@ class CollectionsViewModel @Inject constructor(
                     loadCollections() // Refresh
                 }
                 is ApiResult.Failure -> {
-                    _effects.send(Effect.ShowToast(result.error.message))
+                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
                 }
             }
         }
