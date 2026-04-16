@@ -80,9 +80,12 @@ fun CheckoutScreen(
         when (result) {
             is PaymentSheetResult.Completed -> viewModel.onPaymentSheetCompleted()
             is PaymentSheetResult.Canceled -> viewModel.onPaymentSheetCancelled()
-            is PaymentSheetResult.Failed -> viewModel.onPaymentSheetFailed(
-                result.error.localizedMessage ?: "Payment failed. Please try again."
-            )
+            is PaymentSheetResult.Failed -> {
+                Timber.e(result.error, "PaymentSheet failed")
+                viewModel.onPaymentSheetFailed(
+                    com.pacedream.common.util.StripeErrorMapper.mapPaymentSheetError(result.error)
+                )
+            }
         }
     }
 
@@ -147,7 +150,10 @@ fun CheckoutScreen(
                     } catch (e: Exception) {
                         Timber.e(e, "Failed to present PaymentSheet")
                         viewModel.onPaymentSheetFailed(
-                            e.localizedMessage ?: "Unable to open payment form. Please try again."
+                            com.pacedream.common.util.StripeErrorMapper.mapPaymentSheetError(
+                                e,
+                                fallback = "Unable to open payment form. Please try again."
+                            )
                         )
                     }
                 }

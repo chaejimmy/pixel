@@ -124,14 +124,22 @@ fun ProfileScreen(
                             SectionRow(
                                 icon = PaceDreamIcons.DateRange,
                                 title = "Bookings",
-                                trailing = if (uiState.bookingsCount > 0) "${uiState.bookingsCount}" else null,
+                                trailing = when {
+                                    uiState.bookingsCountFailed -> "—"
+                                    uiState.bookingsCount > 0 -> "${uiState.bookingsCount}"
+                                    else -> null
+                                },
                                 onClick = onBookingsClick
                             )
                             SectionDivider()
                             SectionRow(
                                 icon = PaceDreamIcons.FavoriteBorder,
                                 title = "Favorites",
-                                trailing = if (uiState.wishlistCount > 0) "${uiState.wishlistCount}" else null,
+                                trailing = when {
+                                    uiState.wishlistCountFailed -> "—"
+                                    uiState.wishlistCount > 0 -> "${uiState.wishlistCount}"
+                                    else -> null
+                                },
                                 onClick = onFavoritesClick
                             )
                             SectionDivider()

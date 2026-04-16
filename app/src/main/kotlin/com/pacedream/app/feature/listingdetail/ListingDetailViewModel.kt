@@ -194,7 +194,7 @@ class ListingDetailViewModel @Inject constructor(
     fun loadReviews() {
         val listingId = currentListingId ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingReviews = true) }
+            _uiState.update { it.copy(isLoadingReviews = true, reviewsLoadFailed = false) }
             when (val result = reviewRepository.fetchReviews(listingId)) {
                 is ApiResult.Success -> {
                     val (summary, reviews) = result.data
@@ -202,12 +202,16 @@ class ListingDetailViewModel @Inject constructor(
                         it.copy(
                             isLoadingReviews = false,
                             reviewSummary = summary,
-                            reviews = reviews
+                            reviews = reviews,
+                            reviewsLoadFailed = false
                         )
                     }
                 }
                 is ApiResult.Failure -> {
-                    _uiState.update { it.copy(isLoadingReviews = false) }
+                    // Track the failure so the UI can show a "Couldn't load
+                    // reviews" message instead of the misleading "No reviews
+                    // yet" empty state.
+                    _uiState.update { it.copy(isLoadingReviews = false, reviewsLoadFailed = true) }
                     Timber.e("Failed to load reviews: ${result.error.message}")
                 }
             }

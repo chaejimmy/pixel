@@ -23,6 +23,12 @@ data class ListingDetailUiState(
     val reviews: List<ReviewModel> = emptyList(),
     val reviewSummary: ReviewSummary? = null,
     val isLoadingReviews: Boolean = false,
+    /**
+     * True when the reviews section failed to load. The UI should show a
+     * subtle "Couldn't load reviews" state with a retry, instead of the
+     * misleading "No reviews yet — be the first!" prompt.
+     */
+    val reviewsLoadFailed: Boolean = false,
     val isSubmittingReview: Boolean = false,
     val reviewSubmitSuccess: Boolean = false
 )

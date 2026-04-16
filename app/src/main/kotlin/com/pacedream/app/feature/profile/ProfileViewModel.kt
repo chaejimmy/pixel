@@ -82,23 +82,36 @@ class ProfileViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            var wishlistFailed = false
+            var bookingsFailed = false
             try {
-                fetchWishlistCount()
+                if (!fetchWishlistCount()) wishlistFailed = true
             } catch (e: Exception) {
                 Timber.e(e, "Failed to fetch wishlist count")
+                wishlistFailed = true
             }
             try {
-                fetchBookingsCount()
+                if (!fetchBookingsCount()) bookingsFailed = true
             } catch (e: Exception) {
                 Timber.e(e, "Failed to fetch bookings count")
+                bookingsFailed = true
             }
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    // Distinguish "truly zero" from "couldn't load" so the UI
+                    // can show a subtle hint (—) instead of "0".
+                    wishlistCountFailed = wishlistFailed,
+                    bookingsCountFailed = bookingsFailed
+                )
+            }
         }
     }
 
-    private suspend fun fetchWishlistCount() {
+    /** Returns true on success, false on failure. */
+    private suspend fun fetchWishlistCount(): Boolean {
         val url = appConfig.buildApiUrl("account", "wishlist")
-        when (val result = apiClient.get(url, includeAuth = true)) {
+        return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 val count = try {
                     val root = Json.parseToJsonElement(result.data).jsonObject
@@ -109,17 +122,20 @@ class ProfileViewModel @Inject constructor(
                         ?: root["wishlist"]?.jsonArray
                     items?.size ?: 0
                 } catch (_: Exception) { 0 }
-                _uiState.update { it.copy(wishlistCount = count) }
+                _uiState.update { it.copy(wishlistCount = count, wishlistCountFailed = false) }
+                true
             }
             is ApiResult.Failure -> {
                 Timber.w("Wishlist count fetch failed: ${result.error}")
+                false
             }
         }
     }
 
-    private suspend fun fetchBookingsCount() {
+    /** Returns true on success, false on failure. */
+    private suspend fun fetchBookingsCount(): Boolean {
         val url = appConfig.buildApiUrl("bookings", "mine")
-        when (val result = apiClient.get(url, includeAuth = true)) {
+        return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> {
                 val count = try {
                     val root = Json.parseToJsonElement(result.data).jsonObject
@@ -130,10 +146,12 @@ class ProfileViewModel @Inject constructor(
                         ?: root["bookings"]?.jsonArray
                     items?.size ?: 0
                 } catch (_: Exception) { 0 }
-                _uiState.update { it.copy(bookingsCount = count) }
+                _uiState.update { it.copy(bookingsCount = count, bookingsCountFailed = false) }
+                true
             }
             is ApiResult.Failure -> {
                 Timber.w("Bookings count fetch failed: ${result.error}")
+                false
             }
         }
     }
@@ -161,5 +179,15 @@ data class ProfileUiState(
     val userAvatar: String? = null,
     val bookingsCount: Int = 0,
     val wishlistCount: Int = 0,
+    /**
+     * True when the bookings count couldn't be fetched. The UI should
+     * show a subtle hint ("—") instead of "0" so the user doesn't
+     * mistakenly think they have zero bookings.
+     */
+    val bookingsCountFailed: Boolean = false,
+    /**
+     * True when the wishlist/favorites count couldn't be fetched.
+     */
+    val wishlistCountFailed: Boolean = false,
     val identityStatus: String? = null
 )
