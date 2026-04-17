@@ -581,6 +581,39 @@ class BookingRepository @Inject constructor(
             ?: obj["created_at"]?.jsonPrimitive?.content
             ?: ""
 
+        // Optional payment breakdown — tolerant across snake_case / camelCase
+        // and nested "priceBreakdown" / "fees" / "pricing" envelopes.  When
+        // the response omits all of these we leave the fields null and the
+        // UI falls back to the current Total-only render.  No contract is
+        // invented: each field uses common existing aliases matching what
+        // other PaceDream responses (checkout quote, listing pricing)
+        // already emit.
+        val breakdownObj = (obj["priceBreakdown"] as? JsonObject)
+            ?: (obj["price_breakdown"] as? JsonObject)
+            ?: (obj["pricing"] as? JsonObject)
+            ?: (obj["fees"] as? JsonObject)
+
+        fun findDouble(vararg keys: String): Double? {
+            for (k in keys) {
+                obj[k]?.jsonPrimitive?.doubleOrNull?.let { return it }
+                breakdownObj?.get(k)?.jsonPrimitive?.doubleOrNull?.let { return it }
+            }
+            return null
+        }
+
+        val subtotal = findDouble(
+            "subtotal", "subtotalAmount", "base_amount", "baseAmount", "basePrice", "base_price"
+        )
+        val serviceFee = findDouble(
+            "serviceFee", "service_fee", "platformFee", "platform_fee", "serviceCharge", "service_charge"
+        )
+        val cleaningFee = findDouble(
+            "cleaningFee", "cleaning_fee"
+        )
+        val taxAmount = findDouble(
+            "taxAmount", "tax_amount", "tax", "taxes", "salesTax", "sales_tax"
+        )
+
         return BookingModel(
             id = id,
             propertyId = propertyId,
@@ -598,7 +631,11 @@ class BookingRepository @Inject constructor(
             createdAt = createdAt,
             checkInTime = startDate,
             checkOutTime = endDate,
-            price = totalPrice.toString()
+            price = totalPrice.toString(),
+            subtotal = subtotal,
+            serviceFee = serviceFee,
+            cleaningFee = cleaningFee,
+            taxAmount = taxAmount
         )
     }
 
