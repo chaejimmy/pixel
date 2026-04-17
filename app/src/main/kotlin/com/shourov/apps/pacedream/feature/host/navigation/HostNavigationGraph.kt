@@ -74,6 +74,9 @@ fun NavGraphBuilder.HostNavigationGraph(
             onListingClick = onHostListingClick,
             onAddListingClick = onNavigateToAddListing,
             onEditListingClick = onNavigateToEditListing,
+            // onDeleteListingClick is optional for analytics — the screen
+            // always drives the confirmation dialog + HostRepository
+            // deleteListing call internally via its ViewModel.
             onCalendarClick = { listingId ->
                 if (listingId.isNotBlank()) {
                     navController.navigate("listing_calendar/$listingId")
@@ -180,7 +183,8 @@ fun NavGraphBuilder.HostNavigationGraph(
         val listingId = backStackEntry.arguments?.getString("listingId") ?: ""
         com.shourov.apps.pacedream.feature.host.presentation.HostListingPreviewScreen(
             listingId = listingId,
-            onBackClick = { navController.popBackStack() }
+            onBackClick = { navController.popBackStack() },
+            onEditClick = { id -> onNavigateToEditListing(id) },
         )
     }
 

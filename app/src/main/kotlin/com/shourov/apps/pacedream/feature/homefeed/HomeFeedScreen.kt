@@ -90,6 +90,9 @@ fun HomeFeedScreen(
     onSeeAll: (HomeSectionKey) -> Unit,
     onShowAuthSheet: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onWhereClick: () -> Unit = onSearchClick,
+    onWhenClick: () -> Unit = onSearchClick,
+    onWhoClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
@@ -142,6 +145,9 @@ fun HomeFeedScreen(
                     DiscoverHeader(
                         onSearchClick = onSearchClick,
                         onFilterClick = onSearchClick,
+                        onWhereClick = onWhereClick,
+                        onWhenClick = onWhenClick,
+                        onWhoClick = onWhoClick,
                         onNotificationClick = onNotificationClick
                     )
                 }
@@ -251,6 +257,9 @@ private data class SectionContentState(
 private fun DiscoverHeader(
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
+    onWhereClick: () -> Unit = onSearchClick,
+    onWhenClick: () -> Unit = onSearchClick,
+    onWhoClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {}
 ) {
     Column(
@@ -302,7 +311,9 @@ private fun DiscoverHeader(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // iOS-style search bar with shadow
+        // Airbnb-style structured search pill: three tappable segments
+        // (Where / When / Who).  Tapping the trailing primary circle
+        // opens the full search (and also serves as "go to filters").
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -311,11 +322,6 @@ private fun DiscoverHeader(
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
                     ambientColor = Color.Black.copy(alpha = 0.06f),
                     spotColor = Color.Black.copy(alpha = 0.08f)
-                )
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onSearchClick
                 ),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             color = Color.White,
@@ -324,54 +330,45 @@ private fun DiscoverHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            PaceDreamColors.Primary.copy(alpha = 0.08f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Search,
-                        contentDescription = "Search",
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Where to?",
-                        style = PaceDreamTypography.Headline.copy(
-                            fontFamily = paceDreamFontFamily,
-                            fontSize = 15.sp
-                        ),
-                        color = PaceDreamColors.TextPrimary
-                    )
-                    Text(
-                        text = "Anywhere \u00B7 Any time \u00B7 Any type",
-                        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
-                        color = PaceDreamColors.Gray400
-                    )
-                }
+                SearchSegment(
+                    label = "Where",
+                    value = "Anywhere",
+                    onClick = onWhereClick,
+                    modifier = Modifier.weight(1.2f)
+                )
+                SegmentDivider()
+                SearchSegment(
+                    label = "When",
+                    value = "Any time",
+                    onClick = onWhenClick,
+                    modifier = Modifier.weight(1f)
+                )
+                SegmentDivider()
+                SearchSegment(
+                    label = "Who",
+                    value = "Add guests",
+                    onClick = onWhoClick,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Spacer(modifier = Modifier.width(4.dp))
+
                 Surface(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
-                    color = PaceDreamColors.Gray50
+                    color = PaceDreamColors.Primary
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = PaceDreamIcons.Tune,
-                            contentDescription = "Filters",
-                            tint = PaceDreamColors.TextPrimary,
+                            imageVector = PaceDreamIcons.Search,
+                            contentDescription = "Search",
+                            tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -379,6 +376,57 @@ private fun DiscoverHeader(
             }
         }
     }
+}
+
+/**
+ * Airbnb-style two-line segment inside the hero search pill.  Each
+ * segment is an independent click target routed to its own picker.
+ */
+@Composable
+private fun SearchSegment(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = label,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+            fontWeight = FontWeight.SemiBold,
+            color = PaceDreamColors.TextPrimary,
+            maxLines = 1
+        )
+        Spacer(modifier = Modifier.height(1.dp))
+        Text(
+            text = value,
+            style = PaceDreamTypography.Caption.copy(
+                fontFamily = paceDreamFontFamily,
+                fontSize = 12.sp
+            ),
+            color = PaceDreamColors.Gray500,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun SegmentDivider() {
+    Box(
+        modifier = Modifier
+            .height(28.dp)
+            .width(1.dp)
+            .background(PaceDreamColors.Gray200)
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

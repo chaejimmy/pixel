@@ -160,12 +160,20 @@ private fun mapCategoryToBackend(cat: String): String {
     return categoryMap[cat] ?: cat.lowercase().replace(" ", "_")
 }
 
+/**
+ * Target field to auto-engage when the search screen opens.  Used so the
+ * hero "Where / When / Who" segments on Home route the user directly to
+ * the right picker in a single tap, matching Airbnb/Turo.
+ */
+enum class SearchInitialFocus { WHERE, WHEN, WHO }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
     onListingClick: (String) -> Unit,
     initialQuery: String? = null,
+    initialFocus: SearchInitialFocus? = null,
     onShowAuthSheet: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
@@ -178,6 +186,17 @@ fun SearchScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Hero "Where / When / Who" focus state — hoisted so the guest
+    // sheet can be rendered at the root of SearchScreen regardless of
+    // where the search bar lives inside the Scaffold.
+    // adultGuests lives in SearchUiState so it survives rotation and
+    // is reflected in the collapsed summary bar; the sheet reads from
+    // and writes to the ViewModel.  NOTE: not yet forwarded to the
+    // search repository — see SearchUiState.adultGuests doc.
+    val adultGuests = state.adultGuests
+    var showGuestsSheet by remember { mutableStateOf(false) }
+    var pickerHandled by remember { mutableStateOf(false) }
 
     // Sort state
     var selectedSort by remember { mutableStateOf("relevance") }
@@ -293,6 +312,28 @@ fun SearchScreen(
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
 
+                // Hero "Where / When / Who" focus routing ----------------
+                // Adults / showGuestsSheet / pickerHandled are declared at
+                // SearchScreen function-body level (above) so the guest
+                // sheet can be hosted outside the Scaffold.  Adults is
+                // stored locally until repo.search() accepts guest count.
+                LaunchedEffect(initialFocus) {
+                    if (pickerHandled) return@LaunchedEffect
+                    isSearchBarExpanded = true
+                    when (initialFocus) {
+                        SearchInitialFocus.WHEN -> {
+                            openDatePicker()
+                            pickerHandled = true
+                        }
+                        SearchInitialFocus.WHO -> {
+                            showGuestsSheet = true
+                            pickerHandled = true
+                        }
+                        SearchInitialFocus.WHERE,
+                        null -> Unit
+                    }
+                }
+
                 LaunchedEffect(state.shareType) {
                     selectedTab = when (state.shareType?.uppercase()) {
                         "SHARE" -> com.pacedream.app.feature.search.SearchTab.SPACES
@@ -332,6 +373,16 @@ fun SearchScreen(
                                     if (whereQuery.isNotBlank()) {
                                         if (isNotBlank()) append(" · ")
                                         append(whereQuery)
+                                    }
+                                    // Guest count is tracked locally as a UX
+                                    // hint; it is not yet a backend search
+                                    // filter — see SearchUiState.adultGuests.
+                                    if (adultGuests > 0) {
+                                        if (isNotBlank()) append(" · ")
+                                        append(
+                                            if (adultGuests == 1) "1 guest"
+                                            else "$adultGuests guests"
+                                        )
                                     }
                                     if (isEmpty()) append("Search")
                                 },
@@ -542,6 +593,120 @@ fun SearchScreen(
                             }
                 }
             }
+        }
+    }
+
+    // Hero "Who" picker sheet — adults 1..16, matches Airbnb guest stepper.
+    if (showGuestsSheet) {
+        GuestsPickerSheet(
+            initialCount = adultGuests.coerceAtLeast(1),
+            onDismiss = { showGuestsSheet = false },
+            onConfirm = { count ->
+                viewModel.updateAdultGuests(count)
+                showGuestsSheet = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GuestsPickerSheet(
+    initialCount: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var count by remember { mutableStateOf(initialCount.coerceIn(1, 16)) }
+
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = PaceDreamColors.Background,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
+        ) {
+            Text(
+                text = "Who's coming?",
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Choose how many guests.",
+                style = PaceDreamTypography.Footnote,
+                color = PaceDreamColors.TextSecondary
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Adults",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                    Text(
+                        text = "Ages 13 or above",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { if (count > 1) count-- },
+                        enabled = count > 1
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Remove,
+                            contentDescription = "Decrease",
+                            tint = if (count > 1) PaceDreamColors.TextPrimary else PaceDreamColors.Gray400
+                        )
+                    }
+                    Text(
+                        text = count.toString(),
+                        style = PaceDreamTypography.Title3,
+                        color = PaceDreamColors.TextPrimary,
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                    )
+                    IconButton(
+                        onClick = { if (count < 16) count++ },
+                        enabled = count < 16
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Add,
+                            contentDescription = "Increase",
+                            tint = if (count < 16) PaceDreamColors.TextPrimary else PaceDreamColors.Gray400
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            Button(
+                onClick = { onConfirm(count) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+            ) {
+                Text(
+                    text = "Apply",
+                    style = PaceDreamTypography.Headline,
+                    color = Color.White
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
     }
 }

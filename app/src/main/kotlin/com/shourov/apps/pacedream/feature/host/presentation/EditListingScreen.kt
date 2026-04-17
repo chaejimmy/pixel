@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -98,6 +99,12 @@ import javax.inject.Inject
 
 /** Max photos the host can attach to a listing (matches create-listing cap). */
 private const val MAX_EDIT_IMAGES = 10
+
+/** Conservative capacity bounds — match the backend's validation caps. */
+private const val MIN_GUESTS = 1
+private const val MAX_GUESTS = 32
+private const val MIN_ROOMS = 0
+private const val MAX_ROOMS = 20
 
 // ── UI State ────────────────────────────────────────────────────────────────
 data class EditListingUiState(
@@ -201,6 +208,24 @@ class EditListingViewModel @Inject constructor(
     fun updateAvailability(isAvailable: Boolean) { _uiState.value = _uiState.value.copy(isAvailable = isAvailable) }
     fun clearError() { _uiState.value = _uiState.value.copy(error = null) }
     fun clearSaveSuccess() { _uiState.value = _uiState.value.copy(saveSuccess = false) }
+
+    /**
+     * Capacity updaters — bounded to conservative ranges so the backend
+     * never receives a value it would reject (the API caps maxGuests at
+     * 32 and bedrooms/bathrooms at 20 elsewhere in the product).
+     * Called from stepper controls, so non-numeric input is not possible.
+     */
+    fun updateMaxGuests(value: Int) {
+        _uiState.value = _uiState.value.copy(maxGuests = value.coerceIn(MIN_GUESTS, MAX_GUESTS))
+    }
+
+    fun updateBedrooms(value: Int) {
+        _uiState.value = _uiState.value.copy(bedrooms = value.coerceIn(MIN_ROOMS, MAX_ROOMS))
+    }
+
+    fun updateBathrooms(value: Int) {
+        _uiState.value = _uiState.value.copy(bathrooms = value.coerceIn(MIN_ROOMS, MAX_ROOMS))
+    }
 
     fun updateBasePrice(value: String) {
         val cleaned = value.replace(Regex("[^0-9.]"), "")
@@ -496,6 +521,9 @@ fun EditListingScreen(
                 onAddressChange = viewModel::updateAddress,
                 onCityChange = viewModel::updateCity,
                 onStateChange = viewModel::updateState,
+                onMaxGuestsChange = viewModel::updateMaxGuests,
+                onBedroomsChange = viewModel::updateBedrooms,
+                onBathroomsChange = viewModel::updateBathrooms,
                 onToggleAmenity = viewModel::toggleAmenity,
                 onAvailabilityChange = viewModel::updateAvailability,
                 onRemoveImage = viewModel::removeImage,
@@ -523,6 +551,9 @@ private fun EditListingForm(
     onAddressChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
     onStateChange: (String) -> Unit,
+    onMaxGuestsChange: (Int) -> Unit,
+    onBedroomsChange: (Int) -> Unit,
+    onBathroomsChange: (Int) -> Unit,
     onToggleAmenity: (String) -> Unit,
     onAvailabilityChange: (Boolean) -> Unit,
     onRemoveImage: (Int) -> Unit,
@@ -606,6 +637,40 @@ private fun EditListingForm(
                     shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
                 )
             }
+        }
+        Spacer(Modifier.height(PaceDreamSpacing.MD))
+
+        // Capacity — maxGuests / bedrooms / bathrooms are already in
+        // EditListingUiState and are round-tripped into the Property
+        // sent to PATCH /listings/:id.  Before this section they had
+        // no form input and only mirrored what the backend returned.
+        CollapsibleSection("Capacity", PaceDreamIcons.Person) {
+            CapacityStepperRow(
+                label = "Max guests",
+                sublabel = "How many people can book this listing at once.",
+                value = uiState.maxGuests,
+                minValue = MIN_GUESTS,
+                maxValue = MAX_GUESTS,
+                onValueChange = onMaxGuestsChange,
+            )
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+            CapacityStepperRow(
+                label = "Bedrooms",
+                sublabel = "Count of separate sleeping rooms.",
+                value = uiState.bedrooms,
+                minValue = MIN_ROOMS,
+                maxValue = MAX_ROOMS,
+                onValueChange = onBedroomsChange,
+            )
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+            CapacityStepperRow(
+                label = "Bathrooms",
+                sublabel = "Full and half baths combined.",
+                value = uiState.bathrooms,
+                minValue = MIN_ROOMS,
+                maxValue = MAX_ROOMS,
+                onValueChange = onBathroomsChange,
+            )
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
 
@@ -784,6 +849,85 @@ private fun EditListingForm(
             Text(label, style = PaceDreamTypography.Button)
         }
         Spacer(Modifier.height(PaceDreamSpacing.LG))
+    }
+}
+
+// ── Capacity Stepper ────────────────────────────────────────────────────────
+
+/**
+ * Row with a label + sublabel on the left and a [-, count, +] stepper on
+ * the right.  Matches the look of other edit rows (Body text primary,
+ * Caption secondary) and disables the respective button at the bounds so
+ * the caller never sees an out-of-range value.
+ */
+@Composable
+private fun CapacityStepperRow(
+    label: String,
+    sublabel: String,
+    value: Int,
+    minValue: Int,
+    maxValue: Int,
+    onValueChange: (Int) -> Unit,
+) {
+    // Defend against stale state that could live outside the declared
+    // bounds (e.g. a listing loaded with maxGuests == 0 predating this
+    // field surfacing).  Display the coerced value; mutations emit the
+    // correct bounded value to the caller.
+    val displayValue = value.coerceIn(minValue, maxValue)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = sublabel,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = { onValueChange(displayValue - 1) },
+                enabled = displayValue > minValue,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Remove,
+                    contentDescription = "Decrease $label",
+                    tint = if (displayValue > minValue)
+                        PaceDreamColors.TextPrimary
+                    else
+                        PaceDreamColors.Gray400,
+                )
+            }
+            Text(
+                text = displayValue.toString(),
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .widthIn(min = 32.dp)
+                    .padding(horizontal = PaceDreamSpacing.SM),
+            )
+            IconButton(
+                onClick = { onValueChange(displayValue + 1) },
+                enabled = displayValue < maxValue,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Add,
+                    contentDescription = "Increase $label",
+                    tint = if (displayValue < maxValue)
+                        PaceDreamColors.TextPrimary
+                    else
+                        PaceDreamColors.Gray400,
+                )
+            }
+        }
     }
 }
 

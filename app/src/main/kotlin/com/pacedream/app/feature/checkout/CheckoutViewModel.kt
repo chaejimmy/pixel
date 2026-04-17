@@ -208,6 +208,48 @@ class CheckoutViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(status = CheckoutStatus.PROCESSING, errorMessage = null) }
 
+            // ── Step 0: Availability pre-check ───────────────────────
+            // Guards against the race where another guest books the same
+            // slot between quote creation and PaymentIntent capture.  We
+            // still let the backend enforce on createPaymentIntent — this
+            // is a pre-flight UX check so we don't charge a card for a
+            // slot that is already gone.  Failures here are logged and
+            // we proceed (defense-in-depth) because the payment/booking
+            // paths validate again server-side.
+            val draft = _uiState.value.draft
+            if (draft != null) {
+                val startIso = draft.startTimeISO.ensureUtcSuffix()
+                val endIso = draft.endTimeISO.ensureUtcSuffix()
+                when (val avail = coreBookingRepository.checkAvailability(
+                    listingId = draft.listingId,
+                    startDate = startIso,
+                    endDate = endIso,
+                )) {
+                    is com.shourov.apps.pacedream.core.common.result.Result.Success -> {
+                        val result = avail.data
+                        if (!result.available || !result.listingBookable) {
+                            val reason = if (!result.listingBookable)
+                                "This listing is not currently accepting bookings."
+                            else
+                                result.displayReason
+                            _uiState.update {
+                                it.copy(
+                                    status = CheckoutStatus.FAILED,
+                                    errorMessage = reason,
+                                )
+                            }
+                            return@launch
+                        }
+                    }
+                    is com.shourov.apps.pacedream.core.common.result.Result.Error -> {
+                        // Log and continue — backend will enforce on
+                        // PaymentIntent creation / confirm-booking.
+                        Timber.w(avail.exception, "Pre-flight availability check failed, continuing")
+                    }
+                    is com.shourov.apps.pacedream.core.common.result.Result.Loading -> { /* n/a */ }
+                }
+            }
+
             // Create PaymentIntent on backend
             when (val result = nativePaymentRepository.createPaymentIntent(quote.quoteId)) {
                 is ApiResult.Success -> {
@@ -557,5 +599,20 @@ class CheckoutViewModel @Inject constructor(
     fun retryQuote() {
         val draft = _uiState.value.draft ?: return
         fetchQuote(draft)
+    }
+
+    /**
+     * BookingDraft stores ISO times as "yyyy-MM-ddTHH:mm:ss" (no zone).
+     * The backend check-availability endpoint expects a full ISO-8601 UTC
+     * string, so append "Z" when no zone marker is already present.  This
+     * matches the format used by BookingFormViewModel.createBooking().
+     */
+    private fun String.ensureUtcSuffix(): String {
+        if (endsWith("Z", ignoreCase = true)) return this
+        // Detect a trailing "+HH:MM" or "-HH:MM" offset after the time
+        // portion (positions 10+ skip the "yyyy-MM-dd" date separators).
+        val tail = if (length > 10) substring(10) else this
+        if (tail.contains('+') || tail.contains('-')) return this
+        return "${this}Z"
     }
 }
