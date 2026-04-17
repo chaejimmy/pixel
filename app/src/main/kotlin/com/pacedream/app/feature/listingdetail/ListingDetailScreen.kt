@@ -1439,7 +1439,7 @@ private fun HostCard(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
-                        if (host?.isVerified == true || host?.verifications?.isNotEmpty() == true) {
+                        if (host?.isVerified == true) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 PaceDreamIcons.Verified,

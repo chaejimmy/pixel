@@ -123,7 +123,8 @@ class PropertyDetailRepository @Inject constructor(
             // Host profile details (iOS parity)
             val hostBio = hostObj?.string("bio", "about", "description")
             val hostIsSuperhost = hostObj?.bool("isSuperhost", "is_superhost")
-            val hostIsVerified = hostObj?.bool("isVerified", "is_verified")
+            // Verified badge = canonical backend signal only: verificationState.verified.
+            val hostIsVerified = hostObj?.get("verificationState")?.asObjectOrNull()?.bool("verified")
 
             // Property details (iOS parity)
             val propertyType = listing.string("propertyType", "property_type", "type", "category")

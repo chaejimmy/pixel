@@ -334,8 +334,12 @@ fun ProfileHeader(
             }
         }
 
-        // Verification badges — iOS: inline pills
-        if (verificationStatus.hasAnyVerification) {
+        // Verification badges — iOS: inline pills.
+        // Render gate is strictly the backend `verificationState.verified` flag;
+        // per-method pills inside still reflect their own flags as informational
+        // chips, but the whole row only appears for users the backend considers
+        // verified.
+        if (verificationStatus.verified) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),

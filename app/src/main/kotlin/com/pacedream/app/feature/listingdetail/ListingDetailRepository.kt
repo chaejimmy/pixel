@@ -352,15 +352,24 @@ class ListingDetailRepository @Inject constructor(
             ?: owner["profilePic"]?.asArrayOrNull()?.firstOrNull()?.asStringOrNull()
             ?: listing.string("hostAvatar", "host_avatar")
 
+        // Per-method verification pills — only what the backend explicitly
+        // ships under `verifications`. We no longer synthesize entries from
+        // local emailVerified/phoneVerified/identityVerified booleans: the
+        // Verified badge is canonically `verificationState.verified` and this
+        // row is purely descriptive for methods the server has acknowledged.
         val verifications = buildList {
             owner["verifications"]?.asArrayOrNull()?.forEach { v ->
                 v.asStringOrNull()?.let { s -> add(s) }
                 v.asObjectOrNull()?.string("type", "method")?.let { s -> add(s) }
             }
-            if (owner.boolean("emailVerified", "email_verified") == true) add("email")
-            if (owner.boolean("phoneVerified", "phone_verified") == true) add("phone")
-            if (owner.boolean("identityVerified", "identity_verified") == true) add("identity")
         }.distinct()
+
+        // Verified badge = canonical backend signal only: verificationState.verified.
+        // Any top-level isVerified / is_verified / verified booleans are legacy
+        // per-method heuristics and intentionally ignored here so the UI never
+        // shows a checkmark unless the backend has decided the user is verified.
+        val verificationState = owner["verificationState"]?.asObjectOrNull()
+            ?: hostUser["verificationState"]?.asObjectOrNull()
 
         return ListingHost(
             id = id,
@@ -368,7 +377,7 @@ class ListingDetailRepository @Inject constructor(
             avatarUrl = avatar,
             bio = owner.string("bio", "about", "description"),
             isSuperhost = owner.boolean("isSuperhost", "is_superhost", "superhost"),
-            isVerified = owner.boolean("isVerified", "is_verified", "verified"),
+            isVerified = verificationState?.boolean("verified"),
             responseRate = owner.int("responseRate", "response_rate"),
             responseTime = owner.string("responseTime", "response_time"),
             listingCount = owner.int("listingCount", "listing_count", "listingsCount"),
