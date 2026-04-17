@@ -18,7 +18,15 @@ data class SearchResultItem(
     val available: Boolean = true,
     val isNew: Boolean = false,
     val hostName: String? = null,
-    val hostAvatar: String? = null
+    val hostAvatar: String? = null,
+    /**
+     * Listing coordinates used by the map results mode.  Populated only
+     * when the backend response carries geocoded coordinates — items
+     * without valid coords are hidden from the map and a banner tells
+     * the user how many of the total results are mappable.
+     */
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 data class SearchPage(

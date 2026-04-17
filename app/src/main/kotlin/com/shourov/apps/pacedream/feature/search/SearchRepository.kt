@@ -345,6 +345,12 @@ class SearchRepository @Inject constructor(
             imageUrl?.let { if (!contains(it)) add(0, it) }
         }.distinct()
 
+        // Geo coordinates for map results mode — tolerant across
+        // camelCase / snake_case, nested location object, and GeoJSON
+        // [lng, lat] coordinates arrays.  Null when the response has no
+        // usable coords; the map filters those out and shows the others.
+        val coords = extractCoordinates(obj)
+
         SearchResultItem(
             id = id,
             title = title,
@@ -358,11 +364,52 @@ class SearchRepository @Inject constructor(
             available = available,
             isNew = isNew,
             hostName = hostName,
-            hostAvatar = hostAvatar
+            hostAvatar = hostAvatar,
+            latitude = coords?.first,
+            longitude = coords?.second,
         )
     } catch (e: Exception) {
         Timber.w(e, "Skipping unparseable search item")
         null
+    }
+
+    /**
+     * Tolerant coordinate reader.  Returns null when no usable pair is
+     * found.  Rejects (0, 0) which is a common "unset" sentinel.
+     * GeoJSON arrays are stored as [longitude, latitude].
+     */
+    private fun extractCoordinates(obj: JsonObject): Pair<Double, Double>? {
+        fun numberOrNull(el: JsonElement?): Double? =
+            (el as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
+
+        fun coordsFromObj(o: JsonObject?): Pair<Double, Double>? {
+            if (o == null) return null
+            val lat = numberOrNull(o["latitude"]) ?: numberOrNull(o["lat"])
+            val lng = numberOrNull(o["longitude"]) ?: numberOrNull(o["lng"]) ?: numberOrNull(o["lon"])
+            if (lat != null && lng != null) return lat to lng
+            val arr = o["coordinates"] as? JsonArray
+            if (arr != null && arr.size >= 2) {
+                val a0 = numberOrNull(arr[0])
+                val a1 = numberOrNull(arr[1])
+                // GeoJSON is [lng, lat]; swap to (lat, lng).
+                if (a0 != null && a1 != null) return a1 to a0
+            }
+            return null
+        }
+
+        val candidates = listOf(
+            coordsFromObj(obj),
+            coordsFromObj(obj["location"] as? JsonObject),
+            coordsFromObj(obj["address"] as? JsonObject),
+            coordsFromObj(obj["geo"] as? JsonObject),
+            coordsFromObj(obj["coordinates"] as? JsonObject),
+        )
+        val pair = candidates.firstOrNull { it != null } ?: return null
+        val (lat, lng) = pair
+        // Reject clearly-invalid / unset sentinels and out-of-range values.
+        if (lat == 0.0 && lng == 0.0) return null
+        if (lat !in -90.0..90.0 || lng !in -180.0..180.0) return null
+        return lat to lng
     }
 
     private fun normalizePriceText(raw: String): String {

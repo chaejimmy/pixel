@@ -140,6 +140,14 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(adultGuests = bounded) }
     }
 
+    /**
+     * Toggle between list and map presentation of the same results.
+     * Does not mutate the item list or re-fetch — purely a UI mode.
+     */
+    fun updateViewMode(mode: SearchViewMode) {
+        _uiState.update { it.copy(viewMode = mode) }
+    }
+
     private var searchJob: Job? = null
 
     fun submitSearch() {
@@ -280,6 +288,13 @@ class SearchViewModel @Inject constructor(
     }
 }
 
+/**
+ * Presentation mode for the already-loaded search results.  Toggling
+ * does not mutate the item list or re-fetch — it only changes which
+ * composable renders the current [SearchUiState.items].
+ */
+enum class SearchViewMode { LIST, MAP }
+
 data class SearchUiState(
     val query: String = "",
     val city: String? = null,
@@ -305,7 +320,9 @@ data class SearchUiState(
      * See the `guests` filter in SearchScreen.GuestsPickerSheet for UX.
      * 0 == "any / unspecified".
      */
-    val adultGuests: Int = 0
+    val adultGuests: Int = 0,
+    /** Current presentation mode for results; list is the default. */
+    val viewMode: SearchViewMode = SearchViewMode.LIST
 )
 
 enum class SearchPhase {

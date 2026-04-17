@@ -48,9 +48,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -559,36 +561,57 @@ fun SearchScreen(
                                 )
                                 SearchPhase.Empty -> EmptyState(shareType = currentShareType)
                                 SearchPhase.Success, SearchPhase.LoadingMore -> {
-                                    ResultsList(
-                                        items = state.items,
-                                        isLoadingMore = state.phase == SearchPhase.LoadingMore,
-                                        hasMore = state.hasMore,
-                                        onLoadMore = { viewModel.loadMoreIfNeeded() },
-                                        onItemClick = onListingClick,
-                                        favoriteIds = favoriteIds,
-                                        onFavoriteClick = { listingId ->
-                                            if (authState == AuthState.Unauthenticated) {
-                                                onShowAuthSheet()
-                                                return@ResultsList
-                                            }
-                                            scope.launch {
-                                                val wasFavorited = favoriteIds.contains(listingId)
-                                                when (val res = viewModel.toggleFavorite(listingId)) {
-                                                    is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
-                                                    is ApiResult.Failure -> {
-                                                        if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
-                                                            onShowAuthSheet()
-                                                        } else {
-                                                            inlineBannerMessage = (res.error.message ?: "Failed to save")
+                                    // List / Map toggle — only rendered once
+                                    // we have results so it doesn't appear on
+                                    // empty or error states.
+                                    SearchViewModeToggle(
+                                        mode = state.viewMode,
+                                        onModeChange = { viewModel.updateViewMode(it) },
+                                        mappableCount = state.items.count {
+                                            it.latitude != null && it.longitude != null
+                                        },
+                                        totalCount = state.items.size,
+                                    )
+
+                                    when (state.viewMode) {
+                                        SearchViewMode.LIST -> ResultsList(
+                                            items = state.items,
+                                            isLoadingMore = state.phase == SearchPhase.LoadingMore,
+                                            hasMore = state.hasMore,
+                                            onLoadMore = { viewModel.loadMoreIfNeeded() },
+                                            onItemClick = onListingClick,
+                                            favoriteIds = favoriteIds,
+                                            onFavoriteClick = { listingId ->
+                                                if (authState == AuthState.Unauthenticated) {
+                                                    onShowAuthSheet()
+                                                    return@ResultsList
+                                                }
+                                                scope.launch {
+                                                    val wasFavorited = favoriteIds.contains(listingId)
+                                                    when (val res = viewModel.toggleFavorite(listingId)) {
+                                                        is ApiResult.Success -> inlineBannerMessage = (if (wasFavorited) "Removed from Favorites" else "Saved to Favorites")
+                                                        is ApiResult.Failure -> {
+                                                            if (res.error is com.shourov.apps.pacedream.core.network.api.ApiError.Unauthorized) {
+                                                                onShowAuthSheet()
+                                                            } else {
+                                                                inlineBannerMessage = (res.error.message ?: "Failed to save")
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        shareType = currentShareType,
-                                        displayLocation = state.city,
-                                        totalCount = state.items.size
-                                    )
+                                            },
+                                            shareType = currentShareType,
+                                            displayLocation = state.city,
+                                            totalCount = state.items.size
+                                        )
+                                        SearchViewMode.MAP -> SearchMapResults(
+                                            items = state.items,
+                                            onItemClick = onListingClick,
+                                            onSwitchToList = {
+                                                viewModel.updateViewMode(SearchViewMode.LIST)
+                                            },
+                                        )
+                                    }
                                 }
                             }
                 }
@@ -1390,6 +1413,287 @@ private fun ModernSearchResultCard(
                     color = if (price != null) PaceDreamColors.Primary else PaceDreamColors.TextTertiary,
                     fontWeight = if (price != null) FontWeight.Bold else FontWeight.Normal
                 )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// List / Map toggle + map renderer
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Two-segment control for switching between List and Map presentations.
+ * Shown above the current results, only when results exist.  The
+ * helper caption ("N of M on map") tells the user up-front how many
+ * listings have coordinates, so the map toggle is honest even when
+ * only a subset of the page is mappable.
+ */
+@Composable
+private fun SearchViewModeToggle(
+    mode: SearchViewMode,
+    onModeChange: (SearchViewMode) -> Unit,
+    mappableCount: Int,
+    totalCount: Int,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                .background(PaceDreamColors.Gray100)
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            SearchModeSegment(
+                label = "List",
+                icon = PaceDreamIcons.AppsOutlined,
+                selected = mode == SearchViewMode.LIST,
+                onClick = { onModeChange(SearchViewMode.LIST) },
+                modifier = Modifier.weight(1f),
+            )
+            SearchModeSegment(
+                label = "Map",
+                icon = PaceDreamIcons.LocationOn,
+                selected = mode == SearchViewMode.MAP,
+                onClick = { onModeChange(SearchViewMode.MAP) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (mode == SearchViewMode.MAP && totalCount > 0 && mappableCount < totalCount) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Text(
+                text = "Showing $mappableCount of $totalCount listings with coordinates.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchModeSegment(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(40.dp),
+        color = if (selected) PaceDreamColors.Card else Color.Transparent,
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        shadowElevation = if (selected) 1.dp else 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+            Text(
+                text = label,
+                style = PaceDreamTypography.Callout,
+                color = if (selected) PaceDreamColors.TextPrimary else PaceDreamColors.TextSecondary,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+    }
+}
+
+/**
+ * Map renderer for search results.  Uses the `maps-compose` composable
+ * (already a declared dependency in app/build.gradle.kts).  When the
+ * Google Maps API key is not configured, we fall back to an honest
+ * empty state and a "Use list instead" action — we do not attempt to
+ * fake an interactive map with a static-image approximation.
+ *
+ * Markers are drawn only for items carrying valid coordinates.  Tapping
+ * a marker shows a small bottom preview card; tapping the card opens
+ * the listing detail via the same [onItemClick] the list mode uses, so
+ * there is no parallel data path.
+ */
+@Composable
+private fun SearchMapResults(
+    items: List<SearchResultItem>,
+    onItemClick: (String) -> Unit,
+    onSwitchToList: () -> Unit,
+) {
+    val mapsKey = stringResource(com.pacedream.app.R.string.google_maps_key)
+    val mapsEnabled = mapsKey.isNotBlank()
+
+    val mappable = remember(items) {
+        items.filter { it.latitude != null && it.longitude != null }
+    }
+
+    if (!mapsEnabled || mappable.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(PaceDreamSpacing.LG),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.LocationOn,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(48.dp),
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Text(
+                text = if (!mapsEnabled) "Map view isn\u2019t available on this device."
+                       else "None of these listings have coordinates to place on a map yet.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            OutlinedButton(
+                onClick = onSwitchToList,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            ) {
+                Text("View as list", style = PaceDreamTypography.Button)
+            }
+        }
+        return
+    }
+
+    // Interactive map
+    val latLngs = remember(mappable) {
+        mappable.mapNotNull { item ->
+            val lat = item.latitude ?: return@mapNotNull null
+            val lng = item.longitude ?: return@mapNotNull null
+            item.id to com.google.android.gms.maps.model.LatLng(lat, lng)
+        }
+    }
+
+    val cameraPositionState = com.google.maps.android.compose.rememberCameraPositionState {
+        position = com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(
+            latLngs.first().second, 11f
+        )
+    }
+    // Re-center whenever the set of mappable results changes so the map
+    // always focuses on the current result set rather than stale pins.
+    LaunchedEffect(latLngs) {
+        if (latLngs.size == 1) {
+            cameraPositionState.position =
+                com.google.android.gms.maps.model.CameraPosition.fromLatLngZoom(
+                    latLngs.first().second, 13f
+                )
+        } else if (latLngs.size > 1) {
+            val builder = com.google.android.gms.maps.model.LatLngBounds.builder()
+            latLngs.forEach { (_, ll) -> builder.include(ll) }
+            runCatching {
+                cameraPositionState.move(
+                    com.google.android.gms.maps.CameraUpdateFactory.newLatLngBounds(builder.build(), 80)
+                )
+            }
+        }
+    }
+
+    var selectedId by remember { mutableStateOf<String?>(null) }
+    val selectedItem = remember(selectedId, mappable) {
+        selectedId?.let { id -> mappable.firstOrNull { it.id == id } }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        com.google.maps.android.compose.GoogleMap(
+            modifier = Modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = com.google.maps.android.compose.MapProperties(
+                mapType = com.google.android.gms.maps.model.MapType.NORMAL,
+            ),
+            uiSettings = com.google.maps.android.compose.MapUiSettings(
+                zoomControlsEnabled = false,
+                compassEnabled = true,
+                mapToolbarEnabled = false,
+            ),
+            onMapClick = { selectedId = null },
+        ) {
+            latLngs.forEach { (id, ll) ->
+                val markerItem = mappable.firstOrNull { it.id == id }
+                com.google.maps.android.compose.Marker(
+                    state = com.google.maps.android.compose.rememberMarkerState(
+                        key = id,
+                        position = ll,
+                    ),
+                    title = markerItem?.title,
+                    snippet = markerItem?.priceText,
+                    onClick = {
+                        selectedId = id
+                        false  // allow default info-window
+                    },
+                )
+            }
+        }
+
+        // Bottom preview card — appears when the user taps a marker and
+        // routes to listing detail via the same path list mode uses.
+        selectedItem?.let { item ->
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(PaceDreamSpacing.MD),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                onClick = { onItemClick(item.id) },
+            ) {
+                Row(
+                    modifier = Modifier.padding(PaceDreamSpacing.MD),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
+                ) {
+                    if (!item.imageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = item.imageUrl,
+                            contentDescription = item.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.title,
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        item.location?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                text = it,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        item.priceText?.takeIf { it.isNotBlank() }?.let {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = it,
+                                style = PaceDreamTypography.Callout,
+                                color = PaceDreamColors.Primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
