@@ -1166,6 +1166,12 @@ class HostRepository @Inject constructor(
         r.roomType?.let { body["roomType"] = it }
         r.deadlineAt?.let { body["deadlineAt"] = it }
         r.requirements?.let { body["requirements"] = it }
+        // Capacity — same top-level keys the listing update endpoint already
+        // accepts.  Only emitted when the wizard captured a value so we never
+        // widen the POST body for listing modes that do not surface the UI.
+        r.maxGuests?.let { body["maxGuests"] = it }
+        r.bedrooms?.let { body["bedrooms"] = it }
+        r.bathrooms?.let { body["bathrooms"] = it }
 
         return body
     }
