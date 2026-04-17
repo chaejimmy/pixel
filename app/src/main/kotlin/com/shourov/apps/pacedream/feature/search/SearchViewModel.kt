@@ -128,6 +128,18 @@ class SearchViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Persist the adult guest count chosen in the hero "Who" sheet.
+     * No loadPage() call — the value is not part of the backend search
+     * contract today (see SearchUiState.adultGuests doc).  Kept in state
+     * so the summary bar can render it and so the value survives tab
+     * switches + rotation within the same SearchScreen session.
+     */
+    fun updateAdultGuests(count: Int) {
+        val bounded = count.coerceIn(0, 16)
+        _uiState.update { it.copy(adultGuests = bounded) }
+    }
+
     private var searchJob: Job? = null
 
     fun submitSearch() {
@@ -181,6 +193,13 @@ class SearchViewModel @Inject constructor(
                     )
                 }
 
+                // NOTE: current.adultGuests is intentionally NOT passed to
+                // repo.search().  The Android search endpoints (/v1/poc/listings,
+                // /v1/listings, /v1/search) do not yet accept a guests query
+                // parameter.  When the backend adds one, extend
+                // SearchRepository.search() with a `guests: Int?` param,
+                // thread it through the query-param builder, and add the
+                // matching argument here.
                 val res = repo.search(
                     q = whereQuery,
                     city = current.city?.takeIf { it.isNotBlank() }
@@ -276,7 +295,17 @@ data class SearchUiState(
     val shareType: String? = "SHARE", // Default to SHARE (Spaces) matching iOS/web
     val whatQuery: String? = null, // Keywords search
     val startDate: String? = null, // ISO date string
-    val endDate: String? = null // ISO date string
+    val endDate: String? = null, // ISO date string
+    /**
+     * Adult guest count selected via the hero "Who" picker or the in-screen
+     * guests sheet.  Persisted in state and shown in the summary bar, but
+     * NOT forwarded to SearchRepository.search() yet: the backend listing
+     * search endpoints (/v1/poc/listings, /v1/listings, /v1/search) do not
+     * currently accept a guests / guestCount / adults query parameter.
+     * See the `guests` filter in SearchScreen.GuestsPickerSheet for UX.
+     * 0 == "any / unspecified".
+     */
+    val adultGuests: Int = 0
 )
 
 enum class SearchPhase {

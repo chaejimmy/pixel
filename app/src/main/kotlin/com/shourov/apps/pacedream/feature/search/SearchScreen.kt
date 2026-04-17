@@ -190,7 +190,11 @@ fun SearchScreen(
     // Hero "Where / When / Who" focus state — hoisted so the guest
     // sheet can be rendered at the root of SearchScreen regardless of
     // where the search bar lives inside the Scaffold.
-    var adultGuests by remember { mutableStateOf(0) }
+    // adultGuests lives in SearchUiState so it survives rotation and
+    // is reflected in the collapsed summary bar; the sheet reads from
+    // and writes to the ViewModel.  NOTE: not yet forwarded to the
+    // search repository — see SearchUiState.adultGuests doc.
+    val adultGuests = state.adultGuests
     var showGuestsSheet by remember { mutableStateOf(false) }
     var pickerHandled by remember { mutableStateOf(false) }
 
@@ -369,6 +373,16 @@ fun SearchScreen(
                                     if (whereQuery.isNotBlank()) {
                                         if (isNotBlank()) append(" · ")
                                         append(whereQuery)
+                                    }
+                                    // Guest count is tracked locally as a UX
+                                    // hint; it is not yet a backend search
+                                    // filter — see SearchUiState.adultGuests.
+                                    if (adultGuests > 0) {
+                                        if (isNotBlank()) append(" · ")
+                                        append(
+                                            if (adultGuests == 1) "1 guest"
+                                            else "$adultGuests guests"
+                                        )
                                     }
                                     if (isEmpty()) append("Search")
                                 },
@@ -588,7 +602,7 @@ fun SearchScreen(
             initialCount = adultGuests.coerceAtLeast(1),
             onDismiss = { showGuestsSheet = false },
             onConfirm = { count ->
-                adultGuests = count
+                viewModel.updateAdultGuests(count)
                 showGuestsSheet = false
             }
         )
