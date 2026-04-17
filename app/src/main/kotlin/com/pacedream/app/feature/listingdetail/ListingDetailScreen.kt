@@ -26,6 +26,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,7 +99,10 @@ fun ListingDetailScreen(
     onOpenInMaps: () -> Unit,
     onConfirmReserve: (BookingDraft) -> Unit,
     onSubmitReview: (Double, String, CategoryRatings?) -> Unit = { _, _, _ -> },
-    onLoadReviews: () -> Unit = {}
+    onLoadReviews: () -> Unit = {},
+    onEditReview: (reviewId: String, rating: Int, comment: String) -> Unit = { _, _, _ -> },
+    onDeleteReview: (reviewId: String) -> Unit = {},
+    onClearReviewMutationError: () -> Unit = {},
 ) {
     var showAboutSheet by remember { mutableStateOf(false) }
     var showAmenitiesSheet by remember { mutableStateOf(false) }
@@ -105,6 +110,18 @@ fun ListingDetailScreen(
     var showWriteReviewSheet by remember { mutableStateOf(false) }
     var showReserveSheet by remember { mutableStateOf(false) }
     var showReportSheet by remember { mutableStateOf(false) }
+    // Owner-only edit / delete drivers — scoped to this screen so the
+    // sheet and dialog can be simple, while the VM owns the network
+    // action itself.
+    var editReviewTarget by remember { mutableStateOf<ReviewModel?>(null) }
+    var pendingDeleteReviewId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(uiState.reviewMutationError) {
+        uiState.reviewMutationError?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            onClearReviewMutationError()
+        }
+    }
 
     val listing = uiState.listing
 
@@ -557,7 +574,17 @@ fun ListingDetailScreen(
                     }
 
                     items(reviews.size) { index ->
-                        ReviewCard(review = reviews[index])
+                        val reviewItem = reviews[index]
+                        val isMine = !uiState.currentUserId.isNullOrBlank() &&
+                            !reviewItem.userId.isNullOrBlank() &&
+                            reviewItem.userId == uiState.currentUserId
+                        ReviewCard(
+                            review = reviewItem,
+                            isMine = isMine,
+                            isMutating = uiState.isMutatingReview,
+                            onEdit = { editReviewTarget = reviewItem },
+                            onDelete = { pendingDeleteReviewId = reviewItem.id },
+                        )
                         if (index < reviews.size - 1) {
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -596,6 +623,61 @@ fun ListingDetailScreen(
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
+        }
+
+        // Edit review bottom sheet — reuses WriteReviewSheet with
+        // initial values so the owner can tweak rating + comment.
+        editReviewTarget?.let { target ->
+            val editSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ModalBottomSheet(
+                onDismissRequest = { editReviewTarget = null },
+                sheetState = editSheetState,
+            ) {
+                WriteReviewSheet(
+                    isSubmitting = uiState.isMutatingReview,
+                    initialRating = target.rating,
+                    initialComment = target.comment,
+                    title = "Edit your review",
+                    submitCtaLabel = "Save changes",
+                    submittingCtaLabel = "Saving...",
+                    onClose = { editReviewTarget = null },
+                    onSubmit = { rating, comment, _ ->
+                        onEditReview(target.id, rating.toInt().coerceIn(1, 5), comment)
+                        editReviewTarget = null
+                    },
+                )
+                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
+            }
+        }
+
+        // Delete confirmation — destructive action must be explicit.
+        pendingDeleteReviewId?.let { id ->
+            AlertDialog(
+                onDismissRequest = { pendingDeleteReviewId = null },
+                title = { Text("Delete this review?") },
+                text = {
+                    Text("This will permanently remove your review. You can always write a new one later.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onDeleteReview(id)
+                            pendingDeleteReviewId = null
+                        }
+                    ) {
+                        Text(
+                            "Delete",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteReviewId = null }) {
+                        Text("Cancel")
+                    }
+                },
+            )
         }
 
         if (showReserveSheet) {
@@ -1891,7 +1973,13 @@ private fun ReviewPreviewCard(review: ReviewModel) {
 }
 
 @Composable
-private fun ReviewCard(review: ReviewModel) {
+private fun ReviewCard(
+    review: ReviewModel,
+    isMine: Boolean = false,
+    isMutating: Boolean = false,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
+) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -1970,6 +2058,56 @@ private fun ReviewCard(review: ReviewModel) {
                     text = review.comment,
                     style = MaterialTheme.typography.bodyMedium
                 )
+            }
+
+            // Owner-only actions — hidden on other users' reviews so the
+            // card renders identically for read-only viewers.
+            if (isMine) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(
+                        onClick = onEdit,
+                        enabled = !isMutating,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Edit,
+                            contentDescription = "Edit review",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Edit",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        enabled = !isMutating,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Delete,
+                            contentDescription = "Delete review",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Delete",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
         }
     }
@@ -2051,13 +2189,18 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
 @Composable
 private fun WriteReviewSheet(
     isSubmitting: Boolean,
+    initialRating: Double = 0.0,
+    initialComment: String = "",
+    title: String = "Leave a Review",
+    submitCtaLabel: String = "Submit Review",
+    submittingCtaLabel: String = "Submitting...",
     onClose: () -> Unit,
     onSubmit: (rating: Double, comment: String, categoryRatings: CategoryRatings?) -> Unit
 ) {
-    var rating by remember { mutableDoubleStateOf(0.0) }
-    var comment by remember { mutableStateOf("") }
+    var rating by remember { mutableDoubleStateOf(initialRating) }
+    var comment by remember { mutableStateOf(initialComment) }
 
-    BottomSheetHeader(title = "Leave a Review", onClose = onClose)
+    BottomSheetHeader(title = title, onClose = onClose)
 
     Column(
         modifier = Modifier.padding(horizontal = 20.dp),
@@ -2181,13 +2324,13 @@ private fun WriteReviewSheet(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "Submitting...",
+                    submittingCtaLabel,
                     style = PaceDreamTypography.Button,
                     color = Color.White
                 )
             } else {
                 Text(
-                    "Submit Review",
+                    submitCtaLabel,
                     style = PaceDreamTypography.Button,
                     fontWeight = FontWeight.SemiBold,
                     color = if (rating > 0) Color.White else PaceDreamColors.TextTertiary

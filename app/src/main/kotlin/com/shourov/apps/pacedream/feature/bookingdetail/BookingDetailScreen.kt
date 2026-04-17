@@ -318,7 +318,9 @@ fun BookingDetailScreen(
                         }
                     }
 
-                    // Pricing Card
+                    // Pricing Card — renders a breakdown (subtotal / fees /
+                    // tax / total) when the booking response carried line
+                    // items, otherwise falls back to a single Total row.
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -335,6 +337,37 @@ fun BookingDetailScreen(
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+                            val hasBreakdown = booking.subtotal != null ||
+                                booking.serviceFee != null ||
+                                booking.cleaningFee != null ||
+                                booking.taxAmount != null
+
+                            fun formatAmount(value: Double): String =
+                                runCatching { "${booking.currency} ${String.format("%.2f", value)}" }
+                                    .getOrDefault("${booking.currency} 0.00")
+
+                            if (hasBreakdown) {
+                                booking.subtotal?.let { amount ->
+                                    ReceiptRow("Subtotal", formatAmount(amount))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                                }
+                                booking.cleaningFee?.let { amount ->
+                                    ReceiptRow("Cleaning fee", formatAmount(amount))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                                }
+                                booking.serviceFee?.let { amount ->
+                                    ReceiptRow("Service fee", formatAmount(amount))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                                }
+                                booking.taxAmount?.let { amount ->
+                                    ReceiptRow("Taxes", formatAmount(amount))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                                }
+                                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                            }
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -346,8 +379,7 @@ fun BookingDetailScreen(
                                     color = PaceDreamColors.TextPrimary
                                 )
                                 Text(
-                                    runCatching { "${booking.currency} ${String.format("%.2f", booking.totalPrice)}" }
-                                        .getOrDefault("${booking.currency} 0.00"),
+                                    formatAmount(booking.totalPrice),
                                     style = PaceDreamTypography.Title3,
                                     fontWeight = FontWeight.Bold,
                                     color = PaceDreamColors.Primary
@@ -550,5 +582,29 @@ private fun BookingDetailError(
                 ) { Text("Back", color = PaceDreamColors.TextPrimary) }
             }
         }
+    }
+}
+
+/**
+ * Secondary-styled label/value row for the Price Details breakdown.
+ * Matches the surrounding typography tokens so the full card reads as a
+ * receipt when line items are present, without introducing new styling.
+ */
+@Composable
+private fun ReceiptRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary
+        )
+        Text(
+            text = value,
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextPrimary
+        )
     }
 }

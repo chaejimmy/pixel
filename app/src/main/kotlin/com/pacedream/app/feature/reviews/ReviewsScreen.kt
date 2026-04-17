@@ -216,7 +216,11 @@ data class ReviewsUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val showWriteReview: Boolean = false
+    val showWriteReview: Boolean = false,
+    /** Current user id used to decide which reviews expose edit/delete. */
+    val currentUserId: String? = null,
+    /** True while an edit or delete request is in flight. */
+    val isMutating: Boolean = false
 ) {
     val filteredReviews: List<Review> get() = when (selectedTab) {
         ReviewTab.ALL -> reviews
@@ -228,13 +232,25 @@ data class ReviewsUiState(
 
 @HiltViewModel
 class ReviewsViewModel @Inject constructor(
-    private val repository: ReviewsRepository
+    private val repository: ReviewsRepository,
+    private val sessionManager: com.pacedream.app.core.auth.SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReviewsUiState(isLoading = true))
     val uiState: StateFlow<ReviewsUiState> = _uiState.asStateFlow()
 
-    init { loadReviews() }
+    init {
+        loadReviews()
+        // Observe the current user id so the screen can light up the
+        // edit / delete affordance only on rows owned by the signed-in
+        // user.  When unauthenticated the id is null and every row
+        // renders as read-only, exactly like today.
+        viewModelScope.launch {
+            sessionManager.currentUser.collect { user ->
+                _uiState.update { it.copy(currentUserId = user?.id) }
+            }
+        }
+    }
 
     fun loadReviews() {
         viewModelScope.launch {
@@ -304,18 +320,63 @@ class ReviewsViewModel @Inject constructor(
     }
 
     fun deleteReview(reviewId: String) {
+        if (reviewId.isBlank()) return
         viewModelScope.launch {
+            _uiState.update { it.copy(isMutating = true, error = null) }
             try {
                 when (repository.deleteReview(reviewId)) {
-                    is ApiResult.Success -> loadReviews()
+                    is ApiResult.Success -> {
+                        _uiState.update { it.copy(isMutating = false) }
+                        loadReviews()
+                    }
                     is ApiResult.Failure -> {
-                        _uiState.update { it.copy(error = "Failed to delete review") }
+                        _uiState.update {
+                            it.copy(isMutating = false, error = "Failed to delete review")
+                        }
                     }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to delete review")
+                _uiState.update { it.copy(isMutating = false, error = "Failed to delete review") }
             }
         }
+    }
+
+    /**
+     * Update an existing review's rating and comment.  Uses the same
+     * SubmitReviewRequest shape as submitReview so the backend contract
+     * stays a single source of truth.  categoryRatings are left null
+     * because the mobile write UI does not collect them today.
+     */
+    fun updateReview(reviewId: String, rating: Int, comment: String) {
+        if (reviewId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMutating = true, error = null) }
+            try {
+                val request = SubmitReviewRequest(
+                    rate = rating,
+                    comment = comment,
+                )
+                when (repository.updateReview(reviewId, request)) {
+                    is ApiResult.Success -> {
+                        _uiState.update { it.copy(isMutating = false) }
+                        loadReviews()
+                    }
+                    is ApiResult.Failure -> {
+                        _uiState.update {
+                            it.copy(isMutating = false, error = "Failed to update review")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to update review")
+                _uiState.update { it.copy(isMutating = false, error = "Failed to update review") }
+            }
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }
 
@@ -328,6 +389,20 @@ fun ReviewsScreen(
     viewModel: ReviewsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Edit / delete drivers — local to this screen so the sheet and
+    // dialog can stay simple; the VM is the source of truth for the
+    // network action itself.
+    var editTarget by remember { mutableStateOf<Review?>(null) }
+    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearError()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -350,6 +425,7 @@ fun ReviewsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background
     ) { paddingValues ->
         PullToRefreshBox(
@@ -406,10 +482,16 @@ fun ReviewsScreen(
                         }
                     } else {
                         items(filtered, key = { it.id }) { review ->
+                            val isMine = !uiState.currentUserId.isNullOrBlank() &&
+                                !review.user?.id.isNullOrBlank() &&
+                                review.user?.id == uiState.currentUserId
                             ReviewCard(
                                 review = review,
+                                isMine = isMine,
+                                isMutating = uiState.isMutating,
                                 onHelpful = { viewModel.markHelpful(review.id) },
-                                onDelete = { viewModel.deleteReview(review.id) }
+                                onEdit = { editTarget = review },
+                                onDelete = { pendingDeleteId = review.id },
                             )
                             Spacer(Modifier.height(PaceDreamSpacing.SM))
                         }
@@ -426,6 +508,63 @@ fun ReviewsScreen(
         WriteReviewSheet(
             onDismiss = { viewModel.toggleWriteReview() },
             onSubmit = { rating, comment -> viewModel.submitReview(null, rating, comment) }
+        )
+    }
+
+    // Edit Review Bottom Sheet — rating + comment only (categoryRatings
+    // are left untouched because the mobile write UI does not collect
+    // them; the backend PATCH preserves anything we do not send).
+    editTarget?.let { target ->
+        EditReviewSheet(
+            initialRating = target.resolvedRating.toInt().coerceIn(0, 5),
+            initialComment = target.comment.orEmpty(),
+            isSubmitting = uiState.isMutating,
+            onDismiss = { editTarget = null },
+            onSubmit = { rating, comment ->
+                viewModel.updateReview(target.id, rating, comment)
+                editTarget = null
+            },
+        )
+    }
+
+    // Delete confirmation — destructive action must be explicit.
+    pendingDeleteId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = {
+                Text(
+                    text = "Delete this review?",
+                    style = PaceDreamTypography.Title3,
+                )
+            },
+            text = {
+                Text(
+                    text = "This will permanently remove your review. You can always write a new one later.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteReview(id)
+                        pendingDeleteId = null
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text("Cancel", color = PaceDreamColors.TextPrimary)
+                }
+            },
+            containerColor = PaceDreamColors.CardBackground,
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
         )
     }
 }
@@ -518,8 +657,11 @@ private fun ReviewTabSelector(
 @Composable
 private fun ReviewCard(
     review: Review,
+    isMine: Boolean = false,
+    isMutating: Boolean = false,
     onHelpful: () -> Unit,
-    onDelete: () -> Unit
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -591,11 +733,58 @@ private fun ReviewCard(
 
             // Actions
             Spacer(Modifier.height(PaceDreamSpacing.SM))
-            Row {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 TextButton(onClick = onHelpful, contentPadding = PaddingValues(0.dp)) {
                     Icon(PaceDreamIcons.ThumbUp, null, modifier = Modifier.size(14.dp), tint = PaceDreamColors.TextSecondary)
                     Spacer(Modifier.width(4.dp))
                     Text("Helpful (${review.helpfulCount})", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
+                }
+
+                // Owner-only affordances — hidden on other users' reviews so
+                // the card reads identically for read-only viewers.
+                if (isMine) {
+                    Spacer(Modifier.weight(1f))
+                    TextButton(
+                        onClick = onEdit,
+                        enabled = !isMutating,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Edit,
+                            contentDescription = "Edit review",
+                            modifier = Modifier.size(14.dp),
+                            tint = PaceDreamColors.Primary,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Edit",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.Primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    TextButton(
+                        onClick = onDelete,
+                        enabled = !isMutating,
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Delete,
+                            contentDescription = "Delete review",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "Delete",
+                            style = PaceDreamTypography.Caption,
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
@@ -672,6 +861,86 @@ private fun WriteReviewSheet(
                 shape = RoundedCornerShape(PaceDreamRadius.Round)
             ) {
                 Text("Submit Review", fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(PaceDreamSpacing.XL))
+        }
+    }
+}
+
+/**
+ * Bottom sheet used to edit a review that already exists.  Prepopulated
+ * with the review's current rating and comment; submit button mirrors
+ * the loading state driven by the ViewModel's isMutating flag.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditReviewSheet(
+    initialRating: Int,
+    initialComment: String,
+    isSubmitting: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (Int, String) -> Unit,
+) {
+    var rating by remember { mutableIntStateOf(initialRating.coerceIn(0, 5)) }
+    var comment by remember { mutableStateOf(initialComment) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = PaceDreamColors.Background,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Text("Edit your review", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+
+            Text("Overall Rating", style = PaceDreamTypography.Body, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(PaceDreamSpacing.XS))
+            Row {
+                repeat(5) { i ->
+                    IconButton(onClick = { rating = i + 1 }) {
+                        Icon(
+                            PaceDreamIcons.Star, null,
+                            tint = if (i < rating) PaceDreamColors.Warning else PaceDreamColors.TextTertiary,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+            Text("Your Review", style = PaceDreamTypography.Body, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(PaceDreamSpacing.XS))
+            OutlinedTextField(
+                value = comment,
+                onValueChange = { if (it.length <= 2000) comment = it },
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                placeholder = { Text("Share your experience...") },
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            Text(
+                "${comment.length}/2000",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextTertiary,
+                modifier = Modifier.align(Alignment.End),
+            )
+
+            Spacer(Modifier.height(PaceDreamSpacing.LG))
+            Button(
+                onClick = { onSubmit(rating, comment) },
+                enabled = rating > 0 && !isSubmitting,
+                modifier = Modifier.fillMaxWidth().height(PaceDreamButtonHeight.MD),
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("Save changes", fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(PaceDreamSpacing.XL))
         }

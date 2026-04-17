@@ -30,6 +30,17 @@ data class ListingDetailUiState(
      */
     val reviewsLoadFailed: Boolean = false,
     val isSubmittingReview: Boolean = false,
-    val reviewSubmitSuccess: Boolean = false
+    val reviewSubmitSuccess: Boolean = false,
+    /**
+     * Id of the currently signed-in user, observed from SessionManager.
+     * Drives per-row ownership detection on the reviews list so only
+     * the author's own review surfaces an edit / delete affordance.
+     * Null while unauthenticated or before the first emission.
+     */
+    val currentUserId: String? = null,
+    /** True while an edit or delete request against /reviews/:id is in flight. */
+    val isMutatingReview: Boolean = false,
+    /** One-shot error from the last edit / delete attempt; cleared when the snackbar shows. */
+    val reviewMutationError: String? = null
 )
 

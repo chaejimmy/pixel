@@ -110,5 +110,14 @@ data class BookingModel(
     val updatedAt: String = "",
     // iOS PR #202 parity: verification PIN for guest/host check-in
     val verificationPin: String? = null,
-    val pinStatus: String? = null
+    val pinStatus: String? = null,
+    // Optional payment breakdown — only populated when the booking-detail
+    // backend response carries per-line amounts.  When all null the UI
+    // falls back to rendering Total only (current behavior).  No PDF /
+    // invoice endpoint exists; these are the line items captured from
+    // the booking document itself if present.
+    val subtotal: Double? = null,
+    val serviceFee: Double? = null,
+    val cleaningFee: Double? = null,
+    val taxAmount: Double? = null
 )
