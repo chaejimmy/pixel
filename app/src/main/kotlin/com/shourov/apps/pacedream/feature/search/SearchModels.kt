@@ -26,7 +26,14 @@ data class SearchResultItem(
      * the user how many of the total results are mappable.
      */
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    /**
+     * True when the listing is bookable without host approval.  Populated
+     * only when the backend response surfaces the flag; null means
+     * unknown (the badge is hidden rather than assumed false).
+     * No search-query filter is sent — see SearchRepository.search().
+     */
+    val instantBook: Boolean? = null
 )
 
 data class SearchPage(

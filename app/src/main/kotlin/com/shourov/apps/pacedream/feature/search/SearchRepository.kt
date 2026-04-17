@@ -351,6 +351,12 @@ class SearchRepository @Inject constructor(
         // usable coords; the map filters those out and shows the others.
         val coords = extractCoordinates(obj)
 
+        // Instant Book flag — tolerant across the same key conventions
+        // used on listing detail (instantBook / instant_book /
+        // instantBooking) and the nested availability.instant_booking
+        // field written by the Create Listing builder.
+        val instantBook = extractInstantBook(obj)
+
         SearchResultItem(
             id = id,
             title = title,
@@ -367,10 +373,39 @@ class SearchRepository @Inject constructor(
             hostAvatar = hostAvatar,
             latitude = coords?.first,
             longitude = coords?.second,
+            instantBook = instantBook,
         )
     } catch (e: Exception) {
         Timber.w(e, "Skipping unparseable search item")
         null
+    }
+
+    /**
+     * Tolerant instantBook reader.  Returns null (unknown) when the
+     * response carries no such flag.  Mirrors the key aliases used by
+     * ListingDetailRepository.extractInstantBook and the nested
+     * availability.instant_booking field emitted by the Create Listing
+     * body builder.
+     */
+    private fun extractInstantBook(obj: JsonObject): Boolean? {
+        fun boolOrNull(el: JsonElement?): Boolean? =
+            (el as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull
+
+        val topLevel = boolOrNull(obj["instantBook"])
+            ?: boolOrNull(obj["instant_book"])
+            ?: boolOrNull(obj["instantBooking"])
+        if (topLevel != null) return topLevel
+
+        (obj["availability"] as? JsonObject)?.let { avail ->
+            boolOrNull(avail["instant_booking"])?.let { return it }
+            boolOrNull(avail["instantBooking"])?.let { return it }
+            boolOrNull(avail["instantBook"])?.let { return it }
+        }
+        (obj["pricing"] as? JsonObject)?.let { pricing ->
+            boolOrNull(pricing["instantBook"])?.let { return it }
+            boolOrNull(pricing["instant_book"])?.let { return it }
+        }
+        return null
     }
 
     /**

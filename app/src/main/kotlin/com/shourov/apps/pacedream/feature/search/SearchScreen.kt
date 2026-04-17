@@ -1339,6 +1339,41 @@ private fun ModernSearchResultCard(
                     }
                 }
 
+                // Instant Book badge - top left.  Rendered only when the
+                // backend confirms the flag.  Unknown (null) stays hidden so
+                // a missing field is never interpreted as "not instant".
+                if (item.instantBook == true) {
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(PaceDreamSpacing.SM),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(
+                                horizontal = PaceDreamSpacing.SM,
+                                vertical = PaceDreamSpacing.XS,
+                            ),
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Bolt,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                            Text(
+                                text = "Instant Book",
+                                style = PaceDreamTypography.Caption2,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+
                 // Rating badge - bottom left
                 item.rating?.let { r ->
                     Surface(
@@ -1691,6 +1726,24 @@ private fun SearchMapResults(
                                 color = PaceDreamColors.Primary,
                                 fontWeight = FontWeight.SemiBold,
                             )
+                        }
+                        if (item.instantBook == true) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    PaceDreamIcons.Bolt,
+                                    contentDescription = null,
+                                    tint = PaceDreamColors.Primary,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "Instant Book",
+                                    style = PaceDreamTypography.Caption2,
+                                    color = PaceDreamColors.Primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
                         }
                     }
                 }
