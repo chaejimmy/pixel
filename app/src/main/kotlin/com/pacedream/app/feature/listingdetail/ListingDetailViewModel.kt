@@ -34,6 +34,11 @@ class ListingDetailViewModel @Inject constructor(
     private val repository: ListingDetailRepository,
     private val wishlistRepository: ListingWishlistRepository,
     private val reviewRepository: ReviewRepository,
+    // Reused from the dedicated Reviews screen so the edit / delete
+    // contract (PATCH /reviews/:id, DELETE /reviews/:id) stays a single
+    // source of truth.  We only use updateReview / deleteReview; the
+    // listing-detail list-fetch path still goes through reviewRepository.
+    private val reviewsRepository: com.pacedream.app.feature.reviews.ReviewsRepository,
     private val sessionManager: SessionManager,
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
@@ -58,6 +63,18 @@ class ListingDetailViewModel @Inject constructor(
 
     private var currentListingId: String? = null
     private var currentListingType: String = ""
+
+    init {
+        // Observe the current user so per-row ownership can drive the
+        // owner-only Edit / Delete affordance on the reviews section.
+        // A null id (unauthenticated) leaves the UI read-only, matching
+        // the dedicated Reviews screen's behavior.
+        viewModelScope.launch {
+            sessionManager.currentUser.collect { user ->
+                _uiState.update { it.copy(currentUserId = user?.id) }
+            }
+        }
+    }
 
     fun isAuthenticated(): Boolean = sessionManager.authState.value == AuthState.Authenticated
 
@@ -255,6 +272,78 @@ class ListingDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Update an existing review (PATCH /reviews/:id) via the shared
+     * ReviewsRepository.  Only wired for reviews the current user owns,
+     * so the caller (the screen) is responsible for gating the UI on
+     * `review.userId == uiState.currentUserId`.  On success the
+     * listing-detail reviews list is refetched so the updated rating
+     * and summary reflect immediately.
+     */
+    fun updateReview(reviewId: String, rating: Int, comment: String) {
+        if (reviewId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMutatingReview = true, reviewMutationError = null) }
+            val request = com.pacedream.app.feature.reviews.SubmitReviewRequest(
+                rate = rating,
+                comment = comment,
+            )
+            when (val result = reviewsRepository.updateReview(reviewId, request)) {
+                is ApiResult.Success -> {
+                    _uiState.update { it.copy(isMutatingReview = false) }
+                    loadReviews()
+                }
+                is ApiResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isMutatingReview = false,
+                            reviewMutationError = "Couldn't update review. Please try again.",
+                        )
+                    }
+                    Timber.w("Failed to update review %s: %s", reviewId, result.error.message)
+                }
+            }
+        }
+    }
+
+    /**
+     * Delete an existing review (DELETE /reviews/:id) via the shared
+     * ReviewsRepository.  Same ownership gate as updateReview; the UI
+     * only exposes Delete when the review belongs to the current user.
+     */
+    fun deleteReview(reviewId: String) {
+        if (reviewId.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isMutatingReview = true, reviewMutationError = null) }
+            when (val result = reviewsRepository.deleteReview(reviewId)) {
+                is ApiResult.Success -> {
+                    // Optimistically drop the row before the summary
+                    // refetch finishes, so the list never feels stale.
+                    _uiState.update { state ->
+                        state.copy(
+                            isMutatingReview = false,
+                            reviews = state.reviews.filterNot { it.id == reviewId },
+                        )
+                    }
+                    loadReviews()
+                }
+                is ApiResult.Failure -> {
+                    _uiState.update {
+                        it.copy(
+                            isMutatingReview = false,
+                            reviewMutationError = "Couldn't delete review. Please try again.",
+                        )
+                    }
+                    Timber.w("Failed to delete review %s: %s", reviewId, result.error.message)
+                }
+            }
+        }
+    }
+
+    fun clearReviewMutationError() {
+        _uiState.update { it.copy(reviewMutationError = null) }
     }
 
     /**

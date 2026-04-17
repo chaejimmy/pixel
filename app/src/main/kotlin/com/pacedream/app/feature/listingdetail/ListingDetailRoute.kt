@@ -79,6 +79,13 @@ fun ListingDetailRoute(
         onSubmitReview = { rating, comment, catRatings ->
             viewModel.submitReview(rating, comment, catRatings)
         },
-        onLoadReviews = { viewModel.loadReviews() }
+        onLoadReviews = { viewModel.loadReviews() },
+        onEditReview = { reviewId, rating, comment ->
+            viewModel.updateReview(reviewId, rating, comment)
+        },
+        onDeleteReview = { reviewId ->
+            viewModel.deleteReview(reviewId)
+        },
+        onClearReviewMutationError = { viewModel.clearReviewMutationError() },
     )
 }
