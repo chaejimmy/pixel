@@ -124,4 +124,10 @@ data class ListingDraftData(
     val checkoutTime: String = "11:00",
     val minMonths: Int = 1,
     val availableFrom: String = "",
+    // Capacity — only meaningful for space (SHARE) listings.  Defaults
+    // match EditListingUiState bounds (max guests 1, rooms 0) so older
+    // drafts decode cleanly and the backend receives sensible values.
+    val maxGuests: Int = 1,
+    val bedrooms: Int = 0,
+    val bathrooms: Int = 0,
 )

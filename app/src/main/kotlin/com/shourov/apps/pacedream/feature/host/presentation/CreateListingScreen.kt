@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -882,6 +883,19 @@ private fun CreateListingWizardScreen(
     var minMonths by remember(draftKey) { mutableIntStateOf(initialDraft?.minMonths ?: 1) }
     var availableFrom by remember(draftKey) { mutableStateOf(initialDraft?.availableFrom.orEmpty()) }
 
+    // Capacity — surfaced only for space (SHARE) listings in Step 1.  Items
+    // (BORROW) and services (SPLIT) do not use these fields.  Rehydrates from
+    // the saved draft so Resume preserves the host's previous values.
+    var maxGuests by remember(draftKey) {
+        mutableIntStateOf(initialDraft?.maxGuests?.coerceIn(1, 32) ?: 1)
+    }
+    var bedrooms by remember(draftKey) {
+        mutableIntStateOf(initialDraft?.bedrooms?.coerceIn(0, 20) ?: 0)
+    }
+    var bathrooms by remember(draftKey) {
+        mutableIntStateOf(initialDraft?.bathrooms?.coerceIn(0, 20) ?: 0)
+    }
+
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isUploadingOverlay by remember { mutableStateOf(false) }
     var uploadProgressText by remember { mutableStateOf("") }
@@ -1057,6 +1071,9 @@ private fun CreateListingWizardScreen(
                             checkoutTime = checkoutTime,
                             minMonths = minMonths,
                             availableFrom = availableFrom,
+                            maxGuests = maxGuests,
+                            bedrooms = bedrooms,
+                            bathrooms = bathrooms,
                         ))
                         currentStep++
                     } else {
@@ -1232,6 +1249,14 @@ private fun CreateListingWizardScreen(
                                 totalCost = totalCost.toDoubleOrNull(),
                                 deadlineAt = deadlineAt.ifBlank { null },
                                 requirements = requirements.ifBlank { null },
+                                // Only send capacity for SHARE listings — it is the
+                                // only mode that surfaces the Capacity section in
+                                // the wizard, so non-space modes keep the legacy
+                                // POST body intact.  Null values are dropped by
+                                // buildCreateListingBody() so this is safe either way.
+                                maxGuests = if (listingMode == ListingMode.SHARE) maxGuests else null,
+                                bedrooms = if (listingMode == ListingMode.SHARE) bedrooms else null,
+                                bathrooms = if (listingMode == ListingMode.SHARE) bathrooms else null,
                             )
                             onPublishListing(request)
                             // ViewModel handles the API call and emits success/error via effects.
@@ -1342,6 +1367,12 @@ private fun CreateListingWizardScreen(
                             locationLat = lat
                             locationLng = lng
                         },
+                        maxGuests = maxGuests,
+                        bedrooms = bedrooms,
+                        bathrooms = bathrooms,
+                        onMaxGuestsChange = { maxGuests = it.coerceIn(1, 32) },
+                        onBedroomsChange = { bedrooms = it.coerceIn(0, 20) },
+                        onBathroomsChange = { bathrooms = it.coerceIn(0, 20) },
                     )
                     step == 2 && hasSchedule -> ScheduleAvailabilityStep(
                         pricingUnit = selectedPricingUnit,
@@ -1566,6 +1597,12 @@ private fun PhotosLocationPricingStep(
     onToggleAmenity: (String) -> Unit,
     onPricingUnitChange: (PricingUnit) -> Unit,
     onLocationLatLngChange: (Double, Double) -> Unit = { _, _ -> },
+    maxGuests: Int = 1,
+    bedrooms: Int = 0,
+    bathrooms: Int = 0,
+    onMaxGuestsChange: (Int) -> Unit = {},
+    onBedroomsChange: (Int) -> Unit = {},
+    onBathroomsChange: (Int) -> Unit = {},
 ) {
     val isSplit = listingMode == ListingMode.SPLIT
 
@@ -1871,6 +1908,121 @@ private fun PhotosLocationPricingStep(
                 selectedAmenities = amenities,
                 onToggle = onToggleAmenity,
             )
+        }
+
+        // Capacity — space listings only; items / services / split-stays do
+        // not surface this because the backend fields (maxGuests / bedrooms /
+        // bathrooms) are only meaningful for stays and workspaces.  Gating
+        // here keeps the wizard visually lean for other modes.
+        if (listingMode == ListingMode.SHARE) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            FormSection(title = "Capacity") {
+                Text(
+                    text = "How many people fit and how many rooms the space has.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                CreateCapacityStepperRow(
+                    label = "Max guests",
+                    sublabel = "Up to 32.",
+                    value = maxGuests,
+                    minValue = 1,
+                    maxValue = 32,
+                    onValueChange = onMaxGuestsChange,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                CreateCapacityStepperRow(
+                    label = "Bedrooms",
+                    sublabel = "Separate sleeping rooms.",
+                    value = bedrooms,
+                    minValue = 0,
+                    maxValue = 20,
+                    onValueChange = onBedroomsChange,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                CreateCapacityStepperRow(
+                    label = "Bathrooms",
+                    sublabel = "Full and half baths combined.",
+                    value = bathrooms,
+                    minValue = 0,
+                    maxValue = 20,
+                    onValueChange = onBathroomsChange,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Stepper row used by the Create Listing wizard's Capacity section.
+ * Mirrors the visual pattern from EditListingScreen.CapacityStepperRow but
+ * lives here to avoid touching the Edit flow.  Bounds enforcement is the
+ * caller's responsibility — the parent state writer coerces values in range.
+ */
+@Composable
+private fun CreateCapacityStepperRow(
+    label: String,
+    sublabel: String,
+    value: Int,
+    minValue: Int,
+    maxValue: Int,
+    onValueChange: (Int) -> Unit,
+) {
+    val displayValue = value.coerceIn(minValue, maxValue)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = sublabel,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = { onValueChange(displayValue - 1) },
+                enabled = displayValue > minValue,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Remove,
+                    contentDescription = "Decrease $label",
+                    tint = if (displayValue > minValue)
+                        PaceDreamColors.TextPrimary
+                    else
+                        PaceDreamColors.Gray400,
+                )
+            }
+            Text(
+                text = displayValue.toString(),
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .widthIn(min = 32.dp)
+                    .padding(horizontal = PaceDreamSpacing.SM),
+            )
+            IconButton(
+                onClick = { onValueChange(displayValue + 1) },
+                enabled = displayValue < maxValue,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Add,
+                    contentDescription = "Increase $label",
+                    tint = if (displayValue < maxValue)
+                        PaceDreamColors.TextPrimary
+                    else
+                        PaceDreamColors.Gray400,
+                )
+            }
         }
     }
 }

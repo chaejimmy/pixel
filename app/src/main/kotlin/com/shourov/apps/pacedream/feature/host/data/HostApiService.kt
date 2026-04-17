@@ -642,6 +642,13 @@ data class CreateListingRequest(
     val deadlineAt: String? = null,
     val requirements: String? = null,
     val experiments: Map<String, String>? = null,
+    // Capacity — matches the top-level field names persisted by the listing
+    // update endpoint (PUT /listings/:id) and read back by listing detail.
+    // Optional / nullable so omitting them keeps the current POST body
+    // identical for non-space listing modes.
+    val maxGuests: Int? = null,
+    val bedrooms: Int? = null,
+    val bathrooms: Int? = null,
 )
 
 data class PricingPayload(
