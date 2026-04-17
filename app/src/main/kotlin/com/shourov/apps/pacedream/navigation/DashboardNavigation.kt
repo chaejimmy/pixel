@@ -202,6 +202,9 @@ fun NavGraphBuilder.DashboardNavigation(
                     var selectedListingId by rememberSaveable { mutableStateOf<String?>(null) }
                     // iOS parity: search presented as full-screen cover
                     var showSearchDialog by rememberSaveable { mutableStateOf(false) }
+                    // Airbnb-parity: routes the hero "Where / When / Who"
+                    // tap to the matching picker inside SearchScreen.
+                    var searchInitialFocus by rememberSaveable { mutableStateOf<String?>(null) }
 
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
@@ -296,7 +299,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onListingClick = { listingId ->
                                             selectedListingId = listingId
                                         },
-                                        onSearchClick = { showSearchDialog = true },
+                                        onSearchClick = {
+                                            searchInitialFocus = null
+                                            showSearchDialog = true
+                                        },
+                                        onWhereClick = {
+                                            searchInitialFocus = "where"
+                                            showSearchDialog = true
+                                        },
+                                        onWhenClick = {
+                                            searchInitialFocus = "when"
+                                            showSearchDialog = true
+                                        },
+                                        onWhoClick = {
+                                            searchInitialFocus = "who"
+                                            showSearchDialog = true
+                                        },
                                         onSeeAll = { section ->
                                             navController.navigate("home_section/${section.name}")
                                         },
@@ -578,10 +596,74 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
-                            // Notification Center Screen (iOS parity)
+                            // Notification Center Screen (iOS parity).
+                            // Tap routing: turns a notification into navigation
+                            // to the booking detail or chat thread when the
+                            // backend payload includes one, so the in-app
+                            // notification list is actionable (Airbnb/Turo parity).
                             composable("notifications") {
                                 NotificationCenterScreen(
-                                    onBackClick = { navController.popBackStack() }
+                                    onBackClick = { navController.popBackStack() },
+                                    onNotificationClick = { notification ->
+                                        val data = notification.data.orEmpty()
+                                        val bookingId = data["bookingId"]
+                                            ?: data["booking_id"]
+                                        val threadId = data["threadId"]
+                                            ?: data["thread_id"]
+                                            ?: data["conversationId"]
+                                            ?: data["conversation_id"]
+                                        val listingId = data["listingId"]
+                                            ?: data["listing_id"]
+                                            ?: data["propertyId"]
+                                            ?: data["property_id"]
+                                        val type = notification.resolvedType.lowercase()
+                                        val deepLink = notification.deepLink
+
+                                        val parsedFromDeepLink: String? = deepLink
+                                            ?.substringAfterLast('/')
+                                            ?.takeIf { it.isNotBlank() }
+
+                                        try {
+                                            when {
+                                                type.startsWith("message") && !threadId.isNullOrBlank() ->
+                                                    navController.navigate(
+                                                        "${InboxDestination.THREAD.name}/$threadId"
+                                                    )
+                                                (type.startsWith("booking") ||
+                                                    type.startsWith("checkin") ||
+                                                    type.startsWith("extend") ||
+                                                    type.startsWith("overtime") ||
+                                                    type.startsWith("session") ||
+                                                    type.startsWith("payment") ||
+                                                    type.startsWith("payout")) &&
+                                                    !bookingId.isNullOrBlank() ->
+                                                    navController.navigate(
+                                                        "${BookingDestination.BOOKING_DETAIL.name}/$bookingId"
+                                                    )
+                                                (type.startsWith("property") ||
+                                                    type.startsWith("listing") ||
+                                                    type.startsWith("review")) &&
+                                                    !listingId.isNullOrBlank() ->
+                                                    selectedListingId = listingId
+                                                deepLink?.startsWith("/bookings/") == true &&
+                                                    !parsedFromDeepLink.isNullOrBlank() ->
+                                                    navController.navigate(
+                                                        "${BookingDestination.BOOKING_DETAIL.name}/$parsedFromDeepLink"
+                                                    )
+                                                deepLink?.startsWith("/threads/") == true &&
+                                                    !parsedFromDeepLink.isNullOrBlank() ->
+                                                    navController.navigate(
+                                                        "${InboxDestination.THREAD.name}/$parsedFromDeepLink"
+                                                    )
+                                                deepLink?.startsWith("/listings/") == true &&
+                                                    !parsedFromDeepLink.isNullOrBlank() ->
+                                                    selectedListingId = parsedFromDeepLink
+                                                else -> { /* No routable payload; stay on list. */ }
+                                            }
+                                        } catch (e: Exception) {
+                                            timber.log.Timber.e(e, "Notification tap routing failed")
+                                        }
+                                    }
                                 )
                             }
 
@@ -1139,7 +1221,10 @@ fun NavGraphBuilder.DashboardNavigation(
                         var showAuthSheetForSearch by remember { mutableStateOf(false) }
 
                         Dialog(
-                            onDismissRequest = { showSearchDialog = false },
+                            onDismissRequest = {
+                                showSearchDialog = false
+                                searchInitialFocus = null
+                            },
                             properties = DialogProperties(
                                 usePlatformDefaultWidth = false,
                                 decorFitsSystemWindows = false
@@ -1149,12 +1234,25 @@ fun NavGraphBuilder.DashboardNavigation(
                                 modifier = Modifier.fillMaxSize(),
                                 color = PaceDreamColors.Background
                             ) {
+                                val focus = remember(searchInitialFocus) {
+                                    when (searchInitialFocus?.lowercase()) {
+                                        "where" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHERE
+                                        "when" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHEN
+                                        "who" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHO
+                                        else -> null
+                                    }
+                                }
                                 SearchScreen(
-                                    onBackClick = { showSearchDialog = false },
+                                    onBackClick = {
+                                        showSearchDialog = false
+                                        searchInitialFocus = null
+                                    },
                                     onListingClick = { propertyId ->
                                         showSearchDialog = false
+                                        searchInitialFocus = null
                                         selectedListingId = propertyId
                                     },
+                                    initialFocus = focus,
                                     onShowAuthSheet = { showAuthSheetForSearch = true }
                                 )
                             }
