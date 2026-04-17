@@ -1145,7 +1145,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
-                            // Create Listing Screen (accessible from guest profile tab)
+                            // Create Listing Screen (accessible from guest profile tab).
+                            // On publish, hand the user off to host mode so they
+                            // can actually find / manage the new listing.  The
+                            // guest-side NavHost has no host dashboard / my
+                            // listings route, so without this switch the success
+                            // CTAs would silently no-op.
                             composable("create_listing") {
                                 val context = LocalContext.current
                                 val uploadService = try {
@@ -1155,13 +1160,46 @@ fun NavGraphBuilder.DashboardNavigation(
                                     ).imageUploadService()
                                 } catch (_: Exception) { null }
 
+                                val switchToHostMode: () -> Unit = {
+                                    try {
+                                        hostModeManager.setHostMode(true)
+                                    } catch (e: Exception) {
+                                        timber.log.Timber.e(
+                                            e,
+                                            "Failed to switch to host mode from guest create-listing success",
+                                        )
+                                    }
+                                }
+
                                 CreateListingScreen(
                                     listingMode = ListingMode.SHARE,
                                     imageUploadService = uploadService,
                                     onBackClick = { navController.popBackStack() },
-                                    onPublishSuccess = { listingId ->
-                                        navController.popBackStack()
-                                    }
+                                    onPublishSuccess = { _ ->
+                                        // Success screen drives navigation via
+                                        // its own CTAs; nothing to do here.
+                                    },
+                                    onGoToMyListings = {
+                                        // Switching mode unmounts this NavHost
+                                        // entirely — the new HostModeScreen
+                                        // starts on the host dashboard and the
+                                        // host can tap "Listings" to land on
+                                        // the new listing (which is also in
+                                        // the recently-created cache).
+                                        switchToHostMode()
+                                    },
+                                    onBackToHome = {
+                                        // Pop back to Home tab on guest side;
+                                        // do not switch modes so a non-host
+                                        // testing the flow stays put.
+                                        try {
+                                            navController.popBackStack()
+                                        } catch (_: Exception) { /* no-op */ }
+                                        navigateToTab(
+                                            navController,
+                                            DashboardDestination.HOME.name,
+                                        )
+                                    },
                                 )
                             }
                         }

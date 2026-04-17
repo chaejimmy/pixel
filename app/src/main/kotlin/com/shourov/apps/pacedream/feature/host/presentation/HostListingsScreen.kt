@@ -37,6 +37,13 @@ fun HostListingsScreen(
     viewModel: HostListingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val deletingIds by viewModel.deletingIds.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Pending-delete target drives a confirmation dialog.  A null value means
+    // no delete is in flight at this instant.
+    var pendingDeleteListingId by remember { mutableStateOf<String?>(null) }
+    var pendingDeleteTitle by remember { mutableStateOf("") }
 
     // Refresh listings when screen becomes visible (e.g. returning from listing creation)
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
@@ -48,6 +55,26 @@ fun HostListingsScreen(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Collect one-shot delete effects for snackbar feedback.
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is HostListingsViewModel.Effect.DeleteSucceeded ->
+                    snackbarHostState.showSnackbar("${effect.title} deleted")
+                is HostListingsViewModel.Effect.DeleteFailed -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = effect.message,
+                        actionLabel = "Retry",
+                        withDismissAction = true,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.deleteListing(effect.listingId)
+                    }
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -86,6 +113,7 @@ fun HostListingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = PaceDreamColors.Background
     ) { paddingValues ->
         LazyColumn(
@@ -121,12 +149,63 @@ fun HostListingsScreen(
                         listing = listing,
                         onListingClick = onListingClick,
                         onEditClick = onEditListingClick,
-                        onDeleteClick = onDeleteListingClick,
-                        onCalendarClick = onCalendarClick
+                        onDeleteClick = { listingId ->
+                            // Always let the caller observe the tap for analytics.
+                            onDeleteListingClick(listingId)
+                            // Drive a confirmation dialog + viewModel call so the
+                            // Delete button is never a silent no-op (it was before
+                            // — the caller default is an empty lambda).
+                            pendingDeleteListingId = listingId
+                            pendingDeleteTitle = listing.title.ifBlank { "this listing" }
+                        },
+                        onCalendarClick = onCalendarClick,
+                        isDeleting = deletingIds.contains(listing.id)
                     )
                 }
             }
         }
+    }
+
+    // Confirmation dialog — destructive action must be explicit.
+    pendingDeleteListingId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteListingId = null },
+            title = {
+                Text(
+                    text = "Delete listing?",
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+            },
+            text = {
+                Text(
+                    text = "This will permanently remove \u201C$pendingDeleteTitle\u201D. " +
+                        "Guests will no longer see it and its availability data will be lost.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteListing(id)
+                        pendingDeleteListingId = null
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteListingId = null }) {
+                    Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
+                }
+            },
+            containerColor = PaceDreamColors.Background,
+        )
     }
 }
 
@@ -186,7 +265,8 @@ fun HostListingCard(
     onListingClick: (String) -> Unit,
     onEditClick: (String) -> Unit,
     onDeleteClick: (String) -> Unit,
-    onCalendarClick: (String) -> Unit = {}
+    onCalendarClick: (String) -> Unit = {},
+    isDeleting: Boolean = false,
 ) {
     Card(
         modifier = Modifier
@@ -300,14 +380,23 @@ fun HostListingCard(
                         }
                         IconButton(
                             onClick = { onDeleteClick(listing.id) },
+                            enabled = !isDeleting,
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Delete,
-                                contentDescription = "Delete",
-                                tint = PaceDreamColors.Error,
-                                modifier = Modifier.size(PaceDreamIconSize.XS)
-                            )
+                            if (isDeleting) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 2.dp,
+                                    color = PaceDreamColors.Error,
+                                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = PaceDreamIcons.Delete,
+                                    contentDescription = "Delete",
+                                    tint = PaceDreamColors.Error,
+                                    modifier = Modifier.size(PaceDreamIconSize.XS)
+                                )
+                            }
                         }
                     }
                 }

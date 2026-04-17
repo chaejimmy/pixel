@@ -40,6 +40,7 @@ import javax.inject.Inject
 fun HostListingPreviewScreen(
     listingId: String,
     onBackClick: () -> Unit,
+    onEditClick: ((String) -> Unit)? = null,
     viewModel: HostListingPreviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,6 +56,29 @@ fun HostListingPreviewScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Capture the callback in a local val so Kotlin can smart-
+                    // cast it as non-null inside the lambda.  Without this the
+                    // compiler rejects `onEditClick(targetId)` even though the
+                    // null check above proves it is non-null — function params
+                    // are tracked across lambdas only via a locally stable ref.
+                    val editHandler = onEditClick
+                    if (editHandler != null) {
+                        val targetId = uiState.listing?.id?.takeIf { it.isNotBlank() }
+                            ?: listingId
+                        IconButton(
+                            onClick = { editHandler(targetId) },
+                            enabled = !uiState.isLoading && uiState.listing != null &&
+                                targetId.isNotBlank(),
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Edit,
+                                contentDescription = "Edit listing",
+                                tint = PaceDreamColors.HostAccent,
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
