@@ -82,6 +82,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import com.shourov.apps.pacedream.model.PricingUnit
 import com.shourov.apps.pacedream.model.Property
 import com.shourov.apps.pacedream.model.PropertyLocation
@@ -136,10 +137,19 @@ data class EditListingUiState(
 class EditListingViewModel @Inject constructor(
     private val hostRepository: HostRepository,
     private val imageUploadService: ImageUploadService,
+    private val stripeConnectRepository: StripeConnectRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditListingUiState())
     val uiState: StateFlow<EditListingUiState> = _uiState.asStateFlow()
+
+    /**
+     * Availability value at load time. Used to detect a false→true transition
+     * (i.e. making a hidden listing go live) so the client can mirror the
+     * backend's payout-readiness gate. When null the listing hasn't loaded
+     * yet and no transition check is performed.
+     */
+    private var loadedIsAvailable: Boolean? = null
 
     fun loadListing(listingId: String) {
         viewModelScope.launch {
@@ -148,6 +158,7 @@ class EditListingViewModel @Inject constructor(
                 .onSuccess { listings ->
                     val listing = listings.firstOrNull { it.id == listingId }
                     if (listing != null) {
+                        loadedIsAvailable = listing.isAvailable
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             title = listing.title,
@@ -337,6 +348,31 @@ class EditListingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true, error = null)
+
+            // Payout-readiness gate (mirrors backend enforcement).
+            // Only block the false→true transition, i.e. the host flipping a
+            // hidden listing live. Saves that keep the listing already-live
+            // or already-hidden do not hit the Stripe status endpoint, so the
+            // common edit path stays fast. A transient network failure on the
+            // status lookup is treated as non-fatal — the backend is the real
+            // authority.
+            val goingLive = s.isAvailable && loadedIsAvailable == false
+            if (goingLive) {
+                val status = stripeConnectRepository.getConnectAccountStatus()
+                val canPayout = status.getOrNull()?.resolvedPayoutsEnabled
+                if (canPayout == false) {
+                    Timber.w("Save blocked: listing would go live but Stripe Connect payouts not enabled")
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        error = "Finish your payout setup before making this listing available. You won\u2019t be able to receive payments from bookings until your Stripe account is active."
+                    )
+                    return@launch
+                }
+                if (canPayout == null) {
+                    Timber.w("Payout status fetch failed; deferring to backend enforcement for go-live")
+                }
+            }
+
             val updated = Property(
                 id = s.listingId, title = s.title, description = s.description,
                 location = PropertyLocation(

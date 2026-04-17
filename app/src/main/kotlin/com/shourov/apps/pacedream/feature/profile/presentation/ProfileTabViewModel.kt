@@ -154,7 +154,13 @@ class ProfileTabViewModel @Inject constructor(
                 is ApiResult.Success -> {
                     val root = json.parseToJsonElement(result.data).jsonObject
                     val data = root["data"]?.jsonObject ?: root
+                    // Canonical backend signal for the "Verified" badge.
+                    // Per-method flags (phone/identity) stay for informational
+                    // pills but are no longer OR'd together to decide the badge.
+                    val verified = data["verificationState"]?.jsonObject
+                        ?.get("verified")?.jsonPrimitive?.booleanOrNull ?: false
                     VerificationStatus(
+                        verified = verified,
                         phoneVerified = data["phoneVerified"]?.jsonPrimitive?.booleanOrNull ?: false,
                         identityVerified = data["identityVerified"]?.jsonPrimitive?.booleanOrNull ?: false,
                         verificationSubmitted = data["verification"]?.jsonObject
@@ -205,12 +211,12 @@ class ProfileTabViewModel @Inject constructor(
 }
 
 data class VerificationStatus(
+    /** Canonical backend `verificationState.verified` — sole source for the Verified badge. */
+    val verified: Boolean = false,
     val phoneVerified: Boolean = false,
     val identityVerified: Boolean = false,
     val verificationSubmitted: Boolean = false
-) {
-    val hasAnyVerification: Boolean get() = phoneVerified || identityVerified
-}
+)
 
 sealed class ProfileTabUiState {
     data class Loading(val refreshing: Boolean) : ProfileTabUiState()
