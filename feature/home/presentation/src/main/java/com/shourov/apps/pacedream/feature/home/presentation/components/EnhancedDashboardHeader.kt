@@ -222,59 +222,118 @@ fun EnhancedDashboardHeader(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Prominent search bar matching iOS ProminentSearchBar.swift
-                // White pill with shadow, search icon, placeholder, filter button
-                Surface(
-                    onClick = onSearchClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    color = Color.White,
-                    shape = RoundedCornerShape(999.dp),
-                    shadowElevation = 8.dp,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Search,
-                            contentDescription = "Search",
-                            tint = Color(0xFF6B7280),
-                            modifier = Modifier.size(22.dp),
-                        )
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        Text(
-                            text = "Search anywhere",
-                            style = PaceDreamTypography.Callout,
-                            color = Color(0xFF6B7280),
-                            modifier = Modifier.weight(1f),
-                        )
-
-                        // Filter button (matching iOS circular filter icon)
-                        IconButton(
-                            onClick = onFilterClick,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF6B7280).copy(alpha = 0.1f))
-                        ) {
-                            Icon(
-                                imageVector = PaceDreamIcons.FilterList,
-                                contentDescription = "Filter",
-                                tint = Color(0xFF6B7280),
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                }
+                // Airbnb-style structured search pill: Where • When • Who.
+                // Single tap anywhere opens SearchScreen; the dedicated filter
+                // button remains as a trailing circular affordance.
+                StructuredSearchPill(
+                    onSearchClick = onSearchClick,
+                    onFilterClick = onFilterClick,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun StructuredSearchPill(
+    onSearchClick: () -> Unit,
+    onFilterClick: () -> Unit,
+) {
+    Surface(
+        onClick = onSearchClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(62.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(999.dp),
+        shadowElevation = 10.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 8.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SearchSegment(
+                label = stringResource(R.string.feature_home_search_where),
+                value = stringResource(R.string.feature_home_search_where_placeholder),
+                modifier = Modifier.weight(1.1f),
+            )
+            SegmentDivider()
+            SearchSegment(
+                label = stringResource(R.string.feature_home_search_when),
+                value = stringResource(R.string.feature_home_search_when_placeholder),
+                modifier = Modifier.weight(1f),
+            )
+            SegmentDivider()
+            SearchSegment(
+                label = stringResource(R.string.feature_home_search_who),
+                value = stringResource(R.string.feature_home_search_who_placeholder),
+                modifier = Modifier.weight(1f),
+            )
+
+            // Trailing filter / search affordance — brand-colored circle.
+            IconButton(
+                onClick = onFilterClick,
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF4F46E5),
+                                Color(0xFF7B4DFF),
+                            )
+                        )
+                    ),
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Search,
+                    contentDescription = "Search",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchSegment(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF111827),
+            maxLines = 1,
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = value,
+            fontSize = 12.sp,
+            color = Color(0xFF6B7280),
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun SegmentDivider() {
+    Box(
+        modifier = Modifier
+            .height(28.dp)
+            .width(1.dp)
+            .background(Color(0xFFE5E7EB))
+    )
 }
 
 /**
