@@ -1575,7 +1575,7 @@ private fun SearchMapResults(
     onSearchThisArea: (MapBounds) -> Unit,
     onClearMapBounds: () -> Unit,
 ) {
-    val mapsKey = stringResource(com.pacedream.app.R.string.google_maps_key)
+    val mapsKey = stringResource(com.shourov.apps.pacedream.R.string.google_maps_key)
     val mapsEnabled = mapsKey.isNotBlank()
 
     val mappable = remember(items) {
@@ -1687,7 +1687,7 @@ private fun SearchMapResults(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = com.google.maps.android.compose.MapProperties(
-                mapType = com.google.android.gms.maps.model.MapType.NORMAL,
+                mapType = com.google.maps.android.compose.MapType.NORMAL,
             ),
             uiSettings = com.google.maps.android.compose.MapUiSettings(
                 zoomControlsEnabled = false,
