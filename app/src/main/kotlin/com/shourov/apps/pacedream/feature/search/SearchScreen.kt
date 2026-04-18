@@ -614,6 +614,9 @@ fun SearchScreen(
                                             onSearchThisArea = { bounds ->
                                                 viewModel.searchInArea(bounds)
                                             },
+                                            onClearMapBounds = {
+                                                viewModel.clearMapBounds()
+                                            },
                                         )
                                     }
                                 }
@@ -1570,6 +1573,7 @@ private fun SearchMapResults(
     onItemClick: (String) -> Unit,
     onSwitchToList: () -> Unit,
     onSearchThisArea: (MapBounds) -> Unit,
+    onClearMapBounds: () -> Unit,
 ) {
     val mapsKey = stringResource(com.pacedream.app.R.string.google_maps_key)
     val mapsEnabled = mapsKey.isNotBlank()
@@ -1706,6 +1710,58 @@ private fun SearchMapResults(
                         false  // allow default info-window
                     },
                 )
+            }
+        }
+
+        // Bounded-results chip — small, muted indicator at the top-start
+        // so the user always knows when the visible list is scoped to a
+        // searched area.  Tapping the trailing X clears the bbox via
+        // clearMapBounds() and re-runs search unbounded.  Hidden when
+        // the current search is global (lastSearchedBounds == null).
+        if (lastSearchedBounds != null) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(PaceDreamSpacing.MD),
+                shape = RoundedCornerShape(999.dp),
+                color = Color.White,
+                shadowElevation = 4.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(
+                        start = PaceDreamSpacing.MD,
+                        end = 4.dp,
+                        top = 4.dp,
+                        bottom = 4.dp,
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.LocationOn,
+                        contentDescription = null,
+                        tint = PaceDreamColors.Primary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Results in this area",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    IconButton(
+                        onClick = onClearMapBounds,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.Close,
+                            contentDescription = "Clear area filter",
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
             }
         }
 

@@ -168,6 +168,27 @@ class SearchViewModel @Inject constructor(
         loadPage(reset = true)
     }
 
+    /**
+     * Clear the active bbox and re-run the search unbounded.  Used by
+     * the "Results in this area" chip's dismiss affordance so the user
+     * has a one-tap escape hatch back to global results without having
+     * to retype the query.  All other filters are preserved.
+     */
+    fun clearMapBounds() {
+        if (_uiState.value.mapBounds == null) return
+        _uiState.update {
+            it.copy(
+                mapBounds = null,
+                page0 = 0,
+                items = emptyList(),
+                hasMore = false,
+                phase = SearchPhase.Loading,
+                errorMessage = null,
+            )
+        }
+        loadPage(reset = true)
+    }
+
     private var searchJob: Job? = null
 
     fun submitSearch() {
