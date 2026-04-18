@@ -34,6 +34,7 @@ import com.shourov.apps.pacedream.core.database.entity.ChatEntity
 import com.shourov.apps.pacedream.core.database.entity.MessageEntity
 import com.shourov.apps.pacedream.core.database.entity.PropertyEntity
 import com.shourov.apps.pacedream.core.database.entity.UserEntity
+import com.shourov.apps.pacedream.core.database.migration.MIGRATION_1_2
 
 @Database(
     entities = [
@@ -45,12 +46,10 @@ import com.shourov.apps.pacedream.core.database.entity.UserEntity
         ChatEntity::class
     ],
     // v2: BookingEntity gained optional receipt breakdown columns
-    // (subtotal / serviceFee / cleaningFee / taxAmount).  All existing
-    // rows will be dropped via fallbackToDestructiveMigration and
-    // reloaded from the network on next read — consistent with the
-    // existing destructive strategy documented in the launch readiness
-    // report (P1-6).  Booking data is sourced from the backend, so
-    // cache loss is visible only as a one-time reload.
+    // (subtotal / serviceFee / cleaningFee / taxAmount). An explicit
+    // Migration(1, 2) preserves cached booking rows via ALTER TABLE
+    // ADD COLUMN. Other unhandled version jumps still fall back to
+    // destructive migration.
     version = 2,
     exportSchema = false
 )
@@ -72,6 +71,7 @@ abstract class PaceDreamDatabase : RoomDatabase() {
                 PaceDreamDatabase::class.java,
                 DATABASE_NAME
             )
+                .addMigrations(MIGRATION_1_2)
                 .fallbackToDestructiveMigration()
                 .build()
         }
