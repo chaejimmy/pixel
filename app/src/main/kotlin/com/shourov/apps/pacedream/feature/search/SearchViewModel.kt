@@ -148,16 +148,40 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(viewMode = mode) }
     }
 
+    /**
+     * Re-run the current search restricted to the visible map area.
+     * The bounds compose with existing filters (q / whatQuery / city /
+     * category / shareType / dates / sort) — nothing is cleared so the
+     * host can keep refining while they pan.  Pagination resets.
+     */
+    fun searchInArea(bounds: MapBounds) {
+        _uiState.update {
+            it.copy(
+                mapBounds = bounds,
+                page0 = 0,
+                items = emptyList(),
+                hasMore = false,
+                phase = SearchPhase.Loading,
+                errorMessage = null,
+            )
+        }
+        loadPage(reset = true)
+    }
+
     private var searchJob: Job? = null
 
     fun submitSearch() {
+        // Fresh submission from the search bar clears any prior bbox so
+        // typing a new query / location scope returns to global results
+        // rather than silently staying bounded to the last panned area.
         _uiState.update {
             it.copy(
                 phase = SearchPhase.Loading,
                 page0 = 0,
                 items = emptyList(),
                 hasMore = false,
-                errorMessage = null
+                errorMessage = null,
+                mapBounds = null,
             )
         }
         loadPage(reset = true)
@@ -219,7 +243,11 @@ class SearchViewModel @Inject constructor(
                     shareType = current.shareType?.takeIf { it.isNotBlank() },
                     whatQuery = current.whatQuery?.takeIf { it.isNotBlank() },
                     startDate = current.startDate?.takeIf { it.isNotBlank() },
-                    endDate = current.endDate?.takeIf { it.isNotBlank() }
+                    endDate = current.endDate?.takeIf { it.isNotBlank() },
+                    swLat = current.mapBounds?.swLat,
+                    swLng = current.mapBounds?.swLng,
+                    neLat = current.mapBounds?.neLat,
+                    neLng = current.mapBounds?.neLng,
                 )
 
                 when (res) {
@@ -322,7 +350,14 @@ data class SearchUiState(
      */
     val adultGuests: Int = 0,
     /** Current presentation mode for results; list is the default. */
-    val viewMode: SearchViewMode = SearchViewMode.LIST
+    val viewMode: SearchViewMode = SearchViewMode.LIST,
+    /**
+     * Bounds used for the most recent successful search.  Null when the
+     * last search was unbounded (the default).  Populated by
+     * `searchInArea(bounds)`; cleared when the user re-submits from
+     * the search bar so typing a new query returns to global scope.
+     */
+    val mapBounds: MapBounds? = null
 )
 
 enum class SearchPhase {

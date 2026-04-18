@@ -45,3 +45,22 @@ data class AutocompleteSuggestion(
     val value: String
 )
 
+/**
+ * Visible-area bounds emitted on "Search this area".  Stored in
+ * SearchUiState after a successful bbox search so the map composable
+ * can compare against the current camera view and decide whether the
+ * affordance is still useful.  Matches the backend's swLat / swLng /
+ * neLat / neLng contract on the existing search endpoints.
+ */
+data class MapBounds(
+    val swLat: Double,
+    val swLng: Double,
+    val neLat: Double,
+    val neLng: Double,
+) {
+    val centerLat: Double get() = (swLat + neLat) / 2.0
+    val centerLng: Double get() = (swLng + neLng) / 2.0
+    val latSpan: Double get() = (neLat - swLat).coerceAtLeast(0.0)
+    val lngSpan: Double get() = (neLng - swLng).coerceAtLeast(0.0)
+}
+

@@ -606,9 +606,13 @@ fun SearchScreen(
                                         )
                                         SearchViewMode.MAP -> SearchMapResults(
                                             items = state.items,
+                                            lastSearchedBounds = state.mapBounds,
                                             onItemClick = onListingClick,
                                             onSwitchToList = {
                                                 viewModel.updateViewMode(SearchViewMode.LIST)
+                                            },
+                                            onSearchThisArea = { bounds ->
+                                                viewModel.searchInArea(bounds)
                                             },
                                         )
                                     }
@@ -1562,8 +1566,10 @@ private fun SearchModeSegment(
 @Composable
 private fun SearchMapResults(
     items: List<SearchResultItem>,
+    lastSearchedBounds: MapBounds?,
     onItemClick: (String) -> Unit,
     onSwitchToList: () -> Unit,
+    onSearchThisArea: (MapBounds) -> Unit,
 ) {
     val mapsKey = stringResource(com.pacedream.app.R.string.google_maps_key)
     val mapsEnabled = mapsKey.isNotBlank()
@@ -1642,6 +1648,36 @@ private fun SearchMapResults(
         selectedId?.let { id -> mappable.firstOrNull { it.id == id } }
     }
 
+    // "Search this area" gating — only surfaces after the user has
+    // gestured the camera AND the visible bounds meaningfully differ
+    // from what was last searched.  Dismissed as soon as the ViewModel
+    // accepts a new bounded search (lastSearchedBounds changes).
+    var showSearchThisAreaPill by remember { mutableStateOf(false) }
+    LaunchedEffect(cameraPositionState.isMoving) {
+        if (!cameraPositionState.isMoving &&
+            cameraPositionState.cameraMoveStartedReason ==
+                com.google.maps.android.compose.CameraMoveStartedReason.GESTURE
+        ) {
+            val visible = cameraPositionState.projection
+                ?.visibleRegion
+                ?.latLngBounds
+                ?: return@LaunchedEffect
+            val next = MapBounds(
+                swLat = visible.southwest.latitude,
+                swLng = visible.southwest.longitude,
+                neLat = visible.northeast.latitude,
+                neLng = visible.northeast.longitude,
+            )
+            showSearchThisAreaPill = shouldOfferSearchThisArea(next, lastSearchedBounds)
+        }
+    }
+    LaunchedEffect(lastSearchedBounds) {
+        // A successful bounded search just landed; camera will be
+        // auto-fitted by the latLngs effect above.  Hide the pill until
+        // the user gestures again.
+        showSearchThisAreaPill = false
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         com.google.maps.android.compose.GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -1670,6 +1706,60 @@ private fun SearchMapResults(
                         false  // allow default info-window
                     },
                 )
+            }
+        }
+
+        // "Search this area" pill — centered at the top of the map.
+        // Only visible after user gesture + meaningful delta from the
+        // last searched bounds.  Tapping re-runs search via the same
+        // pipeline; other filters (q / city / category / shareType /
+        // dates / sort) compose with bbox server-side.
+        if (showSearchThisAreaPill) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = PaceDreamSpacing.MD),
+                onClick = {
+                    val visible = cameraPositionState.projection
+                        ?.visibleRegion
+                        ?.latLngBounds
+                    if (visible != null) {
+                        onSearchThisArea(
+                            MapBounds(
+                                swLat = visible.southwest.latitude,
+                                swLng = visible.southwest.longitude,
+                                neLat = visible.northeast.latitude,
+                                neLng = visible.northeast.longitude,
+                            )
+                        )
+                        showSearchThisAreaPill = false
+                    }
+                },
+                shape = RoundedCornerShape(999.dp),
+                color = PaceDreamColors.Primary,
+                shadowElevation = 6.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(
+                        horizontal = PaceDreamSpacing.MD,
+                        vertical = PaceDreamSpacing.SM,
+                    ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Search,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Search this area",
+                        style = PaceDreamTypography.Callout,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
 
@@ -1750,5 +1840,28 @@ private fun SearchMapResults(
             }
         }
     }
+}
+
+/**
+ * Returns true when the currently visible bounds differ enough from the
+ * last searched bounds that rerunning the search would meaningfully
+ * change the result set.  First-time use (lastSearched == null) always
+ * qualifies — the user has panned inside map mode and has not yet
+ * committed an area-bounded search.  Otherwise, the center must have
+ * shifted by more than a quarter of the averaged bounds dimension in
+ * either axis.  Avoids noisy pill toggling on small gestures.
+ */
+private fun shouldOfferSearchThisArea(
+    next: MapBounds,
+    lastSearched: MapBounds?,
+): Boolean {
+    if (lastSearched == null) return true
+    val dLat = kotlin.math.abs(next.centerLat - lastSearched.centerLat)
+    val dLng = kotlin.math.abs(next.centerLng - lastSearched.centerLng)
+    val avgLatSpan = (next.latSpan + lastSearched.latSpan) / 2.0
+    val avgLngSpan = (next.lngSpan + lastSearched.lngSpan) / 2.0
+    val latThreshold = (avgLatSpan * 0.25).coerceAtLeast(0.0001)
+    val lngThreshold = (avgLngSpan * 0.25).coerceAtLeast(0.0001)
+    return dLat > latThreshold || dLng > lngThreshold
 }
 
