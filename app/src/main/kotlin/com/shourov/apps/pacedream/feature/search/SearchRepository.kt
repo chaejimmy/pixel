@@ -52,7 +52,16 @@ class SearchRepository @Inject constructor(
         shareType: String? = null, // USE, BORROW, or SPLIT
         whatQuery: String? = null, // Keywords search
         startDate: String? = null, // ISO date string
-        endDate: String? = null // ISO date string
+        endDate: String? = null, // ISO date string
+        // Bounding-box filter for "Search this area" on the map results
+        // mode.  All four must be non-null for the bbox to be applied —
+        // partial values are ignored so we never send a half-formed
+        // geospatial query.  Backend contract on the same search
+        // endpoints: swLat / swLng / neLat / neLng.
+        swLat: Double? = null,
+        swLng: Double? = null,
+        neLat: Double? = null,
+        neLng: Double? = null,
     ): ApiResult<SearchPage> {
         // Map shareType to the web category key
         val webCategory = category?.takeIf { it in VALID_WEB_CATEGORIES }
@@ -100,6 +109,17 @@ class SearchRepository @Inject constructor(
             queryParams["date"] = startDate
         }
 
+        // Bounding-box filter — only when all four corners are present.
+        // Partial values are dropped so a half-typed coord never reaches
+        // the backend.  Sent alongside existing filters; bbox composes
+        // with q / location / category / shareType / date / sort.
+        if (swLat != null && swLng != null && neLat != null && neLng != null) {
+            queryParams["swLat"] = swLat.toString()
+            queryParams["swLng"] = swLng.toString()
+            queryParams["neLat"] = neLat.toString()
+            queryParams["neLng"] = neLng.toString()
+        }
+
         val primaryUrl = if (usePOCEndpoint) {
             appConfig.buildApiUrlWithQuery("poc", "listings", queryParams = queryParams)
         } else {
@@ -125,7 +145,11 @@ class SearchRepository @Inject constructor(
                 "shareType" to shareType,
                 "what" to whatQuery,
                 "startDate" to startDate,
-                "endDate" to endDate
+                "endDate" to endDate,
+                "swLat" to swLat?.toString(),
+                "swLng" to swLng?.toString(),
+                "neLat" to neLat?.toString(),
+                "neLng" to neLng?.toString(),
             )
         )
 
