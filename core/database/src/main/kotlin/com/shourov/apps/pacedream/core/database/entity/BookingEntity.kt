@@ -39,7 +39,15 @@ data class BookingEntity(
     val totalPrice: Double?,
     val startDate: String?,
     val endDate: String?,
-    val status: String?
+    val status: String?,
+    // Optional receipt breakdown — all nullable so legacy rows surviving a
+    // migration default to null and the detail screen falls back to the
+    // Total-only layout, matching network-first behavior.  Added when the
+    // booking-detail parser started extracting these per-line amounts.
+    val subtotal: Double? = null,
+    val serviceFee: Double? = null,
+    val cleaningFee: Double? = null,
+    val taxAmount: Double? = null
 )
 
 fun BookingEntity.asExternalModel(): BookingModel {
@@ -58,7 +66,11 @@ fun BookingEntity.asExternalModel(): BookingModel {
         totalPrice = totalPrice ?: 0.0,
         startDate = startDate ?: "",
         endDate = endDate ?: "",
-        status = BookingStatus.fromString(status)
+        status = BookingStatus.fromString(status),
+        subtotal = subtotal,
+        serviceFee = serviceFee,
+        cleaningFee = cleaningFee,
+        taxAmount = taxAmount
     )
 }
 
@@ -79,6 +91,10 @@ fun BookingModel.asEntity(): BookingEntity? {
         totalPrice = totalPrice,
         startDate = startDate,
         endDate = endDate,
-        status = status.name
+        status = status.name,
+        subtotal = subtotal,
+        serviceFee = serviceFee,
+        cleaningFee = cleaningFee,
+        taxAmount = taxAmount
     )
 }

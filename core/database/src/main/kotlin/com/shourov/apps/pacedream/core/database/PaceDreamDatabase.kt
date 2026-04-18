@@ -44,7 +44,14 @@ import com.shourov.apps.pacedream.core.database.entity.UserEntity
         CategoryEntity::class,
         ChatEntity::class
     ],
-    version = 1,
+    // v2: BookingEntity gained optional receipt breakdown columns
+    // (subtotal / serviceFee / cleaningFee / taxAmount).  All existing
+    // rows will be dropped via fallbackToDestructiveMigration and
+    // reloaded from the network on next read — consistent with the
+    // existing destructive strategy documented in the launch readiness
+    // report (P1-6).  Booking data is sourced from the backend, so
+    // cache loss is visible only as a one-time reload.
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -132,7 +132,11 @@ class PaceDreamRepository @Inject constructor(
             totalPrice = totalPrice ?: 0.0,
             startDate = startDate ?: "",
             endDate = endDate ?: "",
-            status = com.shourov.apps.pacedream.model.BookingStatus.fromString(status)
+            status = com.shourov.apps.pacedream.model.BookingStatus.fromString(status),
+            subtotal = subtotal,
+            serviceFee = serviceFee,
+            cleaningFee = cleaningFee,
+            taxAmount = taxAmount
         )
     }
     
