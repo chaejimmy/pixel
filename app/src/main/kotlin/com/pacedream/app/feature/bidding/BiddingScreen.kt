@@ -361,7 +361,7 @@ private fun CreateBidSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = PaceDreamColors.Background,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        shape = RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG)
     ) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Text("Place a Bid", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold)
