@@ -524,12 +524,14 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
 
     when (role) {
         BookingRole.RENTER -> {
+            // Darker Purple foreground for text contrast on the tinted chip background.
             textColor = Color(0xFF59339A)
             bgColor = PaceDreamColors.Purple.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Purple.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Person
         }
         BookingRole.HOST -> {
+            // Darker Teal foreground for text contrast on the tinted chip background.
             textColor = Color(0xFF1A6B8C)
             bgColor = PaceDreamColors.Teal.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Teal.copy(alpha = 0.3f)
@@ -570,35 +572,38 @@ private fun StatusBadge(config: BookingStatusConfig, modifier: Modifier = Modifi
     val borderColor: Color
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 
+    // Tinted status capsules: background/border tint comes from the iOS system
+    // color token; foreground keeps a darker variant so text stays readable on
+    // the semi-transparent fill (AA contrast on the light theme).
     when (config.badgeColor) {
         "yellow" -> {
             fgColor = Color(0xFF8C6600)
-            bgColor = Color(0xFFFFCC00).copy(alpha = 0.15f)
-            borderColor = Color(0xFFFFCC00).copy(alpha = 0.4f)
+            bgColor = PaceDreamColors.Yellow.copy(alpha = 0.15f)
+            borderColor = PaceDreamColors.Yellow.copy(alpha = 0.4f)
             icon = PaceDreamIcons.AccessTime
         }
         "blue" -> {
             fgColor = Color(0xFF1F4DA6)
-            bgColor = Color(0xFF007AFF).copy(alpha = 0.12f)
-            borderColor = Color(0xFF007AFF).copy(alpha = 0.3f)
+            bgColor = PaceDreamColors.Blue.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Blue.copy(alpha = 0.3f)
             icon = PaceDreamIcons.CheckCircle
         }
         "green" -> {
             fgColor = Color(0xFF1A7326)
-            bgColor = Color(0xFF34C759).copy(alpha = 0.12f)
-            borderColor = Color(0xFF34C759).copy(alpha = 0.3f)
+            bgColor = PaceDreamColors.Green.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Green.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Verified
         }
         "red" -> {
             fgColor = Color(0xFF991A1A)
-            bgColor = Color(0xFFFF3B30).copy(alpha = 0.12f)
-            borderColor = Color(0xFFFF3B30).copy(alpha = 0.3f)
+            bgColor = PaceDreamColors.Red.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Red.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Cancel
         }
         else -> {
             fgColor = Color(0xFF595959)
-            bgColor = Color(0xFF8E8E93).copy(alpha = 0.12f)
-            borderColor = Color(0xFF8E8E93).copy(alpha = 0.3f)
+            bgColor = PaceDreamColors.Gray500.copy(alpha = 0.12f)
+            borderColor = PaceDreamColors.Gray500.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Info
         }
     }

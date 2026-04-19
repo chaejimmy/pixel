@@ -619,7 +619,7 @@ private fun SearchShimmerGrid() {
                             modifier = Modifier
                                 .fillMaxWidth(0.85f)
                                 .height(12.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(shimmerBrush)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
@@ -627,7 +627,7 @@ private fun SearchShimmerGrid() {
                             modifier = Modifier
                                 .fillMaxWidth(0.6f)
                                 .height(10.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(shimmerBrush)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -635,7 +635,7 @@ private fun SearchShimmerGrid() {
                             modifier = Modifier
                                 .fillMaxWidth(0.4f)
                                 .height(12.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(shimmerBrush)
                         )
                     }

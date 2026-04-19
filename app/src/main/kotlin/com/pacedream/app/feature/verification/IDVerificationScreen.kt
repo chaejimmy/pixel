@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.*
@@ -228,7 +229,7 @@ fun ImageUploadSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(200.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(PaceDreamRadius.SM)
                     ) {
                         Image(
                             bitmap = it.asImageBitmap(),
@@ -255,7 +256,7 @@ fun ImageUploadSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(PaceDreamRadius.SM)
                 ) {
                     AsyncImage(
                         model = imageUrl,

@@ -22,6 +22,14 @@ Audit of the Android Compose codebase against `DESIGN_SYSTEM_README.md`
 
 Approximately **25–30% of feature code** deviates from the design system.
 
+## Progress log
+
+| Date | Task | Status | Notes |
+|---|---|---|---|
+| 2026-04-19 | #15 — wire profile TODOs (logout, host edit, host thread click) | ✅ Verified already wired | Audit finding was stale: `DashboardNavigation.kt:544/1090`, `HostNavigationGraph.kt:158/211` are all connected. |
+| 2026-04-19 | #7 — standardize corner radii | ✅ Done | `SearchScreen.kt` shimmer (×3), `BiddingScreen.kt:364` bottom-sheet shape, `IDVerificationScreen.kt:231/258` card shapes all swapped to `PaceDreamRadius.XS/LG/SM`. |
+| 2026-04-19 | #6 — BookingTabScreen status colors | ✅ Done | Replaced hex tints with `PaceDreamColors.Yellow/Blue/Green/Red/Gray500`; left dark-foreground text hex untouched with a note about AA contrast intent. |
+
 ## Remaining tasks
 
 ### P0 — Release blockers
@@ -58,14 +66,15 @@ Approximately **25–30% of feature code** deviates from the design system.
    - Raw `OutlinedTextField`, `Button`, `Card` + multiple `RoundedCornerShape(dp)`
      → `PaceDreamSearchBar`, `EnhancedCard`, `PaceDreamRadius.*`.
 
-6. **Fix `BookingTabScreen` status colors**
-   - `app/src/main/kotlin/com/shourov/apps/pacedream/feature/booking/presentation/BookingTabScreen.kt:527, 575–583`
-   - Raw status hex (`0xFF59339A`, badge hex + alpha) → `PaceDreamColors.Warning/Info/Success`
-     with dark-mode variants.
+6. ~~**Fix `BookingTabScreen` status colors**~~ — ✅ done 2026-04-19. Follow-up:
+   derive a proper dark-mode foreground palette so the `Color(0xFF8C6600)`
+   contrast colors can also be tokenised.
 
-7. **Standardize corner radii** across `BiddingScreen`, `IDVerificationScreen`,
-   `SearchScreen` (lines 610/622/630), `DestinationScreen`, `BlogScreen`.
-   Replace `RoundedCornerShape(Xdp)` with `PaceDreamRadius.XS/SM/MD/LG/XL`.
+7. ~~**Standardize corner radii**~~ — ✅ done 2026-04-19 for Search/Bidding/ID
+   Verification. Still to do: `DestinationScreen:309` (use `CircleShape`
+   instead of `RoundedCornerShape(28.dp)` on the 56 dp avatar) and a repo-wide
+   sweep for any remaining `RoundedCornerShape(Xdp)` in the legacy `feature/`
+   modules.
 
 8. **Dark-mode-aware card shadows**
    - Affects `HomeScreen.kt:364–365, 865–866, 1204–1205, 1406–1407` and every
