@@ -29,6 +29,7 @@ Approximately **25–30% of feature code** deviates from the design system.
 | 2026-04-19 | #15 — wire profile TODOs (logout, host edit, host thread click) | ✅ Verified already wired | Audit finding was stale: `DashboardNavigation.kt:544/1090`, `HostNavigationGraph.kt:158/211` are all connected. |
 | 2026-04-19 | #7 — standardize corner radii | ✅ Done | `SearchScreen.kt` shimmer (×3), `BiddingScreen.kt:364` bottom-sheet shape, `IDVerificationScreen.kt:231/258` card shapes all swapped to `PaceDreamRadius.XS/LG/SM`. |
 | 2026-04-19 | #6 — BookingTabScreen status colors | ✅ Done | Replaced hex tints with `PaceDreamColors.Yellow/Blue/Green/Red/Gray500`; left dark-foreground text hex untouched with a note about AA contrast intent. |
+| 2026-04-19 | #3 — Interactive-only a11y sweep | ✅ Partial (targeted) | Fixed two real bugs: `HomeScreen.kt:949` favorite Surface had a null `contentDescription` (siblings at `:1289` / `:1491` were already correct — brought this one into line). `ReviewsScreen.kt:835` / `:902` star-rating `IconButton`s announced nothing — now announce "Rate N star(s)". All other audited `null` cases are decorative icons paired with readable text and were intentionally left unchanged. |
 
 ## Remaining tasks
 
@@ -47,13 +48,30 @@ Approximately **25–30% of feature code** deviates from the design system.
    - Fix: route category/gradient colors through `PaceDreamColors.*` (or a
      `CategoryColors` object in the design-system module).
 
-3. **Accessibility — `contentDescription` audit**
-   - 115+ `contentDescription = null` sites. Hot spots:
-     - `HomeScreen.kt` (19), `BookingsScreen.kt` (6), `ReviewsScreen.kt` (8),
-       `ListingDetailScreen.kt` (5).
-   - Fix: replace with semantic strings (or `stringResource(...)`) for every
-     interactive icon; keep `null` only for purely decorative glyphs wrapped in
-     a labeled parent.
+3. **Accessibility — interactive-only `contentDescription` audit**
+   - ✅ Partial pass 2026-04-19: mapped all `IconButton`, `Surface(onClick=)`,
+     `.clickable(...)` sites across `feature/` and `app/feature/`. Total raw
+     `contentDescription = null` count is 310, but the overwhelming majority
+     are decorative icons sitting next to readable `Text` in the same Row /
+     Column — those are correctly `null` (labelling them would make TalkBack
+     double-read "Star, 4.8" etc.).
+   - Real interactive bugs found and fixed:
+     - `HomeScreen.kt:949` — the Home hero-card favourite `Surface(onClick=)`
+       had a null-labelled heart icon. Fixed to match sibling cards at
+       `:1289` / `:1491` which already toggle between "Add to favorites"
+       and "Remove from favorites".
+     - `ReviewsScreen.kt:835` & `:902` — the five star-rating `IconButton`s
+       in the write-review sheets shared the same unlabelled icon. Fixed to
+       announce "Rate N star(s)".
+   - Open follow-ups (still P1 but lower urgency than originally logged):
+     - Add `Role.Button` via `Modifier.semantics` to `.clickable` containers
+       on Home (hero search bar, notification pill) so TalkBack announces
+       "double-tap to activate" — they currently get the default click role
+       but not an explicit button role. Low risk, cosmetic for screen-reader
+       users.
+     - Consider a design-system `FavoriteIconButton` component to prevent
+       this null-label class of regression (three near-identical heart
+       buttons exist across Home alone).
 
 ### P1 — Core design-system hygiene
 

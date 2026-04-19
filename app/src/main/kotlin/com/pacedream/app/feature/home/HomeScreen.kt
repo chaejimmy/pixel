@@ -946,7 +946,7 @@ private fun FeaturedFullWidthCard(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = null,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                             tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
                             modifier = Modifier.size(18.dp)
                         )

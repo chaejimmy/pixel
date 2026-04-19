@@ -830,9 +830,11 @@ private fun WriteReviewSheet(
             Spacer(Modifier.height(PaceDreamSpacing.XS))
             Row {
                 repeat(5) { i ->
-                    IconButton(onClick = { rating = i + 1 }) {
+                    val stars = i + 1
+                    IconButton(onClick = { rating = stars }) {
                         Icon(
-                            PaceDreamIcons.Star, null,
+                            imageVector = PaceDreamIcons.Star,
+                            contentDescription = if (stars == 1) "Rate 1 star" else "Rate $stars stars",
                             tint = if (i < rating) PaceDreamColors.Warning else PaceDreamColors.TextTertiary,
                             modifier = Modifier.size(32.dp)
                         )
@@ -897,9 +899,11 @@ private fun EditReviewSheet(
             Spacer(Modifier.height(PaceDreamSpacing.XS))
             Row {
                 repeat(5) { i ->
-                    IconButton(onClick = { rating = i + 1 }) {
+                    val stars = i + 1
+                    IconButton(onClick = { rating = stars }) {
                         Icon(
-                            PaceDreamIcons.Star, null,
+                            imageVector = PaceDreamIcons.Star,
+                            contentDescription = if (stars == 1) "Rate 1 star" else "Rate $stars stars",
                             tint = if (i < rating) PaceDreamColors.Warning else PaceDreamColors.TextTertiary,
                             modifier = Modifier.size(32.dp),
                         )
