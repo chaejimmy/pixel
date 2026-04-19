@@ -5,7 +5,11 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -939,6 +943,11 @@ private fun CollapsibleSection(
     content: @Composable () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(defaultExpanded) }
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 180),
+        label = "sectionChevronRotation",
+    )
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -964,9 +973,15 @@ private fun CollapsibleSection(
                 Icon(PaceDreamIcons.ExpandMore,
                     contentDescription = if (expanded) "Collapse" else "Expand",
                     tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(PaceDreamIconSize.MD).rotate(if (expanded) 180f else 0f))
+                    modifier = Modifier.size(PaceDreamIconSize.MD).rotate(chevronRotation))
             }
-            AnimatedVisibility(expanded, enter = expandVertically(), exit = shrinkVertically()) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(durationMillis = 200)) +
+                    fadeIn(animationSpec = tween(durationMillis = 180)),
+                exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) +
+                    fadeOut(animationSpec = tween(durationMillis = 150)),
+            ) {
                 Column(Modifier.fillMaxWidth().padding(
                     start = PaceDreamSpacing.MD, end = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.MD,
                 )) { content() }
