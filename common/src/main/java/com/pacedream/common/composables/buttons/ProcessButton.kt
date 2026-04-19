@@ -82,8 +82,8 @@ fun ProcessButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 160),
         label = "button_press_scale"
     )
 
@@ -137,8 +137,8 @@ fun GradientProcessButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 160),
         label = "gradient_button_press_scale"
     )
 
@@ -219,8 +219,8 @@ fun OutlineProcessButton(
     val effectiveEnabled = !isProcessing && isEnabled
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 160),
         label = "outline_button_press_scale"
     )
 
@@ -312,8 +312,8 @@ fun CompactProcessButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 160),
         label = "compact_button_press_scale"
     )
 

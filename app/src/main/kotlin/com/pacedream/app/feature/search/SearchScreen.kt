@@ -56,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -76,6 +77,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -360,6 +363,7 @@ private fun SearchResultCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .animatedCardEntry()
             .scale(scale)
             .shadow(
                 elevation = if (isPressed) 8.dp else 4.dp,
@@ -396,7 +400,10 @@ private fun SearchResultCard(
             ) {
                 if (!item.imageUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model = item.imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(item.imageUrl)
+                            .crossfade(200)
+                            .build(),
                         contentDescription = item.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

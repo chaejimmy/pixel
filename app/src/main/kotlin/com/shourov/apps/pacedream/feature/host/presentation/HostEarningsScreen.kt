@@ -3,6 +3,12 @@ package com.shourov.apps.pacedream.feature.host.presentation
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -930,26 +936,34 @@ private fun PayoutRulesCard(rules: DashboardPayoutRules) {
                 )
             }
 
-            if (expanded) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                if (rules.shortBookingRule.isNotBlank()) {
-                    Text(
-                        "Short bookings (< ${rules.shortBookingThresholdHours}h)",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(rules.shortBookingRule, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(animationSpec = tween(durationMillis = 200)) +
+                    fadeIn(animationSpec = tween(durationMillis = 180)),
+                exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) +
+                    fadeOut(animationSpec = tween(durationMillis = 150)),
+            ) {
+                Column {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                }
-                if (rules.longBookingRule.isNotBlank()) {
-                    Text(
-                        "Long bookings",
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(rules.longBookingRule, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                    if (rules.shortBookingRule.isNotBlank()) {
+                        Text(
+                            "Short bookings (< ${rules.shortBookingThresholdHours}h)",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(rules.shortBookingRule, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    }
+                    if (rules.longBookingRule.isNotBlank()) {
+                        Text(
+                            "Long bookings",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(rules.longBookingRule, style = PaceDreamTypography.Footnote, color = PaceDreamColors.TextSecondary)
+                    }
                 }
             }
         }

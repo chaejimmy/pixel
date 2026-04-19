@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 
@@ -858,6 +861,7 @@ private fun FeaturedFullWidthCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .animatedCardEntry()
             .scale(scale)
             .shadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
@@ -887,7 +891,10 @@ private fun FeaturedFullWidthCard(
                     )
             ) {
                 AsyncImage(
-                    model = item.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.imageUrl)
+                        .crossfade(200)
+                        .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -1226,7 +1233,10 @@ private fun GridListingCard(
                     )
             ) {
                 AsyncImage(
-                    model = item.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.imageUrl)
+                        .crossfade(200)
+                        .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -1428,7 +1438,10 @@ private fun ListingCard(
                     )
             ) {
                 AsyncImage(
-                    model = item.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.imageUrl)
+                        .crossfade(200)
+                        .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -1912,7 +1925,10 @@ private fun TrendingDestinationCard(
             }
     ) {
         AsyncImage(
-            model = destination.imageUrl,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(destination.imageUrl)
+                .crossfade(200)
+                .build(),
             contentDescription = destination.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
