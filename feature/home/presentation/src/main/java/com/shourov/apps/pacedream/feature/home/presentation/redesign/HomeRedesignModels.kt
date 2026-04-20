@@ -72,6 +72,7 @@ data class Listing(
     val photos: Int = 4,
     val bookedToday: Int? = null,
     val dates: String? = null,
+    val imageUrls: List<String> = emptyList(),
 )
 
 object HomeRedesignData {
