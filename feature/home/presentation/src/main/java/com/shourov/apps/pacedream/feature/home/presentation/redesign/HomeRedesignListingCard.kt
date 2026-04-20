@@ -48,10 +48,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.delay
 
 /**
@@ -64,17 +68,26 @@ fun ListingCard(
     item: Listing,
     hueSeed: Int,
     compact: Boolean = false,
+    liked: Boolean = false,
+    onLikeToggle: (Boolean) -> Unit = {},
     onClick: () -> Unit = {},
 ) {
     val cardWidth = if (compact) 200.dp else 288.dp
     val photoHeight = if (compact) 160.dp else 220.dp
 
     var photoIdx by remember(item.id) { mutableIntStateOf(0) }
-    var liked by remember(item.id) { mutableStateOf(false) }
     var burst by remember(item.id) { mutableStateOf(false) }
 
-    LaunchedEffect(burst) {
-        if (burst) {
+    // Burst only on false→true transitions after the first composition —
+    // skip the initial render so pre-favorited items don't auto-animate.
+    var hasComposedOnce by remember(item.id) { mutableStateOf(false) }
+    LaunchedEffect(liked) {
+        if (!hasComposedOnce) {
+            hasComposedOnce = true
+            return@LaunchedEffect
+        }
+        if (liked) {
+            burst = true
             delay(500)
             burst = false
         }
@@ -92,12 +105,25 @@ fun ListingCard(
                 .clip(HomeRedesignTheme.CardShape)
                 .background(HomeRedesignTheme.LineSoft),
         ) {
-            // Gallery "pages" — swap the visible placeholder based on photoIdx
-            PhotoPlaceholder(
-                hueSeed = hueSeed + photoIdx * 17,
-                label = "photo ${photoIdx + 1}/${item.photos}",
-                modifier = Modifier.fillMaxSize(),
-            )
+            // Gallery page — real AsyncImage when we have a URL, otherwise a placeholder strip.
+            val currentUrl = item.imageUrls.getOrNull(photoIdx)
+            if (!currentUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(currentUrl)
+                        .crossfade(200)
+                        .build(),
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                PhotoPlaceholder(
+                    hueSeed = hueSeed + photoIdx * 17,
+                    label = "photo ${photoIdx + 1}/${item.photos}",
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
             // Prev / Next hit targets
             Row(Modifier.fillMaxSize()) {
@@ -196,10 +222,7 @@ fun ListingCard(
                     .graphicsLayer { scaleX = heartScale; scaleY = heartScale }
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.25f))
-                    .clickable {
-                        if (!liked) burst = true
-                        liked = !liked
-                    },
+                    .clickable { onLikeToggle(!liked) },
                 contentAlignment = Alignment.Center,
             ) {
                 if (liked) {
