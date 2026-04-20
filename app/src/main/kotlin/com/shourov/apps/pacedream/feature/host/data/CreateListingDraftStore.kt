@@ -124,10 +124,24 @@ data class ListingDraftData(
     val checkoutTime: String = "11:00",
     val minMonths: Int = 1,
     val availableFrom: String = "",
-    // Capacity — only meaningful for space (SHARE) listings.  Defaults
-    // match EditListingUiState bounds (max guests 1, rooms 0) so older
-    // drafts decode cleanly and the backend receives sensible values.
+    // Capacity — only meaningful for accommodation-style space listings.
+    // Defaults match EditListingUiState bounds (max guests 1, rooms 0)
+    // so older drafts decode cleanly and the backend receives sensible
+    // values even when the wizard never surfaces the field.
     val maxGuests: Int = 1,
     val bedrooms: Int = 0,
     val bathrooms: Int = 0,
+    // Parking-specific — only meaningful for parking / EV parking schemas.
+    val vehicleCapacity: Int = 1,
+    val parkingCovered: Boolean = false,
+    val parkingEvCharging: Boolean = false,
+    val parkingAccess247: Boolean = false,
+    val parkingSizeLimit: String = "",
+    val parkingSecurityFeatures: List<String> = emptyList(),
+    // Item-rental specific — gear / camera / tech / etc.
+    val deposit: String = "",
+    val condition: String = "",
+    val pickupDeliveryOptions: List<String> = emptyList(),
+    // Service specific — session duration in minutes.
+    val serviceDurationMinutes: Int = 60,
 )
