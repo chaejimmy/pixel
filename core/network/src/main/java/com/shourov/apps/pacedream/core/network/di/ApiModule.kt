@@ -65,6 +65,19 @@ object ApiModule {
             .Builder()
             .addInterceptor(httpLoggingInterceptor)
             .addInterceptor(keyInterceptor)
+            // X-Request-ID on every Retrofit-issued call so backend logs
+            // can be correlated with a specific client request.  Skipped
+            // when the caller already set the header (e.g. a service that
+            // wants to reuse a known correlation id).
+            .addInterceptor(Interceptor { chain ->
+                val original = chain.request()
+                val request = if (original.header("X-Request-ID").isNullOrBlank()) {
+                    original.newBuilder()
+                        .header("X-Request-ID", java.util.UUID.randomUUID().toString())
+                        .build()
+                } else original
+                chain.proceed(request)
+            })
             .addInterceptor(Interceptor { chain ->
                 val token = tokenProvider.getAccessToken()
                 val requestBuilder = chain.request().newBuilder()

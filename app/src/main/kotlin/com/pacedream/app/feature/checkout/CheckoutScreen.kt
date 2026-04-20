@@ -235,11 +235,13 @@ fun CheckoutScreen(
                     // with payment reference + copy + contact support.
                     StuckFallbackBanner(
                         paymentIntentId = uiState.pendingPaymentIntentId!!,
+                        requestId = uiState.lastConfirmRequestId,
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     SupportActionRow(
                         paymentIntentId = uiState.pendingPaymentIntentId!!,
                         listingTitle = uiState.draft?.listingId ?: "",
+                        requestId = uiState.lastConfirmRequestId,
                     )
                 } else {
                     // Payment succeeded but booking confirmation failed — show retry
@@ -715,7 +717,10 @@ private fun CancellationPolicyCard() {
  * ViewModel, so admin can reconcile while the user reads this.
  */
 @Composable
-private fun StuckFallbackBanner(paymentIntentId: String) {
+private fun StuckFallbackBanner(
+    paymentIntentId: String,
+    requestId: String?,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -770,6 +775,28 @@ private fun StuckFallbackBanner(paymentIntentId: String) {
                 modifier = Modifier.padding(start = PaceDreamSpacing.SM),
             )
         }
+        if (!requestId.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Request id",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Text(
+                    text = requestId,
+                    style = PaceDreamTypography.Caption,
+                    fontFamily = FontFamily.Monospace,
+                    color = PaceDreamColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = PaceDreamSpacing.SM),
+                )
+            }
+        }
     }
 }
 
@@ -778,7 +805,11 @@ private fun StuckFallbackBanner(paymentIntentId: String) {
  * to the clipboard, or launches a pre-filled support email intent.
  */
 @Composable
-private fun SupportActionRow(paymentIntentId: String, listingTitle: String) {
+private fun SupportActionRow(
+    paymentIntentId: String,
+    listingTitle: String,
+    requestId: String?,
+) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
@@ -789,7 +820,13 @@ private fun SupportActionRow(paymentIntentId: String, listingTitle: String) {
         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
     ) {
         OutlinedButton(
-            onClick = { clipboard.setText(AnnotatedString(paymentIntentId)) },
+            onClick = {
+                val payload = buildString {
+                    append(paymentIntentId)
+                    if (!requestId.isNullOrBlank()) append("\nrequest_id: ").append(requestId)
+                }
+                clipboard.setText(AnnotatedString(payload))
+            },
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
@@ -808,6 +845,7 @@ private fun SupportActionRow(paymentIntentId: String, listingTitle: String) {
                     append("Hi PaceDream support,\n\n")
                     append("My payment went through but the booking wasn\u2019t created.\n\n")
                     append("Payment reference: $paymentIntentId\n")
+                    if (!requestId.isNullOrBlank()) append("Request id: $requestId\n")
                     if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
                     append("\nPlease reconcile and confirm my booking.")
                 }

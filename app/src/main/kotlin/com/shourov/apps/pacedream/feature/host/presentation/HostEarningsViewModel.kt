@@ -193,8 +193,20 @@ class HostEarningsViewModel @Inject constructor(
     }
 
     fun hidePayoutSheet() {
+        // Dismissing the sheet is a fresh-start signal — drop any pending
+        // idempotency key so the next "Withdraw" tap mints a new one.
+        pendingPayoutIdempotencyKey = null
         _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
     }
+
+    /**
+     * Idempotency-Key for the in-flight payout request.  Minted once per
+     * user "Withdraw" tap and reused on the same tap's retries so the
+     * backend / Stripe Connect deduplicates concurrent or retried
+     * submissions.  Cleared on success or when the user dismisses the
+     * payout sheet.
+     */
+    private var pendingPayoutIdempotencyKey: String? = null
 
     fun requestPayout(amount: Double) {
         if (_earningsUiState.value.isRequestingPayout) return
@@ -217,8 +229,15 @@ class HostEarningsViewModel @Inject constructor(
             )
 
             val amountInCents = Math.round(amount * 100).toInt()
-            stripeConnectRepository.createPayout(amountInCents)
+            // Reuse the same key on retry so the backend dedupes; mint fresh
+            // when there's no pending key (i.e. first attempt for this tap).
+            val key = pendingPayoutIdempotencyKey
+                ?: java.util.UUID.randomUUID().toString().also {
+                    pendingPayoutIdempotencyKey = it
+                }
+            stripeConnectRepository.createPayout(amountInCents, idempotencyKey = key)
                 .onSuccess {
+                    pendingPayoutIdempotencyKey = null
                     _earningsUiState.value = _earningsUiState.value.copy(
                         isRequestingPayout = false,
                         showPayoutSheet = false,

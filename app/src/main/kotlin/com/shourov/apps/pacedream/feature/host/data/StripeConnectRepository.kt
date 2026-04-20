@@ -294,20 +294,36 @@ class StripeConnectRepository @Inject constructor(
     // Note: Balance, transfers, and payouts are now fetched via getEarningsDashboard()
     // which uses the single /host/earnings/dashboard endpoint (iOS parity).
 
-    suspend fun createPayout(amount: Int, currency: String = "usd"): Result<Payout> {
+    /**
+     * Request a manual payout.
+     *
+     * [idempotencyKey] should be minted ONCE per user "Withdraw" tap and
+     * reused if the call is retried (e.g. after a transient network
+     * failure) so the backend / Stripe Connect dedup the request and we
+     * never create two payouts for the same intent.  Callers that don't
+     * pass one get a UUID per call — safe but loses retry dedup.
+     */
+    suspend fun createPayout(
+        amount: Int,
+        currency: String = "usd",
+        idempotencyKey: String = java.util.UUID.randomUUID().toString(),
+    ): Result<Payout> {
         return try {
-            Timber.d("Requesting payout: ${amount}c $currency")
-            val response = hostApiService.createPayout(CreatePayoutRequest(amount, currency))
+            Timber.d("Requesting payout: ${amount}c $currency key=$idempotencyKey")
+            val response = hostApiService.createPayout(
+                request = CreatePayoutRequest(amount, currency),
+                idempotencyKey = idempotencyKey,
+            )
             if (response.isSuccessful) {
                 Timber.d("Payout request succeeded")
                 Result.success(response.body() ?: throw Exception("Empty response"))
             } else {
                 val msg = extractErrorMessage(response, "Failed to request payout")
-                Timber.w("Payout request failed [${response.code()}]: $msg")
+                Timber.w("Payout request failed [${response.code()}]: $msg key=$idempotencyKey")
                 Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
-            Timber.e(e, "Payout request exception")
+            Timber.e(e, "Payout request exception key=$idempotencyKey")
             Result.failure(e)
         }
     }

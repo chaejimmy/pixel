@@ -103,7 +103,10 @@ interface HostApiService {
     // ── Legacy Stripe Connect endpoints (kept for createPayout/createConnectAccount) ──
 
     @POST("host/stripe/payouts/create")
-    suspend fun createPayout(@Body request: CreatePayoutRequest): Response<Payout>
+    suspend fun createPayout(
+        @Body request: CreatePayoutRequest,
+        @Header("Idempotency-Key") idempotencyKey: String,
+    ): Response<Payout>
 
     @GET("host/stripe/connect/status")
     suspend fun getConnectAccountStatus(): Response<ConnectAccount>

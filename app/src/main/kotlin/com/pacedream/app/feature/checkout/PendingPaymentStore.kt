@@ -44,6 +44,13 @@ data class PendingNativePayment(
      * call on the next launch.
      */
     val paymentSucceededLocally: Boolean = false,
+    /**
+     * Idempotency-Key used on every confirm-booking call for this PI.
+     * Persisted so process-death recovery and manual retries reuse the
+     * SAME key — the backend deduplicates and returns the existing
+     * booking instead of creating a duplicate.
+     */
+    val confirmIdempotencyKey: String? = null,
 )
 
 /**
