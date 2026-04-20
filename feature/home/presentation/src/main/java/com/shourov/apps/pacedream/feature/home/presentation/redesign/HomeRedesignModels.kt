@@ -4,26 +4,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Bed
-import androidx.compose.material.icons.outlined.Brush
 import androidx.compose.material.icons.outlined.Build
-import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.CleaningServices
 import androidx.compose.material.icons.outlined.DeliveryDining
 import androidx.compose.material.icons.outlined.DirectionsBike
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.FlightTakeoff
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.Hotel
-import androidx.compose.material.icons.outlined.LocalMoving
 import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.NightsStay
 import androidx.compose.material.icons.outlined.Park
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.Wc
 import androidx.compose.material.icons.outlined.Work
@@ -107,7 +102,7 @@ object HomeRedesignData {
         CategoryOption("tutor",    "Tutoring",    Icons.Outlined.School),
         CategoryOption("photo",    "Photography", Icons.Outlined.CameraAlt),
         CategoryOption("repair",   "Repair",      Icons.Outlined.Build),
-        CategoryOption("move",     "Moving",      Icons.Outlined.LocalMoving),
+        CategoryOption("move",     "Moving",      Icons.Outlined.LocalShipping),
         CategoryOption("errand",   "Errands",     Icons.Outlined.DeliveryDining),
     )
 
@@ -141,19 +136,19 @@ object HomeRedesignData {
         ),
     )
 
-    data class BadgeMeta(val label: String)
+    data class BadgeMetaEntry(val label: String)
 
-    val BadgeMeta = mapOf(
-        "hourly"   to BadgeMeta("Hourly"),
-        "daily"    to BadgeMeta("Daily"),
-        "split"    to BadgeMeta("Split cost"),
-        "shared"   to BadgeMeta("Shared"),
-        "instant"  to BadgeMeta("Instant book"),
-        "delivery" to BadgeMeta("Delivery"),
-        "pickup"   to BadgeMeta("Pickup"),
-        "fixed"    to BadgeMeta("Fixed price"),
-        "onsite"   to BadgeMeta("On-site"),
-        "remote"   to BadgeMeta("Remote"),
+    val BadgeMeta: Map<String, BadgeMetaEntry> = mapOf(
+        "hourly"   to BadgeMetaEntry("Hourly"),
+        "daily"    to BadgeMetaEntry("Daily"),
+        "split"    to BadgeMetaEntry("Split cost"),
+        "shared"   to BadgeMetaEntry("Shared"),
+        "instant"  to BadgeMetaEntry("Instant book"),
+        "delivery" to BadgeMetaEntry("Delivery"),
+        "pickup"   to BadgeMetaEntry("Pickup"),
+        "fixed"    to BadgeMetaEntry("Fixed price"),
+        "onsite"   to BadgeMetaEntry("On-site"),
+        "remote"   to BadgeMetaEntry("Remote"),
     )
 
     val Listings: Map<PrimaryType, List<Listing>> = mapOf(
