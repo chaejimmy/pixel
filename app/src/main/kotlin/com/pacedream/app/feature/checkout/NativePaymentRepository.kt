@@ -97,13 +97,18 @@ class NativePaymentRepository @Inject constructor(
     /**
      * Step 1: Create a server-side quote for the booking.
      * Returns pricing breakdown (base, fees, tax, total) and a quoteId.
+     *
+     * [idempotencyKey] is sent as the `Idempotency-Key` header so a
+     * double-tap on Pay (or a network-retried POST) returns the same
+     * quote id rather than creating a duplicate quote row.
      */
     suspend fun createQuote(
         listingId: String,
         bookingType: String,
         startTime: String,
         endTime: String,
-        quantity: Int = 1
+        quantity: Int = 1,
+        idempotencyKey: String? = null
     ): ApiResult<QuoteResponse> {
         val url = appConfig.buildApiUrl("payments", "native", "quote")
         val body = buildJsonObject {
@@ -114,7 +119,12 @@ class NativePaymentRepository @Inject constructor(
             put("quantity", quantity)
         }.toString()
 
-        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+        return when (val result = apiClient.post(
+            url = url,
+            body = body,
+            includeAuth = true,
+            extraHeaders = idempotencyHeaders(idempotencyKey),
+        )) {
             is ApiResult.Success -> {
                 try {
                     val quote = withContext(Dispatchers.Default) {
@@ -133,8 +143,15 @@ class NativePaymentRepository @Inject constructor(
     /**
      * Step 2: Create a Stripe PaymentIntent and get the client secret + ephemeral key.
      * The backend ties the PaymentIntent to the quote.
+     *
+     * [idempotencyKey] is sent as the `Idempotency-Key` header so a
+     * crash-and-retry between createQuote and PaymentSheet does not
+     * create a second pending PaymentIntent against the same quote.
      */
-    suspend fun createPaymentIntent(quoteId: String): ApiResult<PaymentSheetConfig> {
+    suspend fun createPaymentIntent(
+        quoteId: String,
+        idempotencyKey: String? = null
+    ): ApiResult<PaymentSheetConfig> {
         val url = appConfig.buildApiUrl("payments", "native", "payment-intent")
         val body = buildJsonObject {
             put("quote_id", quoteId)
@@ -144,7 +161,12 @@ class NativePaymentRepository @Inject constructor(
             put("payment_method_types", buildJsonArray { add(JsonPrimitive("card")) })
         }.toString()
 
-        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+        return when (val result = apiClient.post(
+            url = url,
+            body = body,
+            includeAuth = true,
+            extraHeaders = idempotencyHeaders(idempotencyKey),
+        )) {
             is ApiResult.Success -> {
                 try {
                     val config = withContext(Dispatchers.Default) {
@@ -163,14 +185,34 @@ class NativePaymentRepository @Inject constructor(
     /**
      * Step 3: Confirm booking after PaymentSheet reports success.
      * The backend verifies the PaymentIntent with Stripe and creates the booking record.
+     *
+     * [idempotencyKey] MUST be the same key on every retry of the same
+     * PaymentIntent so the backend can return the existing booking
+     * instead of creating a duplicate.  Persist it in
+     * [PendingPaymentStore] so process-death recovery reuses the same
+     * key.
      */
-    suspend fun confirmBooking(paymentIntentId: String): ApiResult<ConfirmBookingResponse> {
+    suspend fun confirmBooking(
+        paymentIntentId: String,
+        idempotencyKey: String? = null,
+        requestId: String? = null,
+    ): ApiResult<ConfirmBookingResponse> {
         val url = appConfig.buildApiUrl("payments", "native", "confirm-booking")
         val body = buildJsonObject {
             put("payment_intent_id", paymentIntentId)
         }.toString()
 
-        return when (val result = apiClient.post(url, body, includeAuth = true)) {
+        val headers = buildMap {
+            putAll(idempotencyHeaders(idempotencyKey))
+            if (!requestId.isNullOrBlank()) put("X-Request-ID", requestId)
+        }
+
+        return when (val result = apiClient.post(
+            url = url,
+            body = body,
+            includeAuth = true,
+            extraHeaders = headers,
+        )) {
             is ApiResult.Success -> {
                 try {
                     val response = withContext(Dispatchers.Default) {
@@ -185,6 +227,9 @@ class NativePaymentRepository @Inject constructor(
             is ApiResult.Failure -> result
         }
     }
+
+    private fun idempotencyHeaders(key: String?): Map<String, String> =
+        if (key.isNullOrBlank()) emptyMap() else mapOf("Idempotency-Key" to key)
 
     /**
      * Resolve Stripe publishable key.

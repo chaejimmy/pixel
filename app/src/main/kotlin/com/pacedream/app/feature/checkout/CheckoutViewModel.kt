@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
+import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import com.shourov.apps.pacedream.core.data.repository.BookingRepository as CoreBookingRepository
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
 import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,8 +19,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import timber.log.Timber
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -67,6 +71,13 @@ data class CheckoutUiState(
      * recovery rather than a fresh confirmation.
      */
     val isRecoveredByServer: Boolean = false,
+    /**
+     * X-Request-ID of the most recent confirm-booking attempt.  Surfaced
+     * in the stuck-fallback support UI so a user-reported issue can be
+     * traced back to a specific server log entry.  Null until the first
+     * confirm attempt for the current PaymentIntent.
+     */
+    val lastConfirmRequestId: String? = null,
 )
 
 @HiltViewModel
@@ -104,6 +115,20 @@ class CheckoutViewModel @Inject constructor(
     private var currentClientSecret: String? = null
     /** Cached quoteId for the in-flight payment (survives via PendingPaymentStore). */
     private var currentQuoteId: String? = null
+    /**
+     * Idempotency-Key reused across every confirm-booking attempt for the
+     * current PaymentIntent — including manual retries and post-launch
+     * crash-recovery retries.  Hydrated from [PendingPaymentStore] on
+     * recovery so a freshly-restarted process does NOT generate a new key.
+     */
+    private var currentConfirmIdempotencyKey: String? = null
+    /**
+     * Idempotency-Key for the in-flight quote → PaymentIntent pair.
+     * Generated once per user "Pay" tap so a transient crash before the
+     * pending record is committed still ties any retry to the same
+     * PaymentIntent on the backend.
+     */
+    private var currentPaymentIntentIdempotencyKey: String? = null
 
     init {
         // Process-death recovery: if the previous instance of the app
@@ -148,7 +173,11 @@ class CheckoutViewModel @Inject constructor(
                 bookingType = bookingType,
                 startTime = draft.startTimeISO,
                 endTime = draft.endTimeISO,
-                quantity = draft.guests
+                quantity = draft.guests,
+                // One key per draft — tapping retry on the same draft reuses it
+                // so the backend de-duplicates the quote row.  Re-derived from
+                // the stable booking input; resilient to concurrent re-fetches.
+                idempotencyKey = quoteIdempotencyKey(draft),
             )) {
                 is ApiResult.Success -> {
                     _uiState.update {
@@ -250,8 +279,22 @@ class CheckoutViewModel @Inject constructor(
                 }
             }
 
+            // Mint a fresh idempotency key for this Pay tap.  Used for the
+            // PaymentIntent POST and persisted with the pending record so
+            // both retries and process-death recovery reuse the same key.
+            val piIdempotencyKey = UUID.randomUUID().toString()
+            currentPaymentIntentIdempotencyKey = piIdempotencyKey
+            // confirm-booking key is also pre-minted so it can be persisted
+            // BEFORE the Stripe sheet opens — crash recovery needs the same
+            // key the original attempt would have used.
+            val confirmKey = UUID.randomUUID().toString()
+            currentConfirmIdempotencyKey = confirmKey
+
             // Create PaymentIntent on backend
-            when (val result = nativePaymentRepository.createPaymentIntent(quote.quoteId)) {
+            when (val result = nativePaymentRepository.createPaymentIntent(
+                quoteId = quote.quoteId,
+                idempotencyKey = piIdempotencyKey,
+            )) {
                 is ApiResult.Success -> {
                     val config = result.data
 
@@ -287,6 +330,7 @@ class CheckoutViewModel @Inject constructor(
                             listingId = _uiState.value.draft?.listingId,
                             retryCount = 0,
                             paymentSucceededLocally = false,
+                            confirmIdempotencyKey = confirmKey,
                         )
                     )
 
@@ -343,6 +387,8 @@ class CheckoutViewModel @Inject constructor(
         pendingPaymentStore.clear()
         currentClientSecret = null
         currentQuoteId = null
+        currentConfirmIdempotencyKey = null
+        currentPaymentIntentIdempotencyKey = null
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.READY,
@@ -363,6 +409,8 @@ class CheckoutViewModel @Inject constructor(
         pendingPaymentStore.clear()
         currentClientSecret = null
         currentQuoteId = null
+        currentConfirmIdempotencyKey = null
+        currentPaymentIntentIdempotencyKey = null
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.FAILED,
@@ -404,13 +452,51 @@ class CheckoutViewModel @Inject constructor(
             return
         }
 
+        // Reuse a previously-persisted idempotency key when present so a
+        // crash-recovery retry hits the SAME backend dedup slot as the
+        // original attempt and either gets the existing booking back or
+        // races safely with the original write.  Only mint a new key when
+        // no record exists (e.g. a stale in-memory state with no pending
+        // store entry).
+        val confirmKey = currentConfirmIdempotencyKey
+            ?: pendingPaymentStore.load()?.confirmIdempotencyKey
+            ?: UUID.randomUUID().toString().also {
+                currentConfirmIdempotencyKey = it
+            }
+        currentConfirmIdempotencyKey = confirmKey
+
         // Bump the persisted retry counter so process-death recovery
         // can see the same value the in-memory counter will show
         // after the result lands.
         pendingPaymentStore.recordRetryAttempt()
-        Timber.d("confirm-booking started for $paymentIntentId")
 
-        when (val result = nativePaymentRepository.confirmBooking(paymentIntentId)) {
+        // Mint a fresh X-Request-ID per attempt and surface it in state
+        // so the support fallback UI can show the user a copy-able token
+        // for the call that just failed.
+        val requestId = UUID.randomUUID().toString()
+        _uiState.update { it.copy(lastConfirmRequestId = requestId) }
+        Timber.d("confirm-booking started pi=$paymentIntentId key=$confirmKey reqId=$requestId")
+
+        // Wrap the call in an explicit timeout so the "Finalizing booking…"
+        // spinner can never hang indefinitely (network stalls beyond the
+        // OkHttp read budget would otherwise leave the user stuck).  On
+        // timeout we treat the call as a transient failure and route the
+        // user into the same retry/recovery branch we use for genuine
+        // failures — payment IS captured, so we never flip to FAILED.
+        val result: ApiResult<ConfirmBookingResponse> = try {
+            withTimeout(CONFIRM_BOOKING_TIMEOUT_MS) {
+                nativePaymentRepository.confirmBooking(
+                    paymentIntentId = paymentIntentId,
+                    idempotencyKey = confirmKey,
+                    requestId = requestId,
+                )
+            }
+        } catch (e: TimeoutCancellationException) {
+            Timber.w("confirm-booking timed out after ${CONFIRM_BOOKING_TIMEOUT_MS}ms pi=$paymentIntentId reqId=$requestId")
+            ApiResult.Failure(ApiError.NetworkTimeout)
+        }
+
+        when (result) {
             is ApiResult.Success -> {
                 val bookingId = result.data.booking?.id
                 if (bookingId != null) {
@@ -422,6 +508,8 @@ class CheckoutViewModel @Inject constructor(
                 pendingPaymentStore.clear()
                 currentClientSecret = null
                 currentQuoteId = null
+                currentConfirmIdempotencyKey = null
+                currentPaymentIntentIdempotencyKey = null
                 _uiState.update {
                     it.copy(
                         status = CheckoutStatus.SUCCEEDED,
@@ -436,7 +524,7 @@ class CheckoutViewModel @Inject constructor(
                 }
             }
             is ApiResult.Failure -> {
-                // Payment succeeded but confirm call failed.
+                // Payment succeeded but confirm call failed (or timed out).
                 // Show success with retry option instead of infinite spinner.
                 val retryCount = _uiState.value.confirmRetryCount + 1
                 val errorMessage = result.error.message
@@ -495,6 +583,11 @@ class CheckoutViewModel @Inject constructor(
 
         currentClientSecret = record.clientSecret
         currentQuoteId = record.quoteId
+        // Critical: rehydrate the persisted Idempotency-Key so the
+        // recovery retry hits the SAME backend dedup slot as the original
+        // confirm call.  Without this, recovery would generate a fresh
+        // key and the backend could create a duplicate booking.
+        currentConfirmIdempotencyKey = record.confirmIdempotencyKey
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.SUCCEEDED,
@@ -551,6 +644,8 @@ class CheckoutViewModel @Inject constructor(
                     pendingPaymentStore.clear()
                     currentClientSecret = null
                     currentQuoteId = null
+                    currentConfirmIdempotencyKey = null
+                    currentPaymentIntentIdempotencyKey = null
                     _uiState.update {
                         it.copy(
                             bookingId = bookingId ?: it.bookingId,
@@ -571,6 +666,34 @@ class CheckoutViewModel @Inject constructor(
     companion object {
         /** Public so the UI can reference the bound for the retry button. */
         const val MAX_CONFIRM_RETRIES = 3
+
+        /**
+         * Hard ceiling on a single confirm-booking attempt before we treat
+         * the call as a transient failure and fall back to the recovery
+         * UI.  Slightly larger than the OkHttp read timeout (30s) so a
+         * slow-but-eventually-successful backend response still wins; we
+         * only kick in when the call is truly stalled.
+         */
+        const val CONFIRM_BOOKING_TIMEOUT_MS = 45_000L
+    }
+
+    /**
+     * Stable per-draft idempotency key for the quote POST.  Same draft
+     * → same key (so a retry after a transient failure doesn't create a
+     * second quote row).  Different draft (different listing / dates /
+     * guests) → different key.
+     */
+    private fun quoteIdempotencyKey(draft: BookingDraft): String {
+        val raw = listOf(
+            draft.listingId,
+            draft.listingType,
+            draft.startTimeISO,
+            draft.endTimeISO,
+            draft.guests.toString(),
+        ).joinToString("|")
+        // Stable v3-ish UUID derived from the draft so the key is the same
+        // across launches if the user comes back to the same draft.
+        return UUID.nameUUIDFromBytes(raw.toByteArray(Charsets.UTF_8)).toString()
     }
 
     private suspend fun cacheConfirmedBooking(bookingId: String, response: ConfirmBookingResponse) {

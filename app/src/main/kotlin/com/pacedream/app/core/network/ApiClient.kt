@@ -226,36 +226,43 @@ class ApiClient @Inject constructor(
     }
     
     /**
-     * POST request (no retry)
+     * POST request (no retry).
+     *
+     * Optional [extraHeaders] are merged in after the standard
+     * Accept / Content-Type / Authorization headers — used for
+     * payment idempotency (`Idempotency-Key`).
      */
     suspend fun post(
         url: HttpUrl,
         body: String,
-        includeAuth: Boolean = false
+        includeAuth: Boolean = false,
+        extraHeaders: Map<String, String> = emptyMap()
     ): ApiResult<String> {
-        return executeNonGet("POST", url, body, includeAuth)
+        return executeNonGet("POST", url, body, includeAuth, extraHeaders)
     }
-    
+
     /**
      * PUT request (no retry)
      */
     suspend fun put(
         url: HttpUrl,
         body: String,
-        includeAuth: Boolean = false
+        includeAuth: Boolean = false,
+        extraHeaders: Map<String, String> = emptyMap()
     ): ApiResult<String> {
-        return executeNonGet("PUT", url, body, includeAuth)
+        return executeNonGet("PUT", url, body, includeAuth, extraHeaders)
     }
-    
+
     /**
      * PATCH request (no retry)
      */
     suspend fun patch(
         url: HttpUrl,
         body: String,
-        includeAuth: Boolean = false
+        includeAuth: Boolean = false,
+        extraHeaders: Map<String, String> = emptyMap()
     ): ApiResult<String> {
-        return executeNonGet("PATCH", url, body, includeAuth)
+        return executeNonGet("PATCH", url, body, includeAuth, extraHeaders)
     }
     
     /**
@@ -306,10 +313,15 @@ class ApiClient @Inject constructor(
         url: HttpUrl,
         body: String,
         includeAuth: Boolean,
+        extraHeaders: Map<String, String> = emptyMap(),
         allowAuthRefresh: Boolean = true
     ): ApiResult<String> = withContext(Dispatchers.IO) {
+        // Generate the request id once per call so it's stable across the
+        // 401 → refresh → retry path (the backend log can correlate both
+        // attempts as a single client intent).
+        val requestId = newRequestId()
         try {
-            val request = buildRequest(url, method, body, includeAuth)
+            val request = buildRequest(url, method, body, includeAuth, extraHeaders, requestId)
             val response = executeRequest(request)
 
             if (response.isSuccessful) {
@@ -325,6 +337,7 @@ class ApiClient @Inject constructor(
                         url = url,
                         body = body,
                         includeAuth = true,
+                        extraHeaders = extraHeaders,
                         allowAuthRefresh = false
                     )
                 }
@@ -333,39 +346,63 @@ class ApiClient @Inject constructor(
 
             val responseBody = response.body?.string()
             val serverMessage = ApiError.extractServerMessage(responseBody)
+            Timber.w("$method ${url.encodedPath} failed code=${response.code} reqId=$requestId msg=$serverMessage")
             ApiResult.Failure(ApiError.fromStatusCode(response.code, serverMessage))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            Timber.w(e, "$method ${url.encodedPath} threw reqId=$requestId")
             ApiResult.Failure(mapException(e))
         }
     }
-    
+
     /**
-     * Build request with headers
+     * Build request with headers.  Always sets Accept and X-Request-ID;
+     * adds Content-Type for non-GET, Authorization when requested, and
+     * any caller-supplied [extraHeaders] last (so callers can override
+     * if they ever need to — e.g. checkout pre-mints its own
+     * X-Request-ID to display in the support fallback UI).
      */
     private fun buildRequest(
         url: HttpUrl,
         method: String,
         body: String?,
-        includeAuth: Boolean
+        includeAuth: Boolean,
+        extraHeaders: Map<String, String> = emptyMap(),
+        requestId: String = newRequestId()
     ): Request {
+        // Caller-supplied X-Request-ID wins so the same id is visible to
+        // the user (e.g. on the checkout stuck banner) AND to the backend.
+        val effectiveRequestId = extraHeaders["X-Request-ID"]
+            ?.takeIf { it.isNotBlank() }
+            ?: requestId
+
         val builder = Request.Builder()
             .url(url)
             .header("Accept", "application/json")
-        
+            // X-Request-ID lets backend / support correlate a user-reported
+            // failure to a specific server log line.
+            .header("X-Request-ID", effectiveRequestId)
+
         // Add Content-Type for non-GET requests
         if (method != "GET" && body != null) {
             builder.header("Content-Type", "application/json")
         }
-        
+
         // Add Authorization header if requested and token exists
         if (includeAuth) {
             tokenStorage.accessToken?.let { token ->
                 builder.header("Authorization", "Bearer $token")
             }
         }
-        
+
+        // Caller-supplied headers (e.g. Idempotency-Key for payments).
+        // Skip X-Request-ID since it was already applied above.
+        extraHeaders.forEach { (name, value) ->
+            if (name.equals("X-Request-ID", ignoreCase = true)) return@forEach
+            if (value.isNotBlank()) builder.header(name, value)
+        }
+
         // Set method and body
         when (method) {
             "GET" -> builder.get()
@@ -374,9 +411,12 @@ class ApiClient @Inject constructor(
             "PATCH" -> builder.patch(body?.toRequestBody(jsonMediaType) ?: "".toRequestBody(jsonMediaType))
             "DELETE" -> builder.delete(body?.toRequestBody(jsonMediaType))
         }
-        
+
         return builder.build()
     }
+
+    /** UUIDv4 used as the X-Request-ID for a single outbound HTTP call. */
+    private fun newRequestId(): String = java.util.UUID.randomUUID().toString()
     
     /**
      * Execute request synchronously (called from coroutine)
