@@ -1167,11 +1167,27 @@ class HostRepository @Inject constructor(
         r.deadlineAt?.let { body["deadlineAt"] = it }
         r.requirements?.let { body["requirements"] = it }
         // Capacity — same top-level keys the listing update endpoint already
-        // accepts.  Only emitted when the wizard captured a value so we never
-        // widen the POST body for listing modes that do not surface the UI.
+        // accepts.  Only emitted when the category-aware wizard surfaced the
+        // field, so non-accommodation listings never leak these keys.
         r.maxGuests?.let { body["maxGuests"] = it }
         r.bedrooms?.let { body["bedrooms"] = it }
         r.bathrooms?.let { body["bathrooms"] = it }
+
+        // Parking-specific keys (parking / EV parking schemas).
+        r.vehicleCapacity?.let { body["vehicleCapacity"] = it }
+        r.parkingCovered?.let { body["covered"] = it }
+        r.parkingEvCharging?.let { body["evCharging"] = it }
+        r.parkingAccess247?.let { body["access247"] = it }
+        r.parkingSizeLimit?.let { if (it.isNotBlank()) body["sizeLimit"] = it }
+        r.parkingSecurityFeatures?.let { if (it.isNotEmpty()) body["securityFeatures"] = it }
+
+        // Item-rental specific keys (gear / camera / tech / etc.).
+        r.deposit?.let { body["deposit"] = it }
+        r.condition?.let { if (it.isNotBlank()) body["condition"] = it }
+        r.pickupDeliveryOptions?.let { if (it.isNotEmpty()) body["pickupDelivery"] = it }
+
+        // Service specific keys.
+        r.serviceDurationMinutes?.let { body["durationMinutes"] = it }
 
         return body
     }

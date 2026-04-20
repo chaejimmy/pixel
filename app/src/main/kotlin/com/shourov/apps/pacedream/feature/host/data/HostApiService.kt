@@ -645,10 +645,24 @@ data class CreateListingRequest(
     // Capacity — matches the top-level field names persisted by the listing
     // update endpoint (PUT /listings/:id) and read back by listing detail.
     // Optional / nullable so omitting them keeps the current POST body
-    // identical for non-space listing modes.
+    // identical for non-accommodation listing modes.
     val maxGuests: Int? = null,
     val bedrooms: Int? = null,
     val bathrooms: Int? = null,
+    // Parking schemas (parking / EV parking) — sent only when the
+    // category-aware schema surfaces the corresponding inputs.
+    val vehicleCapacity: Int? = null,
+    val parkingCovered: Boolean? = null,
+    val parkingEvCharging: Boolean? = null,
+    val parkingAccess247: Boolean? = null,
+    val parkingSizeLimit: String? = null,
+    val parkingSecurityFeatures: List<String>? = null,
+    // Item-rental schemas — deposit held, condition grade, pickup options.
+    val deposit: Double? = null,
+    val condition: String? = null,
+    val pickupDeliveryOptions: List<String>? = null,
+    // Service schemas — session length in minutes.
+    val serviceDurationMinutes: Int? = null,
 )
 
 data class PricingPayload(

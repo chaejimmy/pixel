@@ -210,48 +210,63 @@ private fun resolveResourceTypeLabel(subCategory: String): String {
     }
 }
 
-/**
- * Allowed pricing units per subcategory – iOS parity.
- * iOS: PricingUnit.allowedUnits(for:listingType:)
- */
-private fun getAllowedPricingUnits(
-    listingMode: ListingMode,
-    subCategory: String,
-): List<PricingUnit> {
-    val sc = subCategory.lowercase()
-    return when (listingMode) {
-        ListingMode.SHARE -> when {
-            sc in SERVICE_IDS -> listOf(PricingUnit.HOUR)
-            sc in listOf("restroom", "nap_pod") -> listOf(PricingUnit.HOUR)
-            sc in listOf("meeting_room", "gym", "parking") -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            sc in listOf("short_stay", "luxury_room") -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
-            sc == "apartment" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
-            sc == "storage_space" -> listOf(PricingUnit.DAY, PricingUnit.WEEK, PricingUnit.MONTH)
-            sc == "wifi" -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-            else -> listOf(PricingUnit.HOUR, PricingUnit.DAY)
-        }
-        ListingMode.BORROW -> when {
-            sc in SERVICE_IDS -> listOf(PricingUnit.HOUR)
-            sc in listOf("sports_gear", "camera", "vehicle", "tech", "instrument",
-                "tools", "games", "toys", "micromobility", "others") ->
-                listOf(PricingUnit.DAY, PricingUnit.WEEK)
-            else -> listOf(PricingUnit.DAY, PricingUnit.WEEK)
-        }
-        ListingMode.SPLIT -> when (sc) {
-            "subscription", "sports", "membership", "events" -> listOf(PricingUnit.MONTH)
-            "wifi" -> listOf(PricingUnit.DAY, PricingUnit.MONTH)
-            else -> listOf(PricingUnit.MONTH)
-        }
-    }
+/** Map the wizard's ResourceKind to the schema registry's ListingCategory. */
+private fun ResourceKind.toListingCategory(): ListingCategory = when (this) {
+    ResourceKind.SPACES -> ListingCategory.SPACE
+    ResourceKind.ITEMS -> ListingCategory.ITEM
+    ResourceKind.SERVICES -> ListingCategory.SERVICE
 }
 
 /**
- * Whether a subcategory needs the schedule/availability step.
- * Web parity: the website ALWAYS shows the availability step (step 4) for all listing types.
- * Split listings are the only exception — they don't have time-based scheduling.
+ * Resolve the active field schema for the wizard. Splits always use
+ * monthly pricing and skip the category-specific sections, so they return
+ * a minimal schema rather than whatever the subcategory would normally
+ * dictate.
  */
-private fun needsSchedule(listingMode: ListingMode, @Suppress("UNUSED_PARAMETER") subCategory: String): Boolean {
-    return listingMode != ListingMode.SPLIT
+private fun resolveSchema(
+    listingMode: ListingMode,
+    resourceKind: ResourceKind,
+    subCategory: String,
+): SubcategorySchema {
+    if (listingMode == ListingMode.SPLIT) {
+        return SubcategorySchema(
+            id = subCategory.ifBlank { "split" },
+            category = resourceKind.toListingCategory(),
+            displayLabel = subCategory.ifBlank { "Split" },
+            fields = setOf(
+                ListingField.TITLE,
+                ListingField.DESCRIPTION,
+                ListingField.PHOTOS,
+                ListingField.PRICING_UNIT,
+                ListingField.AMENITIES,
+                ListingField.LOCATION,
+                ListingField.SPLIT_DEADLINE,
+                ListingField.SPLIT_REQUIREMENTS,
+                ListingField.SPLIT_TOTAL_COST,
+            ),
+            allowedPricingUnits = listOf(PricingUnit.MONTH),
+            needsSchedule = false,
+        )
+    }
+    return ListingSchemaRegistry.schemaFor(
+        resourceKind.toListingCategory(),
+        subCategory,
+    )
+}
+
+/** Pricing units from the schema with a safe fallback for edge cases. */
+private fun allowedPricingUnitsFor(schema: SubcategorySchema): List<PricingUnit> =
+    schema.allowedPricingUnits.ifEmpty { listOf(PricingUnit.HOUR) }
+
+/**
+ * Whether the wizard surfaces the schedule/availability step.
+ * Splits never have time-based scheduling; for everything else, the
+ * schema decides.  Subcategories without time semantics (e.g. a
+ * one-off service, or a storage space priced monthly only) can opt out
+ * by setting [SubcategorySchema.needsSchedule] to false.
+ */
+private fun needsSchedule(listingMode: ListingMode, schema: SubcategorySchema): Boolean {
+    return listingMode != ListingMode.SPLIT && schema.needsSchedule
 }
 
 private val DAY_LABELS = listOf(
@@ -801,11 +816,20 @@ private fun CreateListingWizardScreen(
     publishError: String? = null,
     onClearPublishError: () -> Unit = {},
 ) {
-    val hasSchedule = needsSchedule(listingMode, subCategory)
+    // Single source of truth for which fields this subcategory supports.
+    val schema = remember(listingMode, resourceKind, subCategory) {
+        resolveSchema(listingMode, resourceKind, subCategory)
+    }
+    val hasSchedule = needsSchedule(listingMode, schema)
+    val step1Label = when {
+        schema.hasField(ListingField.LOCATION) -> "Photos \u00b7 Location \u00b7 Pricing"
+        schema.hasField(ListingField.PHOTOS) -> "Photos \u00b7 Pricing"
+        else -> "Pricing"
+    }
     val steps = if (hasSchedule) {
-        listOf("Basics", "Photos \u00b7 Location \u00b7 Pricing", "Schedule & Availability", "Review & Publish")
+        listOf("Basics", step1Label, "Schedule & Availability", "Review & Publish")
     } else {
-        listOf("Basics", "Photos \u00b7 Location \u00b7 Pricing", "Review & Publish")
+        listOf("Basics", step1Label, "Review & Publish")
     }
     val totalSteps = steps.size
     var currentStep by remember { mutableIntStateOf(0) }
@@ -846,10 +870,9 @@ private fun CreateListingWizardScreen(
         }
     }
 
-    // Pricing unit – iOS parity. Resumed drafts try to restore the saved unit;
-    // if it's not allowed under the current subcategory, fall back to the first
-    // allowed unit for this listing type.
-    val allowedUnits = getAllowedPricingUnits(listingMode, subCategory)
+    // Pricing unit — schema-driven.  Resumed drafts restore the saved unit
+    // when still allowed; otherwise fall back to the schema's default.
+    val allowedUnits = allowedPricingUnitsFor(schema)
     val initialPricingUnit = initialDraft?.pricingUnit
         ?.let { saved -> allowedUnits.firstOrNull { it.value == saved } }
         ?: allowedUnits.firstOrNull() ?: PricingUnit.HOUR
@@ -883,9 +906,10 @@ private fun CreateListingWizardScreen(
     var minMonths by remember(draftKey) { mutableIntStateOf(initialDraft?.minMonths ?: 1) }
     var availableFrom by remember(draftKey) { mutableStateOf(initialDraft?.availableFrom.orEmpty()) }
 
-    // Capacity — surfaced only for space (SHARE) listings in Step 1.  Items
-    // (BORROW) and services (SPLIT) do not use these fields.  Rehydrates from
-    // the saved draft so Resume preserves the host's previous values.
+    // Capacity — surfaced only for accommodation-style space listings, as
+    // declared by the subcategory schema.  Items and services never see
+    // these fields, so parking/camera/gym listings no longer ship stray
+    // bedroom counts to the backend.
     var maxGuests by remember(draftKey) {
         mutableIntStateOf(initialDraft?.maxGuests?.coerceIn(1, 32) ?: 1)
     }
@@ -894,6 +918,42 @@ private fun CreateListingWizardScreen(
     }
     var bathrooms by remember(draftKey) {
         mutableIntStateOf(initialDraft?.bathrooms?.coerceIn(0, 20) ?: 0)
+    }
+
+    // Parking-specific state (parking / EV parking schemas).
+    var vehicleCapacity by remember(draftKey) {
+        mutableIntStateOf(initialDraft?.vehicleCapacity?.coerceIn(1, 20) ?: 1)
+    }
+    var parkingCovered by remember(draftKey) {
+        mutableStateOf(initialDraft?.parkingCovered ?: false)
+    }
+    var parkingEvCharging by remember(draftKey) {
+        mutableStateOf(initialDraft?.parkingEvCharging ?: false)
+    }
+    var parkingAccess247 by remember(draftKey) {
+        mutableStateOf(initialDraft?.parkingAccess247 ?: false)
+    }
+    var parkingSizeLimit by remember(draftKey) {
+        mutableStateOf(initialDraft?.parkingSizeLimit.orEmpty())
+    }
+    val parkingSecurityFeatures = remember(draftKey) {
+        mutableStateListOf<String>().apply {
+            initialDraft?.parkingSecurityFeatures?.let { addAll(it) }
+        }
+    }
+
+    // Item-rental state (gear / camera / tech / etc.).
+    var deposit by remember(draftKey) { mutableStateOf(initialDraft?.deposit.orEmpty()) }
+    var condition by remember(draftKey) { mutableStateOf(initialDraft?.condition.orEmpty()) }
+    val pickupDeliveryOptions = remember(draftKey) {
+        mutableStateListOf<String>().apply {
+            initialDraft?.pickupDeliveryOptions?.let { addAll(it) }
+        }
+    }
+
+    // Service state — one-off session length in minutes.
+    var serviceDurationMinutes by remember(draftKey) {
+        mutableIntStateOf(initialDraft?.serviceDurationMinutes?.coerceIn(15, 600) ?: 60)
     }
 
     var validationMessage by remember { mutableStateOf<String?>(null) }
@@ -916,43 +976,52 @@ private fun CreateListingWizardScreen(
         }
     }
 
-    // Website parity: validate each step matching website's Zod schemas.
-    // Website stepBasicsSchema: title 10-100 chars, description 20-2000 chars.
+    // Schema-driven validation.  Each step only validates fields the active
+    // subcategory schema actually surfaced, so hidden inputs can never block
+    // publish.  Required-copy lengths are intentionally relaxed from the
+    // legacy "website parity" limits — a clear 10-char title was too strict
+    // for real-world listings like "EV stall 4".
     fun validateStep(step: Int): String? {
         return when (step) {
             0 -> {
-                val trimmedTitle = title.trim()
-                if (trimmedTitle.isEmpty()) return "Title is required."
-                if (trimmedTitle.length < 10) return "Title must be at least 10 characters."
-                if (trimmedTitle.length > 100) return "Title must be 100 characters or fewer."
-                // Website parity: description is REQUIRED (20-2000 chars). The
-                // previous implementation guarded these checks behind a
-                // `isNotBlank()` test, so empty descriptions silently passed and
-                // the host only saw a generic 400 from the backend.
-                val trimmedDesc = description.trim()
-                if (trimmedDesc.isEmpty()) return "Description is required."
-                if (trimmedDesc.length < 20) return "Description must be at least 20 characters."
-                if (trimmedDesc.length > 2000) return "Description must be 2,000 characters or fewer."
+                if (schema.hasField(ListingField.TITLE)) {
+                    val trimmedTitle = title.trim()
+                    if (trimmedTitle.isEmpty()) return "Title is required."
+                    if (trimmedTitle.length < 3) return "Title must be at least 3 characters."
+                    if (trimmedTitle.length > 100) return "Title must be 100 characters or fewer."
+                }
+                if (schema.hasField(ListingField.DESCRIPTION)) {
+                    val trimmedDesc = description.trim()
+                    // Soft validation — description is optional and the
+                    // wizard surfaces a helper warning under the input.
+                    if (trimmedDesc.length > 2000) {
+                        return "Description must be 2,000 characters or fewer."
+                    }
+                }
                 null
             }
             1 -> {
-                val price = if (listingMode == ListingMode.SPLIT) {
-                    totalCost.toDoubleOrNull() ?: 0.0
-                } else {
-                    basePrice.toDoubleOrNull() ?: 0.0
+                // Price applies to every schema that declares PRICE (split
+                // uses totalCost instead).
+                if (listingMode == ListingMode.SPLIT) {
+                    val price = totalCost.toDoubleOrNull() ?: 0.0
+                    if (price < 1.0) return "Total cost must be at least \$1."
+                } else if (schema.hasField(ListingField.PRICE)) {
+                    val price = basePrice.toDoubleOrNull() ?: 0.0
+                    if (price < 1.0) return "Price must be at least \$1."
                 }
-                if (price < 1.0) return "Price must be at least \$1."
-                // Require at least 1 photo for non-split listings
-                if (listingMode != ListingMode.SPLIT && selectedImageUris.isEmpty() && uploadedImageUrls.isEmpty()) {
+                if (schema.hasField(ListingField.PHOTOS) &&
+                    listingMode != ListingMode.SPLIT &&
+                    selectedImageUris.isEmpty() && uploadedImageUrls.isEmpty()
+                ) {
                     return "Add at least 1 photo."
                 }
-                if (listingMode != ListingMode.SPLIT) {
+                if (schema.hasField(ListingField.LOCATION) && listingMode != ListingMode.SPLIT) {
                     if (address.isBlank()) return "Address is required."
-                    // Require the host to pick a place from the suggestions so
-                    // we have a reliable city/state instead of guessing from
-                    // the free-text address. The old fallback parser produced
-                    // values like city="IL 62701", state="USA" which corrupted
-                    // location metadata and broke search filters.
+                    // The autocomplete contract: pick a suggestion so the
+                    // place-details payload fills city/state reliably.
+                    // Free-text fallbacks previously yielded junk values
+                    // like city="IL 62701", state="USA".
                     if (city.isBlank() || state.isBlank()) {
                         return "Please select an address from the suggestions so we capture the correct city and state."
                     }
@@ -963,16 +1032,32 @@ private fun CreateListingWizardScreen(
                 if (hasSchedule) {
                     when (selectedPricingUnit) {
                         PricingUnit.HOUR -> {
-                            if (selectedDurations.isEmpty()) return "Select at least 1 duration."
-                            if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                            if (schema.hasField(ListingField.SCHEDULE_HOURLY_DURATIONS) &&
+                                selectedDurations.isEmpty()
+                            ) {
+                                return "Select at least 1 duration."
+                            }
+                            if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
+                                selectedDays.isEmpty()
+                            ) {
+                                return "Select at least 1 available day."
+                            }
                         }
                         PricingUnit.DAY, PricingUnit.WEEK -> {
-                            if (minStay < 1) return "Minimum stay must be at least 1 day."
-                            if (maxStay < minStay) return "Maximum stay must be at least the minimum stay."
-                            if (selectedDays.isEmpty()) return "Select at least 1 available day."
+                            if (schema.hasField(ListingField.SCHEDULE_STAY_LIMITS)) {
+                                if (minStay < 1) return "Minimum stay must be at least 1 day."
+                                if (maxStay < minStay) return "Maximum stay must be at least the minimum stay."
+                            }
+                            if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
+                                selectedDays.isEmpty()
+                            ) {
+                                return "Select at least 1 available day."
+                            }
                         }
                         PricingUnit.MONTH -> {
-                            if (minMonths < 1) return "Minimum months must be at least 1."
+                            if (schema.hasField(ListingField.SCHEDULE_MIN_MONTHS) && minMonths < 1) {
+                                return "Minimum months must be at least 1."
+                            }
                         }
                     }
                 }
@@ -1074,6 +1159,16 @@ private fun CreateListingWizardScreen(
                             maxGuests = maxGuests,
                             bedrooms = bedrooms,
                             bathrooms = bathrooms,
+                            vehicleCapacity = vehicleCapacity,
+                            parkingCovered = parkingCovered,
+                            parkingEvCharging = parkingEvCharging,
+                            parkingAccess247 = parkingAccess247,
+                            parkingSizeLimit = parkingSizeLimit,
+                            parkingSecurityFeatures = parkingSecurityFeatures.toList(),
+                            deposit = deposit,
+                            condition = condition,
+                            pickupDeliveryOptions = pickupDeliveryOptions.toList(),
+                            serviceDurationMinutes = serviceDurationMinutes,
                         ))
                         currentStep++
                     } else {
@@ -1227,36 +1322,66 @@ private fun CreateListingWizardScreen(
                                     currency = "USD",
                                 ),
                                 prices = pricesMap,
-                                address = if (listingMode != ListingMode.SPLIT) address else null,
-                                amenities = amenities.ifEmpty { null },
-                                details = DetailsPayload(
-                                    features = amenities.toList(),
-                                    reviewCount = 0,
-                                ),
+                                address = if (schema.hasField(ListingField.LOCATION) &&
+                                    listingMode != ListingMode.SPLIT) address else null,
+                                amenities = if (schema.hasField(ListingField.AMENITIES))
+                                    amenities.ifEmpty { null } else null,
+                                details = if (schema.hasField(ListingField.AMENITIES))
+                                    DetailsPayload(features = amenities.toList(), reviewCount = 0)
+                                else null,
                                 images = imageUrls.ifEmpty { null },
                                 location = locationPayload,
                                 available = true,
-                                durations = if (pricingMode == "hour") {
+                                durations = if (pricingMode == "hour" &&
+                                    schema.hasField(ListingField.SCHEDULE_HOURLY_DURATIONS)
+                                ) {
                                     selectedDurations.toList().ifEmpty { listOf(60, 120) }
                                 } else null,
-                                minStay = if (pricingMode == "day" || pricingMode == "week") minStay else null,
-                                maxStay = if (pricingMode == "day" || pricingMode == "week") maxStay else null,
-                                minMonths = if (pricingMode == "month") minMonths else null,
-                                availableFrom = if (pricingMode == "month") availableFrom.ifBlank { null } else null,
+                                minStay = if ((pricingMode == "day" || pricingMode == "week") &&
+                                    schema.hasField(ListingField.SCHEDULE_STAY_LIMITS)) minStay else null,
+                                maxStay = if ((pricingMode == "day" || pricingMode == "week") &&
+                                    schema.hasField(ListingField.SCHEDULE_STAY_LIMITS)) maxStay else null,
+                                minMonths = if (pricingMode == "month" &&
+                                    schema.hasField(ListingField.SCHEDULE_MIN_MONTHS)) minMonths else null,
+                                availableFrom = if (pricingMode == "month" &&
+                                    schema.hasField(ListingField.SCHEDULE_AVAILABLE_FROM))
+                                    availableFrom.ifBlank { null } else null,
                                 availability = availabilityPayload,
                                 shareType = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
                                 share_type = if (listingMode == ListingMode.SPLIT) "SPLIT" else null,
                                 totalCost = totalCost.toDoubleOrNull(),
                                 deadlineAt = deadlineAt.ifBlank { null },
                                 requirements = requirements.ifBlank { null },
-                                // Only send capacity for SHARE listings — it is the
-                                // only mode that surfaces the Capacity section in
-                                // the wizard, so non-space modes keep the legacy
-                                // POST body intact.  Null values are dropped by
-                                // buildCreateListingBody() so this is safe either way.
-                                maxGuests = if (listingMode == ListingMode.SHARE) maxGuests else null,
-                                bedrooms = if (listingMode == ListingMode.SHARE) bedrooms else null,
-                                bathrooms = if (listingMode == ListingMode.SHARE) bathrooms else null,
+                                // Accommodation capacity — only emitted when the
+                                // subcategory schema actually surfaces these
+                                // fields.  Parking / gear / service listings no
+                                // longer ship bedroom counts to the backend.
+                                maxGuests = if (schema.hasField(ListingField.MAX_GUESTS)) maxGuests else null,
+                                bedrooms = if (schema.hasField(ListingField.BEDROOMS)) bedrooms else null,
+                                bathrooms = if (schema.hasField(ListingField.BATHROOMS)) bathrooms else null,
+                                // Parking schemas.
+                                vehicleCapacity = if (schema.hasField(ListingField.VEHICLE_CAPACITY))
+                                    vehicleCapacity else null,
+                                parkingCovered = if (schema.hasField(ListingField.PARKING_COVERED))
+                                    parkingCovered else null,
+                                parkingEvCharging = if (schema.hasField(ListingField.PARKING_EV_CHARGING))
+                                    parkingEvCharging else null,
+                                parkingAccess247 = if (schema.hasField(ListingField.PARKING_ACCESS_24_7))
+                                    parkingAccess247 else null,
+                                parkingSizeLimit = if (schema.hasField(ListingField.PARKING_SIZE_LIMIT))
+                                    parkingSizeLimit.trim().ifBlank { null } else null,
+                                parkingSecurityFeatures = if (schema.hasField(ListingField.PARKING_SECURITY_FEATURES))
+                                    parkingSecurityFeatures.toList().ifEmpty { null } else null,
+                                // Item-rental schemas.
+                                deposit = if (schema.hasField(ListingField.DEPOSIT))
+                                    deposit.toDoubleOrNull() else null,
+                                condition = if (schema.hasField(ListingField.CONDITION))
+                                    condition.ifBlank { null } else null,
+                                pickupDeliveryOptions = if (schema.hasField(ListingField.PICKUP_DELIVERY))
+                                    pickupDeliveryOptions.toList().ifEmpty { null } else null,
+                                // Service schemas.
+                                serviceDurationMinutes = if (schema.hasField(ListingField.SERVICE_DURATION_MINUTES))
+                                    serviceDurationMinutes else null,
                             )
                             onPublishListing(request)
                             // ViewModel handles the API call and emits success/error via effects.
@@ -1312,7 +1437,7 @@ private fun CreateListingWizardScreen(
                     )
                     step == 1 -> PhotosLocationPricingStep(
                         listingMode = listingMode,
-                        subCategory = subCategory,
+                        schema = schema,
                         selectedImageUris = selectedImageUris,
                         onImagesSelected = { uris ->
                             val remaining = MAX_PHOTOS - selectedImageUris.size
@@ -1373,6 +1498,34 @@ private fun CreateListingWizardScreen(
                         onMaxGuestsChange = { maxGuests = it.coerceIn(1, 32) },
                         onBedroomsChange = { bedrooms = it.coerceIn(0, 20) },
                         onBathroomsChange = { bathrooms = it.coerceIn(0, 20) },
+                        vehicleCapacity = vehicleCapacity,
+                        parkingCovered = parkingCovered,
+                        parkingEvCharging = parkingEvCharging,
+                        parkingAccess247 = parkingAccess247,
+                        parkingSizeLimit = parkingSizeLimit,
+                        parkingSecurityFeatures = parkingSecurityFeatures,
+                        onVehicleCapacityChange = { vehicleCapacity = it.coerceIn(1, 20) },
+                        onParkingCoveredChange = { parkingCovered = it },
+                        onParkingEvChargingChange = { parkingEvCharging = it },
+                        onParkingAccess247Change = { parkingAccess247 = it },
+                        onParkingSizeLimitChange = { parkingSizeLimit = it },
+                        onToggleParkingSecurity = { feature ->
+                            if (parkingSecurityFeatures.contains(feature))
+                                parkingSecurityFeatures.remove(feature)
+                            else parkingSecurityFeatures.add(feature)
+                        },
+                        deposit = deposit,
+                        condition = condition,
+                        pickupDeliveryOptions = pickupDeliveryOptions,
+                        onDepositChange = { deposit = it },
+                        onConditionChange = { condition = it },
+                        onTogglePickupDelivery = { opt ->
+                            if (pickupDeliveryOptions.contains(opt))
+                                pickupDeliveryOptions.remove(opt)
+                            else pickupDeliveryOptions.add(opt)
+                        },
+                        serviceDurationMinutes = serviceDurationMinutes,
+                        onServiceDurationChange = { serviceDurationMinutes = it.coerceIn(15, 600) },
                     )
                     step == 2 && hasSchedule -> ScheduleAvailabilityStep(
                         pricingUnit = selectedPricingUnit,
@@ -1504,10 +1657,10 @@ private fun BasicsStep(
                     val len = title.trim().length
                     val color = when {
                         len == 0 -> PaceDreamColors.TextSecondary
-                        len < 10 -> PaceDreamColors.Error
+                        len < 3 -> PaceDreamColors.Error
                         else -> PaceDreamColors.TextSecondary
                     }
-                    Text("${len}/100 characters (min 10)", style = PaceDreamTypography.Caption2, color = color)
+                    Text("${len}/100 characters (min 3)", style = PaceDreamTypography.Caption2, color = color)
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.HostAccent,
@@ -1522,14 +1675,22 @@ private fun BasicsStep(
             OutlinedTextField(
                 value = description,
                 onValueChange = { if (it.length <= 2000) onDescriptionChange(it) },
-                label = { Text("Describe your listing", style = PaceDreamTypography.Callout) },
+                label = { Text("Describe your listing (optional)", style = PaceDreamTypography.Callout) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 8,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 supportingText = {
                     val len = description.trim().length
-                    Text("${len}/2000 characters (min 20)", style = PaceDreamTypography.Caption2, color = PaceDreamColors.TextSecondary)
+                    // Soft warning only — short descriptions still publish,
+                    // they just hint to the host that guests prefer detail.
+                    val hint = if (len in 1 until 10) " \u2022 More detail helps guests decide"
+                    else ""
+                    Text(
+                        "${len}/2000 characters$hint",
+                        style = PaceDreamTypography.Caption2,
+                        color = PaceDreamColors.TextSecondary,
+                    )
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PaceDreamColors.HostAccent,
@@ -1572,12 +1733,12 @@ private fun BasicsStep(
     }
 }
 
-// ── Step: Photos · Location · Pricing (iOS: ListingPhotosLocationPricingStepView) ──
+// ── Step: Photos · Location · Pricing (schema-driven) ──
 
 @Composable
 private fun PhotosLocationPricingStep(
     listingMode: ListingMode,
-    subCategory: String,
+    schema: SubcategorySchema,
     selectedImageUris: List<Uri>,
     onImagesSelected: (List<Uri>) -> Unit,
     onRemoveImage: (Int) -> Unit,
@@ -1603,8 +1764,31 @@ private fun PhotosLocationPricingStep(
     onMaxGuestsChange: (Int) -> Unit = {},
     onBedroomsChange: (Int) -> Unit = {},
     onBathroomsChange: (Int) -> Unit = {},
+    vehicleCapacity: Int = 1,
+    parkingCovered: Boolean = false,
+    parkingEvCharging: Boolean = false,
+    parkingAccess247: Boolean = false,
+    parkingSizeLimit: String = "",
+    parkingSecurityFeatures: List<String> = emptyList(),
+    onVehicleCapacityChange: (Int) -> Unit = {},
+    onParkingCoveredChange: (Boolean) -> Unit = {},
+    onParkingEvChargingChange: (Boolean) -> Unit = {},
+    onParkingAccess247Change: (Boolean) -> Unit = {},
+    onParkingSizeLimitChange: (String) -> Unit = {},
+    onToggleParkingSecurity: (String) -> Unit = {},
+    deposit: String = "",
+    condition: String = "",
+    pickupDeliveryOptions: List<String> = emptyList(),
+    onDepositChange: (String) -> Unit = {},
+    onConditionChange: (String) -> Unit = {},
+    onTogglePickupDelivery: (String) -> Unit = {},
+    serviceDurationMinutes: Int = 60,
+    onServiceDurationChange: (Int) -> Unit = {},
 ) {
     val isSplit = listingMode == ListingMode.SPLIT
+    val showLocation = schema.hasField(ListingField.LOCATION)
+    val showPhotos = schema.hasField(ListingField.PHOTOS)
+    val showAmenities = schema.hasField(ListingField.AMENITIES) && schema.amenityOptions.isNotEmpty()
 
     // iOS parity: image picker using ActivityResultContracts
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -1621,7 +1805,9 @@ private fun PhotosLocationPricingStep(
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
     ) {
-        // Photos – iOS parity: show selected images + add button with count badge
+        // Photos – gated by schema.  Subcategories that opt out simply
+        // never surface the section (e.g. a pure remote service).
+        if (showPhotos) {
         FormSection(
             title = if (isSplit) "Photos (optional)"
                     else "Photos" + if (selectedImageUris.isNotEmpty()) " (${selectedImageUris.size}/$MAX_PHOTOS)" else "",
@@ -1678,8 +1864,11 @@ private fun PhotosLocationPricingStep(
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        }  // end showPhotos
 
-        // Location
+        // Location — only rendered when the schema declares it.  Services
+        // that happen remotely (learning, online coaching) skip the section.
+        if (showLocation) {
         FormSection(title = if (isSplit) "Location (optional)" else "Location") {
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
@@ -1791,38 +1980,56 @@ private fun PhotosLocationPricingStep(
                     }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-            ) {
-                OutlinedTextField(
-                    value = city,
-                    onValueChange = onCityChange,
-                    label = { Text("City", style = PaceDreamTypography.Callout) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
-                )
-                OutlinedTextField(
-                    value = state,
-                    onValueChange = onStateChange,
-                    label = { Text("State", style = PaceDreamTypography.Callout) },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
-                )
+            // Single-source address: city/state are auto-filled from the
+            // place-details response, surfaced as a read-only preview so the
+            // host can confirm without being asked to retype them.
+            if (city.isNotBlank() || state.isNotBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.06f))
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                ) {
+                    Icon(
+                        PaceDreamIcons.LocationOn,
+                        contentDescription = null,
+                        tint = PaceDreamColors.HostAccent,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "$city, $state".trim(' ', ','),
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = "Auto-filled from selected address",
+                            style = PaceDreamTypography.Caption2,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            onCityChange("")
+                            onStateChange("")
+                        },
+                    ) {
+                        Text(
+                            text = "Clear",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        }  // end showLocation
 
         // Pricing
         FormSection(title = "Pricing") {
@@ -1900,21 +2107,25 @@ private fun PhotosLocationPricingStep(
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        // Amenities
-        FormSection(title = "Amenities") {
-            val options = getAmenities(subCategory)
-            AmenitiesGrid(
-                options = options,
-                selectedAmenities = amenities,
-                onToggle = onToggleAmenity,
-            )
+        // Amenities — schema provides curated options, hidden if the
+        // subcategory declares no relevant amenities (e.g. remote learning).
+        if (showAmenities) {
+            FormSection(title = "Amenities") {
+                AmenitiesGrid(
+                    options = schema.amenityOptions,
+                    selectedAmenities = amenities,
+                    onToggle = onToggleAmenity,
+                )
+            }
         }
 
-        // Capacity — space listings only; items / services / split-stays do
-        // not surface this because the backend fields (maxGuests / bedrooms /
-        // bathrooms) are only meaningful for stays and workspaces.  Gating
-        // here keeps the wizard visually lean for other modes.
-        if (listingMode == ListingMode.SHARE) {
+        // Accommodation capacity — gated on the per-field schema flags,
+        // not on listing mode.  A meeting room surfaces max_guests but
+        // hides bedrooms / bathrooms; parking and gear hide them entirely.
+        val hasCapacityFields = schema.hasField(ListingField.MAX_GUESTS) ||
+            schema.hasField(ListingField.BEDROOMS) ||
+            schema.hasField(ListingField.BATHROOMS)
+        if (hasCapacityFields) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
             FormSection(title = "Capacity") {
                 Text(
@@ -1923,33 +2134,311 @@ private fun PhotosLocationPricingStep(
                     color = PaceDreamColors.TextSecondary,
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                CreateCapacityStepperRow(
-                    label = "Max guests",
-                    sublabel = "Up to 32.",
-                    value = maxGuests,
-                    minValue = 1,
-                    maxValue = 32,
-                    onValueChange = onMaxGuestsChange,
+                if (schema.hasField(ListingField.MAX_GUESTS)) {
+                    CreateCapacityStepperRow(
+                        label = "Max guests",
+                        sublabel = "Up to 32.",
+                        value = maxGuests,
+                        minValue = 1,
+                        maxValue = 32,
+                        onValueChange = onMaxGuestsChange,
+                    )
+                }
+                if (schema.hasField(ListingField.BEDROOMS)) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    CreateCapacityStepperRow(
+                        label = "Bedrooms",
+                        sublabel = "Separate sleeping rooms.",
+                        value = bedrooms,
+                        minValue = 0,
+                        maxValue = 20,
+                        onValueChange = onBedroomsChange,
+                    )
+                }
+                if (schema.hasField(ListingField.BATHROOMS)) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    CreateCapacityStepperRow(
+                        label = "Bathrooms",
+                        sublabel = "Full and half baths combined.",
+                        value = bathrooms,
+                        minValue = 0,
+                        maxValue = 20,
+                        onValueChange = onBathroomsChange,
+                    )
+                }
+            }
+        }
+
+        // Parking-specific details (Parking / EV Parking schemas).
+        val hasParkingFields = schema.hasField(ListingField.VEHICLE_CAPACITY) ||
+            schema.hasField(ListingField.PARKING_COVERED) ||
+            schema.hasField(ListingField.PARKING_EV_CHARGING) ||
+            schema.hasField(ListingField.PARKING_ACCESS_24_7) ||
+            schema.hasField(ListingField.PARKING_SIZE_LIMIT) ||
+            schema.hasField(ListingField.PARKING_SECURITY_FEATURES)
+        if (hasParkingFields) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            FormSection(title = "Parking details") {
+                if (schema.hasField(ListingField.VEHICLE_CAPACITY)) {
+                    CreateCapacityStepperRow(
+                        label = "Vehicle capacity",
+                        sublabel = "How many vehicles fit in this spot.",
+                        value = vehicleCapacity,
+                        minValue = 1,
+                        maxValue = 20,
+                        onValueChange = onVehicleCapacityChange,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                }
+                if (schema.hasField(ListingField.PARKING_COVERED)) {
+                    ToggleOptionRow(
+                        label = "Covered",
+                        sublabel = "Sheltered from weather.",
+                        checked = parkingCovered,
+                        onCheckedChange = onParkingCoveredChange,
+                    )
+                }
+                if (schema.hasField(ListingField.PARKING_EV_CHARGING)) {
+                    ToggleOptionRow(
+                        label = "EV charging",
+                        sublabel = "A charger is available on site.",
+                        checked = parkingEvCharging,
+                        onCheckedChange = onParkingEvChargingChange,
+                    )
+                }
+                if (schema.hasField(ListingField.PARKING_ACCESS_24_7)) {
+                    ToggleOptionRow(
+                        label = "24/7 access",
+                        sublabel = "Guests can enter any time of day.",
+                        checked = parkingAccess247,
+                        onCheckedChange = onParkingAccess247Change,
+                    )
+                }
+                if (schema.hasField(ListingField.PARKING_SIZE_LIMIT)) {
+                    OutlinedTextField(
+                        value = parkingSizeLimit,
+                        onValueChange = onParkingSizeLimitChange,
+                        label = { Text("Size limit (optional)", style = PaceDreamTypography.Callout) },
+                        placeholder = {
+                            Text("e.g. Up to full-size SUV",
+                                style = PaceDreamTypography.Body,
+                                color = PaceDreamColors.TextSecondary)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaceDreamColors.HostAccent,
+                            unfocusedBorderColor = PaceDreamColors.Border,
+                        ),
+                    )
+                }
+                if (schema.hasField(ListingField.PARKING_SECURITY_FEATURES)) {
+                    Text(
+                        text = "Security features (optional)",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    AmenitiesGrid(
+                        options = PARKING_SECURITY_OPTIONS,
+                        selectedAmenities = parkingSecurityFeatures,
+                        onToggle = onToggleParkingSecurity,
+                    )
+                }
+            }
+        }
+
+        // Item-rental details (gear / camera / tech / etc.).
+        val hasItemFields = schema.hasField(ListingField.DEPOSIT) ||
+            schema.hasField(ListingField.CONDITION) ||
+            schema.hasField(ListingField.PICKUP_DELIVERY)
+        if (hasItemFields) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            FormSection(title = "Rental details") {
+                if (schema.hasField(ListingField.DEPOSIT)) {
+                    OutlinedTextField(
+                        value = deposit,
+                        onValueChange = { raw ->
+                            val cleaned = raw.replace(Regex("[^0-9.]"), "")
+                            val parts = cleaned.split(".")
+                            val sanitized = if (parts.size > 1)
+                                "${parts[0]}.${parts[1].take(2)}" else cleaned
+                            onDepositChange(sanitized)
+                        },
+                        label = { Text("Refundable deposit (optional)", style = PaceDreamTypography.Callout) },
+                        placeholder = { Text("0.00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
+                        leadingIcon = { Text("$", style = PaceDreamTypography.Title3, color = PaceDreamColors.TextSecondary, fontWeight = FontWeight.SemiBold) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaceDreamColors.HostAccent,
+                            unfocusedBorderColor = PaceDreamColors.Border,
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                }
+                if (schema.hasField(ListingField.CONDITION)) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Condition",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    SingleChoiceChips(
+                        options = ITEM_CONDITION_OPTIONS,
+                        selected = condition,
+                        onSelect = onConditionChange,
+                    )
+                }
+                if (schema.hasField(ListingField.PICKUP_DELIVERY)) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    Text(
+                        text = "Pickup & delivery",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    AmenitiesGrid(
+                        options = PICKUP_DELIVERY_OPTIONS,
+                        selectedAmenities = pickupDeliveryOptions,
+                        onToggle = onTogglePickupDelivery,
+                    )
+                }
+            }
+        }
+
+        // Service-specific details.
+        if (schema.hasField(ListingField.SERVICE_DURATION_MINUTES)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            FormSection(title = "Service details") {
+                Text(
+                    text = "How long each session typically lasts.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                CreateCapacityStepperRow(
-                    label = "Bedrooms",
-                    sublabel = "Separate sleeping rooms.",
-                    value = bedrooms,
-                    minValue = 0,
-                    maxValue = 20,
-                    onValueChange = onBedroomsChange,
-                )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                CreateCapacityStepperRow(
-                    label = "Bathrooms",
-                    sublabel = "Full and half baths combined.",
-                    value = bathrooms,
-                    minValue = 0,
-                    maxValue = 20,
-                    onValueChange = onBathroomsChange,
+                SingleChoiceChips(
+                    options = SERVICE_DURATION_CHOICES.map { it.second },
+                    selected = SERVICE_DURATION_CHOICES
+                        .firstOrNull { it.first == serviceDurationMinutes }?.second ?: "",
+                    onSelect = { label ->
+                        val match = SERVICE_DURATION_CHOICES.firstOrNull { it.second == label }
+                        if (match != null) onServiceDurationChange(match.first)
+                    },
                 )
             }
+        }
+    }
+}
+
+private val PARKING_SECURITY_OPTIONS = listOf(
+    "Security camera",
+    "Gated access",
+    "Well lit",
+    "Valet on site",
+    "Attendant",
+    "Alarm system",
+)
+
+private val ITEM_CONDITION_OPTIONS = listOf("New", "Like new", "Good", "Fair")
+
+private val PICKUP_DELIVERY_OPTIONS = listOf(
+    "In-person pickup",
+    "Delivery available",
+    "Shipping available",
+    "Meetup flexible",
+)
+
+/** Service session length choices, paired as (minutes, display label). */
+private val SERVICE_DURATION_CHOICES: List<Pair<Int, String>> = listOf(
+    15 to "15 min",
+    30 to "30 min",
+    45 to "45 min",
+    60 to "1 hr",
+    90 to "1.5 hr",
+    120 to "2 hr",
+    180 to "3 hr",
+    240 to "4 hr",
+)
+
+@Composable
+private fun ToggleOptionRow(
+    label: String,
+    sublabel: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = PaceDreamSpacing.XS),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = sublabel,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedTrackColor = PaceDreamColors.HostAccent,
+            ),
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SingleChoiceChips(
+    options: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        options.forEach { option ->
+            val isOn = option == selected
+            FilterChip(
+                selected = isOn,
+                onClick = { onSelect(option) },
+                label = { Text(option, style = PaceDreamTypography.Callout) },
+                leadingIcon = if (isOn) {
+                    { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PaceDreamColors.HostAccent,
+                    selectedLabelColor = Color.White,
+                    selectedLeadingIconColor = Color.White,
+                    containerColor = PaceDreamColors.Card,
+                    labelColor = PaceDreamColors.TextPrimary,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                border = FilterChipDefaults.filterChipBorder(
+                    borderColor = PaceDreamColors.Border,
+                    selectedBorderColor = PaceDreamColors.HostAccent,
+                    enabled = true,
+                    selected = isOn,
+                ),
+            )
         }
     }
 }
@@ -3043,47 +3532,5 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit, photoCount: Int = 0) {
 
 // iOS parity: max 10 photos per listing
 private const val MAX_PHOTOS = 10
-
-/**
- * Amenities per subcategory – iOS parity (Amenity.swift).
- * Each group matches the iOS Amenity model's subcategory grouping.
- */
-private fun getAmenities(subCategory: String): List<String> {
-    return when (subCategory.lowercase()) {
-        // Share
-        "restroom" -> listOf("Toilet Paper", "Hand Soap", "Hand Towels", "Air Freshener", "Paper Towels")
-        "nap_pod" -> listOf(
-            "Noise Cancellation", "Soundproof Walls", "White Noise Machine", "Earplugs",
-            "Calming Music", "Reclining Chair", "Blanket", "Pillow", "Eye Mask", "Temperature Control"
-        )
-        "meeting_room" -> listOf("WiFi", "Power Outlets", "Projector", "Whiteboard", "Monitor/TV", "Desk Space", "Chairs")
-        "gym" -> listOf("Exercise Equipment", "Locker Room", "Showers", "Water Fountain", "Towel Service", "Air Conditioning")
-        "parking" -> listOf("Covered Parking", "Security Camera", "EV Charging", "Gated Access", "Well Lit", "24/7 Access")
-        "storage_space" -> listOf("Climate Controlled", "Security Camera", "Gated Access", "24/7 Access", "Ground Floor", "Drive-Up Access")
-        "wifi" -> listOf("High Speed", "Unlimited Data", "Router Included", "5G Support", "Password Protected")
-        "short_stay", "apartment", "luxury_room" -> listOf(
-            "WiFi", "Kitchen", "Parking", "Washer/Dryer", "Heating", "Air Conditioning",
-            "TV", "Bathroom Essentials", "Bed Linens"
-        )
-        // Borrow
-        "sports_gear" -> listOf("Adjustable Straps", "Carrying Case", "Extra Batteries", "Charger", "Quick Release")
-        "camera" -> listOf("Lens Included", "Extra Batteries", "Memory Card", "Camera Bag", "Tripod", "Filters", "Remote Control")
-        "tech" -> listOf("Charger Included", "Case/Cover", "Screen Protector", "Headphones", "Warranty", "Extra Cable")
-        "instrument" -> listOf("Case/Bag", "Strap Included", "Tuner", "Extra Strings", "Metronome", "Stand")
-        "tools" -> listOf("Carrying Case", "Safety Gear", "Extra Blades", "Charger", "Manual Included", "Extension Cord")
-        "games" -> listOf("All Pieces Included", "Instructions", "Extra Controllers", "Carrying Case", "Batteries")
-        "toys" -> listOf("Batteries Included", "All Parts Included", "Carrying Case", "Safety Certified", "Instructions")
-        "micromobility" -> listOf("Helmet Included", "Lock Included", "Charger", "Lights", "Bell", "Basket")
-        // Services
-        "home_help" -> listOf("Materials Included", "Indoor", "Outdoor", "Beginner Friendly", "Equipment Provided", "Flexible Schedule")
-        "moving_help" -> listOf("Materials Included", "Equipment Provided", "Flexible Schedule", "Indoor", "Outdoor")
-        "cleaning_organizing" -> listOf("Materials Included", "Equipment Provided", "Indoor", "Flexible Schedule")
-        "everyday_help" -> listOf("Materials Included", "Flexible Schedule", "Indoor", "Outdoor", "Beginner Friendly")
-        "fitness" -> listOf("Equipment Provided", "Indoor", "Outdoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
-        "learning" -> listOf("Materials Included", "Indoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
-        "creative" -> listOf("Materials Included", "Equipment Provided", "Indoor", "Beginner Friendly", "Group Session", "Flexible Schedule")
-        // Split
-        "membership" -> listOf("24/7 Access", "Guest Pass", "Parking", "Locker", "Towel Service", "Sauna", "Classes")
-        else -> listOf("WiFi", "AC", "Parking", "Clean", "Accessible")
-    }
-}
+// Amenity options are now owned by the schema registry
+// (see `SubcategorySchema.amenityOptions`).
