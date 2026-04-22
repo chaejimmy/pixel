@@ -295,33 +295,30 @@ fun NavGraphBuilder.DashboardNavigation(
                             ) {
                                 composable("home_root") {
                                     var showAuthSheet by remember { mutableStateOf(false) }
-                                    HomeFeedScreen(
-                                        onListingClick = { listingId ->
-                                            selectedListingId = listingId
-                                        },
+                                    com.shourov.apps.pacedream.feature.home.presentation.redesign.HomeRedesignRoute(
                                         onSearchClick = {
                                             searchInitialFocus = null
                                             showSearchDialog = true
                                         },
-                                        onWhereClick = {
-                                            searchInitialFocus = "where"
-                                            showSearchDialog = true
-                                        },
-                                        onWhenClick = {
-                                            searchInitialFocus = "when"
-                                            showSearchDialog = true
-                                        },
-                                        onWhoClick = {
-                                            searchInitialFocus = "who"
-                                            showSearchDialog = true
-                                        },
-                                        onSeeAll = { section ->
-                                            navController.navigate("home_section/${section.name}")
-                                        },
-                                        onShowAuthSheet = { showAuthSheet = true },
                                         onNotificationClick = {
                                             navController.navigate("notifications")
-                                        }
+                                        },
+                                        onPropertyClick = { listingId ->
+                                            selectedListingId = listingId
+                                        },
+                                        onHostClick = {
+                                            navController.navigate("create_listing") {
+                                                launchSingleTop = true
+                                            }
+                                        },
+                                        onSeeAll = { primaryType ->
+                                            val key = when (primaryType) {
+                                                com.shourov.apps.pacedream.feature.home.presentation.redesign.PrimaryType.SPACES -> HomeSectionKey.SPACES
+                                                com.shourov.apps.pacedream.feature.home.presentation.redesign.PrimaryType.ITEMS -> HomeSectionKey.ITEMS
+                                                com.shourov.apps.pacedream.feature.home.presentation.redesign.PrimaryType.SERVICES -> HomeSectionKey.SERVICES
+                                            }
+                                            navController.navigate("home_section/${key.name}")
+                                        },
                                     )
 
                                     if (showAuthSheet) {
