@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +24,7 @@ import com.shourov.apps.pacedream.feature.wifi.util.WifiTime
  * The two primary CTAs are wide and side-by-side — this is the highest-
  * converting moment for extensions, so it gets the strongest UI treatment.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun WifiExtensionBottomSheet(
     state: WifiSessionUiState,

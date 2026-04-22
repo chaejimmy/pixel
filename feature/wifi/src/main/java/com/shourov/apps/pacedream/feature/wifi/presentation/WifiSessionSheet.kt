@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import com.shourov.apps.pacedream.feature.wifi.util.WifiTime
  * outside the warning/critical window. Surfaces SSID, password (copy), and
  * remaining time with a pathway to the extend sheet.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun WifiSessionSheet(
     state: WifiSessionUiState,

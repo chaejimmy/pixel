@@ -10,6 +10,7 @@ android {
 dependencies {
     implementation(libs.timber)
     implementation(libs.retrofit.core)
+    implementation(libs.retrofit.gson)
     implementation(projects.common)
     implementation(projects.core.network)
     implementation(projects.core.common)
