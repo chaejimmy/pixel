@@ -1,6 +1,8 @@
 package com.shourov.apps.pacedream.feature.notification
 
 import android.content.Intent
+import com.shourov.apps.pacedream.feature.wifi.WifiSessionRouter
+import com.shourov.apps.pacedream.feature.wifi.WifiSessionRouter.Intent as WifiIntent
 import com.shourov.apps.pacedream.navigation.DashboardDestination
 import com.shourov.apps.pacedream.navigation.BookingDestination
 import com.shourov.apps.pacedream.navigation.InboxDestination
@@ -114,6 +116,10 @@ object NotificationRouter {
         val threadId = data["threadId"] ?: data["thread_id"]
             ?: data["conversationId"] ?: data["conversation_id"]
             ?: data["chat_id"]
+        val wifiSessionId = data["wifiSessionId"] ?: data["wifi_session_id"]
+        val wifiExpiresAt = data["wifiExpiresAt"] ?: data["wifi_expires_at"]
+            ?: data["expires_at"] ?: data["expiresAt"]
+        val wifiSsid = data["wifiSsid"] ?: data["wifi_ssid"] ?: data["ssid"]
 
         scope.launch {
             when (screen.lowercase()) {
@@ -194,6 +200,36 @@ object NotificationRouter {
                     TabRouter.switchTo(DashboardDestination.FAVORITES)
                 }
 
+                // ── Wi-Fi access session ──────────────────────
+                // Wi-Fi UI is a shell-level overlay (pill + sheet), not a tab.
+                // We seed the session in the shared router; the WifiSessionHost
+                // composable observes intents and presents the right surface.
+                "wifi", "wifi_access", "wifi_access_started" -> {
+                    WifiSessionRouter.dispatch(
+                        WifiIntent.Start(
+                            sessionId = wifiSessionId,
+                            ssid = wifiSsid,
+                            expiresAtIso = wifiExpiresAt,
+                            bookingId = bookingId
+                        )
+                    )
+                }
+                "wifi_extend_prompt" -> {
+                    WifiSessionRouter.dispatch(
+                        WifiIntent.ShowExtend(sessionId = wifiSessionId)
+                    )
+                }
+                "wifi_session_expired" -> {
+                    WifiSessionRouter.dispatch(
+                        WifiIntent.ShowExpired(sessionId = wifiSessionId)
+                    )
+                }
+                "wifi_extension_confirmed" -> {
+                    WifiSessionRouter.dispatch(
+                        WifiIntent.Refresh(sessionId = wifiSessionId)
+                    )
+                }
+
                 else -> {
                     Timber.w("NotificationRouter: unhandled screen=$screen")
                 }
@@ -210,6 +246,10 @@ object NotificationRouter {
         val bookingId = data["bookingId"] ?: data["booking_id"]
         val threadId = data["threadId"] ?: data["thread_id"]
             ?: data["chat_id"]
+        val wifiSessionId = data["wifiSessionId"] ?: data["wifi_session_id"]
+        val wifiExpiresAt = data["wifiExpiresAt"] ?: data["wifi_expires_at"]
+            ?: data["expires_at"] ?: data["expiresAt"]
+        val wifiSsid = data["wifiSsid"] ?: data["wifi_ssid"] ?: data["ssid"]
 
         scope.launch {
             when (type.lowercase()) {
@@ -260,6 +300,24 @@ object NotificationRouter {
                 "marketing" -> {
                     TabRouter.switchTo(DashboardDestination.HOME)
                 }
+
+                "wifi_access_started" -> WifiSessionRouter.dispatch(
+                    WifiIntent.Start(
+                        sessionId = wifiSessionId,
+                        ssid = wifiSsid,
+                        expiresAtIso = wifiExpiresAt,
+                        bookingId = bookingId
+                    )
+                )
+                "wifi_10min_left", "wifi_3min_left" -> WifiSessionRouter.dispatch(
+                    WifiIntent.ShowExtend(sessionId = wifiSessionId)
+                )
+                "wifi_expired" -> WifiSessionRouter.dispatch(
+                    WifiIntent.ShowExpired(sessionId = wifiSessionId)
+                )
+                "wifi_extension_confirmed" -> WifiSessionRouter.dispatch(
+                    WifiIntent.Refresh(sessionId = wifiSessionId)
+                )
 
                 else -> {
                     Timber.w("NotificationRouter: unhandled type=$type")

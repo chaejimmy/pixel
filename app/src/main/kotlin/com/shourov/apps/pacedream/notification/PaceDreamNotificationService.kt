@@ -49,6 +49,11 @@ class PaceDreamNotificationService @Inject constructor(
         const val CHANNEL_ID_MARKETING = "marketing"
         const val CHANNEL_ID_GENERAL = "general"
 
+        // Live Wi-Fi access alerts. Separate from CHANNEL_ID_BOOKINGS so users
+        // can mute booking marketing-style noise without losing real-time
+        // expiration warnings.
+        const val CHANNEL_ID_WIFI_SESSION = "wifi_session"
+
         // Channel group IDs
         private const val GROUP_ID_ACTIVITY = "activity"
         private const val GROUP_ID_ACCOUNT = "account"
@@ -64,6 +69,7 @@ class PaceDreamNotificationService @Inject constructor(
         private const val ID_BASE_SECURITY = 7000
         private const val ID_BASE_MARKETING = 8000
         private const val ID_BASE_GENERAL = 9000
+        private const val ID_BASE_WIFI = 10000
     }
 
     init {
@@ -172,6 +178,18 @@ class PaceDreamNotificationService @Inject constructor(
                 ).apply {
                     description = "System updates, maintenance, and general notifications"
                     group = GROUP_ID_OTHER
+                },
+                NotificationChannel(
+                    CHANNEL_ID_WIFI_SESSION,
+                    "Wi-Fi Access",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Live Wi-Fi access alerts: start, time remaining, expiration"
+                    group = GROUP_ID_ACTIVITY
+                    enableVibration(true)
+                    enableLights(true)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                    setShowBadge(true)
                 }
             )
 
@@ -362,6 +380,9 @@ class PaceDreamNotificationService @Inject constructor(
             data.payoutId?.let { putExtra("payout_id", it) }
             data.ticketId?.let { putExtra("ticket_id", it) }
             data.deepLink?.let { putExtra("deep_link", it) }
+            data.wifiSessionId?.let { putExtra("wifi_session_id", it) }
+            data.wifiSsid?.let { putExtra("wifi_ssid", it) }
+            data.wifiExpiresAt?.let { putExtra("wifi_expires_at", it) }
         }
 
         val requestCode = getNotificationId(data)
@@ -418,20 +439,26 @@ class PaceDreamNotificationService @Inject constructor(
             NotificationType.SPLIT_COMPLETED,
             NotificationType.SPLIT_CREDIT -> ID_BASE_BOOKING
 
+            NotificationType.WIFI_ACCESS_STARTED,
+            NotificationType.WIFI_10MIN_LEFT,
+            NotificationType.WIFI_3MIN_LEFT,
+            NotificationType.WIFI_EXPIRED,
+            NotificationType.WIFI_EXTENSION_CONFIRMED -> ID_BASE_WIFI
+
             else -> ID_BASE_GENERAL
         }
 
         // Use a unique-ish hash from the primary ID
-        val uniqueKey = data.bookingId ?: data.threadId ?: data.propertyId
-            ?: data.reviewId ?: data.splitId ?: data.disputeId
+        val uniqueKey = data.wifiSessionId ?: data.bookingId ?: data.threadId
+            ?: data.propertyId ?: data.reviewId ?: data.splitId ?: data.disputeId
             ?: data.title ?: ""
         return base + uniqueKey.hashCode()
     }
 
     private fun getPriority(channelId: String): Int {
         return when (channelId) {
-            CHANNEL_ID_MESSAGES, CHANNEL_ID_BOOKINGS, CHANNEL_ID_SECURITY ->
-                NotificationCompat.PRIORITY_HIGH
+            CHANNEL_ID_MESSAGES, CHANNEL_ID_BOOKINGS, CHANNEL_ID_SECURITY,
+            CHANNEL_ID_WIFI_SESSION -> NotificationCompat.PRIORITY_HIGH
             CHANNEL_ID_PAYMENTS, CHANNEL_ID_REVIEWS, CHANNEL_ID_SOCIAL, CHANNEL_ID_PROPERTY ->
                 NotificationCompat.PRIORITY_DEFAULT
             else -> NotificationCompat.PRIORITY_LOW
@@ -481,6 +508,11 @@ class PaceDreamNotificationService @Inject constructor(
             NotificationType.MARKETING -> "Special Offer"
             NotificationType.REMINDER -> "Reminder"
             NotificationType.ALERT -> "Alert"
+            NotificationType.WIFI_ACCESS_STARTED -> "Wi-Fi Connected"
+            NotificationType.WIFI_10MIN_LEFT -> "10 minutes of Wi-Fi left"
+            NotificationType.WIFI_3MIN_LEFT -> "3 minutes left – extend now?"
+            NotificationType.WIFI_EXPIRED -> "Wi-Fi session ended"
+            NotificationType.WIFI_EXTENSION_CONFIRMED -> "Wi-Fi extended"
             NotificationType.UNKNOWN -> "PaceDream"
         }
     }
