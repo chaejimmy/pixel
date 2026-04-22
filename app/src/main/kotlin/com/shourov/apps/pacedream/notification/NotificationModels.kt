@@ -45,6 +45,13 @@ enum class NotificationType(val value: String) {
     OVERTIME_WARNING("overtime_warning"),
     SESSION_ENDED("session_ended"),
 
+    // Wi-Fi access (booking-scoped, time-bound)
+    WIFI_ACCESS_STARTED("wifi_access_started"),
+    WIFI_10MIN_LEFT("wifi_10min_left"),
+    WIFI_3MIN_LEFT("wifi_3min_left"),
+    WIFI_EXPIRED("wifi_expired"),
+    WIFI_EXTENSION_CONFIRMED("wifi_extension_confirmed"),
+
     // Split
     SPLIT_INVITE("split_invite"),
     SPLIT_PAYMENT_NEEDED("split_payment_needed"),
@@ -115,7 +122,12 @@ data class NotificationData(
     val currency: String? = null,
     val deepLink: String? = null,
     val actionUrl: String? = null,
-    val metadata: Map<String, String>? = null // iOS parity
+    val metadata: Map<String, String>? = null, // iOS parity
+
+    // Wi-Fi access session fields. expiresAt is server-authoritative ISO-8601.
+    val wifiSessionId: String? = null,
+    val wifiSsid: String? = null,
+    val wifiExpiresAt: String? = null
 ) {
     /**
      * Whether this notification is payout/payment-setup related.
@@ -154,6 +166,14 @@ data class NotificationData(
             NotificationType.EXTEND_PROMPT,
             NotificationType.OVERTIME_WARNING,
             NotificationType.SESSION_ENDED -> PaceDreamNotificationService.CHANNEL_ID_BOOKINGS
+
+            // Wi-Fi access events get a dedicated HIGH-importance channel so users
+            // can keep live Wi-Fi alerts while muting generic booking noise.
+            NotificationType.WIFI_ACCESS_STARTED,
+            NotificationType.WIFI_10MIN_LEFT,
+            NotificationType.WIFI_3MIN_LEFT,
+            NotificationType.WIFI_EXPIRED,
+            NotificationType.WIFI_EXTENSION_CONFIRMED -> PaceDreamNotificationService.CHANNEL_ID_WIFI_SESSION
 
             NotificationType.PAYMENT_RECEIVED,
             NotificationType.PAYMENT_FAILED,
@@ -232,7 +252,11 @@ data class NotificationData(
                 amount = (data["amount"] ?: data["total"])?.toDoubleOrNull(),
                 currency = data["currency"],
                 deepLink = data["deep_link"] ?: data["deepLink"],
-                actionUrl = data["action_url"] ?: data["actionUrl"]
+                actionUrl = data["action_url"] ?: data["actionUrl"],
+                wifiSessionId = data["wifiSessionId"] ?: data["wifi_session_id"],
+                wifiSsid = data["wifiSsid"] ?: data["wifi_ssid"] ?: data["ssid"],
+                wifiExpiresAt = data["wifiExpiresAt"] ?: data["wifi_expires_at"]
+                    ?: data["expires_at"] ?: data["expiresAt"]
             )
         }
     }
