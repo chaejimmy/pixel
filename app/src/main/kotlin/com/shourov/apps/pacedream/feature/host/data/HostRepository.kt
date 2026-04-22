@@ -1189,6 +1189,22 @@ class HostRepository @Inject constructor(
         // Service specific keys.
         r.serviceDurationMinutes?.let { body["durationMinutes"] = it }
 
+        // Wi-Fi access block. The Wi-Fi subcategory is the only caller
+        // today — other listings omit the key entirely so backend
+        // contracts for rooms / gear / services stay untouched.
+        r.wifiAccess?.let { w ->
+            body["wifiAccess"] = mutableMapOf<String, Any>(
+                "included" to w.included,
+                "ssid" to w.ssid,
+                "password" to w.password,
+                "showAfterBooking" to w.showAfterBooking,
+                "autoGenerateQrCode" to w.autoGenerateQrCode,
+                "experienceTags" to w.experienceTags,
+            ).apply {
+                w.extensionPricePerHour?.let { put("extensionPricePerHour", it) }
+            }
+        }
+
         return body
     }
 

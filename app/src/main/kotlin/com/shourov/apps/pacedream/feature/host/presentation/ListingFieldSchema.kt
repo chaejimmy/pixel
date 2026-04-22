@@ -54,6 +54,15 @@ enum class ListingField {
     // ── Service ────────────────────────────────────────────────
     SERVICE_DURATION_MINUTES,
 
+    // ── Wi-Fi access (Wi-Fi subcategory only) ─────────────────
+    /**
+     * Marks a subcategory as a Wi-Fi / internet-access product. The wizard
+     * surfaces a dedicated "Wi-Fi Access" step (SSID, password, reveal
+     * rules, experience tags, guest preview) and reframes the schedule
+     * step as access validity rather than generic operating hours.
+     */
+    WIFI_ACCESS,
+
     // ── Schedule / availability ────────────────────────────────
     SCHEDULE_HOURLY_DURATIONS,
     SCHEDULE_HOURS_OF_OPERATION,
@@ -278,16 +287,20 @@ object ListingSchemaRegistry {
         needsSchedule = true,
     )
 
+    /**
+     * Wi-Fi access is the product, not an amenity. The wizard opts out of
+     * the generic AMENITIES picker and opts into [ListingField.WIFI_ACCESS]
+     * so the dedicated SSID / password / experience-tag step replaces
+     * "pick a few amenity chips" with something guests actually value.
+     */
     private val Wifi = SubcategorySchema(
         id = "wifi",
         category = ListingCategory.SPACE,
-        displayLabel = "WiFi",
+        displayLabel = "Wi-Fi",
         fields = FieldSets.Core + FieldSets.PhysicalPlace +
-            ListingField.AMENITIES + FieldSets.HourlySchedule,
+            ListingField.WIFI_ACCESS + FieldSets.HourlySchedule,
         allowedPricingUnits = listOf(PricingUnit.HOUR, PricingUnit.DAY),
-        amenityOptions = listOf(
-            "High Speed", "Unlimited Data", "Router Included", "5G Support", "Password Protected",
-        ),
+        amenityOptions = emptyList(),
         needsSchedule = true,
     )
 
