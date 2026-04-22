@@ -144,4 +144,30 @@ data class ListingDraftData(
     val pickupDeliveryOptions: List<String> = emptyList(),
     // Service specific — session duration in minutes.
     val serviceDurationMinutes: Int = 60,
+    // Wi-Fi access specific — see [WifiAccessDraft] below.  Defaults to
+    // an empty config so older drafts (missing this block entirely)
+    // decode cleanly on upgrade.
+    val wifi: WifiAccessDraft = WifiAccessDraft(),
+)
+
+/**
+ * Wi-Fi / internet-access configuration for listings whose product is
+ * bookable, time-limited Wi-Fi. Kept flat + Serializable so the existing
+ * SharedPreferences-backed draft store continues to work.
+ *
+ * Password is persisted locally on the host's device inside the draft
+ * store.  We intentionally do not ship it to any analytics surface; the
+ * only consumers are the Create Listing wizard and the backend create
+ * call, which gates reveal behind [showAfterBooking].
+ */
+@Serializable
+data class WifiAccessDraft(
+    val included: Boolean = true,
+    val ssid: String = "",
+    val password: String = "",
+    val showAfterBooking: Boolean = true,
+    val autoGenerateQrCode: Boolean = true,
+    val extensionEnabled: Boolean = false,
+    val extensionPricePerHour: String = "",
+    val experienceTags: List<String> = emptyList(),
 )

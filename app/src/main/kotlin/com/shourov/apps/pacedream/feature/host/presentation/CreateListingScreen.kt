@@ -101,6 +101,8 @@ import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.data.ListingDraftData
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
+import com.shourov.apps.pacedream.feature.host.data.WifiAccessDraft
+import com.shourov.apps.pacedream.feature.host.data.WifiAccessPayload
 import com.pacedream.app.core.location.LocationServiceEntryPoint
 import com.pacedream.app.core.location.PlacePrediction
 import dagger.hilt.android.EntryPointAccessors
@@ -166,7 +168,7 @@ private val SPACE_SUBCATEGORIES = listOf(
     SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group, needsSchedule = true),
     SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
     SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
-    SubcategoryItem("wifi", "wifi", "WIFI", "Share internet access", PaceDreamIcons.Wifi, needsSchedule = false),
+    SubcategoryItem("wifi", "wifi", "Wi-Fi", "Bookable, time-limited internet access", PaceDreamIcons.Wifi, needsSchedule = true),
     SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
     SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
     SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = false),
@@ -826,13 +828,30 @@ private fun CreateListingWizardScreen(
         schema.hasField(ListingField.PHOTOS) -> "Photos \u00b7 Pricing"
         else -> "Pricing"
     }
-    val steps = if (hasSchedule) {
-        listOf("Basics", step1Label, "Schedule & Availability", "Review & Publish")
-    } else {
-        listOf("Basics", step1Label, "Review & Publish")
+    val hasWifi = schema.hasField(ListingField.WIFI_ACCESS)
+    // Wi-Fi listings get a dedicated access step inserted before the
+    // schedule step, and the schedule step is re-framed as "Access
+    // Validity" so hosts see booking duration as connection time.
+    val steps = buildList {
+        add("Basics")
+        add(step1Label)
+        if (hasWifi) add("Wi-Fi Access")
+        if (hasSchedule) {
+            add(if (hasWifi) "Access Validity" else "Schedule & Availability")
+        }
+        add("Review & Publish")
     }
     val totalSteps = steps.size
     var currentStep by remember { mutableIntStateOf(0) }
+    // Resolved step indices — keeps validation + dispatch in sync with
+    // the dynamic `steps` list above.
+    val wifiStepIndex = if (hasWifi) 2 else -1
+    val scheduleStepIndex = when {
+        hasSchedule && hasWifi -> 3
+        hasSchedule -> 2
+        else -> -1
+    }
+    val reviewStepIndex = totalSteps - 1
 
     // Form state – iOS parity (ListingDraft fields). All `remember` calls are
     // keyed on the draft identity so resuming a saved draft hydrates the wizard
@@ -956,6 +975,28 @@ private fun CreateListingWizardScreen(
         mutableIntStateOf(initialDraft?.serviceDurationMinutes?.coerceIn(15, 600) ?: 60)
     }
 
+    // Wi-Fi access state — only meaningful when the schema opts in.
+    // Persisted via the draft store like every other wizard field.
+    val initialWifi = initialDraft?.wifi ?: WifiAccessDraft()
+    var wifiIncluded by remember(draftKey) { mutableStateOf(initialWifi.included) }
+    var wifiSsid by remember(draftKey) { mutableStateOf(initialWifi.ssid) }
+    var wifiPassword by remember(draftKey) { mutableStateOf(initialWifi.password) }
+    var wifiShowAfterBooking by remember(draftKey) {
+        mutableStateOf(initialWifi.showAfterBooking)
+    }
+    var wifiAutoQr by remember(draftKey) {
+        mutableStateOf(initialWifi.autoGenerateQrCode)
+    }
+    var wifiExtensionEnabled by remember(draftKey) {
+        mutableStateOf(initialWifi.extensionEnabled)
+    }
+    var wifiExtensionPrice by remember(draftKey) {
+        mutableStateOf(initialWifi.extensionPricePerHour)
+    }
+    val wifiExperienceTags = remember(draftKey) {
+        mutableStateListOf<String>().apply { addAll(initialWifi.experienceTags) }
+    }
+
     var validationMessage by remember { mutableStateOf<String?>(null) }
     var isUploadingOverlay by remember { mutableStateOf(false) }
     var uploadProgressText by remember { mutableStateOf("") }
@@ -982,6 +1023,63 @@ private fun CreateListingWizardScreen(
     // legacy "website parity" limits — a clear 10-char title was too strict
     // for real-world listings like "EV stall 4".
     fun validateStep(step: Int): String? {
+        // Wi-Fi step: SSID + password required only when the host opts
+        // Wi-Fi in. Hosts can still publish a "Wi-Fi Not Included" shell
+        // if they want to (rare, but we don't want to block them).
+        if (step == wifiStepIndex) {
+            if (wifiIncluded) {
+                val trimmedSsid = wifiSsid.trim()
+                if (trimmedSsid.isEmpty()) return "Network name (SSID) is required."
+                if (trimmedSsid.length > 32) {
+                    return "Network name must be 32 characters or fewer."
+                }
+                if (wifiPassword.length < 8) {
+                    return "Wi-Fi password must be at least 8 characters."
+                }
+                if (wifiExtensionEnabled) {
+                    val ext = wifiExtensionPrice.toDoubleOrNull() ?: 0.0
+                    if (ext < 1.0) {
+                        return "Extension price must be at least $1 per hour."
+                    }
+                }
+            }
+            return null
+        }
+        if (step == scheduleStepIndex) {
+            if (hasSchedule) {
+                when (selectedPricingUnit) {
+                    PricingUnit.HOUR -> {
+                        if (schema.hasField(ListingField.SCHEDULE_HOURLY_DURATIONS) &&
+                            selectedDurations.isEmpty()
+                        ) {
+                            return "Select at least 1 duration."
+                        }
+                        if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
+                            selectedDays.isEmpty()
+                        ) {
+                            return "Select at least 1 available day."
+                        }
+                    }
+                    PricingUnit.DAY, PricingUnit.WEEK -> {
+                        if (schema.hasField(ListingField.SCHEDULE_STAY_LIMITS)) {
+                            if (minStay < 1) return "Minimum stay must be at least 1 day."
+                            if (maxStay < minStay) return "Maximum stay must be at least the minimum stay."
+                        }
+                        if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
+                            selectedDays.isEmpty()
+                        ) {
+                            return "Select at least 1 available day."
+                        }
+                    }
+                    PricingUnit.MONTH -> {
+                        if (schema.hasField(ListingField.SCHEDULE_MIN_MONTHS) && minMonths < 1) {
+                            return "Minimum months must be at least 1."
+                        }
+                    }
+                }
+            }
+            return null
+        }
         return when (step) {
             0 -> {
                 if (schema.hasField(ListingField.TITLE)) {
@@ -1024,41 +1122,6 @@ private fun CreateListingWizardScreen(
                     // like city="IL 62701", state="USA".
                     if (city.isBlank() || state.isBlank()) {
                         return "Please select an address from the suggestions so we capture the correct city and state."
-                    }
-                }
-                null
-            }
-            2 -> {
-                if (hasSchedule) {
-                    when (selectedPricingUnit) {
-                        PricingUnit.HOUR -> {
-                            if (schema.hasField(ListingField.SCHEDULE_HOURLY_DURATIONS) &&
-                                selectedDurations.isEmpty()
-                            ) {
-                                return "Select at least 1 duration."
-                            }
-                            if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
-                                selectedDays.isEmpty()
-                            ) {
-                                return "Select at least 1 available day."
-                            }
-                        }
-                        PricingUnit.DAY, PricingUnit.WEEK -> {
-                            if (schema.hasField(ListingField.SCHEDULE_STAY_LIMITS)) {
-                                if (minStay < 1) return "Minimum stay must be at least 1 day."
-                                if (maxStay < minStay) return "Maximum stay must be at least the minimum stay."
-                            }
-                            if (schema.hasField(ListingField.SCHEDULE_AVAILABLE_DAYS) &&
-                                selectedDays.isEmpty()
-                            ) {
-                                return "Select at least 1 available day."
-                            }
-                        }
-                        PricingUnit.MONTH -> {
-                            if (schema.hasField(ListingField.SCHEDULE_MIN_MONTHS) && minMonths < 1) {
-                                return "Minimum months must be at least 1."
-                            }
-                        }
                     }
                 }
                 null
@@ -1169,6 +1232,16 @@ private fun CreateListingWizardScreen(
                             condition = condition,
                             pickupDeliveryOptions = pickupDeliveryOptions.toList(),
                             serviceDurationMinutes = serviceDurationMinutes,
+                            wifi = WifiAccessDraft(
+                                included = wifiIncluded,
+                                ssid = wifiSsid.trim(),
+                                password = wifiPassword,
+                                showAfterBooking = wifiShowAfterBooking,
+                                autoGenerateQrCode = wifiAutoQr,
+                                extensionEnabled = wifiExtensionEnabled,
+                                extensionPricePerHour = wifiExtensionPrice,
+                                experienceTags = wifiExperienceTags.toList(),
+                            ),
                         ))
                         currentStep++
                     } else {
@@ -1382,6 +1455,19 @@ private fun CreateListingWizardScreen(
                                 // Service schemas.
                                 serviceDurationMinutes = if (schema.hasField(ListingField.SERVICE_DURATION_MINUTES))
                                     serviceDurationMinutes else null,
+                                // Wi-Fi access schema — only emitted when the
+                                // subcategory opts in, so other listing types
+                                // still send the exact same POST body shape.
+                                wifiAccess = if (hasWifi) WifiAccessPayload(
+                                    included = wifiIncluded,
+                                    ssid = wifiSsid.trim(),
+                                    password = wifiPassword,
+                                    showAfterBooking = wifiShowAfterBooking,
+                                    autoGenerateQrCode = wifiAutoQr,
+                                    extensionPricePerHour = if (wifiExtensionEnabled)
+                                        wifiExtensionPrice.toDoubleOrNull() else null,
+                                    experienceTags = wifiExperienceTags.toList(),
+                                ) else null,
                             )
                             onPublishListing(request)
                             // ViewModel handles the API call and emits success/error via effects.
@@ -1527,7 +1613,37 @@ private fun CreateListingWizardScreen(
                         serviceDurationMinutes = serviceDurationMinutes,
                         onServiceDurationChange = { serviceDurationMinutes = it.coerceIn(15, 600) },
                     )
-                    step == 2 && hasSchedule -> ScheduleAvailabilityStep(
+                    step == wifiStepIndex -> WifiAccessStep(
+                        included = wifiIncluded,
+                        ssid = wifiSsid,
+                        password = wifiPassword,
+                        showAfterBooking = wifiShowAfterBooking,
+                        autoQr = wifiAutoQr,
+                        extensionEnabled = wifiExtensionEnabled,
+                        extensionPrice = wifiExtensionPrice,
+                        experienceTags = wifiExperienceTags,
+                        pricingUnit = selectedPricingUnit,
+                        selectedDurations = selectedDurations,
+                        minStay = minStay,
+                        minMonths = minMonths,
+                        onIncludedChange = { wifiIncluded = it },
+                        onSsidChange = { if (it.length <= 32) wifiSsid = it },
+                        onPasswordChange = { if (it.length <= 63) wifiPassword = it },
+                        onShowAfterBookingChange = { wifiShowAfterBooking = it },
+                        onAutoQrChange = { wifiAutoQr = it },
+                        onExtensionEnabledChange = { wifiExtensionEnabled = it },
+                        onExtensionPriceChange = { raw ->
+                            val cleaned = raw.replace(Regex("[^0-9.]"), "")
+                            val parts = cleaned.split(".")
+                            wifiExtensionPrice = if (parts.size > 1)
+                                "${parts[0]}.${parts[1].take(2)}" else cleaned
+                        },
+                        onToggleExperienceTag = { tag ->
+                            if (wifiExperienceTags.contains(tag)) wifiExperienceTags.remove(tag)
+                            else wifiExperienceTags.add(tag)
+                        },
+                    )
+                    step == scheduleStepIndex -> ScheduleAvailabilityStep(
                         pricingUnit = selectedPricingUnit,
                         selectedDurations = selectedDurations,
                         selectedDays = selectedDays,
@@ -1540,6 +1656,8 @@ private fun CreateListingWizardScreen(
                         checkoutTime = checkoutTime,
                         minMonths = minMonths,
                         availableFrom = availableFrom,
+                        framing = if (hasWifi) ScheduleFraming.WIFI_ACCESS
+                            else ScheduleFraming.GENERIC,
                         onToggleDuration = { min ->
                             if (selectedDurations.contains(min)) selectedDurations.remove(min)
                             else { selectedDurations.add(min); selectedDurations.sort() }
@@ -1583,6 +1701,14 @@ private fun CreateListingWizardScreen(
                         availableFrom = availableFrom,
                         selectedImageUris = selectedImageUris,
                         amenities = amenities,
+                        hasWifi = hasWifi,
+                        wifiIncluded = wifiIncluded,
+                        wifiSsid = wifiSsid,
+                        wifiShowAfterBooking = wifiShowAfterBooking,
+                        wifiAutoQr = wifiAutoQr,
+                        wifiExtensionEnabled = wifiExtensionEnabled,
+                        wifiExtensionPrice = wifiExtensionPrice,
+                        wifiExperienceTags = wifiExperienceTags,
                     )
                 }
             }
@@ -2524,6 +2650,13 @@ private val HOURLY_DURATION_OPTIONS = listOf(
     720 to "12 hrs", 1440 to "24 hrs"
 )
 
+/**
+ * Controls the copy used on the availability step. Wi-Fi listings frame
+ * this step as "how long the access stays valid", while generic listings
+ * keep the legacy "operating hours / schedule" framing.
+ */
+private enum class ScheduleFraming { GENERIC, WIFI_ACCESS }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ScheduleAvailabilityStep(
@@ -2550,14 +2683,51 @@ private fun ScheduleAvailabilityStep(
     onCheckoutTimeChange: (String) -> Unit,
     onMinMonthsChange: (Int) -> Unit,
     onAvailableFromChange: (String) -> Unit,
+    framing: ScheduleFraming = ScheduleFraming.GENERIC,
 ) {
+    val isWifi = framing == ScheduleFraming.WIFI_ACCESS
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(PaceDreamSpacing.LG),
     ) {
-        // Mode indicator
+        // Framing banner. Wi-Fi listings surface an explicit "booking
+        // duration = connection time" tie-in so the host sees the
+        // relationship before touching the form.
+        if (isWifi) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .background(PaceDreamColors.HostAccent.copy(alpha = 0.08f))
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                Icon(
+                    PaceDreamIcons.Bolt,
+                    contentDescription = null,
+                    tint = PaceDreamColors.HostAccent,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column {
+                    Text(
+                        text = "Access validity",
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.HostAccent,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Each booking reveals Wi-Fi for the length the guest pays for. The options below define those windows.",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        }
+        // Pricing-mode pill (shared between framings).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2574,7 +2744,8 @@ private fun ScheduleAvailabilityStep(
                 modifier = Modifier.size(16.dp),
             )
             Text(
-                text = "Pricing mode: ${pricingUnit.displayLabel}",
+                text = if (isWifi) "Sold by: ${pricingUnit.displayLabel}"
+                    else "Pricing mode: ${pricingUnit.displayLabel}",
                 style = PaceDreamTypography.Callout,
                 color = PaceDreamColors.HostAccent,
                 fontWeight = FontWeight.SemiBold,
@@ -2586,13 +2757,16 @@ private fun ScheduleAvailabilityStep(
         // ── HOURLY MODE ──
         if (pricingUnit == PricingUnit.HOUR) {
             Text(
-                text = "Available Durations",
+                text = if (isWifi) "Access windows" else "Available Durations",
                 style = PaceDreamTypography.Headline,
                 color = PaceDreamColors.TextPrimary,
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
-                text = "Guests can book any of the selected durations.",
+                text = if (isWifi)
+                    "Each chip is a bookable session. Wi-Fi stays valid for the length of whichever one the guest picks."
+                else
+                    "Guests can book any of the selected durations.",
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary,
             )
@@ -2631,10 +2805,18 @@ private fun ScheduleAvailabilityStep(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
             Text(
-                text = "Operating Hours",
+                text = if (isWifi) "Hosting hours" else "Operating Hours",
                 style = PaceDreamTypography.Headline,
                 color = PaceDreamColors.TextPrimary,
             )
+            if (isWifi) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Text(
+                    text = "Guests can only start a session during this window.",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2898,6 +3080,14 @@ private fun ReviewPublishStep(
     availableFrom: String = "",
     selectedImageUris: List<Uri> = emptyList(),
     amenities: List<String> = emptyList(),
+    hasWifi: Boolean = false,
+    wifiIncluded: Boolean = false,
+    wifiSsid: String = "",
+    wifiShowAfterBooking: Boolean = true,
+    wifiAutoQr: Boolean = true,
+    wifiExtensionEnabled: Boolean = false,
+    wifiExtensionPrice: String = "",
+    wifiExperienceTags: List<String> = emptyList(),
 ) {
     val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
         totalCost.toDoubleOrNull() ?: 0.0
@@ -3056,6 +3246,44 @@ private fun ReviewPublishStep(
                 }
             }
             SummaryRow("Timezone", timezone)
+        }
+
+        // Wi-Fi summary — only rendered for Wi-Fi listings so we do not
+        // leak empty "Wi-Fi" rows into non-Wi-Fi review cards.
+        if (hasWifi) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            Text(
+                text = "Wi-Fi access",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            SummaryRow("Included", if (wifiIncluded) "Yes" else "Not included")
+            if (wifiIncluded) {
+                SummaryRow("Network", wifiSsid.ifBlank { "—" })
+                SummaryRow(
+                    "Reveal",
+                    if (wifiShowAfterBooking) "After booking confirms"
+                    else "Visible on listing",
+                )
+                SummaryRow(
+                    "QR code",
+                    if (wifiAutoQr) "Auto-generated for each booking"
+                    else "Off",
+                )
+                if (wifiExtensionEnabled) {
+                    val ext = wifiExtensionPrice.toDoubleOrNull() ?: 0.0
+                    SummaryRow(
+                        "Extensions",
+                        "$${String.format("%.2f", ext)}/hr",
+                    )
+                } else {
+                    SummaryRow("Extensions", "Off")
+                }
+                if (wifiExperienceTags.isNotEmpty()) {
+                    SummaryRow("Tags", wifiExperienceTags.joinToString(", "))
+                }
+            }
         }
     }
 }
@@ -3534,3 +3762,600 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit, photoCount: Int = 0) {
 private const val MAX_PHOTOS = 10
 // Amenity options are now owned by the schema registry
 // (see `SubcategorySchema.amenityOptions`).
+
+// ── Wi-Fi Access Step ──────────────────────────────────────────────
+//
+// Design intent:
+//   - The dedicated step exists because on Wi-Fi listings, the network
+//     IS the product. Amenities chips were not communicating that.
+//   - Guest-value framing over router terminology: tags like
+//     "Work Friendly" and "Zoom Ready" ship in the search facets; the
+//     host does not see "802.11ac" or "WPA2 PSK".
+//   - The guest preview card mirrors the exact card we will render on
+//     the post-booking confirmation screen, so hosts can see the
+//     outcome of their choices in real time.
+//   - Extension pricing is optional — the flow works end-to-end with
+//     the toggle off. When on, the per-hour price ties directly into
+//     the booking duration selected on the next step.
+//   - Router integrations (Unifi, Aruba, Meraki) are intentionally out
+//     of scope; the model is structured to accept a `routerIntegration`
+//     block later without touching the UI.
+
+/**
+ * Guest-value experience tags shown on the Wi-Fi step. These are what
+ * guests actually search and filter on — not router capability chips.
+ */
+private data class WifiExperienceTag(
+    val label: String,
+    val icon: ImageVector,
+    val helper: String,
+)
+
+private val WIFI_EXPERIENCE_TAGS: List<WifiExperienceTag> = listOf(
+    WifiExperienceTag(
+        "Work Friendly", PaceDreamIcons.Laptop,
+        "Quiet, desk-space vibe for focused work.",
+    ),
+    WifiExperienceTag(
+        "Zoom Ready", PaceDreamIcons.Videocam,
+        "Stable enough for live video meetings.",
+    ),
+    WifiExperienceTag(
+        "High Speed Internet", PaceDreamIcons.Bolt,
+        "Fast downloads, low buffering.",
+    ),
+    WifiExperienceTag(
+        "Private Network", PaceDreamIcons.Lock,
+        "Not shared with a public hotspot.",
+    ),
+    WifiExperienceTag(
+        "Time-Limited Access", PaceDreamIcons.Schedule,
+        "Only valid during the booking window.",
+    ),
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WifiAccessStep(
+    included: Boolean,
+    ssid: String,
+    password: String,
+    showAfterBooking: Boolean,
+    autoQr: Boolean,
+    extensionEnabled: Boolean,
+    extensionPrice: String,
+    experienceTags: List<String>,
+    pricingUnit: PricingUnit,
+    selectedDurations: List<Int>,
+    minStay: Int,
+    minMonths: Int,
+    onIncludedChange: (Boolean) -> Unit,
+    onSsidChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onShowAfterBookingChange: (Boolean) -> Unit,
+    onAutoQrChange: (Boolean) -> Unit,
+    onExtensionEnabledChange: (Boolean) -> Unit,
+    onExtensionPriceChange: (String) -> Unit,
+    onToggleExperienceTag: (String) -> Unit,
+) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(PaceDreamSpacing.LG),
+    ) {
+        // Hero card — product framing. Makes it unambiguous that Wi-Fi
+        // is the main product, not a bonus amenity.
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            colors = CardDefaults.cardColors(
+                containerColor = PaceDreamColors.HostAccent.copy(alpha = 0.06f),
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(PaceDreamSpacing.MD),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        PaceDreamIcons.Wifi,
+                        contentDescription = null,
+                        tint = PaceDreamColors.HostAccent,
+                        modifier = Modifier.size(PaceDreamIconSize.MD),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Wi-Fi is the product",
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Guests connect the moment their booking starts. No router jargon — tell them what it feels like to use.",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Include Wi-Fi ──
+        FormSection(title = "Include Wi-Fi with every booking") {
+            ToggleOptionRow(
+                label = if (included) "Wi-Fi included" else "Wi-Fi not included",
+                sublabel = if (included)
+                    "Guests will see network details after booking."
+                else
+                    "Turn on if your listing ships with bookable internet.",
+                checked = included,
+                onCheckedChange = onIncludedChange,
+            )
+        }
+
+        if (!included) return@Column  // Nothing else is relevant below.
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Network details ──
+        FormSection(title = "Network details") {
+            OutlinedTextField(
+                value = ssid,
+                onValueChange = onSsidChange,
+                label = { Text("Network name (SSID)", style = PaceDreamTypography.Callout) },
+                placeholder = {
+                    Text(
+                        "e.g. MyCafe_5G",
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        PaceDreamIcons.Wifi,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                supportingText = {
+                    Text(
+                        "${ssid.trim().length}/32 characters",
+                        style = PaceDreamTypography.Caption2,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.HostAccent,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = onPasswordChange,
+                label = { Text("Password", style = PaceDreamTypography.Callout) },
+                leadingIcon = {
+                    Icon(
+                        PaceDreamIcons.Lock,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) PaceDreamIcons.VisibilityOff
+                                else PaceDreamIcons.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password"
+                                else "Show password",
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible)
+                    androidx.compose.ui.text.input.VisualTransformation.None
+                else
+                    androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                supportingText = {
+                    val len = password.length
+                    val color = if (len in 1..7) PaceDreamColors.Error
+                        else PaceDreamColors.TextSecondary
+                    Text(
+                        "At least 8 characters. Stored securely.",
+                        style = PaceDreamTypography.Caption2,
+                        color = color,
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PaceDreamColors.HostAccent,
+                    unfocusedBorderColor = PaceDreamColors.Border,
+                ),
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Access settings ──
+        FormSection(title = "Access settings") {
+            ToggleOptionRow(
+                label = "Reveal only after booking",
+                sublabel = "Guests see the network and password after checkout completes.",
+                checked = showAfterBooking,
+                onCheckedChange = onShowAfterBookingChange,
+            )
+            ToggleOptionRow(
+                label = "Auto-generate QR code",
+                sublabel = "We create a one-tap QR code for every confirmed booking.",
+                checked = autoQr,
+                onCheckedChange = onAutoQrChange,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Extensions ──
+        FormSection(title = "Let guests extend their session") {
+            ToggleOptionRow(
+                label = "Allow paid extensions",
+                sublabel = "Guests can top up connection time without rebooking.",
+                checked = extensionEnabled,
+                onCheckedChange = onExtensionEnabledChange,
+            )
+            if (extensionEnabled) {
+                OutlinedTextField(
+                    value = extensionPrice,
+                    onValueChange = onExtensionPriceChange,
+                    label = {
+                        Text(
+                            "Extension price",
+                            style = PaceDreamTypography.Callout,
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            "0.00",
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    },
+                    leadingIcon = {
+                        Text(
+                            "$",
+                            style = PaceDreamTypography.Title3,
+                            color = PaceDreamColors.TextSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    },
+                    trailingIcon = {
+                        Text(
+                            "/hour",
+                            style = PaceDreamTypography.Callout,
+                            color = PaceDreamColors.TextTertiary,
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.HostAccent,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Experience tags (replaces weak amenity labels) ──
+        FormSection(title = "What it feels like to use") {
+            Text(
+                text = "Pick the tags guests will see on your listing.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                WIFI_EXPERIENCE_TAGS.forEach { tag ->
+                    val isOn = experienceTags.contains(tag.label)
+                    FilterChip(
+                        selected = isOn,
+                        onClick = { onToggleExperienceTag(tag.label) },
+                        label = { Text(tag.label, style = PaceDreamTypography.Callout) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (isOn) PaceDreamIcons.Check else tag.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PaceDreamColors.HostAccent,
+                            selectedLabelColor = Color.White,
+                            selectedLeadingIconColor = Color.White,
+                            containerColor = PaceDreamColors.Card,
+                            labelColor = PaceDreamColors.TextPrimary,
+                        ),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = PaceDreamColors.Border,
+                            selectedBorderColor = PaceDreamColors.HostAccent,
+                            enabled = true,
+                            selected = isOn,
+                        ),
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+
+        // ── Guest preview ──
+        WifiGuestPreviewCard(
+            ssid = ssid,
+            password = password,
+            autoQr = autoQr,
+            showAfterBooking = showAfterBooking,
+            validityNote = formatWifiValidity(
+                pricingUnit = pricingUnit,
+                selectedDurations = selectedDurations,
+                minStay = minStay,
+                minMonths = minMonths,
+            ),
+        )
+    }
+}
+
+/**
+ * Small informational card mirroring what the guest will see after
+ * booking. We render a masked password and a stylised QR placeholder
+ * instead of a real QR — the real one is minted server-side at booking
+ * time.
+ */
+@Composable
+private fun WifiGuestPreviewCard(
+    ssid: String,
+    password: String,
+    autoQr: Boolean,
+    showAfterBooking: Boolean,
+    validityNote: String,
+) {
+    Column {
+        Text(
+            text = "Guest preview",
+            style = PaceDreamTypography.Footnote,
+            color = PaceDreamColors.TextSecondary,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(
+                start = PaceDreamSpacing.XS,
+                bottom = PaceDreamSpacing.SM,
+            ),
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+            elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
+            border = androidx.compose.foundation.BorderStroke(
+                0.5.dp,
+                PaceDreamColors.Border.copy(alpha = 0.5f),
+            ),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(PaceDreamSpacing.MD),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
+            ) {
+                // QR placeholder — drawn with a nested 5x5 grid so the
+                // card reads like a real guest surface.
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(88.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                            .background(Color.White)
+                            .border(
+                                1.dp,
+                                PaceDreamColors.Border.copy(alpha = 0.5f),
+                                RoundedCornerShape(PaceDreamRadius.MD),
+                            )
+                            .padding(6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (autoQr) {
+                            WifiQrPlaceholder()
+                        } else {
+                            Icon(
+                                PaceDreamIcons.Wifi,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextSecondary,
+                                modifier = Modifier.size(32.dp),
+                            )
+                        }
+                    }
+                    if (autoQr) {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                        Text(
+                            text = "Scan to join",
+                            style = PaceDreamTypography.Caption2,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Wifi,
+                            contentDescription = null,
+                            tint = PaceDreamColors.HostAccent,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = ssid.ifBlank { "Your network name" },
+                            style = PaceDreamTypography.Headline,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = maskWifiPassword(password),
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextSecondary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            PaceDreamIcons.Schedule,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = validityNote,
+                            style = PaceDreamTypography.Caption2,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                    if (showAfterBooking) {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Lock,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextTertiary,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Text(
+                                text = "Unlocks after booking",
+                                style = PaceDreamTypography.Caption2,
+                                color = PaceDreamColors.TextTertiary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Simple 7x7 block pattern that reads like a QR code at a glance. */
+@Composable
+private fun WifiQrPlaceholder() {
+    // Fixed pseudo-random pattern — avoids Random() rebuilds on recomposition.
+    val pattern = listOf(
+        "1110111", "1000101", "1011101", "1010100",
+        "0101011", "1101001", "1010111",
+    )
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+    ) {
+        pattern.forEach { row ->
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                row.forEach { ch ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxSize()
+                            .background(
+                                if (ch == '1') PaceDreamColors.TextPrimary
+                                else Color.Transparent
+                            ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Translates the booking duration selections into a human-readable
+ * "how long the access is valid" line. This is the bridge the host
+ * needs to understand that duration = connection time.
+ */
+private fun formatWifiValidity(
+    pricingUnit: PricingUnit,
+    selectedDurations: List<Int>,
+    minStay: Int,
+    minMonths: Int,
+): String {
+    return when (pricingUnit) {
+        PricingUnit.HOUR -> {
+            if (selectedDurations.isEmpty()) {
+                "Valid for the booked session window"
+            } else {
+                val sorted = selectedDurations.sorted()
+                val min = formatMinutes(sorted.first())
+                val max = formatMinutes(sorted.last())
+                if (min == max) "Valid for $min per booking"
+                else "Valid for $min – $max per booking"
+            }
+        }
+        PricingUnit.DAY, PricingUnit.WEEK ->
+            "Valid for the full $minStay-day+ stay"
+        PricingUnit.MONTH ->
+            "Valid month-to-month ($minMonths month min.)"
+    }
+}
+
+private fun formatMinutes(total: Int): String {
+    return when {
+        total < 60 -> "$total min"
+        total % 60 == 0 -> "${total / 60} hr"
+        else -> "${total / 60}h ${total % 60}m"
+    }
+}
+
+/**
+ * Masks a Wi-Fi password for the guest preview. Empty password shows a
+ * neutral placeholder so the card still feels like a real receipt.
+ */
+private fun maskWifiPassword(password: String): String {
+    if (password.isEmpty()) return "••••••••"
+    val visibleCount = 2.coerceAtMost(password.length)
+    val bullets = "•".repeat((password.length - visibleCount).coerceAtLeast(6))
+    return password.take(visibleCount) + bullets
+}

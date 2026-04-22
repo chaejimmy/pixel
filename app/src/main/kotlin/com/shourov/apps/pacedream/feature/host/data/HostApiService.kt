@@ -666,6 +666,33 @@ data class CreateListingRequest(
     val pickupDeliveryOptions: List<String>? = null,
     // Service schemas — session length in minutes.
     val serviceDurationMinutes: Int? = null,
+    // Wi-Fi access schema (Wi-Fi / internet-access listings only).
+    // Nullable for non-Wi-Fi listings so those POST bodies stay
+    // byte-for-byte identical to today.
+    val wifiAccess: WifiAccessPayload? = null,
+)
+
+/**
+ * Backend contract for the Wi-Fi access block.
+ *
+ * The host sets it once at listing time; the backend reveals `ssid` and
+ * `password` to the guest only after a booking is confirmed when
+ * `showAfterBooking` is true. `autoGenerateQrCode` tells the backend to
+ * mint a QR code (encoding the standard `WIFI:` URI) that the guest app
+ * renders in their booking detail.
+ *
+ * [experienceTags] are guest-value framing labels (Work Friendly, Zoom
+ * Ready, etc.) — *not* router capabilities. They show up in search
+ * facets and listing badges.
+ */
+data class WifiAccessPayload(
+    val included: Boolean,
+    val ssid: String,
+    val password: String,
+    val showAfterBooking: Boolean,
+    val autoGenerateQrCode: Boolean,
+    val extensionPricePerHour: Double?,
+    val experienceTags: List<String>,
 )
 
 data class PricingPayload(
