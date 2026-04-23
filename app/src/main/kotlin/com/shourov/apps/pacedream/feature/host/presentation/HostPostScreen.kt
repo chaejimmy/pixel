@@ -235,11 +235,15 @@ private data class ResourceCardData(
 
 @Composable
 private fun PostCategoryGrid(onCategoryClick: (String) -> Unit) {
+    // Emit resource-kind ids (`spaces` / `items` / `services`) so the nav
+    // route can drop the host directly into the correct subcategory
+    // picker.  Previously we emitted listing-mode ids (`share`/`borrow`)
+    // which collapsed Services into Spaces, forcing an extra tap.
     val categories = remember {
         listOf(
-            ResourceCardData("spaces", "share", "Spaces", "Share spaces like rooms, parking, studios", PaceDreamIcons.Home, PaceDreamColors.HostAccent),
-            ResourceCardData("items", "borrow", "Items", "Rent out gear, tools, electronics", PaceDreamIcons.ShoppingBag, PaceDreamColors.HostAccent),
-            ResourceCardData("services", "share", "Services", "Offer help, skills, or experiences", PaceDreamIcons.Build, PaceDreamColors.HostAccent)
+            ResourceCardData("spaces", "spaces", "Spaces", "Share spaces like rooms, parking, studios", PaceDreamIcons.Home, PaceDreamColors.HostAccent),
+            ResourceCardData("items", "items", "Items", "Rent out gear, tools, electronics", PaceDreamIcons.ShoppingBag, PaceDreamColors.HostAccent),
+            ResourceCardData("services", "services", "Services", "Offer help, skills, or experiences", PaceDreamIcons.Build, PaceDreamColors.HostAccent)
         )
     }
 
