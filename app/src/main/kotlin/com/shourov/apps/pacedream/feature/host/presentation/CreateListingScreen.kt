@@ -101,6 +101,9 @@ import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.data.ListingDraftData
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
+import com.shourov.apps.pacedream.feature.host.data.OnlineSessionDraft
+import com.shourov.apps.pacedream.feature.host.data.OnlineSessionPayload
+import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.feature.host.data.WifiAccessDraft
 import com.shourov.apps.pacedream.feature.host.data.WifiAccessPayload
 import com.pacedream.app.core.location.LocationServiceEntryPoint
@@ -975,8 +978,42 @@ private fun CreateListingWizardScreen(
         mutableIntStateOf(initialDraft?.serviceDurationMinutes?.coerceIn(15, 600) ?: 60)
     }
 
+    // Session-type state — only meaningful when the schema opts in
+    // (service subcategories).  The host MUST pick Online / In person /
+    // Both before leaving the location step, so the wizard starts with
+    // no selection and validation blocks the transition.
+    val hasSessionType = schema.hasField(ListingField.SESSION_TYPE)
+    val initialSessionType = initialDraft?.sessionType
+        ?.let { SessionType.fromValue(it) }
+    var sessionType by remember(draftKey) {
+        mutableStateOf<SessionType?>(initialSessionType)
+    }
+
+    // Online-session configuration — only populated when sessionType
+    // is ONLINE or BOTH.  Fields are persisted to the draft store so
+    // resuming the wizard restores the full online configuration.
+    val initialOnline = initialDraft?.onlineSession ?: OnlineSessionDraft()
+    val onlinePlatforms = remember(draftKey) {
+        mutableStateListOf<String>().apply { addAll(initialOnline.platforms) }
+    }
+    var onlineSessionLink by remember(draftKey) {
+        mutableStateOf(initialOnline.sessionLink)
+    }
+    var shareLinkAfterBooking by remember(draftKey) {
+        mutableStateOf(initialOnline.shareLinkAfterBooking)
+    }
+    var onlineTimeZone by remember(draftKey) {
+        mutableStateOf(initialOnline.timeZone.ifBlank { TimeZone.getDefault().id })
+    }
+    var meetingInstructions by remember(draftKey) {
+        mutableStateOf(initialOnline.meetingInstructions)
+    }
+    var onlineNotes by remember(draftKey) {
+        mutableStateOf(initialOnline.notes)
+    }
+
     // Wi-Fi access state — only meaningful when the schema opts in.
-    // Persisted via the draft store like every other wizard field.
+    // Persisted via the draft store like every other wifi field.
     val initialWifi = initialDraft?.wifi ?: WifiAccessDraft()
     var wifiIncluded by remember(draftKey) { mutableStateOf(initialWifi.included) }
     var wifiSsid by remember(draftKey) { mutableStateOf(initialWifi.ssid) }
@@ -1114,7 +1151,38 @@ private fun CreateListingWizardScreen(
                 ) {
                     return "Add at least 1 photo."
                 }
-                if (schema.hasField(ListingField.LOCATION) && listingMode != ListingMode.SPLIT) {
+                // Service listings must explicitly choose a delivery mode
+                // before they can continue.  The UX requirement is no
+                // default selection — the host must tap one of the three
+                // options (Online / In person / Both).
+                if (hasSessionType && listingMode != ListingMode.SPLIT && sessionType == null) {
+                    return "Choose how this service will be delivered."
+                }
+
+                // When the host picked Online, validate the online
+                // configuration instead of the address.  Either a link
+                // or "share after booking" must be supplied so the guest
+                // has a clear path to join the session.
+                val st = sessionType
+                if (hasSessionType && listingMode != ListingMode.SPLIT && st == SessionType.ONLINE) {
+                    if (onlinePlatforms.isEmpty()) {
+                        return "Pick at least one meeting platform."
+                    }
+                    val hasLink = onlineSessionLink.trim().isNotEmpty()
+                    if (!hasLink && !shareLinkAfterBooking) {
+                        return "Add a session link or enable “Share link after booking.”"
+                    }
+                }
+
+                // Address validation applies only when the listing will
+                // happen (at least partially) in person.  Physical-space
+                // listings have no SESSION_TYPE so they always enforce
+                // the address contract.  Service listings enforce it
+                // only when the host picked In Person or Both.
+                val needsAddress = schema.hasField(ListingField.LOCATION) &&
+                    listingMode != ListingMode.SPLIT &&
+                    (!hasSessionType || st == SessionType.IN_PERSON || st == SessionType.BOTH)
+                if (needsAddress) {
                     if (address.isBlank()) return "Address is required."
                     // The autocomplete contract: pick a suggestion so the
                     // place-details payload fills city/state reliably.
@@ -1122,6 +1190,18 @@ private fun CreateListingWizardScreen(
                     // like city="IL 62701", state="USA".
                     if (city.isBlank() || state.isBlank()) {
                         return "Please select an address from the suggestions so we capture the correct city and state."
+                    }
+                }
+                // When the host picked Both, also validate the online
+                // configuration — the session type fans out into two
+                // delivery sections and both need to be filled in.
+                if (hasSessionType && listingMode != ListingMode.SPLIT && st == SessionType.BOTH) {
+                    if (onlinePlatforms.isEmpty()) {
+                        return "Pick at least one meeting platform."
+                    }
+                    val hasLink = onlineSessionLink.trim().isNotEmpty()
+                    if (!hasLink && !shareLinkAfterBooking) {
+                        return "Add a session link or enable “Share link after booking.”"
                     }
                 }
                 null
@@ -1241,6 +1321,15 @@ private fun CreateListingWizardScreen(
                                 extensionEnabled = wifiExtensionEnabled,
                                 extensionPricePerHour = wifiExtensionPrice,
                                 experienceTags = wifiExperienceTags.toList(),
+                            ),
+                            sessionType = sessionType?.backendValue.orEmpty(),
+                            onlineSession = OnlineSessionDraft(
+                                platforms = onlinePlatforms.toList(),
+                                sessionLink = onlineSessionLink,
+                                shareLinkAfterBooking = shareLinkAfterBooking,
+                                timeZone = onlineTimeZone,
+                                meetingInstructions = meetingInstructions,
+                                notes = onlineNotes,
                             ),
                         ))
                         currentStep++
@@ -1363,7 +1452,15 @@ private fun CreateListingWizardScreen(
                             // We rely on the autocomplete picker (validated at step 1) to
                             // populate city/state; the previous fallback comma-parser
                             // produced garbage values like city="IL 62701", state="USA".
-                            val locationPayload = if (listingMode != ListingMode.SPLIT) {
+                            //
+                            // Online-only service listings skip the location block
+                            // entirely — the backend must not reject the POST for
+                            // a missing address when the host explicitly chose
+                            // remote delivery.
+                            val sessionTypeLocal = sessionType
+                            val omitLocation = hasSessionType &&
+                                sessionTypeLocal == SessionType.ONLINE
+                            val locationPayload = if (listingMode != ListingMode.SPLIT && !omitLocation) {
                                 LocationPayload(
                                     street = address,
                                     street_address = address,
@@ -1396,7 +1493,7 @@ private fun CreateListingWizardScreen(
                                 ),
                                 prices = pricesMap,
                                 address = if (schema.hasField(ListingField.LOCATION) &&
-                                    listingMode != ListingMode.SPLIT) address else null,
+                                    listingMode != ListingMode.SPLIT && !omitLocation) address else null,
                                 amenities = if (schema.hasField(ListingField.AMENITIES))
                                     amenities.ifEmpty { null } else null,
                                 details = if (schema.hasField(ListingField.AMENITIES))
@@ -1467,6 +1564,27 @@ private fun CreateListingWizardScreen(
                                     extensionPricePerHour = if (wifiExtensionEnabled)
                                         wifiExtensionPrice.toDoubleOrNull() else null,
                                     experienceTags = wifiExperienceTags.toList(),
+                                ) else null,
+                                // Service delivery mode.  Only emitted for
+                                // service subcategories so physical-space
+                                // listings keep their existing payload
+                                // shape.  A service without a chosen
+                                // delivery mode cannot pass validation, so
+                                // we assume sessionTypeLocal is non-null.
+                                sessionType = if (hasSessionType)
+                                    sessionTypeLocal?.backendValue else null,
+                                onlineSession = if (hasSessionType &&
+                                    (sessionTypeLocal == SessionType.ONLINE ||
+                                        sessionTypeLocal == SessionType.BOTH)
+                                ) OnlineSessionPayload(
+                                    platforms = onlinePlatforms.toList(),
+                                    sessionLink = onlineSessionLink.trim()
+                                        .ifBlank { null },
+                                    shareLinkAfterBooking = shareLinkAfterBooking,
+                                    timeZone = onlineTimeZone,
+                                    meetingInstructions = meetingInstructions.trim()
+                                        .ifBlank { null },
+                                    notes = onlineNotes.trim().ifBlank { null },
                                 ) else null,
                             )
                             onPublishListing(request)
@@ -1612,6 +1730,34 @@ private fun CreateListingWizardScreen(
                         },
                         serviceDurationMinutes = serviceDurationMinutes,
                         onServiceDurationChange = { serviceDurationMinutes = it.coerceIn(15, 600) },
+                        sessionType = sessionType,
+                        onSessionTypeChange = { st ->
+                            sessionType = st
+                            // Default the online timezone to the device
+                            // zone the first time the host opts into
+                            // Online / Both so the timezone picker is
+                            // never empty.
+                            if ((st == SessionType.ONLINE || st == SessionType.BOTH) &&
+                                onlineTimeZone.isBlank()
+                            ) {
+                                onlineTimeZone = TimeZone.getDefault().id
+                            }
+                        },
+                        onlinePlatforms = onlinePlatforms,
+                        onToggleOnlinePlatform = { p ->
+                            if (onlinePlatforms.contains(p)) onlinePlatforms.remove(p)
+                            else onlinePlatforms.add(p)
+                        },
+                        onlineSessionLink = onlineSessionLink,
+                        onOnlineSessionLinkChange = { onlineSessionLink = it },
+                        shareLinkAfterBooking = shareLinkAfterBooking,
+                        onShareLinkAfterBookingChange = { shareLinkAfterBooking = it },
+                        onlineTimeZone = onlineTimeZone,
+                        onOnlineTimeZoneChange = { onlineTimeZone = it },
+                        meetingInstructions = meetingInstructions,
+                        onMeetingInstructionsChange = { meetingInstructions = it },
+                        onlineNotes = onlineNotes,
+                        onOnlineNotesChange = { onlineNotes = it },
                     )
                     step == wifiStepIndex -> WifiAccessStep(
                         included = wifiIncluded,
@@ -1709,6 +1855,12 @@ private fun CreateListingWizardScreen(
                         wifiExtensionEnabled = wifiExtensionEnabled,
                         wifiExtensionPrice = wifiExtensionPrice,
                         wifiExperienceTags = wifiExperienceTags,
+                        hasSessionType = hasSessionType,
+                        sessionType = sessionType,
+                        onlinePlatforms = onlinePlatforms,
+                        onlineSessionLink = onlineSessionLink,
+                        shareLinkAfterBooking = shareLinkAfterBooking,
+                        onlineTimeZone = onlineTimeZone,
                     )
                 }
             }
@@ -1910,9 +2062,35 @@ private fun PhotosLocationPricingStep(
     onTogglePickupDelivery: (String) -> Unit = {},
     serviceDurationMinutes: Int = 60,
     onServiceDurationChange: (Int) -> Unit = {},
+    // Session-type + online-session configuration.  Only relevant for
+    // service-category schemas; ignored (and never rendered) otherwise.
+    sessionType: SessionType? = null,
+    onSessionTypeChange: (SessionType) -> Unit = {},
+    onlinePlatforms: List<String> = emptyList(),
+    onToggleOnlinePlatform: (String) -> Unit = {},
+    onlineSessionLink: String = "",
+    onOnlineSessionLinkChange: (String) -> Unit = {},
+    shareLinkAfterBooking: Boolean = true,
+    onShareLinkAfterBookingChange: (Boolean) -> Unit = {},
+    onlineTimeZone: String = "",
+    onOnlineTimeZoneChange: (String) -> Unit = {},
+    meetingInstructions: String = "",
+    onMeetingInstructionsChange: (String) -> Unit = {},
+    onlineNotes: String = "",
+    onOnlineNotesChange: (String) -> Unit = {},
 ) {
     val isSplit = listingMode == ListingMode.SPLIT
-    val showLocation = schema.hasField(ListingField.LOCATION)
+    val hasSessionType = schema.hasField(ListingField.SESSION_TYPE)
+    // Online-only service listings must never surface the address
+    // section — that is the whole point of the Session Type choice.
+    // In-Person and Both still render the address; physical-space
+    // listings with no session type keep their existing behaviour.
+    val showLocation = schema.hasField(ListingField.LOCATION) &&
+        (!hasSessionType ||
+            sessionType == SessionType.IN_PERSON ||
+            sessionType == SessionType.BOTH)
+    val showOnlineSection = hasSessionType &&
+        (sessionType == SessionType.ONLINE || sessionType == SessionType.BOTH)
     val showPhotos = schema.hasField(ListingField.PHOTOS)
     val showAmenities = schema.hasField(ListingField.AMENITIES) && schema.amenityOptions.isNotEmpty()
 
@@ -1992,10 +2170,149 @@ private fun PhotosLocationPricingStep(
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
         }  // end showPhotos
 
-        // Location — only rendered when the schema declares it.  Services
-        // that happen remotely (learning, online coaching) skip the section.
+        // Session Type — gate the rest of the delivery sections.  Only
+        // surfaced for service subcategories, and the host MUST pick
+        // one of the three options before the wizard will let them
+        // continue (no default selection by design).
+        if (hasSessionType && !isSplit) {
+            FormSection(title = "Session Type") {
+                Text(
+                    text = "How will this service be delivered?",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                SessionTypePicker(
+                    selected = sessionType,
+                    onSelect = onSessionTypeChange,
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        }
+
+        // Online Session configuration — platforms, link reveal rule,
+        // timezone, and free-form notes.  Only visible when the host
+        // picked Online or Both; In-Person listings skip this entire
+        // section.
+        if (showOnlineSection) {
+            FormSection(title = "Online session") {
+                Text(
+                    text = "Tell guests how they'll join your online session.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                Text(
+                    text = "Meeting platforms",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                AmenitiesGrid(
+                    options = ONLINE_PLATFORM_OPTIONS.map { it.second },
+                    selectedAmenities = onlinePlatforms.mapNotNull { id ->
+                        ONLINE_PLATFORM_OPTIONS.firstOrNull { it.first == id }?.second
+                    },
+                    onToggle = { displayLabel ->
+                        val id = ONLINE_PLATFORM_OPTIONS
+                            .firstOrNull { it.second == displayLabel }?.first
+                        if (id != null) onToggleOnlinePlatform(id)
+                    },
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+                Text(
+                    text = "Session link",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                OutlinedTextField(
+                    value = onlineSessionLink,
+                    onValueChange = onOnlineSessionLinkChange,
+                    label = { Text("Paste a meeting URL (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.HostAccent,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                ToggleOptionRow(
+                    label = "Share link after booking",
+                    sublabel = "Reveal the meeting URL once the guest has booked.",
+                    checked = shareLinkAfterBooking,
+                    onCheckedChange = onShareLinkAfterBookingChange,
+                )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                Text(
+                    text = "Time zone",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                OutlinedTextField(
+                    value = onlineTimeZone,
+                    onValueChange = onOnlineTimeZoneChange,
+                    label = { Text("e.g. America/New_York", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.HostAccent,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                OutlinedTextField(
+                    value = meetingInstructions,
+                    onValueChange = onMeetingInstructionsChange,
+                    label = { Text("Meeting instructions (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.HostAccent,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                OutlinedTextField(
+                    value = onlineNotes,
+                    onValueChange = onOnlineNotesChange,
+                    label = { Text("Notes for guests (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaceDreamColors.HostAccent,
+                        unfocusedBorderColor = PaceDreamColors.Border,
+                    ),
+                )
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        }
+
+        // Location — only rendered when the schema declares it and the
+        // host's session-type choice (if any) requires an address.
+        // Services that happen remotely (learning, online coaching)
+        // skip the section entirely.
         if (showLocation) {
-        FormSection(title = if (isSplit) "Location (optional)" else "Location") {
+        val locationTitle = when {
+            isSplit -> "Location (optional)"
+            sessionType == SessionType.BOTH -> "In-person location"
+            else -> "Location"
+        }
+        FormSection(title = locationTitle) {
             val context = LocalContext.current
             val scope = rememberCoroutineScope()
             val placesService = remember {
@@ -2492,6 +2809,104 @@ private val SERVICE_DURATION_CHOICES: List<Pair<Int, String>> = listOf(
     180 to "3 hr",
     240 to "4 hr",
 )
+
+/**
+ * Supported conferencing tools for online service listings, paired as
+ * (backend id, display label).  The backend id is stable; the display
+ * label can change without breaking existing listings.  "other" is a
+ * catch-all for hosts who run sessions on tools we do not explicitly
+ * list (Whereby, Jitsi, etc.).
+ */
+internal val ONLINE_PLATFORM_OPTIONS: List<Pair<String, String>> = listOf(
+    "zoom" to "Zoom",
+    "google_meet" to "Google Meet",
+    "microsoft_teams" to "Microsoft Teams",
+    "other" to "Other",
+)
+
+/**
+ * Three-option selector used at the top of the service location step.
+ * Intentionally starts with no selection — the host must tap one
+ * option before they can continue, which is verified in [validateStep].
+ */
+@Composable
+internal fun SessionTypePicker(
+    selected: SessionType?,
+    onSelect: (SessionType) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SessionType.entries.forEach { option ->
+            val isSelected = selected == option
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = PaceDreamSpacing.XS)
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                    .border(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) PaceDreamColors.HostAccent
+                        else PaceDreamColors.Border,
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    )
+                    .background(
+                        if (isSelected) PaceDreamColors.HostAccent.copy(alpha = 0.08f)
+                        else PaceDreamColors.Card,
+                    )
+                    .clickable { onSelect(option) }
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = 2.dp,
+                            color = if (isSelected) PaceDreamColors.HostAccent
+                            else PaceDreamColors.Border,
+                            shape = CircleShape,
+                        )
+                        .background(
+                            if (isSelected) PaceDreamColors.HostAccent
+                            else Color.Transparent,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            PaceDreamIcons.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = option.displayLabel,
+                        style = PaceDreamTypography.Body,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = when (option) {
+                            SessionType.ONLINE ->
+                                "Guests join via a video call — no address needed."
+                            SessionType.IN_PERSON ->
+                                "Guests meet you at a physical address."
+                            SessionType.BOTH ->
+                                "Support both online and in-person bookings."
+                        },
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun ToggleOptionRow(
@@ -3088,6 +3503,12 @@ private fun ReviewPublishStep(
     wifiExtensionEnabled: Boolean = false,
     wifiExtensionPrice: String = "",
     wifiExperienceTags: List<String> = emptyList(),
+    hasSessionType: Boolean = false,
+    sessionType: SessionType? = null,
+    onlinePlatforms: List<String> = emptyList(),
+    onlineSessionLink: String = "",
+    shareLinkAfterBooking: Boolean = true,
+    onlineTimeZone: String = "",
 ) {
     val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
         totalCost.toDoubleOrNull() ?: 0.0
@@ -3216,8 +3637,38 @@ private fun ReviewPublishStep(
             SummaryRow("Photos", "${selectedImageUris.size} photo${if (selectedImageUris.size > 1) "s" else ""}")
         }
         if (listingMode != ListingMode.SPLIT) {
-            SummaryRow("Address", address.ifBlank { "\u2014" })
-            SummaryRow("City/State", "$city, $state".trim(' ', ',').ifBlank { "\u2014" })
+            // Online-only service listings skip the address, so we
+            // suppress the "\u2014" address rows that would otherwise
+            // read like the host forgot to fill them in.  In-Person /
+            // Both / non-service listings keep the address rows.
+            val omitAddressRow = hasSessionType && sessionType == SessionType.ONLINE
+            if (!omitAddressRow) {
+                SummaryRow("Address", address.ifBlank { "\u2014" })
+                SummaryRow("City/State", "$city, $state".trim(' ', ',').ifBlank { "\u2014" })
+            }
+        }
+        if (hasSessionType && sessionType != null) {
+            SummaryRow("Session Type", sessionType.displayLabel)
+            if (sessionType == SessionType.ONLINE || sessionType == SessionType.BOTH) {
+                val platformLabels = onlinePlatforms.mapNotNull { id ->
+                    ONLINE_PLATFORM_OPTIONS.firstOrNull { it.first == id }?.second
+                }
+                SummaryRow(
+                    "Platforms",
+                    platformLabels.joinToString(", ").ifBlank { "\u2014" },
+                )
+                SummaryRow(
+                    "Session link",
+                    when {
+                        onlineSessionLink.isNotBlank() -> onlineSessionLink.trim()
+                        shareLinkAfterBooking -> "Shared after booking"
+                        else -> "\u2014"
+                    },
+                )
+                if (onlineTimeZone.isNotBlank()) {
+                    SummaryRow("Time zone", onlineTimeZone)
+                }
+            }
         }
         if (amenities.isNotEmpty()) {
             SummaryRow("Amenities", amenities.joinToString(", "))

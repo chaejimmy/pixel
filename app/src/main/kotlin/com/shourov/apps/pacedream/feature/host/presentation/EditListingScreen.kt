@@ -87,7 +87,9 @@ import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
+import com.shourov.apps.pacedream.model.OnlineSession
 import com.shourov.apps.pacedream.model.PricingUnit
 import com.shourov.apps.pacedream.model.Property
 import com.shourov.apps.pacedream.model.PropertyLocation
@@ -138,9 +140,42 @@ data class EditListingUiState(
     val bedrooms: Int = 0,
     val bathrooms: Int = 0,
     val maxGuests: Int = 1,
+    /**
+     * Whether this listing is a service-category listing that supports
+     * the delivery-mode selector.  Space-like listings (parking, rooms,
+     * storage) always leave this false, so their existing edit form is
+     * unchanged.
+     */
+    val supportsSessionType: Boolean = false,
+    /**
+     * One of [SessionType].  Null for listings that have never been
+     * configured with a delivery mode, including legacy listings — the
+     * edit form stays tolerant: the host can keep it null, which keeps
+     * existing behaviour (address is editable, no online section), or
+     * pick one explicitly.
+     */
+    val sessionType: SessionType? = null,
+    val onlinePlatforms: List<String> = emptyList(),
+    val onlineSessionLink: String = "",
+    val shareLinkAfterBooking: Boolean = true,
+    val onlineTimeZone: String = "",
+    val meetingInstructions: String = "",
+    val onlineNotes: String = "",
 ) {
     val hasChanges: Boolean get() = title.isNotBlank()
     val totalImageCount: Int get() = images.size + pendingNewImageUris.size
+
+    /** Whether the form should render the physical-address fields. */
+    val showAddress: Boolean
+        get() = !supportsSessionType ||
+            sessionType == null ||
+            sessionType == SessionType.IN_PERSON ||
+            sessionType == SessionType.BOTH
+
+    /** Whether the form should render the online-session section. */
+    val showOnlineSection: Boolean
+        get() = supportsSessionType &&
+            (sessionType == SessionType.ONLINE || sessionType == SessionType.BOTH)
 }
 
 // ── ViewModel ───────────────────────────────────────────────────────────────
@@ -170,6 +205,15 @@ class EditListingViewModel @Inject constructor(
                     val listing = listings.firstOrNull { it.id == listingId }
                     if (listing != null) {
                         loadedIsAvailable = listing.isAvailable
+                        val supportsSessionType = ListingSchemaRegistry
+                            .isServiceSubcategory(listing.propertyType)
+                        // Decode the persisted session type tolerantly;
+                        // legacy / unknown values fall through to null
+                        // so the host sees the original (address-based)
+                        // edit form and can opt into the new selector
+                        // explicitly.
+                        val storedSessionType = SessionType.fromValue(listing.sessionType)
+                        val os = listing.onlineSession
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             title = listing.title,
@@ -190,6 +234,14 @@ class EditListingViewModel @Inject constructor(
                             bedrooms = listing.bedrooms,
                             bathrooms = listing.bathrooms,
                             maxGuests = listing.maxGuests,
+                            supportsSessionType = supportsSessionType,
+                            sessionType = storedSessionType,
+                            onlinePlatforms = os?.platforms.orEmpty(),
+                            onlineSessionLink = os?.sessionLink.orEmpty(),
+                            shareLinkAfterBooking = os?.shareLinkAfterBooking ?: true,
+                            onlineTimeZone = os?.timeZone.orEmpty(),
+                            meetingInstructions = os?.meetingInstructions.orEmpty(),
+                            onlineNotes = os?.notes.orEmpty(),
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(isLoading = false, error = "Listing not found.")
@@ -229,6 +281,46 @@ class EditListingViewModel @Inject constructor(
 
     fun updateBathrooms(value: Int) {
         _uiState.value = _uiState.value.copy(bathrooms = value.coerceIn(MIN_ROOMS, MAX_ROOMS))
+    }
+
+    fun updateSessionType(value: SessionType) {
+        val s = _uiState.value
+        // When switching to Online the saved address is preserved in
+        // state (so a later switch to In-Person / Both restores it)
+        // but isn't shown or validated — the form gates visibility on
+        // [EditListingUiState.showAddress].  Default the timezone to
+        // the device zone the first time the host enables Online /
+        // Both so the picker is never empty.
+        val tz = if (s.onlineTimeZone.isBlank() &&
+            (value == SessionType.ONLINE || value == SessionType.BOTH)
+        ) java.util.TimeZone.getDefault().id else s.onlineTimeZone
+        _uiState.value = s.copy(sessionType = value, onlineTimeZone = tz)
+    }
+
+    fun toggleOnlinePlatform(platform: String) {
+        val current = _uiState.value.onlinePlatforms.toMutableList()
+        if (current.contains(platform)) current.remove(platform) else current.add(platform)
+        _uiState.value = _uiState.value.copy(onlinePlatforms = current)
+    }
+
+    fun updateOnlineSessionLink(value: String) {
+        _uiState.value = _uiState.value.copy(onlineSessionLink = value)
+    }
+
+    fun updateShareLinkAfterBooking(value: Boolean) {
+        _uiState.value = _uiState.value.copy(shareLinkAfterBooking = value)
+    }
+
+    fun updateOnlineTimeZone(value: String) {
+        _uiState.value = _uiState.value.copy(onlineTimeZone = value)
+    }
+
+    fun updateMeetingInstructions(value: String) {
+        _uiState.value = _uiState.value.copy(meetingInstructions = value)
+    }
+
+    fun updateOnlineNotes(value: String) {
+        _uiState.value = _uiState.value.copy(onlineNotes = value)
     }
 
     fun updateBasePrice(value: String) {
@@ -374,6 +466,34 @@ class EditListingViewModel @Inject constructor(
         if (s.title.isBlank()) { _uiState.value = s.copy(error = "Title is required."); return }
         val price = s.basePrice.toDoubleOrNull() ?: 0.0
         if (price <= 0) { _uiState.value = s.copy(error = "Price must be greater than 0."); return }
+        // Session-type validation parity with Create flow.  Only runs
+        // for service listings that opt into the selector, and only
+        // when the host has picked Online / Both — In-Person keeps the
+        // original address-required contract.
+        if (s.supportsSessionType) {
+            val st = s.sessionType
+            if (st == SessionType.ONLINE || st == SessionType.BOTH) {
+                if (s.onlinePlatforms.isEmpty()) {
+                    _uiState.value = s.copy(error = "Pick at least one meeting platform.")
+                    return
+                }
+                val hasLink = s.onlineSessionLink.trim().isNotEmpty()
+                if (!hasLink && !s.shareLinkAfterBooking) {
+                    _uiState.value = s.copy(
+                        error = "Add a session link or enable “Share link after booking.”"
+                    )
+                    return
+                }
+            }
+            // In-Person / Both: address is still required.  Online:
+            // address is optional and intentionally not validated.
+            if (st == SessionType.IN_PERSON || st == SessionType.BOTH) {
+                if (s.address.isBlank()) {
+                    _uiState.value = s.copy(error = "Address is required.")
+                    return
+                }
+            }
+        }
 
         viewModelScope.launch {
             _uiState.value = s.copy(isSaving = true, error = null)
@@ -402,6 +522,25 @@ class EditListingViewModel @Inject constructor(
                 }
             }
 
+            // Only emit sessionType / onlineSession for service
+            // listings whose host has explicitly picked a delivery
+            // mode.  Physical-space listings and legacy listings where
+            // the host hasn't chosen yet keep the existing PATCH body
+            // shape (null) so nothing changes server-side.
+            val emittedSessionType = s.sessionType
+                ?.takeIf { s.supportsSessionType }
+                ?.backendValue
+            val emittedOnlineSession = if (s.supportsSessionType &&
+                (s.sessionType == SessionType.ONLINE || s.sessionType == SessionType.BOTH)
+            ) OnlineSession(
+                platforms = s.onlinePlatforms,
+                sessionLink = s.onlineSessionLink.trim().ifBlank { null },
+                shareLinkAfterBooking = s.shareLinkAfterBooking,
+                timeZone = s.onlineTimeZone.trim().ifBlank { null },
+                meetingInstructions = s.meetingInstructions.trim().ifBlank { null },
+                notes = s.onlineNotes.trim().ifBlank { null },
+            ) else null
+
             val updated = Property(
                 id = s.listingId, title = s.title, description = s.description,
                 location = PropertyLocation(
@@ -415,6 +554,8 @@ class EditListingViewModel @Inject constructor(
                 amenities = s.amenities, images = s.images, isAvailable = s.isAvailable,
                 propertyType = s.propertyType, bedrooms = s.bedrooms,
                 bathrooms = s.bathrooms, maxGuests = s.maxGuests,
+                sessionType = emittedSessionType,
+                onlineSession = emittedOnlineSession,
             )
             hostRepository.updateListing(s.listingId, updated)
                 .onSuccess { _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true) }
@@ -533,6 +674,13 @@ fun EditListingScreen(
                 onRemoveImage = viewModel::removeImage,
                 onAddPendingUris = viewModel::addPendingImageUris,
                 onRemovePendingUri = viewModel::removePendingImageUri,
+                onSessionTypeChange = viewModel::updateSessionType,
+                onToggleOnlinePlatform = viewModel::toggleOnlinePlatform,
+                onOnlineSessionLinkChange = viewModel::updateOnlineSessionLink,
+                onShareLinkAfterBookingChange = viewModel::updateShareLinkAfterBooking,
+                onOnlineTimeZoneChange = viewModel::updateOnlineTimeZone,
+                onMeetingInstructionsChange = viewModel::updateMeetingInstructions,
+                onOnlineNotesChange = viewModel::updateOnlineNotes,
                 onManageCalendarClick = if (onManageCalendarClick != null) {
                     { onManageCalendarClick(uiState.listingId) }
                 } else null,
@@ -563,6 +711,13 @@ private fun EditListingForm(
     onRemoveImage: (Int) -> Unit,
     onAddPendingUris: (List<Uri>) -> Unit,
     onRemovePendingUri: (Int) -> Unit,
+    onSessionTypeChange: (SessionType) -> Unit,
+    onToggleOnlinePlatform: (String) -> Unit,
+    onOnlineSessionLinkChange: (String) -> Unit,
+    onShareLinkAfterBookingChange: (Boolean) -> Unit,
+    onOnlineTimeZoneChange: (String) -> Unit,
+    onMeetingInstructionsChange: (String) -> Unit,
+    onOnlineNotesChange: (String) -> Unit,
     onManageCalendarClick: (() -> Unit)? = null,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -618,31 +773,154 @@ private fun EditListingForm(
         }
         Spacer(Modifier.height(PaceDreamSpacing.MD))
 
-        // Location
-        CollapsibleSection("Location", PaceDreamIcons.LocationOn) {
-            OutlinedTextField(
-                value = uiState.address, onValueChange = onAddressChange,
-                label = { Text("Address", style = PaceDreamTypography.Callout) },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
-            )
-            Spacer(Modifier.height(PaceDreamSpacing.MD))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                OutlinedTextField(
-                    value = uiState.city, onValueChange = onCityChange,
-                    label = { Text("City", style = PaceDreamTypography.Callout) },
-                    modifier = Modifier.weight(1f), singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
+        // Session Type (service listings only) — surfaces BEFORE the
+        // location section, matching the Create-Listing flow.  The
+        // address section is then hidden when the host picks Online,
+        // and the online-session section appears when they pick
+        // Online or Both.
+        if (uiState.supportsSessionType) {
+            CollapsibleSection(
+                "Session Type",
+                PaceDreamIcons.Category,
+                defaultExpanded = true,
+            ) {
+                Text(
+                    "How will this service be delivered?",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
                 )
-                OutlinedTextField(
-                    value = uiState.state, onValueChange = onStateChange,
-                    label = { Text("State", style = PaceDreamTypography.Callout) },
-                    modifier = Modifier.weight(1f), singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                SessionTypePicker(
+                    selected = uiState.sessionType,
+                    onSelect = onSessionTypeChange,
                 )
             }
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
         }
-        Spacer(Modifier.height(PaceDreamSpacing.MD))
+
+        // Online session configuration — only rendered when Online or
+        // Both is the active delivery mode.
+        if (uiState.showOnlineSection) {
+            CollapsibleSection(
+                "Online session",
+                PaceDreamIcons.Schedule,
+                defaultExpanded = true,
+            ) {
+                Text(
+                    "Tell guests how they'll join the session.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                OnlinePlatformChips(
+                    selected = uiState.onlinePlatforms,
+                    onToggle = onToggleOnlinePlatform,
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                OutlinedTextField(
+                    value = uiState.onlineSessionLink,
+                    onValueChange = onOnlineSessionLinkChange,
+                    label = { Text("Session link (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = fieldColors(),
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.SM))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Share link after booking",
+                            style = PaceDreamTypography.Body,
+                            color = PaceDreamColors.TextPrimary,
+                        )
+                        Text(
+                            "Reveal the meeting URL to the guest once booking is confirmed.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                        )
+                    }
+                    Switch(
+                        checked = uiState.shareLinkAfterBooking,
+                        onCheckedChange = onShareLinkAfterBookingChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PaceDreamColors.HostAccent,
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = PaceDreamColors.Gray300,
+                        ),
+                    )
+                }
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                OutlinedTextField(
+                    value = uiState.onlineTimeZone,
+                    onValueChange = onOnlineTimeZoneChange,
+                    label = { Text("Time zone (e.g. America/New_York)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = fieldColors(),
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.SM))
+                OutlinedTextField(
+                    value = uiState.meetingInstructions,
+                    onValueChange = onMeetingInstructionsChange,
+                    label = { Text("Meeting instructions (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2, maxLines = 4,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = fieldColors(),
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.SM))
+                OutlinedTextField(
+                    value = uiState.onlineNotes,
+                    onValueChange = onOnlineNotesChange,
+                    label = { Text("Notes for guests (optional)", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2, maxLines = 4,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = fieldColors(),
+                )
+            }
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+        }
+
+        // Location — hidden for online-only service listings so we
+        // don't ask hosts for an address that has no meaning (and so
+        // the save payload doesn't include a stale address).
+        if (uiState.showAddress) {
+            val locationTitle = if (uiState.supportsSessionType &&
+                uiState.sessionType == SessionType.BOTH
+            ) "In-person location" else "Location"
+            CollapsibleSection(locationTitle, PaceDreamIcons.LocationOn) {
+                OutlinedTextField(
+                    value = uiState.address, onValueChange = onAddressChange,
+                    label = { Text("Address", style = PaceDreamTypography.Callout) },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
+                )
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+                    OutlinedTextField(
+                        value = uiState.city, onValueChange = onCityChange,
+                        label = { Text("City", style = PaceDreamTypography.Callout) },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
+                    )
+                    OutlinedTextField(
+                        value = uiState.state, onValueChange = onStateChange,
+                        label = { Text("State", style = PaceDreamTypography.Callout) },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        shape = RoundedCornerShape(PaceDreamRadius.MD), colors = fieldColors(),
+                    )
+                }
+            }
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
+        }
 
         // Capacity — maxGuests / bedrooms / bathrooms are already in
         // EditListingUiState and are round-tripped into the Property
@@ -1060,6 +1338,46 @@ private fun EditAmenitiesChips(selected: List<String>, onToggle: (String) -> Uni
             FilterChip(
                 selected = isOn, onClick = { onToggle(name) },
                 label = { Text(name, style = PaceDreamTypography.Callout) },
+                leadingIcon = if (isOn) {
+                    { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = PaceDreamColors.HostAccent,
+                    selectedLabelColor = Color.White, selectedLeadingIconColor = Color.White,
+                    containerColor = PaceDreamColors.Card, labelColor = PaceDreamColors.TextPrimary,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                border = FilterChipDefaults.filterChipBorder(
+                    borderColor = PaceDreamColors.Border, selectedBorderColor = PaceDreamColors.HostAccent,
+                    enabled = true, selected = isOn,
+                ),
+            )
+        }
+    }
+}
+
+// ── Online Platform Chips ───────────────────────────────────────────────────
+
+/**
+ * FlowRow of supported conferencing tools (Zoom, Google Meet, Microsoft
+ * Teams, Other).  The host can pick any combination; the chips store
+ * the backend-stable id under the hood so labels are free to change.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OnlinePlatformChips(
+    selected: List<String>,
+    onToggle: (String) -> Unit,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        ONLINE_PLATFORM_OPTIONS.forEach { (id, label) ->
+            val isOn = selected.contains(id)
+            FilterChip(
+                selected = isOn, onClick = { onToggle(id) },
+                label = { Text(label, style = PaceDreamTypography.Callout) },
                 leadingIcon = if (isOn) {
                     { Icon(PaceDreamIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 } else null,

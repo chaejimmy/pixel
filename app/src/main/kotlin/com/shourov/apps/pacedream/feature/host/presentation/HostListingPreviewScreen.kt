@@ -23,6 +23,7 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.*
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
+import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.model.Property
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -196,8 +197,38 @@ fun HostListingPreviewScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Location
-                            val location = listOfNotNull(
+                            // Delivery-mode badge — surfaces the host's
+                            // session-type choice so guests immediately
+                            // know whether the listing is remote, in
+                            // person, or both.  Legacy listings with no
+                            // session type skip the badge entirely.
+                            val deliveryLabel = SessionType
+                                .fromValue(listing.sessionType)
+                                ?.displayLabel
+                            if (deliveryLabel != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(PaceDreamColors.HostAccent.copy(alpha = 0.12f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        deliveryLabel,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = PaceDreamColors.HostAccent
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            // Location — hidden for online-only service
+                            // listings so we don't render a stray
+                            // "city, state" line pulled from cached
+                            // form state that no longer applies.
+                            val hideAddress = SessionType
+                                .fromValue(listing.sessionType) == SessionType.ONLINE
+                            val location = if (hideAddress) "" else listOfNotNull(
                                 listing.location.city.takeIf { it.isNotBlank() },
                                 listing.location.state.takeIf { it.isNotBlank() },
                                 listing.location.country.takeIf { it.isNotBlank() }

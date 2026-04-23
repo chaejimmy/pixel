@@ -670,6 +670,60 @@ data class CreateListingRequest(
     // Nullable for non-Wi-Fi listings so those POST bodies stay
     // byte-for-byte identical to today.
     val wifiAccess: WifiAccessPayload? = null,
+    // ── Service delivery mode (session type) ─────────────────────
+    // Only populated for service-category listings (tutoring, coaching,
+    // language lessons, etc.).  Determines whether the listing supports
+    // online sessions, in-person sessions, or both.  Space-like listings
+    // (parking, rooms, storage) leave this null so their POST body stays
+    // byte-for-byte identical to today.
+    val sessionType: String? = null,
+    val onlineSession: OnlineSessionPayload? = null,
+)
+
+/**
+ * Delivery mode for a service listing.  Determines whether the listing
+ * requires a physical address (IN_PERSON / BOTH) or can publish with an
+ * online-only configuration (ONLINE).
+ */
+enum class SessionType(val backendValue: String, val displayLabel: String) {
+    ONLINE("online", "Online"),
+    IN_PERSON("in_person", "In person"),
+    BOTH("both", "Online + In person");
+
+    companion object {
+        /** Tolerant parser for values the backend may emit. */
+        fun fromValue(value: String?): SessionType? {
+            val v = (value ?: "").trim().lowercase().replace('-', '_').replace(' ', '_')
+            return when (v) {
+                "online", "remote", "virtual" -> ONLINE
+                "in_person", "inperson", "offline", "physical" -> IN_PERSON
+                "both", "hybrid", "online_in_person", "online_and_in_person" -> BOTH
+                else -> null
+            }
+        }
+    }
+}
+
+/**
+ * Backend contract for the online-session configuration block attached
+ * to service listings whose [CreateListingRequest.sessionType] is
+ * ONLINE or BOTH.
+ *
+ * [platforms] is a set of conferencing tools the host supports (e.g.
+ * "zoom", "google_meet", "microsoft_teams", "other").  [sessionLink] is
+ * a pre-provisioned meeting URL; hosts may instead opt in to
+ * [shareLinkAfterBooking] so the link is revealed to the guest only
+ * after a confirmed booking.  [timeZone] helps guests see session times
+ * in the host's local zone.  [meetingInstructions] and [notes] let
+ * hosts provide dial-in details, "bring your own headphones", etc.
+ */
+data class OnlineSessionPayload(
+    val platforms: List<String>,
+    val sessionLink: String?,
+    val shareLinkAfterBooking: Boolean,
+    val timeZone: String,
+    val meetingInstructions: String?,
+    val notes: String?,
 )
 
 /**

@@ -53,6 +53,14 @@ enum class ListingField {
 
     // ── Service ────────────────────────────────────────────────
     SERVICE_DURATION_MINUTES,
+    /**
+     * Marks a service listing as needing an explicit delivery-mode
+     * choice (Online / In person / Both) before the host can enter
+     * location or publish.  Only surfaced for service subcategories —
+     * physical-space listings (parking, rooms, storage) keep their
+     * existing always-address-required contract.
+     */
+    SESSION_TYPE,
 
     // ── Wi-Fi access (Wi-Fi subcategory only) ─────────────────
     /**
@@ -389,21 +397,25 @@ object ListingSchemaRegistry {
 
     /**
      * Services live at the ergonomic level — no bedrooms, no location
-     * capacity.  The host may travel to the guest, so location is optional
-     * and stored as a service-area hint.
+     * capacity.  A service host may travel to the guest, host remotely,
+     * or both, so every service schema surfaces [ListingField.SESSION_TYPE]
+     * and conditionally gates the address fields on the host's choice.
+     * Location is always included in the schema so In-Person and Both
+     * modes can collect an address; the wizard hides it when the host
+     * picks Online.
      */
     private fun serviceSchema(
         id: String,
         displayLabel: String,
         amenityOptions: List<String>,
-        includeLocation: Boolean = true,
     ) = SubcategorySchema(
         id = id,
         category = ListingCategory.SERVICE,
         displayLabel = displayLabel,
         fields = FieldSets.Core +
             FieldSets.Service +
-            (if (includeLocation) FieldSets.PhysicalPlace else emptySet()) +
+            FieldSets.PhysicalPlace +
+            setOf(ListingField.SESSION_TYPE) +
             (if (amenityOptions.isNotEmpty()) setOf(ListingField.AMENITIES) else emptySet()) +
             FieldSets.HourlySchedule,
         allowedPricingUnits = listOf(PricingUnit.HOUR),
@@ -434,7 +446,6 @@ object ListingSchemaRegistry {
     private val Learning = serviceSchema(
         "learning", "Learning",
         listOf("Materials Included", "Indoor", "Beginner Friendly", "Group Session", "Flexible Schedule"),
-        includeLocation = false,
     )
     private val Creative = serviceSchema(
         "creative", "Creative",
@@ -484,6 +495,20 @@ object ListingSchemaRegistry {
         val key = subCategoryId.lowercase()
         val resolved = aliasMap[key] ?: key
         return byId[resolved] ?: SpaceOthers
+    }
+
+    /**
+     * Whether the given subcategory id routes to a service-category
+     * schema.  Used by the edit flow to decide if the listing supports
+     * the delivery-mode selector without having to pass the
+     * [ListingCategory] around separately.  Returns false for legacy
+     * or unknown ids so the existing edit form is preserved.
+     */
+    fun isServiceSubcategory(subCategoryId: String): Boolean {
+        if (subCategoryId.isBlank()) return false
+        val key = subCategoryId.lowercase()
+        val resolved = aliasMap[key] ?: key
+        return byId[resolved]?.category == ListingCategory.SERVICE
     }
 
     /**

@@ -148,6 +148,32 @@ data class ListingDraftData(
     // an empty config so older drafts (missing this block entirely)
     // decode cleanly on upgrade.
     val wifi: WifiAccessDraft = WifiAccessDraft(),
+    // Service delivery mode (session type) — only meaningful for
+    // service-category listings.  Empty string means "not yet chosen";
+    // the wizard forces the host to pick before leaving the Location
+    // step.  See [OnlineSessionDraft] for the matching online-session
+    // configuration (platforms, link, time zone, etc.).
+    val sessionType: String = "",
+    val onlineSession: OnlineSessionDraft = OnlineSessionDraft(),
+)
+
+/**
+ * Online-session configuration persisted alongside a service listing
+ * draft.  Only populated when [ListingDraftData.sessionType] is
+ * "online" or "both".  Kept flat + Serializable so the SharedPreferences
+ * draft store continues to work.
+ *
+ * Defaults are intentionally empty so older drafts (pre-SessionType)
+ * decode cleanly on upgrade.
+ */
+@Serializable
+data class OnlineSessionDraft(
+    val platforms: List<String> = emptyList(),
+    val sessionLink: String = "",
+    val shareLinkAfterBooking: Boolean = true,
+    val timeZone: String = "",
+    val meetingInstructions: String = "",
+    val notes: String = "",
 )
 
 /**

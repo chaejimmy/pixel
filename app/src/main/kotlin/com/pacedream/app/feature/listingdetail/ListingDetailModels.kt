@@ -53,7 +53,16 @@ data class ListingDetailModel(
     val splitStatus: String? = null,
     val deadlineAt: String? = null,
     // Host visibility: listing moderation status
-    val listingStatus: String? = null
+    val listingStatus: String? = null,
+    /**
+     * Service delivery mode — "online", "in_person", or "both".  Null
+     * for non-service listings and legacy service listings created
+     * before this field existed.  Guest-facing detail screen uses this
+     * to show a delivery badge and to suppress the map for online-only
+     * services.
+     */
+    val sessionType: String? = null,
+    val onlineSession: OnlineSessionInfo? = null
 ) {
     val hasPropertyDetails: Boolean
         get() = propertyType != null || maxGuests != null || bedrooms != null || beds != null || bathrooms != null
@@ -67,7 +76,38 @@ data class ListingDetailModel(
             return s == "pending_review" || s == "pending" || s == "awaiting_approval" ||
                 s == "under_review" || s == "in_review" || s == "submitted"
         }
+
+    /** True when the listing publishes itself as online-only. */
+    val isOnlineOnly: Boolean
+        get() = (sessionType ?: "").trim().lowercase() == "online"
+
+    /** True when the listing supports both online and in-person bookings. */
+    val isHybridDelivery: Boolean
+        get() = (sessionType ?: "").trim().lowercase() == "both"
+
+    /** Human-readable label for the delivery mode, or null if absent. */
+    val deliveryModeLabel: String?
+        get() = when ((sessionType ?: "").trim().lowercase()) {
+            "online" -> "Online"
+            "in_person", "inperson", "physical" -> "In person"
+            "both", "hybrid" -> "Online + In person"
+            else -> null
+        }
 }
+
+/**
+ * Online-session configuration surfaced on the guest detail screen.
+ * Mirror of [com.shourov.apps.pacedream.model.OnlineSession] adapted
+ * to the detail-screen's Kotlin-stdlib-only data layer.
+ */
+data class OnlineSessionInfo(
+    val platforms: List<String> = emptyList(),
+    val sessionLink: String? = null,
+    val shareLinkAfterBooking: Boolean = true,
+    val timeZone: String? = null,
+    val meetingInstructions: String? = null,
+    val notes: String? = null,
+)
 
 data class ListingLocation(
     val city: String? = null,

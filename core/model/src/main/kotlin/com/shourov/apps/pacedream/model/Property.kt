@@ -49,7 +49,18 @@ data class Property(
     val bathrooms: Int = 0,
     val maxGuests: Int = 1,
     val createdAt: String = "",
-    val updatedAt: String = ""
+    val updatedAt: String = "",
+    /**
+     * Service delivery mode — one of "online", "in_person", or "both".
+     * Null / blank for non-service listings (parking, rooms, storage,
+     * gear, etc.) and for legacy service listings created before this
+     * field existed, which keeps old listings rendering safely.
+     */
+    @SerializedName(value = "sessionType", alternate = ["session_type"])
+    val sessionType: String? = null,
+    /** Online session configuration — present only when [sessionType] is "online" or "both". */
+    @SerializedName(value = "onlineSession", alternate = ["online_session"])
+    val onlineSession: OnlineSession? = null
 ) {
     // ── Status helpers (iOS parity: HostListingSummary) ──────────
 
@@ -129,6 +140,25 @@ data class PropertyPricing(
     val pricingType: String = "hour",
     val cleaningFee: Double = 0.0,
     val serviceFee: Double = 0.0
+)
+
+/**
+ * Online session configuration attached to service-category listings
+ * whose delivery mode is "online" or "both".  All fields are optional
+ * so legacy listings (which never had this block) still decode cleanly
+ * and render safely — absent data falls back to sensible defaults.
+ */
+data class OnlineSession(
+    val platforms: List<String> = emptyList(),
+    @SerializedName(value = "sessionLink", alternate = ["session_link"])
+    val sessionLink: String? = null,
+    @SerializedName(value = "shareLinkAfterBooking", alternate = ["share_link_after_booking"])
+    val shareLinkAfterBooking: Boolean = true,
+    @SerializedName(value = "timeZone", alternate = ["time_zone", "timezone"])
+    val timeZone: String? = null,
+    @SerializedName(value = "meetingInstructions", alternate = ["meeting_instructions"])
+    val meetingInstructions: String? = null,
+    val notes: String? = null
 )
 
 /**
