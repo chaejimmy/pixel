@@ -30,6 +30,9 @@ Approximately **25–30% of feature code** deviates from the design system.
 | 2026-04-19 | #7 — standardize corner radii | ✅ Done | `SearchScreen.kt` shimmer (×3), `BiddingScreen.kt:364` bottom-sheet shape, `IDVerificationScreen.kt:231/258` card shapes all swapped to `PaceDreamRadius.XS/LG/SM`. |
 | 2026-04-19 | #6 — BookingTabScreen status colors | ✅ Done | Replaced hex tints with `PaceDreamColors.Yellow/Blue/Green/Red/Gray500`; left dark-foreground text hex untouched with a note about AA contrast intent. |
 | 2026-04-19 | #3 — Interactive-only a11y sweep | ✅ Partial (targeted) | Fixed two real bugs: `HomeScreen.kt:949` favorite Surface had a null `contentDescription` (siblings at `:1289` / `:1491` were already correct — brought this one into line). `ReviewsScreen.kt:835` / `:902` star-rating `IconButton`s announced nothing — now announce "Rate N star(s)". All other audited `null` cases are decorative icons paired with readable text and were intentionally left unchanged. |
+| 2026-04-23 | #7 follow-up — `DestinationScreen.kt:309` 56 dp host avatar | ✅ Done | Swapped `RoundedCornerShape(28.dp)` → `CircleShape` (geometric concentricity beats arithmetic). |
+| 2026-04-23 | #14 (re-scoped) — radius cleanup in `ListingDetailScreen.kt` | ✅ Done | Original report cited `BlogScreen` / `SearchScreen`, but those already use `PaceDreamRadius.*`. The real raw-dp hotspot was `ListingDetailScreen.kt` (37 raw literals). Bulk-mapped to tokens: `4.dp`→`XS`, `12.dp`→`MD`, `16.dp`→`LG`, `24.dp`→`XXL`, `999.dp`→`Round`. Left 4 outliers untouched: three `3.dp` thin progress-bar segments and one `14.dp` (no exact token; designer-intent). |
+| 2026-04-23 | #4 — testTag scaffolding (Home, Search) | ✅ First pass | Introduced per-feature tag registries (`HomeTestTags`, `SearchTestTags`). Tagged: Home root, listing feed, search bar, notification button, category tabs; Search root, search input, segmented tabs. Bookings / ListingDetail / BookingTab still untagged. Build verification not run in this session — gradle wrapper 9.3.1 download blocked by upstream 503; changes are additive `Modifier.testTag(...)` calls + a new `object` per file, so the risk surface is minimal but a CI green is the actual gate. |
 
 ## Remaining tasks
 
@@ -76,8 +79,12 @@ Approximately **25–30% of feature code** deviates from the design system.
 ### P1 — Core design-system hygiene
 
 4. **Add `testTag` to key interactive surfaces** (Home, Search, Bookings,
-   ListingDetail, BookingTab). Zero feature screens currently tag anything —
-   UI automation has nothing to grab.
+   ListingDetail, BookingTab). ✅ First pass 2026-04-23 covers Home (root,
+   listing feed, search bar, notification button, category tabs) and Search
+   (root, input, segmented tabs) via per-feature `HomeTestTags` /
+   `SearchTestTags` registries. Still to do: Bookings, ListingDetail,
+   BookingTab, plus deeper coverage on Home (listing-card primary CTA,
+   favorite button) and Search (result-row container, empty state).
 
 5. **Migrate `DestinationScreen` to design-system components**
    - `app/src/main/kotlin/com/pacedream/app/feature/destination/DestinationScreen.kt`
@@ -89,10 +96,11 @@ Approximately **25–30% of feature code** deviates from the design system.
    contrast colors can also be tokenised.
 
 7. ~~**Standardize corner radii**~~ — ✅ done 2026-04-19 for Search/Bidding/ID
-   Verification. Still to do: `DestinationScreen:309` (use `CircleShape`
-   instead of `RoundedCornerShape(28.dp)` on the 56 dp avatar) and a repo-wide
-   sweep for any remaining `RoundedCornerShape(Xdp)` in the legacy `feature/`
-   modules.
+   Verification, 2026-04-23 for `DestinationScreen:309` (avatar →
+   `CircleShape`) and `ListingDetailScreen.kt` (37 raw-dp literals → tokens).
+   Still to do: a repo-wide sweep for any remaining `RoundedCornerShape(Xdp)`
+   in the legacy `feature/` modules and small offenders in `settings/`
+   (`SettingsRootScreen.kt:293`, `SettingsPaymentMethodsScreen.kt:365/430`).
 
 8. **Dark-mode-aware card shadows**
    - Affects `HomeScreen.kt:364–365, 865–866, 1204–1205, 1406–1407` and every
@@ -119,8 +127,10 @@ Approximately **25–30% of feature code** deviates from the design system.
       (~220 lines of custom styling) → promote into `common/designsystem` as
       a `PaceDreamSearchBar` variant.
 
-14. **Radius cleanup in `BlogScreen` / `SearchScreen`** — 8+ `RoundedCornerShape(4.dp)`
-    → `PaceDreamRadius.XS`.
+14. ~~**Radius cleanup in `BlogScreen` / `SearchScreen`**~~ — Verified
+    2026-04-23: both files already token-driven; the original finding was
+    stale. Re-scoped to `ListingDetailScreen.kt` (37 raw literals) and
+    completed under #7 above.
 
 15. **iOS-parity: wire profile TODOs**
     - `DashboardNavigation.kt` (guest `onLogoutClick` is a no-op) →
