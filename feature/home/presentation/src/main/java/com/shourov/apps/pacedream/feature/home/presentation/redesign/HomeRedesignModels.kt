@@ -112,6 +112,20 @@ object HomeRedesignData {
         PrimaryType.SERVICES -> ServiceCategories
     }
 
+    /**
+     * Quick-tap suggestions surfaced under the home search card to hint at
+     * the breadth of the PaceDream marketplace — spaces, items, and services.
+     */
+    val WhatSuggestions: List<String> = listOf(
+        "Parking",
+        "Meeting room",
+        "Gym",
+        "Storage",
+        "Restroom",
+        "Workspace",
+        "Lessons",
+    )
+
     val AccessChips: Map<PrimaryType, List<AccessChip>> = mapOf(
         PrimaryType.SPACES to listOf(
             AccessChip("hourly",   "By the hour"),
