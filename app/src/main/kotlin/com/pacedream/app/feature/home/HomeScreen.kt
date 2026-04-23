@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,14 @@ import coil.request.ImageRequest
 import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+
+object HomeTestTags {
+    const val Root = "home_screen_root"
+    const val ListingFeed = "home_listing_feed"
+    const val SearchBar = "home_search_bar"
+    const val NotificationButton = "home_notification_button"
+    const val CategoryTabs = "home_category_tabs"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +89,7 @@ fun HomeScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().testTag(HomeTestTags.Root)) {
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -89,7 +98,7 @@ fun HomeScreen(
             .background(Color(0xFFF8F8FA))
     ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag(HomeTestTags.ListingFeed),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
@@ -322,6 +331,7 @@ private fun HeroHeaderSection(
                         Surface(
                             modifier = Modifier
                                 .size(44.dp)
+                                .testTag(HomeTestTags.NotificationButton)
                                 .clickable(onClick = onNotificationClick),
                             shape = CircleShape,
                             color = Color.White.copy(alpha = 0.20f)
@@ -361,6 +371,7 @@ private fun HeroHeaderSection(
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
+                .testTag(HomeTestTags.SearchBar)
                 .shadow(
                     elevation = 10.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -462,7 +473,7 @@ private fun CategoryFilterTabs(
         Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
     )
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(0.dp)

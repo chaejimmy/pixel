@@ -68,6 +68,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -86,6 +87,13 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 
+object SearchTestTags {
+    const val Root = "search_screen_root"
+    const val Input = "search_input"
+    const val Tabs = "search_tabs"
+    const val ResultsList = "search_results_list"
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
@@ -100,6 +108,7 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .testTag(SearchTestTags.Root)
             .background(PaceDreamColors.Background)
             .statusBarsPadding()
     ) {
@@ -171,7 +180,7 @@ fun SearchScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(SearchTestTags.Input),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -198,6 +207,7 @@ fun SearchScreen(
             // Segmented tab control (iOS parity: capsule shape, icon + text, animated)
             val tabs = SearchTab.entries
             Surface(
+                modifier = Modifier.testTag(SearchTestTags.Tabs),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 color = PaceDreamColors.Surface
             ) {

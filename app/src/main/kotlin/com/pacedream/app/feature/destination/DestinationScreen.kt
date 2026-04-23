@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -306,7 +307,7 @@ fun DestinationLandingScreen(
                                         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.CardBackground)) {
                                         Column(Modifier.padding(PaceDreamSpacing.MD).width(120.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                             AsyncImage(host.avatar, host.name,
-                                                Modifier.size(56.dp).clip(RoundedCornerShape(28.dp)).background(PaceDreamColors.Divider))
+                                                Modifier.size(56.dp).clip(CircleShape).background(PaceDreamColors.Divider))
                                             Spacer(Modifier.height(PaceDreamSpacing.XS))
                                             Text(host.name, style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                             Text("${host.listingCount} listings", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)

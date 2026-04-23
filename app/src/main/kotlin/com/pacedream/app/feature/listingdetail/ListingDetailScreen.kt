@@ -182,12 +182,12 @@ fun ListingDetailScreen(
                                     .padding(horizontal = 20.dp, vertical = 8.dp)
                                     .background(
                                         androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.10f),
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .border(
                                         1.dp,
                                         androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.25f),
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .padding(14.dp),
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
@@ -812,7 +812,7 @@ private fun ReserveSheet(
                         selectedDuration = duration
                         selectedSlotStart = null // reset slot on duration change
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
@@ -844,7 +844,7 @@ private fun ReserveSheet(
                         selectedDate = date
                         selectedSlotStart = null // reset slot on date change
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     border = when {
                         isSelected -> null
@@ -917,7 +917,7 @@ private fun ReserveSheet(
                             val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
                             Surface(
                                 onClick = { selectedSlotStart = slot },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(PaceDreamRadius.MD),
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                                 border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 modifier = Modifier.weight(1f)
@@ -948,7 +948,7 @@ private fun ReserveSheet(
         if (subtotal != null && taxes != null && total != null && selectedSlotStart != null && selectedEnd != null) {
             Spacer(modifier = Modifier.height(18.dp))
             Card(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -994,7 +994,7 @@ private fun ReserveSheet(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 onClick = { guests = (guests - 1).coerceAtLeast(1) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.size(44.dp)
@@ -1012,7 +1012,7 @@ private fun ReserveSheet(
             Spacer(modifier = Modifier.width(20.dp))
             Surface(
                 onClick = { guests = (guests + 1).coerceAtMost(20) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.size(44.dp)
@@ -1027,7 +1027,7 @@ private fun ReserveSheet(
         if (canConfirm && selectedSlotStart != null && selectedEnd != null) {
             Spacer(modifier = Modifier.height(24.dp))
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
             ) {
@@ -1094,7 +1094,7 @@ private fun ReserveSheet(
             },
             enabled = canConfirm,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             Text(
@@ -1341,7 +1341,7 @@ private fun TitleMetaBlock(
             } else {
                 // "New" badge instead of awkward "0.0 (0)" or empty star
                 Surface(
-                    shape = RoundedCornerShape(999.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
                     color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
                 ) {
                     Text(
@@ -1370,7 +1370,7 @@ private fun TitleMetaBlock(
         if (!pricePill.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(14.dp))
             Surface(
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Text(
@@ -1391,7 +1391,7 @@ private fun TitleMetaBlock(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 deliveryModeLabel?.takeIf { it.isNotBlank() }?.let { label ->
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Row(
@@ -1416,7 +1416,7 @@ private fun TitleMetaBlock(
                 }
                 propertyType?.takeIf { it.isNotBlank() }?.let { type ->
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     ) {
                         Row(
@@ -1442,7 +1442,7 @@ private fun TitleMetaBlock(
 
                 if (instantBook == true) {
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = Color(0xFFFFF3E0)
                     ) {
                         Row(
@@ -1468,7 +1468,7 @@ private fun TitleMetaBlock(
 
                 available?.let { isAvailable ->
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = if (isAvailable) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f)
                     ) {
                         Row(
@@ -1504,7 +1504,7 @@ private fun HostCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
@@ -1680,7 +1680,7 @@ private fun HostCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     host.verifications.take(4).forEach { verification ->
                         Surface(
-                            shape = RoundedCornerShape(999.dp),
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ) {
                             Row(
@@ -1780,7 +1780,7 @@ private fun SectionAmenities(
             ) {
                 shown.forEach { label ->
                     Surface(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
@@ -1824,7 +1824,7 @@ private fun SectionReviews(
 
         if (displayRating == null || displayCount == null || displayCount == 0 || displayRating == 0.0) {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1952,7 +1952,7 @@ private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
 @Composable
 private fun ReviewPreviewCard(review: ReviewModel) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.width(280.dp)
     ) {
@@ -2041,7 +2041,7 @@ private fun ReviewCard(
     onDelete: () -> Unit = {},
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -2456,7 +2456,7 @@ private fun SectionSplitInfo(
         )
         Spacer(modifier = Modifier.height(10.dp))
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -2505,7 +2505,7 @@ private fun SectionSplitInfo(
                     ) {
                         Text("Status", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = RoundedCornerShape(PaceDreamRadius.XS),
                             color = when (splitStatus.uppercase()) {
                                 "OPEN" -> Color(0xFF10B981).copy(alpha = 0.1f)
                                 "MATCHED" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -2661,7 +2661,7 @@ private fun MapPreviewCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(200.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         val mapsKey = stringResource(R.string.google_maps_key)
         val mapsEnabled = mapsKey.isNotBlank()
@@ -2719,7 +2719,7 @@ private fun MapPreviewCard(
                     .fillMaxSize()
                     .background(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        RoundedCornerShape(16.dp)
+                        RoundedCornerShape(PaceDreamRadius.LG)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -2837,7 +2837,7 @@ private fun SkeletonLine(widthFraction: Float, height: androidx.compose.ui.unit.
         modifier = Modifier
             .fillMaxWidth(widthFraction)
             .height(height)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     )
 }
@@ -2857,7 +2857,7 @@ private fun SectionCancellationPolicy(
         )
         Spacer(modifier = Modifier.height(10.dp))
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF10B981).copy(alpha = 0.08f)
             )
@@ -2912,7 +2912,7 @@ private fun SectionPricingBreakdown(
         )
         Spacer(modifier = Modifier.height(10.dp))
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -3130,7 +3130,7 @@ private fun SectionHouseRules(
         // Check-in / Check-out times
         if (checkInTime != null || checkOutTime != null) {
             Card(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Row(
@@ -3205,7 +3205,7 @@ private fun SectionSafetyFeatures(
         ) {
             features.forEach { feature ->
                 Surface(
-                    shape = RoundedCornerShape(999.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.Round),
                     color = Color(0xFF10B981).copy(alpha = 0.08f)
                 ) {
                     Row(
@@ -3352,7 +3352,7 @@ private fun ReportListingSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(100.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 maxLines = 5
             )
 
@@ -3367,7 +3367,7 @@ private fun ReportListingSheet(
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                shape = RoundedCornerShape(24.dp)
+                shape = RoundedCornerShape(PaceDreamRadius.XXL)
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
