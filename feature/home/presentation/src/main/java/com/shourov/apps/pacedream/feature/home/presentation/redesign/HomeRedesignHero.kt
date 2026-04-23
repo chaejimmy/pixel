@@ -3,24 +3,25 @@ package com.shourov.apps.pacedream.feature.home.presentation.redesign
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
@@ -37,12 +38,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
  * Hero — purple canvas with logo, bell, tagline, primary tabs, access chips,
- * layered search card (What / Where / When) and an inline trust row.
+ * layered search card (What / Where / When / Who) and an inline trust row.
  */
 @Composable
 fun HomeHero(
@@ -55,10 +57,11 @@ fun HomeHero(
     modifier: Modifier = Modifier,
 ) {
     val whatPlaceholder = when (type) {
-        PrimaryType.SPACES -> "Meeting room, nap pod, apartment…"
+        PrimaryType.SPACES -> "Parking, meeting room, gym, storage…"
         PrimaryType.ITEMS -> "Camera, bike, drone, tools…"
-        PrimaryType.SERVICES -> "Cleaning, tutoring, photo, repair…"
+        PrimaryType.SERVICES -> "Cleaning, tutoring, lessons, repair…"
     }
+    val whatSuggestions = HomeRedesignData.WhatSuggestions
 
     Box(
         modifier = modifier
@@ -164,13 +167,16 @@ fun HomeHero(
             Spacer(Modifier.height(12.dp))
             SearchCard(whatPlaceholder = whatPlaceholder, onClick = onSearch)
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
+            WhatSuggestionsRow(suggestions = whatSuggestions, onSuggestionClick = { onSearch() })
+
+            Spacer(Modifier.height(12.dp))
             TrustRow(items = listOf("Verified hosts", "Free cancel 24h", "Secure payments"))
         }
     }
 }
 
-/** Layered search card shown inside the hero — What / Where / When + primary Search button. */
+/** Layered search card shown inside the hero — What / Where / When / Who + primary Search button. */
 @Composable
 private fun SearchCard(whatPlaceholder: String, onClick: () -> Unit) {
     Column(
@@ -194,14 +200,13 @@ private fun SearchCard(whatPlaceholder: String, onClick: () -> Unit) {
             Box(Modifier.weight(1f)) {
                 SearchRow(icon = Icons.Outlined.LocationOn, label = "WHERE", value = "Brooklyn", compact = true)
             }
-            Box(
-                Modifier
-                    .width(1.dp)
-                    .height(44.dp)
-                    .background(HomeRedesignTheme.LineSoft),
-            )
+            VerticalFieldDivider()
             Box(Modifier.weight(1f)) {
                 SearchRow(icon = Icons.Outlined.CalendarMonth, label = "WHEN", value = "Thu · 2–5PM", compact = true)
+            }
+            VerticalFieldDivider()
+            Box(Modifier.weight(1f)) {
+                SearchRow(icon = Icons.Outlined.Person, label = "WHO", value = "Add guests", compact = true)
             }
         }
         Spacer(Modifier.height(6.dp))
@@ -239,14 +244,14 @@ private fun SearchRow(icon: ImageVector, label: String, value: String, compact: 
         modifier = Modifier
             .fillMaxWidth()
             .padding(
-                horizontal = 12.dp,
+                horizontal = if (compact) 10.dp else 12.dp,
                 vertical = if (compact) 8.dp else 10.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(if (compact) 28.dp else 32.dp)
+                .size(if (compact) 26.dp else 32.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(HomeRedesignTheme.Purple.c50),
             contentAlignment = Alignment.Center,
@@ -255,10 +260,10 @@ private fun SearchRow(icon: ImageVector, label: String, value: String, compact: 
                 icon,
                 contentDescription = null,
                 tint = HomeRedesignTheme.Purple.c600,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(if (compact) 14.dp else 16.dp),
             )
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(if (compact) 8.dp else 10.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 label,
@@ -270,10 +275,67 @@ private fun SearchRow(icon: ImageVector, label: String, value: String, compact: 
             Text(
                 value,
                 color = HomeRedesignTheme.Ink,
-                fontSize = if (compact) 13.sp else 13.5.sp,
+                fontSize = if (compact) 12.5.sp else 13.5.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+@Composable
+private fun VerticalFieldDivider() {
+    Box(
+        Modifier
+            .width(1.dp)
+            .height(44.dp)
+            .background(HomeRedesignTheme.LineSoft),
+    )
+}
+
+/**
+ * Lightweight chip row surfacing the marketplace scope — Parking, Gym, Storage, etc.
+ * Sits just under the search card so users can tap straight into a category
+ * without opening the full search experience first.
+ */
+@Composable
+private fun WhatSuggestionsRow(
+    suggestions: List<String>,
+    onSuggestionClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "Try",
+            color = Color.White.copy(alpha = 0.78f),
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.4.sp,
+        )
+        Spacer(Modifier.width(8.dp))
+        suggestions.forEachIndexed { index, label ->
+            if (index > 0) Spacer(Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .clip(HomeRedesignTheme.PillShape)
+                    .background(Color.White.copy(alpha = 0.16f))
+                    .border(1.dp, Color.White.copy(alpha = 0.22f), HomeRedesignTheme.PillShape)
+                    .clickable { onSuggestionClick(label) }
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+            ) {
+                Text(
+                    label,
+                    color = Color.White,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }
