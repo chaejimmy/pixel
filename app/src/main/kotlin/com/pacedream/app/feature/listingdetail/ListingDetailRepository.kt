@@ -220,6 +220,33 @@ class ListingDetailRepository @Inject constructor(
                 )
             }
 
+            // Service delivery mode — parsed tolerantly so legacy
+            // listings (which omit the field entirely) decode with
+            // null and render the existing address-only UI.  Only
+            // populate onlineSession when the listing actually ships
+            // one, otherwise the badge/map gating would trigger for
+            // listings that have no online configuration.
+            val sessionType = listing.string("sessionType", "session_type")
+            val onlineSessionObj = listing["onlineSession"]?.asObjectOrNull()
+                ?: listing["online_session"]?.asObjectOrNull()
+            val onlineSession = onlineSessionObj?.let { os ->
+                val platforms = os["platforms"]?.asArrayOrNull()
+                    ?.mapNotNull { it.asStringOrNull() }
+                    .orEmpty()
+                OnlineSessionInfo(
+                    platforms = platforms,
+                    sessionLink = os.string("sessionLink", "session_link"),
+                    shareLinkAfterBooking = os.boolean(
+                        "shareLinkAfterBooking", "share_link_after_booking"
+                    ) ?: true,
+                    timeZone = os.string("timeZone", "time_zone", "timezone"),
+                    meetingInstructions = os.string(
+                        "meetingInstructions", "meeting_instructions"
+                    ),
+                    notes = os.string("notes"),
+                )
+            }
+
             ListingDetailModel(
                 id = id,
                 title = title,
@@ -251,7 +278,9 @@ class ListingDetailRepository @Inject constructor(
                 slotsFilled = slotsFilled,
                 splitStatus = splitStatus,
                 deadlineAt = deadlineAt,
-                listingStatus = listingStatus
+                listingStatus = listingStatus,
+                sessionType = sessionType,
+                onlineSession = onlineSession
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to parse listing detail")

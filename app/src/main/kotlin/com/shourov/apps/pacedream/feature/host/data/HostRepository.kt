@@ -1205,6 +1205,22 @@ class HostRepository @Inject constructor(
             }
         }
 
+        // Service delivery mode: only emitted when the host explicitly
+        // picked one (services only).  Space-like listings leave this
+        // unset, so their POST body shape is unchanged.
+        r.sessionType?.let { body["sessionType"] = it }
+        r.onlineSession?.let { os ->
+            body["onlineSession"] = mutableMapOf<String, Any>(
+                "platforms" to os.platforms,
+                "shareLinkAfterBooking" to os.shareLinkAfterBooking,
+                "timeZone" to os.timeZone,
+            ).apply {
+                os.sessionLink?.takeIf { it.isNotBlank() }?.let { put("sessionLink", it) }
+                os.meetingInstructions?.takeIf { it.isNotBlank() }?.let { put("meetingInstructions", it) }
+                os.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
+            }
+        }
+
         return body
     }
 

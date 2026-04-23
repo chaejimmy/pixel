@@ -228,15 +228,22 @@ fun ListingDetailScreen(
                     }
 
                     item {
+                        // Hide the city/state line for online-only
+                        // services — those listings have no physical
+                        // location to show, so surfacing cached
+                        // address metadata would be misleading.
+                        val cityState = if (listing?.isOnlineOnly == true) null
+                            else listing?.location?.cityState
                         TitleMetaBlock(
                             title = listing?.title ?: "Listing",
                             rating = listing?.rating,
                             reviewCount = listing?.reviewCount,
-                            cityState = listing?.location?.cityState,
+                            cityState = cityState,
                             pricePill = listing?.pricing?.displayPrimary,
                             propertyType = listing?.propertyType,
                             instantBook = listing?.instantBook,
                             available = listing?.available,
+                            deliveryModeLabel = listing?.deliveryModeLabel,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 16.dp)
@@ -385,18 +392,42 @@ fun ListingDetailScreen(
                         }
                     }
 
-                    item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
+                    // Online-only services have no physical address to
+                    // map, so we suppress the entire "Where you'll be"
+                    // section — there's nothing to show and rendering
+                    // it would just surface cached placeholder text.
+                    if (listing?.isOnlineOnly != true) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
 
-                    item {
-                        SectionLocation(
-                            location = listing?.location,
-                            mapCoordinate = uiState.mapCoordinate,
-                            isGeocoding = uiState.isGeocoding,
-                            onOpenInMaps = onOpenInMaps,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
-                        )
+                        item {
+                            SectionLocation(
+                                location = listing?.location,
+                                mapCoordinate = uiState.mapCoordinate,
+                                isGeocoding = uiState.isGeocoding,
+                                onOpenInMaps = onOpenInMaps,
+                                sectionTitle = if (listing?.isHybridDelivery == true)
+                                    "In-person location" else "Where you'll be",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
+                    }
+
+                    // Online session summary — surfaces platforms, time
+                    // zone, and the link-reveal rule so guests know how
+                    // they'll join the session before booking.
+                    val os = listing?.onlineSession
+                    if (os != null && (listing.isOnlineOnly || listing.isHybridDelivery)) {
+                        item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
+                        item {
+                            SectionOnlineSession(
+                                onlineSession = os,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                            )
+                        }
                     }
 
                     // Report Listing (iOS/Web parity)
@@ -1268,6 +1299,7 @@ private fun TitleMetaBlock(
     propertyType: String? = null,
     instantBook: Boolean? = null,
     available: Boolean? = null,
+    deliveryModeLabel: String? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -1350,10 +1382,38 @@ private fun TitleMetaBlock(
             }
         }
 
-        // Property type badge + Instant Book badge (iOS parity)
-        if (propertyType != null || instantBook == true || available != null) {
+        // Property type badge + Instant Book badge (iOS parity) +
+        // delivery-mode badge for service listings.
+        if (propertyType != null || instantBook == true || available != null ||
+            deliveryModeLabel != null
+        ) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                deliveryModeLabel?.takeIf { it.isNotBlank() }?.let { label ->
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Schedule,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
                 propertyType?.takeIf { it.isNotBlank() }?.let { type ->
                     Surface(
                         shape = RoundedCornerShape(999.dp),
@@ -2489,6 +2549,7 @@ private fun SectionLocation(
     mapCoordinate: LatLng?,
     isGeocoding: Boolean,
     onOpenInMaps: () -> Unit,
+    sectionTitle: String = "Where you'll be",
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -2496,7 +2557,7 @@ private fun SectionLocation(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Where you'll be", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.weight(1f))
             TextButton(onClick = onOpenInMaps, enabled = location?.fullAddress != null || location?.cityState != null) {
                 Text("Open in Maps")
@@ -2513,6 +2574,80 @@ private fun SectionLocation(
         location?.fullAddress?.let { addr ->
             Spacer(modifier = Modifier.height(10.dp))
             Text(addr, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Guest-facing summary of the online-session configuration: which
+ * conferencing tools the host supports, the timezone the session runs
+ * in, and how the meeting link is revealed.
+ */
+@Composable
+private fun SectionOnlineSession(
+    onlineSession: OnlineSessionInfo,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            "Joining online",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        val platformLabels = onlineSession.platforms.mapNotNull { id ->
+            when (id.trim().lowercase()) {
+                "zoom" -> "Zoom"
+                "google_meet", "google-meet", "meet" -> "Google Meet"
+                "microsoft_teams", "ms_teams", "teams" -> "Microsoft Teams"
+                "other" -> "Other"
+                else -> id.takeIf { it.isNotBlank() }
+            }
+        }
+        if (platformLabels.isNotEmpty()) {
+            Text(
+                text = "Platform: ${platformLabels.joinToString(", ")}",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        val link = onlineSession.sessionLink?.trim().orEmpty()
+        val linkLine = when {
+            link.isNotEmpty() -> "Session link: $link"
+            onlineSession.shareLinkAfterBooking ->
+                "Session link will be shared after booking."
+            else -> null
+        }
+        linkLine?.let {
+            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        onlineSession.timeZone?.takeIf { it.isNotBlank() }?.let { tz ->
+            Text("Time zone: $tz", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+
+        onlineSession.meetingInstructions?.takeIf { it.isNotBlank() }?.let { instructions ->
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Meeting instructions",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(instructions, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        onlineSession.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Notes",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(notes, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
