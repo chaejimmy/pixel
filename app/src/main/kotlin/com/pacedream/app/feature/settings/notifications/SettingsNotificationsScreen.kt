@@ -83,7 +83,10 @@ fun SettingsNotificationsScreen(
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         val message = uiState.errorMessage ?: uiState.successMessage
         if (!message.isNullOrBlank()) {
-            scope.launch { snackbarHostState.showSnackbar(message) }
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+                viewModel.consumeMessages()
+            }
         }
     }
 

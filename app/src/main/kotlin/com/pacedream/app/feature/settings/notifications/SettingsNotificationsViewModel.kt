@@ -8,8 +8,10 @@ import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import com.pacedream.app.feature.settings.AccountSettingsRepository
+import com.shourov.apps.pacedream.core.common.network.di.ApplicationScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +57,8 @@ class SettingsNotificationsViewModel @Inject constructor(
     private val repository: AccountSettingsRepository,
     private val sessionManager: SessionManager,
     private val json: Json,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationsUiState(isLoading = true))
@@ -80,10 +83,19 @@ class SettingsNotificationsViewModel @Inject constructor(
 
             // Load cached local state first for instant display
             val cached = loadFromLocal()
+            val hasPendingSync = isPendingSync()
             if (cached != null) {
                 val cachedUiState = cached.toUiState()
                 _uiState.update { cachedUiState.copy(isLoading = true) }
                 lastSavedState = cachedUiState
+            }
+
+            // If there are unsynced local changes, don't let the backend fetch
+            // overwrite them — kick off a retry sync instead.
+            if (hasPendingSync && cached != null) {
+                _uiState.update { it.copy(isLoading = false) }
+                scheduleRemoteSync()
+                return@launch
             }
 
             // Then fetch from backend
@@ -143,132 +155,111 @@ class SettingsNotificationsViewModel @Inject constructor(
         }
     }
 
-    fun toggleEmailGeneral() {
-        _uiState.update { it.copy(emailGeneral = !it.emailGeneral, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleEmailGeneral() = applyToggle { it.copy(emailGeneral = !it.emailGeneral) }
 
-    fun togglePushGeneral() {
-        _uiState.update { it.copy(pushGeneral = !it.pushGeneral, successMessage = null) }
-        debouncedSave()
-    }
+    fun togglePushGeneral() = applyToggle { it.copy(pushGeneral = !it.pushGeneral) }
 
-    fun toggleMessageNotifications() {
-        _uiState.update { it.copy(messageNotifications = !it.messageNotifications, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleMessageNotifications() = applyToggle { it.copy(messageNotifications = !it.messageNotifications) }
 
-    fun toggleBookingUpdates() {
-        _uiState.update { it.copy(bookingUpdates = !it.bookingUpdates, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleBookingUpdates() = applyToggle { it.copy(bookingUpdates = !it.bookingUpdates) }
 
-    fun toggleBookingAlerts() {
-        _uiState.update { it.copy(bookingAlerts = !it.bookingAlerts, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleBookingAlerts() = applyToggle { it.copy(bookingAlerts = !it.bookingAlerts) }
 
-    fun toggleMarketingPromotions() {
-        _uiState.update { it.copy(marketingPromotions = !it.marketingPromotions, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleMarketingPromotions() = applyToggle { it.copy(marketingPromotions = !it.marketingPromotions) }
 
-    fun toggleReviewNotifications() {
-        _uiState.update { it.copy(reviewNotifications = !it.reviewNotifications, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleReviewNotifications() = applyToggle { it.copy(reviewNotifications = !it.reviewNotifications) }
 
-    fun toggleFriendRequestNotifications() {
-        _uiState.update { it.copy(friendRequestNotifications = !it.friendRequestNotifications, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleFriendRequestNotifications() = applyToggle { it.copy(friendRequestNotifications = !it.friendRequestNotifications) }
 
-    fun toggleSystemNotifications() {
-        _uiState.update { it.copy(systemNotifications = !it.systemNotifications, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleSystemNotifications() = applyToggle { it.copy(systemNotifications = !it.systemNotifications) }
 
-    fun toggleSmsNotifications() {
-        _uiState.update { it.copy(smsNotifications = !it.smsNotifications, successMessage = null) }
-        debouncedSave()
-    }
+    fun toggleSmsNotifications() = applyToggle { it.copy(smsNotifications = !it.smsNotifications) }
 
-    fun toggleQuietHours() {
-        _uiState.update { it.copy(quietHoursEnabled = !it.quietHoursEnabled, successMessage = null) }
-        debouncedSave()
+    fun toggleQuietHours() = applyToggle { it.copy(quietHoursEnabled = !it.quietHoursEnabled) }
+
+    /**
+     * Apply a toggle change: update UI state, persist to local cache IMMEDIATELY
+     * (so the change survives navigation/VM destruction), and schedule a debounced
+     * remote sync on the application scope (so the PATCH request is not cancelled
+     * when the user leaves the screen).
+     */
+    private inline fun applyToggle(transform: (NotificationsUiState) -> NotificationsUiState) {
+        val next = transform(_uiState.value).copy(
+            successMessage = null,
+            errorMessage = null
+        )
+        _uiState.value = next
+        // Persist locally right away — never lose a user toggle to VM death.
+        saveToLocal(next.toSettings())
+        setPendingSync(true)
+        scheduleRemoteSync()
     }
 
     /**
-     * Debounce save so rapid toggle changes are batched into a single API call.
+     * Debounce the remote sync so rapid toggle changes are batched into a single
+     * API call. Runs on [applicationScope] so it survives ViewModel destruction
+     * (e.g. when the user navigates back immediately after toggling).
      */
-    private fun debouncedSave() {
+    private fun scheduleRemoteSync() {
         autoSaveJob?.cancel()
-        autoSaveJob = viewModelScope.launch {
+        autoSaveJob = applicationScope.launch {
             delay(500L)
-            save()
+            performRemoteSync()
         }
     }
 
+    /** Force an immediate remote sync (used by manual retry). */
     fun save() {
+        autoSaveJob?.cancel()
+        autoSaveJob = applicationScope.launch { performRemoteSync() }
+    }
+
+    private suspend fun performRemoteSync() {
         val state = _uiState.value
-        val snapshotBeforeSave = lastSavedState
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null, successMessage = null) }
 
-            // Always save locally first (optimistic local persistence)
-            saveToLocal(state.toSettings())
-
-            try {
-                val settings = state.toSettings()
-                when (val result = repository.updateNotificationSettings(settings)) {
-                    is ApiResult.Success -> {
-                        lastSavedState = state
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                successMessage = "Settings saved"
-                            )
-                        }
-                    }
-                    is ApiResult.Failure -> {
-                        if (result.error is ApiError.Unauthorized) {
-                            sessionManager.signOut()
-                            return@launch
-                        }
-                        // Rollback UI to last known good state
-                        if (snapshotBeforeSave != null) {
-                            _uiState.value = snapshotBeforeSave.copy(
-                                isLoading = false,
-                                errorMessage = "We couldn't save your settings. Please try again."
-                            )
-                            // Also revert local cache
-                            saveToLocal(snapshotBeforeSave.toSettings())
-                        } else {
-                            _uiState.update {
-                                it.copy(
-                                    isLoading = false,
-                                    errorMessage = "We couldn't save your settings. Please try again."
-                                )
-                            }
-                        }
+        try {
+            val settings = state.toSettings()
+            when (val result = repository.updateNotificationSettings(settings)) {
+                is ApiResult.Success -> {
+                    lastSavedState = state
+                    setPendingSync(false)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            successMessage = "Settings saved"
+                        )
                     }
                 }
-            } catch (e: Exception) {
-                Timber.e(e, "Unexpected error saving notification settings")
-                // Rollback on exception
-                if (snapshotBeforeSave != null) {
-                    _uiState.value = snapshotBeforeSave.copy(
-                        isLoading = false,
-                        errorMessage = "Unable to save settings. Please try again."
-                    )
-                    saveToLocal(snapshotBeforeSave.toSettings())
-                } else {
+                is ApiResult.Failure -> {
+                    if (result.error is ApiError.Unauthorized) {
+                        sessionManager.signOut()
+                        return
+                    }
+                    // Local cache already reflects the user's intent; keep it.
+                    // Surface an error so they know the server is out of sync.
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = "Unable to save settings. Please try again.")
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Saved on this device. We'll retry syncing with the server."
+                        )
                     }
                 }
             }
+        } catch (e: Exception) {
+            Timber.e(e, "Unexpected error saving notification settings")
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    errorMessage = "Saved on this device. We'll retry syncing with the server."
+                )
+            }
         }
+    }
+
+    /** Called by the UI after a snackbar is displayed to prevent message replay. */
+    fun consumeMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 
     // ── Local persistence ────────────────────────────────────────────────────
@@ -290,6 +281,12 @@ class SettingsNotificationsViewModel @Inject constructor(
             Timber.e(e, "Failed to load notification settings from local cache")
             null
         }
+    }
+
+    private fun isPendingSync(): Boolean = prefs.getBoolean(KEY_PENDING_SYNC, false)
+
+    private fun setPendingSync(pending: Boolean) {
+        prefs.edit().putBoolean(KEY_PENDING_SYNC, pending).apply()
     }
 
     // ── Mapping helpers ──────────────────────────────────────────────────────
@@ -331,5 +328,6 @@ class SettingsNotificationsViewModel @Inject constructor(
     companion object {
         private const val PREFS_NAME = "pacedream_notification_settings"
         private const val KEY_NOTIFICATION_SETTINGS = "notification_settings_v1"
+        private const val KEY_PENDING_SYNC = "notification_settings_pending_sync_v1"
     }
 }
