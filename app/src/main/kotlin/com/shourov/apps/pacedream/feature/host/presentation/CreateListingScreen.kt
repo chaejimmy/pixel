@@ -1,7 +1,9 @@
 package com.shourov.apps.pacedream.feature.host.presentation
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
@@ -71,7 +73,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,10 +116,17 @@ import com.shourov.apps.pacedream.feature.host.data.WifiAccessDraft
 import com.shourov.apps.pacedream.feature.host.data.WifiAccessPayload
 import com.pacedream.app.core.location.LocationServiceEntryPoint
 import com.pacedream.app.core.location.PlacePrediction
+import com.shourov.apps.pacedream.feature.host.presentation.components.DateField
+import com.shourov.apps.pacedream.feature.host.presentation.components.DiscardChangesDialog
+import com.shourov.apps.pacedream.feature.host.presentation.components.PayoutRequiredDialog
+import com.shourov.apps.pacedream.feature.host.presentation.components.PayoutSetupBanner
+import com.shourov.apps.pacedream.feature.host.presentation.components.TimeField
+import com.shourov.apps.pacedream.feature.host.presentation.components.TimezoneField
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withPermit
 import com.shourov.apps.pacedream.feature.host.data.PricingPayload
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.model.PricingUnit
@@ -144,6 +159,10 @@ enum class ResourceKind(
 
 /**
  * Subcategory item matching iOS ListingSubcategoryPickerView.SubcategoryItem.
+ *
+ * Whether the subcategory requires scheduling is *not* stored here — it is
+ * derived from [ListingSchemaRegistry.schemaFor] at render time so the UI
+ * and the wizard can never disagree.
  */
 private data class SubcategoryItem(
     val id: String,
@@ -151,7 +170,6 @@ private data class SubcategoryItem(
     val title: String,
     val subtitle: String,
     val icon: ImageVector,
-    val needsSchedule: Boolean = false,
 )
 
 /**
@@ -166,38 +184,38 @@ private fun getSubcategoriesByResourceKind(resourceKind: ResourceKind): List<Sub
 
 
 private val SPACE_SUBCATEGORIES = listOf(
-    SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home, needsSchedule = true),
-    SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home, needsSchedule = true),
-    SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group, needsSchedule = true),
-    SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter, needsSchedule = true),
-    SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule, needsSchedule = false),
-    SubcategoryItem("wifi", "wifi", "Wi-Fi", "Bookable, time-limited internet access", PaceDreamIcons.Wifi, needsSchedule = true),
-    SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking, needsSchedule = false),
-    SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage, needsSchedule = false),
-    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = false),
+    SubcategoryItem("restroom", "restroom", "Restroom", "Quick, clean access", PaceDreamIcons.Home),
+    SubcategoryItem("nap_pod", "nap_pod", "Nap pod", "Recharge in privacy", PaceDreamIcons.Home),
+    SubcategoryItem("meeting_room", "meeting_room", "Meeting room", "Private meetings", PaceDreamIcons.Group),
+    SubcategoryItem("gym", "gym", "Gym", "Fitness access nearby", PaceDreamIcons.FitnessCenter),
+    SubcategoryItem("short_stay", "short_stay", "Short stay", "A few hours", PaceDreamIcons.Schedule),
+    SubcategoryItem("wifi", "wifi", "Wi-Fi", "Bookable, time-limited internet access", PaceDreamIcons.Wifi),
+    SubcategoryItem("parking", "parking", "Parking", "Rent your spot", PaceDreamIcons.LocalParking),
+    SubcategoryItem("storage_space", "storage_space", "Storage Space", "Secure extra space", PaceDreamIcons.Storage),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz),
 )
 
 private val ITEM_SUBCATEGORIES = listOf(
-    SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike, needsSchedule = true),
-    SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt, needsSchedule = true),
-    SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop, needsSchedule = true),
-    SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.Category, needsSchedule = true),
-    SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build, needsSchedule = true),
-    SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports, needsSchedule = true),
-    SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy, needsSchedule = true),
-    SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike, needsSchedule = true),
-    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = true),
+    SubcategoryItem("sports_gear", "sports_gear", "Sports gear", "Boards, bikes, more", PaceDreamIcons.DirectionsBike),
+    SubcategoryItem("camera", "camera", "Camera", "Capture the moment", PaceDreamIcons.CameraAlt),
+    SubcategoryItem("tech", "tech", "Tech", "Laptops, gadgets", PaceDreamIcons.Laptop),
+    SubcategoryItem("instrument", "instrument", "Instrument", "Music gear", PaceDreamIcons.Category),
+    SubcategoryItem("tools", "tools", "Tools", "Power & hand tools", PaceDreamIcons.Build),
+    SubcategoryItem("games", "games", "Games", "Board & video games", PaceDreamIcons.SportsEsports),
+    SubcategoryItem("toys", "toys", "Toys", "Fun for everyone", PaceDreamIcons.SmartToy),
+    SubcategoryItem("micromobility", "micromobility", "Micromobility", "Scooters, e-bikes", PaceDreamIcons.DirectionsBike),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz),
 )
 
 private val SERVICE_SUBCATEGORIES = listOf(
-    SubcategoryItem("home_help", "home_help", "Home Help", "Handy help at home", PaceDreamIcons.Home, needsSchedule = false),
-    SubcategoryItem("moving_help", "moving_help", "Moving Help", "Get help moving", PaceDreamIcons.Storage, needsSchedule = false),
-    SubcategoryItem("cleaning_organizing", "cleaning_organizing", "Cleaning & Organizing", "Tidy up your space", PaceDreamIcons.LocalLaundryService, needsSchedule = false),
-    SubcategoryItem("everyday_help", "everyday_help", "Everyday Help", "Errands and tasks", PaceDreamIcons.FavoriteBorder, needsSchedule = false),
-    SubcategoryItem("fitness", "fitness", "Fitness", "Training sessions", PaceDreamIcons.FitnessCenter, needsSchedule = false),
-    SubcategoryItem("learning", "learning", "Learning", "Lessons and tutoring", PaceDreamIcons.School, needsSchedule = false),
-    SubcategoryItem("creative", "creative", "Creative", "Art, music, design", PaceDreamIcons.Category, needsSchedule = false),
-    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz, needsSchedule = false),
+    SubcategoryItem("home_help", "home_help", "Home Help", "Handy help at home", PaceDreamIcons.Home),
+    SubcategoryItem("moving_help", "moving_help", "Moving Help", "Get help moving", PaceDreamIcons.Storage),
+    SubcategoryItem("cleaning_organizing", "cleaning_organizing", "Cleaning & Organizing", "Tidy up your space", PaceDreamIcons.LocalLaundryService),
+    SubcategoryItem("everyday_help", "everyday_help", "Everyday Help", "Errands and tasks", PaceDreamIcons.FavoriteBorder),
+    SubcategoryItem("fitness", "fitness", "Fitness", "Training sessions", PaceDreamIcons.FitnessCenter),
+    SubcategoryItem("learning", "learning", "Learning", "Lessons and tutoring", PaceDreamIcons.School),
+    SubcategoryItem("creative", "creative", "Creative", "Art, music, design", PaceDreamIcons.Category),
+    SubcategoryItem("others", "others", "Others", "Everything else", PaceDreamIcons.MoreHoriz),
 )
 
 private val SERVICE_IDS = SERVICE_SUBCATEGORIES.map { it.value }.toSet()
@@ -301,6 +319,11 @@ fun CreateListingScreen(
     onGoToMyListings: () -> Unit = {},
     onBackToHome: () -> Unit = {},
     onPublishListing: (CreateListingRequest) -> Unit = {},
+    onNavigateToPayoutSetup: () -> Unit = {},
+    /** Pre-selected resource kind from the Post hub; skips the Entry phase when set. */
+    initialResourceKind: ResourceKind? = null,
+    /** Pre-selected subcategory (rare; reserved for deep links). */
+    initialSubCategory: String = "",
     viewModel: CreateListingViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
 ) {
     // iOS parity: draft persistence — scoped to the authenticated user so
@@ -311,17 +334,70 @@ fun CreateListingScreen(
         CreateListingDraftStore(context, userId = currentUserId)
     }
 
-    // Phase: entry → subcategory → wizard → success
-    var phase by remember { mutableStateOf("entry") }
+    // Phase / step / dirty live in the ViewModel's SavedStateHandle so they
+    // survive process death. Enum-typed fields (ListingMode, ResourceKind)
+    // are intentionally plain `remember`: the durable restore is the draft
+    // store, which already tracks these as strings.
+    var phase by rememberSaveable { mutableStateOf(viewModel.getPhase()) }
     var selectedMode by remember { mutableStateOf(listingMode) }
-    var selectedResourceKind by remember { mutableStateOf(ResourceKind.SPACES) }
-    var selectedSubCategory by remember { mutableStateOf("") }
+    var selectedResourceKind by remember {
+        mutableStateOf(initialResourceKind ?: ResourceKind.SPACES)
+    }
+    var selectedSubCategory by rememberSaveable { mutableStateOf(initialSubCategory) }
+
     /** Draft to rehydrate into the wizard when the host taps "Continue your draft". */
     var resumedDraft by remember { mutableStateOf<ListingDraftData?>(null) }
-    var publishedTitle by remember { mutableStateOf("") }
-    var publishedListingId by remember { mutableStateOf("") }
-    var publishedCoverUrl by remember { mutableStateOf<String?>(null) }
+    var publishedTitle by rememberSaveable { mutableStateOf("") }
+    var publishedListingId by rememberSaveable { mutableStateOf("") }
+    var publishedCoverUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var publishError by remember { mutableStateOf<String?>(null) }
+    var showDiscardDialog by rememberSaveable { mutableStateOf(false) }
+    var payoutBlockMessage by remember { mutableStateOf<String?>(null) }
+
+    // Seed the phase from the nav seed on first composition. When the caller
+    // passes `initialResourceKind = SERVICES` we skip the entry card grid and
+    // drop the host directly into the Services subcategory picker.
+    LaunchedEffect(initialResourceKind, initialSubCategory) {
+        if (phase == "entry" && initialResourceKind != null) {
+            selectedResourceKind = initialResourceKind
+            selectedMode = initialResourceKind.listingMode
+            phase = if (initialSubCategory.isNotBlank()) {
+                selectedSubCategory = initialSubCategory
+                "wizard"
+            } else "subcategory"
+            viewModel.setPhase(phase)
+        }
+    }
+
+    // Process-death recovery: if SavedStateHandle restored phase=wizard
+    // but the wizard state was thrown away by Compose, reload the draft
+    // from disk so the host sees their work instead of an empty form.
+    LaunchedEffect(draftStore) {
+        if (phase == "wizard" && resumedDraft == null) {
+            val saved = draftStore.load()
+            if (saved != null) {
+                resumedDraft = saved
+                selectedMode = ListingMode.entries
+                    .firstOrNull { it.backendValue == saved.listingMode } ?: selectedMode
+                selectedResourceKind = ResourceKind.entries
+                    .firstOrNull { it.name.equals(saved.resourceKind, ignoreCase = true) }
+                    ?: selectedResourceKind
+                if (saved.subCategory.isNotBlank()) selectedSubCategory = saved.subCategory
+            } else {
+                // No draft on disk — fall back to the subcategory picker
+                // rather than showing an empty wizard screen.
+                phase = "subcategory"
+                viewModel.setPhase(phase)
+            }
+        }
+    }
+
+    // Kick off a payout-readiness check as soon as the screen opens so the
+    // banner can appear on step 0 before the host fills anything in.
+    LaunchedEffect(Unit) { viewModel.refreshPayoutReadiness() }
+
+    // Keep the VM's SavedStateHandle in sync whenever `phase` changes.
+    LaunchedEffect(phase) { viewModel.setPhase(phase) }
 
     // Collect ViewModel effects for publish result
     LaunchedEffect(Unit) {
@@ -332,22 +408,72 @@ fun CreateListingScreen(
                     publishedListingId = effect.listingId
                     publishedCoverUrl = effect.coverUrl
                     draftStore.clear() // iOS parity: clear draft on success
+                    viewModel.markDirty(false)
                     phase = "success"
-                    // Don't call onPublishSuccess here — let the success screen
-                    // display first so the user sees the confirmation. The CTAs
-                    // on the success screen handle navigation.
                 }
                 is CreateListingViewModel.Effect.PublishError -> {
                     publishError = effect.message
                 }
                 is CreateListingViewModel.Effect.PayoutSetupRequired -> {
-                    // Surface as a blocking prompt on the wizard screen so the
-                    // host sees the reason and a clear next step instead of a
-                    // generic "publish failed" toast.
-                    publishError = effect.reason
+                    payoutBlockMessage = effect.reason
+                }
+                is CreateListingViewModel.Effect.NavigateToPayoutSetup -> {
+                    onNavigateToPayoutSetup()
                 }
             }
         }
+    }
+
+    // System back handling. The nested wizard composable registers its
+    // own BackHandler for intra-wizard step-back (enabled when step > 0);
+    // Compose gives the innermost handler priority, so this outer one
+    // only fires when the wizard is already at step 0 (or a non-wizard
+    // phase is showing).
+    BackHandler(enabled = phase != "entry") {
+        when (phase) {
+            "wizard" -> {
+                // At step 0 of the wizard with autosaved state — ask
+                // before leaving if anything is dirty; otherwise fall
+                // back to the subcategory picker.
+                if (viewModel.isDirty()) showDiscardDialog = true
+                else phase = "subcategory"
+            }
+            "subcategory" -> { phase = "entry" }
+            "preview" -> { phase = "success" }
+            "success" -> { onBackToHome() }
+        }
+    }
+    // At Entry we always exit, with a confirmation if autosave caught a dirty state.
+    BackHandler(enabled = phase == "entry") {
+        if (viewModel.isDirty()) showDiscardDialog = true else onBackClick()
+    }
+
+    if (showDiscardDialog) {
+        DiscardChangesDialog(
+            onKeepDraft = {
+                showDiscardDialog = false
+                // Autosave has already persisted everything — just exit.
+                onBackClick()
+            },
+            onDiscard = {
+                showDiscardDialog = false
+                draftStore.clear()
+                viewModel.markDirty(false)
+                onBackClick()
+            },
+            onDismiss = { showDiscardDialog = false },
+        )
+    }
+
+    payoutBlockMessage?.let { msg ->
+        PayoutRequiredDialog(
+            message = msg,
+            onSetup = {
+                payoutBlockMessage = null
+                onNavigateToPayoutSetup()
+            },
+            onDismiss = { payoutBlockMessage = null },
+        )
     }
 
     when (phase) {
@@ -380,6 +506,7 @@ fun CreateListingScreen(
         )
         "wizard" -> {
             val vmPublishing by viewModel.isPublishing.collectAsState()
+            val payoutReady by viewModel.payoutReady.collectAsState()
             CreateListingWizardScreen(
                 listingMode = selectedMode,
                 subCategory = selectedSubCategory,
@@ -395,6 +522,9 @@ fun CreateListingScreen(
                 isApiPublishing = vmPublishing,
                 publishError = publishError,
                 onClearPublishError = { publishError = null },
+                payoutReady = payoutReady,
+                onRequestPayoutSetup = { viewModel.onRequestPayoutSetup() },
+                onDraftChanged = { viewModel.markDirty(true) },
             )
         }
         "success" -> PublishSuccessScreen(
@@ -734,6 +864,7 @@ private fun SubcategoryPickerScreen(
                 items(subcategories, key = { it.id }) { item ->
                     SubcategoryCard(
                         item = item,
+                        resourceKind = resourceKind,
                         onClick = { onSubcategorySelected(item.value) },
                     )
                 }
@@ -745,8 +876,16 @@ private fun SubcategoryPickerScreen(
 @Composable
 private fun SubcategoryCard(
     item: SubcategoryItem,
+    resourceKind: ResourceKind,
     onClick: () -> Unit,
 ) {
+    // Badge visibility is derived from the schema, not a hand-maintained
+    // flag on SubcategoryItem. That keeps the picker and the wizard in
+    // lockstep — e.g. Parking always shows "Schedule required" because
+    // the Parking schema always surfaces the schedule step.
+    val needsSchedule = remember(resourceKind, item.value) {
+        ListingSchemaRegistry.schemaFor(resourceKind.toListingCategory(), item.value).needsSchedule
+    }
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -787,7 +926,7 @@ private fun SubcategoryCard(
                 color = PaceDreamColors.TextSecondary,
                 maxLines = 2,
             )
-            if (item.needsSchedule) {
+            if (needsSchedule) {
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
                     text = "Schedule required",
@@ -820,6 +959,14 @@ private fun CreateListingWizardScreen(
     isApiPublishing: Boolean = false,
     publishError: String? = null,
     onClearPublishError: () -> Unit = {},
+    /**
+     * null = still checking; true = ready; false = banner should prompt
+     * the host to set up Stripe Connect before they hit Publish.
+     */
+    payoutReady: Boolean? = true,
+    onRequestPayoutSetup: () -> Unit = {},
+    /** Invoked whenever the autosave flushes a changed draft to disk. */
+    onDraftChanged: () -> Unit = {},
 ) {
     // Single source of truth for which fields this subcategory supports.
     val schema = remember(listingMode, resourceKind, subCategory) {
@@ -868,7 +1015,7 @@ private fun CreateListingWizardScreen(
     var requirements by remember(draftKey) { mutableStateOf(initialDraft?.requirements.orEmpty()) }
     var totalCost by remember(draftKey) { mutableStateOf(initialDraft?.totalCost.orEmpty()) }
 
-    // Photos – iOS parity: selected image URIs + uploaded Cloudinary URLs.
+    // Photos – selected image URIs + uploaded Cloudinary URLs.
     // Already-uploaded URLs from the draft seed the uploaded list so resuming
     // does not re-upload them; locally-picked URIs (not serializable) start empty.
     val selectedImageUris = remember(draftKey) { mutableStateListOf<Uri>() }
@@ -877,6 +1024,13 @@ private fun CreateListingWizardScreen(
             initialDraft?.uploadedImageUrls?.let { addAll(it) }
         }
     }
+    // Per-URI upload status so each thumbnail can show its own progress /
+    // retry state. Kept as a Compose-observable map so changes re-render
+    // the thumbnail strip without invalidating the wizard column.
+    val photoUploadStatus = remember(draftKey) {
+        androidx.compose.runtime.mutableStateMapOf<Uri, PhotoUploadEntry>()
+    }
+    val photoUploadSemaphore = remember { kotlinx.coroutines.sync.Semaphore(3) }
     var isUploadingImages by remember { mutableStateOf(false) }
 
     // Photos/Location/Pricing
@@ -1044,6 +1198,56 @@ private fun CreateListingWizardScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Eagerly upload a picked URI. The URI is added to [selectedImageUris]
+    // by the caller before this runs; when the upload completes, the
+    // resulting URL is appended to [uploadedImageUrls] so autosave
+    // persists it and Publish can consume the list directly without
+    // another upload pass.
+    fun startPhotoUpload(uri: Uri) {
+        val svc = imageUploadService
+        if (svc == null) {
+            photoUploadStatus[uri] = PhotoUploadEntry(
+                state = PhotoUploadState.Failed,
+                error = "Photo service unavailable",
+            )
+            return
+        }
+        photoUploadStatus[uri] = PhotoUploadEntry(state = PhotoUploadState.Pending)
+        scope.launch {
+            photoUploadSemaphore.withPermit {
+                photoUploadStatus[uri] =
+                    PhotoUploadEntry(state = PhotoUploadState.Uploading, progress = 0.15f)
+                try {
+                    when (val result = svc.uploadImage(context, uri)) {
+                        is ApiResult.Success -> {
+                            // Avoid duplicate appends if the user retried.
+                            if (!uploadedImageUrls.contains(result.data)) {
+                                uploadedImageUrls.add(result.data)
+                            }
+                            photoUploadStatus[uri] = PhotoUploadEntry(
+                                state = PhotoUploadState.Succeeded,
+                                progress = 1f,
+                                remoteUrl = result.data,
+                            )
+                        }
+                        is ApiResult.Failure -> {
+                            photoUploadStatus[uri] = PhotoUploadEntry(
+                                state = PhotoUploadState.Failed,
+                                error = result.error.message ?: "Upload failed",
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    timber.log.Timber.w(e, "Eager photo upload failed for %s", uri)
+                    photoUploadStatus[uri] = PhotoUploadEntry(
+                        state = PhotoUploadState.Failed,
+                        error = e.message ?: "Upload failed",
+                    )
+                }
+            }
+        }
+    }
+
     val progress = (currentStep + 1).toFloat() / totalSteps
 
     // Dismiss upload overlay when API call finishes (success transitions to success screen;
@@ -1052,6 +1256,113 @@ private fun CreateListingWizardScreen(
         if (!isApiPublishing && isUploadingOverlay) {
             isUploadingOverlay = false
         }
+    }
+
+    // ── Autosave ────────────────────────────────────────────────────────
+    //
+    // Build the current draft snapshot from whichever form fields are
+    // currently bound. This is re-used by both the legacy on-Next save
+    // (which we keep for belt-and-suspenders reasons) AND the debounced
+    // autosave below so resuming cannot lose fields the host typed but
+    // never advanced past.
+    fun buildCurrentDraft(): ListingDraftData = ListingDraftData(
+        listingMode = listingMode.backendValue,
+        resourceKind = resourceKind.name,
+        subCategory = subCategory,
+        title = title.trim(),
+        description = description.trim(),
+        address = address,
+        city = city,
+        state = state,
+        latitude = locationLat,
+        longitude = locationLng,
+        basePrice = basePrice,
+        totalCost = totalCost,
+        pricingUnit = selectedPricingUnit.value,
+        amenities = amenities.toList(),
+        deadlineAt = deadlineAt,
+        requirements = requirements,
+        uploadedImageUrls = uploadedImageUrls.toList(),
+        selectedDurations = selectedDurations.toList(),
+        selectedDays = selectedDays.toList(),
+        startTime = startTime,
+        endTime = endTime,
+        timezone = timezone,
+        minStay = minStay,
+        maxStay = maxStay,
+        checkinTime = checkinTime,
+        checkoutTime = checkoutTime,
+        minMonths = minMonths,
+        availableFrom = availableFrom,
+        maxGuests = maxGuests,
+        bedrooms = bedrooms,
+        bathrooms = bathrooms,
+        vehicleCapacity = vehicleCapacity,
+        parkingCovered = parkingCovered,
+        parkingEvCharging = parkingEvCharging,
+        parkingAccess247 = parkingAccess247,
+        parkingSizeLimit = parkingSizeLimit,
+        parkingSecurityFeatures = parkingSecurityFeatures.toList(),
+        deposit = deposit,
+        condition = condition,
+        pickupDeliveryOptions = pickupDeliveryOptions.toList(),
+        serviceDurationMinutes = serviceDurationMinutes,
+        wifi = WifiAccessDraft(
+            included = wifiIncluded,
+            ssid = wifiSsid.trim(),
+            password = wifiPassword,
+            showAfterBooking = wifiShowAfterBooking,
+            autoGenerateQrCode = wifiAutoQr,
+            extensionEnabled = wifiExtensionEnabled,
+            extensionPricePerHour = wifiExtensionPrice,
+            experienceTags = wifiExperienceTags.toList(),
+        ),
+        sessionType = sessionType?.backendValue.orEmpty(),
+        onlineSession = OnlineSessionDraft(
+            platforms = onlinePlatforms.toList(),
+            sessionLink = onlineSessionLink,
+            shareLinkAfterBooking = shareLinkAfterBooking,
+            timeZone = onlineTimeZone,
+            meetingInstructions = meetingInstructions,
+            notes = onlineNotes,
+        ),
+    )
+
+    // Debounced autosave. `snapshotFlow` tracks any Compose state read in
+    // buildCurrentDraft(), so editing any field — title, a parking toggle,
+    // a schedule chip — triggers a save 400ms after the last edit. The
+    // 400ms window bounds how much typing can be lost to a crash while
+    // keeping SharedPreferences writes from thrashing. We skip the first
+    // no-op emission because the initial composition fires before the
+    // host has typed anything.
+    if (draftStore != null) {
+        LaunchedEffect(draftStore, initialDraft) {
+            // `drop(1)` would skip one too many after a resume; instead
+            // we gate with a dirty flag that flips on first change.
+            var hasSeenChange = false
+            val baseline = initialDraft ?: ListingDraftData(
+                listingMode = listingMode.backendValue,
+                resourceKind = resourceKind.name,
+                subCategory = subCategory,
+            )
+            snapshotFlow { buildCurrentDraft() }
+                .debounce(400)
+                .distinctUntilChanged()
+                .collect { draft ->
+                    if (!hasSeenChange && draft == baseline) return@collect
+                    hasSeenChange = true
+                    draftStore.save(draft)
+                    onDraftChanged()
+                }
+        }
+    }
+
+    // Step-back via system back. Priority over the outer BackHandler so
+    // the host always steps back one wizard screen instead of exiting.
+    BackHandler(enabled = currentStep > 0) {
+        validationMessage = null
+        onClearPublishError()
+        currentStep--
     }
 
     // Schema-driven validation.  Each step only validates fields the active
@@ -1146,10 +1457,23 @@ private fun CreateListingWizardScreen(
                     if (price < 1.0) return "Price must be at least \$1."
                 }
                 if (schema.hasField(ListingField.PHOTOS) &&
-                    listingMode != ListingMode.SPLIT &&
-                    selectedImageUris.isEmpty() && uploadedImageUrls.isEmpty()
+                    listingMode != ListingMode.SPLIT
                 ) {
-                    return "Add at least 1 photo."
+                    val hasAnyPhoto = selectedImageUris.isNotEmpty() ||
+                        uploadedImageUrls.isNotEmpty()
+                    if (!hasAnyPhoto) return "Add at least 1 photo."
+                    // With eager upload, each picked URI is either uploading,
+                    // succeeded, or failed. Block advancement until all are
+                    // resolved so publish isn't gated by a spinner overlay.
+                    val pending = selectedImageUris.count { uri ->
+                        val s = photoUploadStatus[uri]?.state
+                        s == PhotoUploadState.Pending || s == PhotoUploadState.Uploading
+                    }
+                    if (pending > 0) return "Photos are still uploading. Please wait."
+                    val failed = selectedImageUris.count { uri ->
+                        photoUploadStatus[uri]?.state == PhotoUploadState.Failed
+                    }
+                    if (failed > 0) return "Some photos failed to upload. Tap Retry or remove them."
                 }
                 // Service listings must explicitly choose a delivery mode
                 // before they can continue.  The UX requirement is no
@@ -1266,136 +1590,24 @@ private fun CreateListingWizardScreen(
                         return@WizardBottomBar
                     }
                     if (currentStep < totalSteps - 1) {
-                        // iOS parity: auto-save draft when navigating between steps.
-                        // Persist everything the wizard will need to rehydrate,
-                        // including already-uploaded photo URLs so Resume does
-                        // not lose them.
-                        draftStore?.save(ListingDraftData(
-                            listingMode = listingMode.backendValue,
-                            resourceKind = resourceKind.name,
-                            subCategory = subCategory,
-                            title = title.trim(),
-                            description = description.trim(),
-                            address = address,
-                            city = city,
-                            state = state,
-                            latitude = locationLat,
-                            longitude = locationLng,
-                            basePrice = basePrice,
-                            totalCost = totalCost,
-                            pricingUnit = selectedPricingUnit.value,
-                            amenities = amenities.toList(),
-                            deadlineAt = deadlineAt,
-                            requirements = requirements,
-                            uploadedImageUrls = uploadedImageUrls.toList(),
-                            selectedDurations = selectedDurations.toList(),
-                            selectedDays = selectedDays.toList(),
-                            startTime = startTime,
-                            endTime = endTime,
-                            timezone = timezone,
-                            minStay = minStay,
-                            maxStay = maxStay,
-                            checkinTime = checkinTime,
-                            checkoutTime = checkoutTime,
-                            minMonths = minMonths,
-                            availableFrom = availableFrom,
-                            maxGuests = maxGuests,
-                            bedrooms = bedrooms,
-                            bathrooms = bathrooms,
-                            vehicleCapacity = vehicleCapacity,
-                            parkingCovered = parkingCovered,
-                            parkingEvCharging = parkingEvCharging,
-                            parkingAccess247 = parkingAccess247,
-                            parkingSizeLimit = parkingSizeLimit,
-                            parkingSecurityFeatures = parkingSecurityFeatures.toList(),
-                            deposit = deposit,
-                            condition = condition,
-                            pickupDeliveryOptions = pickupDeliveryOptions.toList(),
-                            serviceDurationMinutes = serviceDurationMinutes,
-                            wifi = WifiAccessDraft(
-                                included = wifiIncluded,
-                                ssid = wifiSsid.trim(),
-                                password = wifiPassword,
-                                showAfterBooking = wifiShowAfterBooking,
-                                autoGenerateQrCode = wifiAutoQr,
-                                extensionEnabled = wifiExtensionEnabled,
-                                extensionPricePerHour = wifiExtensionPrice,
-                                experienceTags = wifiExperienceTags.toList(),
-                            ),
-                            sessionType = sessionType?.backendValue.orEmpty(),
-                            onlineSession = OnlineSessionDraft(
-                                platforms = onlinePlatforms.toList(),
-                                sessionLink = onlineSessionLink,
-                                shareLinkAfterBooking = shareLinkAfterBooking,
-                                timeZone = onlineTimeZone,
-                                meetingInstructions = meetingInstructions,
-                                notes = onlineNotes,
-                            ),
-                        ))
+                        // Belt-and-suspenders: the debounced autosave
+                        // above already writes on every change, but we
+                        // force a flush on step advance so a crash in
+                        // the 400ms debounce window still keeps the
+                        // committed step.
+                        draftStore?.save(buildCurrentDraft())
                         currentStep++
                     } else {
-                        // Build payload matching iOS ListingsPublisherService
+                        // Build payload matching iOS ListingsPublisherService.
+                        // Photos have already been uploaded eagerly (see
+                        // startPhotoUpload), so publish reads the resulting
+                        // URL list directly. Validation above guarantees
+                        // there are no in-flight or failed uploads.
                         isUploadingOverlay = true
                         onClearPublishError()
                         scope.launch {
-                            // iOS parity: upload images to Cloudinary first, fallback to base64
-                            val imageUrls = mutableListOf<String>()
-                            imageUrls.addAll(uploadedImageUrls)
-
-                            if (imageUploadService != null && selectedImageUris.isNotEmpty()) {
-                                isUploadingImages = true
-                                val totalImages = selectedImageUris.size
-                                var uploadedCount = 0
-                                for (uri in selectedImageUris) {
-                                    if (uploadedImageUrls.any { it.contains(uri.lastPathSegment ?: "") }) {
-                                        uploadedCount++
-                                        continue
-                                    }
-                                    val pct = ((uploadedCount.toFloat() / totalImages) * 100).toInt()
-                                    uploadProgressText = "Uploading photos\u2026 $pct%"
-                                    when (val result = imageUploadService.uploadImage(context, uri)) {
-                                        is ApiResult.Success -> imageUrls.add(result.data)
-                                        is ApiResult.Failure -> {
-                                            // Fallback: compress and encode as base64 data URL
-                                            try {
-                                                val stream = context.contentResolver.openInputStream(uri)
-                                                val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
-                                                stream?.close()
-                                                if (bitmap != null) {
-                                                    // Compress: max 1024px, JPEG 70% quality (matches website: 1024px, 0.7 quality)
-                                                    val maxDim = 1024
-                                                    val ratio = if (bitmap.width > maxDim || bitmap.height > maxDim) {
-                                                        minOf(maxDim.toFloat() / bitmap.width, maxDim.toFloat() / bitmap.height)
-                                                    } else 1f
-                                                    val scaled = if (ratio < 1f) {
-                                                        android.graphics.Bitmap.createScaledBitmap(
-                                                            bitmap,
-                                                            (bitmap.width * ratio).toInt().coerceAtLeast(1),
-                                                            (bitmap.height * ratio).toInt().coerceAtLeast(1),
-                                                            true,
-                                                        )
-                                                    } else bitmap
-                                                    val baos = java.io.ByteArrayOutputStream()
-                                                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, baos)
-                                                    if (scaled !== bitmap) scaled.recycle()
-                                                    bitmap.recycle()
-                                                    val compressedBytes = baos.toByteArray()
-                                                    timber.log.Timber.d("Image fallback: compressed to ${compressedBytes.size} bytes")
-                                                    val b64 = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
-                                                    imageUrls.add("data:image/jpeg;base64,$b64")
-                                                }
-                                            } catch (e: Exception) {
-                                                timber.log.Timber.w(e, "Base64 fallback failed for image upload")
-                                            }
-                                        }
-                                    }
-                                    uploadedCount++
-                                }
-                                uploadProgressText = "Publishing\u2026"
-                                isUploadingImages = false
-                            } else {
-                                uploadProgressText = "Publishing\u2026"
-                            }
+                            val imageUrls = uploadedImageUrls.toList()
+                            uploadProgressText = "Publishing\u2026"
 
                             val resolvedPrice = if (listingMode == ListingMode.SPLIT) {
                                 totalCost.toDoubleOrNull() ?: 0.0
@@ -1614,6 +1826,17 @@ private fun CreateListingWizardScreen(
                 trackColor = PaceDreamColors.Border,
             )
 
+            // Persistent reminder so hosts without Stripe Connect see the
+            // blocker up-front instead of being surprised at Publish.
+            if (currentStep == 0 && payoutReady == false) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                PayoutSetupBanner(
+                    onSetup = onRequestPayoutSetup,
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            }
+
             AnimatedContent(
                 targetState = currentStep,
                 transitionSpec = {
@@ -1643,13 +1866,30 @@ private fun CreateListingWizardScreen(
                         listingMode = listingMode,
                         schema = schema,
                         selectedImageUris = selectedImageUris,
+                        photoUploadStatus = photoUploadStatus,
                         onImagesSelected = { uris ->
                             val remaining = MAX_PHOTOS - selectedImageUris.size
-                            selectedImageUris.addAll(uris.take(remaining))
+                            val picked = uris.take(remaining)
+                            selectedImageUris.addAll(picked)
+                            // Kick off eager upload for each picked URI so
+                            // thumbnails show real progress and Publish
+                            // does not turn into a long synchronous wait.
+                            picked.forEach { startPhotoUpload(it) }
                         },
                         onRemoveImage = { index ->
-                            if (index in selectedImageUris.indices) selectedImageUris.removeAt(index)
+                            if (index in selectedImageUris.indices) {
+                                val removed = selectedImageUris.removeAt(index)
+                                // Free any pending upload slot + drop the
+                                // remote URL so Publish does not ship a
+                                // photo the host removed.
+                                photoUploadStatus.remove(removed)?.let { entry ->
+                                    entry.remoteUrl?.let { url ->
+                                        uploadedImageUrls.remove(url)
+                                    }
+                                }
+                            }
                         },
+                        onRetryUpload = { uri -> startPhotoUpload(uri) },
                         address = address,
                         city = city,
                         state = state,
@@ -1980,18 +2220,11 @@ private fun BasicsStep(
         if (listingMode == ListingMode.SPLIT) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             FormSection(title = "Split details (optional)") {
-                OutlinedTextField(
+                DateField(
+                    label = "Deadline (optional)",
                     value = deadlineAt,
                     onValueChange = onDeadlineAtChange,
-                    label = { Text("Deadline (optional)", style = PaceDreamTypography.Callout) },
-                    placeholder = { Text("e.g. 2026-04-01", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
                 OutlinedTextField(
                     value = requirements,
@@ -2018,8 +2251,10 @@ private fun PhotosLocationPricingStep(
     listingMode: ListingMode,
     schema: SubcategorySchema,
     selectedImageUris: List<Uri>,
+    photoUploadStatus: Map<Uri, PhotoUploadEntry> = emptyMap(),
     onImagesSelected: (List<Uri>) -> Unit,
     onRemoveImage: (Int) -> Unit,
+    onRetryUpload: (Uri) -> Unit = {},
     address: String,
     city: String,
     state: String,
@@ -2094,9 +2329,14 @@ private fun PhotosLocationPricingStep(
     val showPhotos = schema.hasField(ListingField.PHOTOS)
     val showAmenities = schema.hasField(ListingField.AMENITIES) && schema.amenityOptions.isNotEmpty()
 
-    // iOS parity: image picker using ActivityResultContracts
+    // Use Android 13+ system Photo Picker with a sensible cap. On older
+    // devices this contract transparently falls back to the legacy
+    // chooser, so no separate code path is needed. Bounding `maxItems`
+    // by what's left under MAX_PHOTOS means the user can't accidentally
+    // pick 20 and then lose context on which were dropped.
+    val remainingSlots = (MAX_PHOTOS - selectedImageUris.size).coerceAtLeast(1)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = remainingSlots)
     ) { uris ->
         if (uris.isNotEmpty()) {
             onImagesSelected(uris)
@@ -2127,8 +2367,9 @@ private fun PhotosLocationPricingStep(
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
             ) {
-                // Show selected image thumbnails
+                // Show selected image thumbnails with per-image upload state.
                 selectedImageUris.forEachIndexed { index, uri ->
+                    val entry = photoUploadStatus[uri]
                     Box(modifier = Modifier.size(100.dp)) {
                         AsyncImage(
                             model = uri,
@@ -2138,29 +2379,85 @@ private fun PhotosLocationPricingStep(
                                 .fillMaxSize()
                                 .clip(RoundedCornerShape(PaceDreamRadius.MD)),
                         )
-                        // Remove button
+                        // Upload state overlay — progress ring while
+                        // uploading, retry button if the upload failed.
+                        when (entry?.state) {
+                            PhotoUploadState.Pending,
+                            PhotoUploadState.Uploading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                        .background(Color.Black.copy(alpha = 0.35f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        progress = { entry.progress.coerceIn(0f, 1f) },
+                                        modifier = Modifier.size(28.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                    )
+                                }
+                            }
+                            PhotoUploadState.Failed -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
+                                        .background(Color.Black.copy(alpha = 0.55f))
+                                        .clickable { onRetryUpload(uri) }
+                                        .semantics {
+                                            contentDescription = "Retry upload for photo ${index + 1}"
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "Retry",
+                                        style = PaceDreamTypography.Caption,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                            else -> Unit
+                        }
+                        // Remove button — 48dp hit-target (Android min) while
+                        // keeping the 24dp visual circle.
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .size(24.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.6f))
-                                .clickable { onRemoveImage(index) },
-                            contentAlignment = Alignment.Center,
+                                .size(48.dp)
+                                .clickable { onRemoveImage(index) }
+                                .semantics { contentDescription = "Remove photo ${index + 1}" },
+                            contentAlignment = Alignment.TopEnd,
                         ) {
-                            Icon(
-                                PaceDreamIcons.Close,
-                                contentDescription = "Remove",
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp),
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.6f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    PaceDreamIcons.Close,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
                         }
                     }
                 }
                 // Add photo button (if under limit)
                 if (selectedImageUris.size < MAX_PHOTOS) {
                     PhotoUploadPlaceholder(
-                        onClick = { imagePickerLauncher.launch("image/*") },
+                        onClick = {
+                            imagePickerLauncher.launch(
+                                PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
                         photoCount = selectedImageUris.size,
                     )
                 }
@@ -2257,17 +2554,11 @@ private fun PhotosLocationPricingStep(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                OutlinedTextField(
+                TimezoneField(
                     value = onlineTimeZone,
                     onValueChange = onOnlineTimeZoneChange,
-                    label = { Text("e.g. America/New_York", style = PaceDreamTypography.Callout) },
+                    label = "Time zone",
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -3237,29 +3528,17 @@ private fun ScheduleAvailabilityStep(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             ) {
-                OutlinedTextField(
+                TimeField(
+                    label = "Start Time",
                     value = startTime,
                     onValueChange = onStartTimeChange,
-                    label = { Text("Start Time", style = PaceDreamTypography.Callout) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
-                OutlinedTextField(
+                TimeField(
+                    label = "End Time",
                     value = endTime,
                     onValueChange = onEndTimeChange,
-                    label = { Text("End Time", style = PaceDreamTypography.Callout) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
             }
         }
@@ -3322,31 +3601,17 @@ private fun ScheduleAvailabilityStep(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             ) {
-                OutlinedTextField(
+                TimeField(
+                    label = "Check-in Time",
                     value = checkinTime,
                     onValueChange = onCheckinTimeChange,
-                    label = { Text("Check-in Time", style = PaceDreamTypography.Callout) },
-                    placeholder = { Text("15:00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
-                OutlinedTextField(
+                TimeField(
+                    label = "Check-out Time",
                     value = checkoutTime,
                     onValueChange = onCheckoutTimeChange,
-                    label = { Text("Check-out Time", style = PaceDreamTypography.Callout) },
-                    placeholder = { Text("11:00", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
                     modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaceDreamColors.HostAccent,
-                        unfocusedBorderColor = PaceDreamColors.Border,
-                    ),
                 )
             }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
@@ -3396,18 +3661,11 @@ private fun ScheduleAvailabilityStep(
                 color = PaceDreamColors.TextPrimary,
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-            OutlinedTextField(
+            DateField(
+                label = "Earliest move-in date",
                 value = availableFrom,
                 onValueChange = onAvailableFromChange,
-                label = { Text("Earliest move-in date", style = PaceDreamTypography.Callout) },
-                placeholder = { Text("YYYY-MM-DD", style = PaceDreamTypography.Body, color = PaceDreamColors.TextSecondary) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaceDreamColors.HostAccent,
-                    unfocusedBorderColor = PaceDreamColors.Border,
-                ),
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
@@ -3452,17 +3710,11 @@ private fun ScheduleAvailabilityStep(
         // Timezone (all modes)
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
 
-        OutlinedTextField(
+        TimezoneField(
             value = timezone,
             onValueChange = onTimezoneChange,
-            label = { Text("Timezone", style = PaceDreamTypography.Callout) },
+            label = "Timezone",
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PaceDreamColors.HostAccent,
-                unfocusedBorderColor = PaceDreamColors.Border,
-            ),
         )
     }
 }
@@ -4209,8 +4461,18 @@ private fun PhotoUploadPlaceholder(onClick: () -> Unit, photoCount: Int = 0) {
     }
 }
 
-// iOS parity: max 10 photos per listing
+// Max 10 photos per listing (iOS parity).
 private const val MAX_PHOTOS = 10
+
+/** Per-URI upload status surfaced on each thumbnail. */
+internal enum class PhotoUploadState { Pending, Uploading, Succeeded, Failed }
+
+internal data class PhotoUploadEntry(
+    val state: PhotoUploadState = PhotoUploadState.Pending,
+    val progress: Float = 0f,
+    val remoteUrl: String? = null,
+    val error: String? = null,
+)
 // Amenity options are now owned by the schema registry
 // (see `SubcategorySchema.amenityOptions`).
 

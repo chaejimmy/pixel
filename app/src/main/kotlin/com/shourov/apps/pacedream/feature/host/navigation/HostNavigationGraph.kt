@@ -135,8 +135,15 @@ fun NavGraphBuilder.HostNavigationGraph(
     composable(HostScreen.Post.route) {
         HostPostScreen(
             onCreateListingClick = onNavigateToAddListing,
-            onCreateListingWithType = { type ->
-                navController.navigate("${HostNavigationDestinations.ADD_LISTING}?type=$type")
+            onCreateListingWithType = { kindOrType ->
+                // `kindOrType` is `spaces` / `items` / `services` (new
+                // payload) OR legacy `share` / `borrow` / `split`. The
+                // add-listing route parses both — we pass it through as
+                // `kind` first, which falls back to listing-mode parsing
+                // inside CreateListingScreen.
+                navController.navigate(
+                    "${HostNavigationDestinations.ADD_LISTING}?kind=$kindOrType"
+                )
             },
             onMyListingsClick = { navController.navigate(HostScreen.Listings.route) },
             onAnalyticsClick = { navController.navigate(HostScreen.Analytics.route) }
@@ -259,13 +266,40 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    composable("${HostNavigationDestinations.ADD_LISTING}?type={type}") { backStackEntry ->
+    composable(
+        route = "${HostNavigationDestinations.ADD_LISTING}?type={type}&kind={kind}&sub={sub}",
+        arguments = listOf(
+            navArgument("type") { type = NavType.StringType; defaultValue = "share" },
+            navArgument("kind") { type = NavType.StringType; defaultValue = "" },
+            navArgument("sub")  { type = NavType.StringType; defaultValue = "" },
+        ),
+    ) { backStackEntry ->
         val typeParam = backStackEntry.arguments?.getString("type") ?: "share"
-        val listingMode = when (typeParam.lowercase()) {
+        val kindParam = backStackEntry.arguments?.getString("kind").orEmpty()
+        val subParam  = backStackEntry.arguments?.getString("sub").orEmpty()
+        // The Post hub and deep links may pass either a resource kind
+        // (spaces / items / services) or a legacy listing mode
+        // (share / borrow / split). Both arrive in the `kind=` or
+        // `type=` slot. We resolve resource kind first, then derive
+        // the listing mode so the whole wizard stays consistent.
+        fun parseKind(raw: String): com.shourov.apps.pacedream.feature.host.presentation.ResourceKind? =
+            when (raw.lowercase()) {
+                "spaces" -> com.shourov.apps.pacedream.feature.host.presentation.ResourceKind.SPACES
+                "items" -> com.shourov.apps.pacedream.feature.host.presentation.ResourceKind.ITEMS
+                "services" -> com.shourov.apps.pacedream.feature.host.presentation.ResourceKind.SERVICES
+                else -> null
+            }
+        fun parseMode(raw: String): ListingMode? = when (raw.lowercase()) {
             "borrow" -> ListingMode.BORROW
             "split" -> ListingMode.SPLIT
-            else -> ListingMode.SHARE
+            "share" -> ListingMode.SHARE
+            else -> null
         }
+        val initialKind = parseKind(kindParam) ?: parseKind(typeParam)
+        val listingMode = initialKind?.listingMode
+            ?: parseMode(kindParam)
+            ?: parseMode(typeParam)
+            ?: ListingMode.SHARE
         val context = LocalContext.current
         val uploadService = try {
             EntryPointAccessors.fromApplication(
@@ -280,6 +314,13 @@ fun NavGraphBuilder.HostNavigationGraph(
         CreateListingScreen(
             listingMode = listingMode,
             imageUploadService = uploadService,
+            initialResourceKind = initialKind,
+            initialSubCategory = subParam,
+            onNavigateToPayoutSetup = {
+                navController.navigate(HostScreen.PaymentSetup.route) {
+                    launchSingleTop = true
+                }
+            },
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
                 // View Listing → navigate to host listing detail
@@ -334,6 +375,11 @@ fun NavGraphBuilder.HostNavigationGraph(
         CreateListingScreen(
             listingMode = ListingMode.SHARE,
             imageUploadService = uploadService,
+            onNavigateToPayoutSetup = {
+                navController.navigate(HostScreen.PaymentSetup.route) {
+                    launchSingleTop = true
+                }
+            },
             onBackClick = { navController.popBackStack() },
             onPublishSuccess = { listingId ->
                 // View Listing → navigate to host listing detail
