@@ -134,7 +134,7 @@ fun SearchScreen(
                         ),
                         color = PaceDreamColors.TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
                         "Spaces \u00B7 Items \u00B7 Services",
                         style = PaceDreamTypography.Footnote.copy(
@@ -232,7 +232,7 @@ fun SearchScreen(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.padding(
                                     horizontal = PaceDreamSpacing.MD,
-                                    vertical = 10.dp
+                                    vertical = PaceDreamSpacing.SM
                                 )
                             ) {
                                 Text(
@@ -338,8 +338,8 @@ fun SearchScreen(
                         top = PaceDreamSpacing.SM,
                         bottom = PaceDreamSpacing.XL
                     ),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(uiState.results) { item ->
@@ -499,7 +499,7 @@ private fun SearchResultCard(
                                 tint = Color(0xFFFFBE0B),
                                 modifier = Modifier.size(10.dp)
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
                             Text(
                                 text = String.format("%.1f", rating),
                                 style = PaceDreamTypography.Caption2.copy(
@@ -516,8 +516,8 @@ private fun SearchResultCard(
             // Info section (iOS parity: proper spacing, font sizes)
             Column(
                 modifier = Modifier.padding(
-                    horizontal = 10.dp,
-                    vertical = 10.dp
+                    horizontal = PaceDreamSpacing.SM,
+                    vertical = PaceDreamSpacing.SM
                 )
             ) {
                 Text(
@@ -532,7 +532,7 @@ private fun SearchResultCard(
                 )
 
                 item.location?.let { loc ->
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             PaceDreamIcons.LocationOn,
@@ -540,7 +540,7 @@ private fun SearchResultCard(
                             tint = PaceDreamColors.TextTertiary,
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
                         Text(
                             text = loc,
                             style = PaceDreamTypography.Caption.copy(
@@ -553,7 +553,7 @@ private fun SearchResultCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -608,8 +608,8 @@ private fun SearchShimmerGrid() {
             horizontal = PaceDreamSpacing.MD,
             vertical = PaceDreamSpacing.SM
         ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
         modifier = Modifier.fillMaxSize()
     ) {
         items(6) {
@@ -631,7 +631,7 @@ private fun SearchShimmerGrid() {
                             )
                             .background(shimmerBrush)
                     )
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(0.85f)
@@ -639,7 +639,7 @@ private fun SearchShimmerGrid() {
                                 .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(shimmerBrush)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(0.6f)
@@ -647,7 +647,7 @@ private fun SearchShimmerGrid() {
                                 .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(shimmerBrush)
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(0.4f)
@@ -720,7 +720,7 @@ private fun SearchErrorState(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
             ) {
                 Text(
                     "Retry",

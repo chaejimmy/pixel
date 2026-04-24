@@ -107,7 +107,7 @@ fun EnhancedSearchBar(
                             modifier = Modifier.size(16.dp),
                             tint = PaceDreamColors.Primary
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = "Nearby",
                             style = PaceDreamTypography.Caption,

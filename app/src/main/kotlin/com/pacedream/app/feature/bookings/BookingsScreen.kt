@@ -176,6 +176,7 @@ fun BookingsScreen(
 
                         // Bottom padding for nav bar
                         item {
+                            // intentional: 80.dp clears the bottom nav bar + FAB; between XXXL (64) and XXXL+MD — neither fits
                             Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
@@ -274,9 +275,9 @@ private fun BookingTabPicker(
                         shape = RoundedCornerShape(PaceDreamRadius.Round)
                     )
                     .clickable { onTabSelected(tab) }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 // Tab icon
                 val icon = when (tab) {
@@ -310,7 +311,7 @@ private fun BookingTabPicker(
                                 else PaceDreamColors.Gray300.copy(alpha = 0.3f),
                                 shape = RoundedCornerShape(PaceDreamRadius.Round)
                             )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XXS)
                     )
                 }
             }
@@ -378,7 +379,7 @@ private fun UnifiedBookingCard(
                     role = item.role,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(12.dp)
+                        .padding(PaceDreamSpacing.SM2)
                 )
 
                 // Top-right: Status badge
@@ -386,17 +387,17 @@ private fun UnifiedBookingCard(
                     config = statusConfig,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp)
+                        .padding(PaceDreamSpacing.SM2)
                 )
             }
 
             // ── Booking Details ──
             Column(
                 modifier = Modifier.padding(PaceDreamSpacing.MD),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 // Title + location
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
                     Text(
                         text = item.title,
                         style = PaceDreamTypography.Headline,
@@ -408,7 +409,7 @@ private fun UnifiedBookingCard(
                     if (item.location != "—") {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.LocationOn,
@@ -428,7 +429,7 @@ private fun UnifiedBookingCard(
                 }
 
                 // Detail rows
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                     BookingDetailRow(
                         icon = PaceDreamIcons.CalendarToday,
                         label = "Dates",
@@ -521,7 +522,7 @@ private fun UnifiedBookingCard(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
                         "View Details",
                         style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
@@ -561,9 +562,9 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
             .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
     ) {
         Icon(
             imageVector = icon,
@@ -590,9 +591,9 @@ private fun StatusBadge(config: BookingStatusConfig, modifier: Modifier = Modifi
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
             .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
     ) {
         Icon(
             imageVector = icon,
@@ -662,7 +663,7 @@ private fun BookingDetailRow(
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         Icon(
             imageVector = icon,
@@ -720,7 +721,7 @@ private fun BookingCardSkeleton() {
 
             Column(
                 modifier = Modifier.padding(PaceDreamSpacing.MD),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 // Title skeleton
                 Box(

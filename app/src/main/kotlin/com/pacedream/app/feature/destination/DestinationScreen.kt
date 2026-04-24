@@ -45,6 +45,7 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 // ── Data Models (iOS DestinationLandingView parity) ──────────────
 
 @Serializable
@@ -421,7 +422,7 @@ private fun ListingCardCompact(listing: DestinationListing, onClick: () -> Unit)
             Column(Modifier.padding(PaceDreamSpacing.SM)) {
                 Text(listing.title, style = PaceDreamTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(listing.location, style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary, maxLines = 1)
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(PaceDreamSpacing.XS))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(PaceDreamIcons.Star, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(14.dp))
                     Text(String.format("%.1f", listing.rating), style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold)
@@ -445,15 +446,15 @@ private fun ListingCardGrid(listing: DestinationListing, onClick: () -> Unit) {
             Column(Modifier.padding(PaceDreamSpacing.SM)) {
                 Text(listing.title, style = PaceDreamTypography.Body, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(listing.location, style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary, maxLines = 1)
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(PaceDreamSpacing.XS))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(PaceDreamIcons.Star, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(2.dp))
+                    Spacer(Modifier.width(PaceDreamSpacing.XXS))
                     Text(String.format("%.1f", listing.rating), style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold)
                     Text(" (${listing.reviewCount})", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
                 }
                 listing.hostName?.let { Text("by $it", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextTertiary, maxLines = 1) }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(PaceDreamSpacing.XXS))
                 Text("$${listing.price.toInt()}/night", style = PaceDreamTypography.Body, fontWeight = FontWeight.Bold, color = PaceDreamColors.Primary)
             }
         }
