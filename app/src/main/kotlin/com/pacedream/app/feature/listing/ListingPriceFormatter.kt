@@ -51,12 +51,14 @@ object ListingPriceFormatter {
                 ?: p["base_price"]?.jsonPrimitive?.doubleOrNull
                 ?: p["price"]?.jsonPrimitive?.doubleOrNull
                 ?: p["price"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
-            val unit = p["frequencyLabel"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
+            val explicitUnit = p["frequencyLabel"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                 ?: p["frequency"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                 ?: p["pricing_type"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                 ?: p["unit"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
-                ?: standaloneUnit
             val amount = hourlyFrom ?: basePrice
+            // hourlyFrom is self-describing — never let the standalone fallback
+            // override it to month/day.
+            val unit = explicitUnit ?: if (hourlyFrom != null) "hr" else standaloneUnit
             amount?.let { formatPrice(it, unit) }
         }?.let { return@runCatching it }
 
@@ -179,10 +181,49 @@ object ListingPriceFormatter {
                     ?: p["frequency"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                     ?: p["unit"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
             }
-            // Final fallback: infer from a `prices` map's single non-zero key
-            // so a pricing/price shape that carries an amount but no unit still
+            // Infer from the `prices` map's single non-zero key so a
+            // pricing/price shape that carries an amount but no unit still
             // renders the period (e.g. "$800/month" when `prices.month = 800`).
             ?: (this["prices"] as? JsonObject)?.pricesMapUnit()
+            // Infer from scheduling fields the host flow only populates for
+            // one pricing mode: minMonths/availableFrom → month, durations →
+            // hr, minStay/maxStay → day. See CreateListingScreen where each
+            // field is guarded by `pricingMode == "month|hour|day"`.
+            ?: inferUnitFromScheduleFields()
+            // Last resort: shareType-based defaults so BORROW listings (rental
+            // items — typically daily) and SPLIT listings (events /
+            // subscriptions — typically monthly) still surface a unit when the
+            // backend strips every other hint.
+            ?: inferUnitFromShareType()
+
+    private fun JsonObject.inferUnitFromScheduleFields(): String? {
+        if (this["minMonths"] != null || this["min_months"] != null ||
+            (this["availableFrom"] as? JsonPrimitive)?.contentOrNull?.isNotBlank() == true ||
+            (this["available_from"] as? JsonPrimitive)?.contentOrNull?.isNotBlank() == true
+        ) return "month"
+        if ((this["durations"] as? JsonArray)?.isNotEmpty() == true) return "hr"
+        if (this["minStay"] != null || this["min_stay"] != null ||
+            this["maxStay"] != null || this["max_stay"] != null
+        ) return "day"
+        return null
+    }
+
+    private fun JsonObject.inferUnitFromShareType(): String? {
+        val shareType = (this["shareType"] as? JsonPrimitive)?.contentOrNull
+            ?: (this["share_type"] as? JsonPrimitive)?.contentOrNull
+            ?: return null
+        // Hourly and daily spaces almost always ship with structured pricing
+        // (dynamic_price.hourly / dynamic_price.daily / pricing.hourlyFrom),
+        // so a USE listing that reaches this fallback is almost certainly a
+        // long-term rental — default to month. BORROW (rental items) defaults
+        // to day; SPLIT (events / subscriptions) to month.
+        return when (shareType.uppercase()) {
+            "BORROW" -> "day"
+            "SPLIT" -> "month"
+            "USE", "SHARE" -> "month"
+            else -> null
+        }
+    }
 
     private fun JsonObject.pricesMapUnit(): String? {
         fun hasAmount(key: String): Boolean {
