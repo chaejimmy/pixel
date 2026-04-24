@@ -143,12 +143,13 @@ class HomeFeedRepository @Inject constructor(
             val rating = (obj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
                 ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
-            // Discover cards — route through the shared formatter so nested
-            // dynamic_price.monthly/daily/hourly sub-objects render the correct
-            // unit (e.g. "$800/month" instead of a bare "$800"). Backend
-            // pre-formatted priceText still wins when present.
-            val priceText = obj["priceText"].stringOrNull()
-                ?: ListingPriceFormatter.parseListingPrice(obj)
+            // Discover cards — prefer the structured parse so nested
+            // dynamic_price.monthly/daily/hourly sub-objects produce the right
+            // unit (e.g. "$800/month"). The backend's pre-formatted priceText
+            // is frequently unit-less ("$800"), so we only fall back to it
+            // when no structured pricing shape is present on the payload.
+            val priceText = ListingPriceFormatter.parseListingPrice(obj)
+                ?: obj["priceText"].stringOrNull()
 
             // Extract subcategory from multiple possible fields for resource type filtering.
             val subCategory = obj["subCategory"].stringOrNull()
