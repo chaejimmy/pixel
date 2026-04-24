@@ -43,12 +43,14 @@ object ListingPriceFormatter {
             flatPrice?.let { formatPrice(it, flatUnit) }
         }?.let { return@runCatching it }
 
-        // pricing { hourlyFrom | basePrice, frequencyLabel | frequency | pricing_type | unit }
+        // pricing { hourlyFrom | basePrice | price, frequencyLabel | frequency | pricing_type | unit }
         (obj["pricing"] as? JsonObject)?.let { p ->
             val hourlyFrom = p["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
                 ?: p["hourly_from"]?.jsonPrimitive?.doubleOrNull
             val basePrice = p["basePrice"]?.jsonPrimitive?.doubleOrNull
                 ?: p["base_price"]?.jsonPrimitive?.doubleOrNull
+                ?: p["price"]?.jsonPrimitive?.doubleOrNull
+                ?: p["price"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
             val unit = p["frequencyLabel"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                 ?: p["frequency"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)
                 ?: p["pricing_type"]?.jsonPrimitive?.contentOrNull?.let(::normalizeUnit)

@@ -203,5 +203,27 @@ class HomeFeedRepositoryParsingTest {
         val cards = repo.parseListingsToCards(body)
         assertEquals("$10/hr", cards.first().priceText)
     }
+
+    @Test
+    fun `structured dynamic_price monthly wins over unitless priceText from backend`() {
+        // Backend currently returns priceText = "${'$'}800" (no unit) while the
+        // structured dynamic_price carries the monthly period. Prefer the
+        // structured inference so the badge still reads "${'$'}800/month".
+        val body = """
+            [
+              {
+                "_id": "m2",
+                "title": "Hair Booth Rental in Fairfax Salon",
+                "priceText": "${'$'}800",
+                "dynamic_price": [
+                  { "monthly": { "price": 800 } }
+                ]
+              }
+            ]
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals("$800/month", cards.first().priceText)
+    }
 }
 

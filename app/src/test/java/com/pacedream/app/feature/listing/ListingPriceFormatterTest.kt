@@ -103,6 +103,14 @@ class ListingPriceFormatterTest {
     }
 
     @Test
+    fun `pricing with plain 'price' alias and no unit returns bare dollar amount`() {
+        // The RentableItem list endpoint sends `pricing.price` without a
+        // frequency — make sure we still surface the amount instead of null.
+        val price = parse("""{ "pricing": { "price": "150" } }""")
+        assertEquals("$150", price)
+    }
+
+    @Test
     fun `price primitive with no unit still returns dollar amount`() {
         val price = parse("""{ "price": 10 }""")
         assertEquals("$10", price)
