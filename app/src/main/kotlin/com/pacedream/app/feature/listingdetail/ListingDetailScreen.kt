@@ -729,6 +729,7 @@ fun ListingDetailScreen(
                     listingId = listing?.id.orEmpty(),
                     hourlyFrom = listing?.pricing?.hourlyFrom ?: listing?.pricing?.basePrice,
                     currency = listing?.pricing?.currency,
+                    isMonthlyListing = isMonthlyListing,
                     onClose = { showReserveSheet = false },
                     onConfirm = { draft ->
                         showReserveSheet = false
@@ -749,6 +750,7 @@ private fun ReserveSheet(
     listingId: String,
     hourlyFrom: Double?,
     currency: String?,
+    isMonthlyListing: Boolean = false,
     onClose: () -> Unit,
     onConfirm: (BookingDraft) -> Unit
 ) {
@@ -804,38 +806,40 @@ private fun ReserveSheet(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
     ) {
-        // Duration selection chips
-        Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(durationOptions) { duration ->
-                val isSelected = duration == selectedDuration
-                val label = when {
-                    duration < 60 -> "${duration} min"
-                    duration % 60 == 0 -> "${duration / 60} hr"
-                    else -> "${duration / 60}h ${duration % 60}m"
-                }
-                Surface(
-                    onClick = {
-                        selectedDuration = duration
-                        selectedSlotStart = null // reset slot on duration change
-                    },
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                ) {
-                    Text(
-                        text = label,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
-                    )
+        // Duration selection chips — hidden for monthly listings (hourly concept doesn't apply).
+        if (!isMonthlyListing) {
+            Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(durationOptions) { duration ->
+                    val isSelected = duration == selectedDuration
+                    val label = when {
+                        duration < 60 -> "${duration} min"
+                        duration % 60 == 0 -> "${duration / 60} hr"
+                        else -> "${duration / 60}h ${duration % 60}m"
+                    }
+                    Surface(
+                        onClick = {
+                            selectedDuration = duration
+                            selectedSlotStart = null // reset slot on duration change
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Text(
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         // 7-day date strip
         Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -881,71 +885,73 @@ private fun ReserveSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Time slots grid — hidden for monthly listings (hourly concept doesn't apply).
+        if (!isMonthlyListing) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Time slots grid
-        Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
+            Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
 
-        if (selectedDate == null) {
-            Text(
-                "Select a date to see available times",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        } else if (timeSlots.isEmpty()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 12.dp)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            if (selectedDate == null) {
                 Text(
-                    "No available times for this day",
+                    "Select a date to see available times",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
-            }
-        } else {
-            // 2-column grid of time slot buttons (iOS parity)
-            val rows = timeSlots.chunked(2)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                rows.forEach { rowSlots ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        rowSlots.forEach { slot ->
-                            val isSelected = slot == selectedSlotStart
-                            val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
-                            Surface(
-                                onClick = { selectedSlotStart = slot },
-                                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 12.dp)
+            } else if (timeSlots.isEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "No available times for this day",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                // 2-column grid of time slot buttons (iOS parity)
+                val rows = timeSlots.chunked(2)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rows.forEach { rowSlots ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowSlots.forEach { slot ->
+                                val isSelected = slot == selectedSlotStart
+                                val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
+                                Surface(
+                                    onClick = { selectedSlotStart = slot },
+                                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        // Fill remaining columns if row is incomplete
-                        repeat(2 - rowSlots.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+                            // Fill remaining columns if row is incomplete
+                            repeat(2 - rowSlots.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
