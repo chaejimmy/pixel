@@ -712,6 +712,14 @@ fun ListingDetailScreen(
         }
 
         if (showReserveSheet) {
+            val isMonthlyListing = listing?.pricing?.frequencyLabel
+                ?.trim()
+                ?.lowercase()
+                ?.let { it == "month" || it == "monthly" || it == "mo" } == true
+            android.util.Log.d(
+                "BookingMonthly",
+                "isMonthlyListing=$isMonthlyListing listingId=${listing?.id}"
+            )
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showReserveSheet = false },
