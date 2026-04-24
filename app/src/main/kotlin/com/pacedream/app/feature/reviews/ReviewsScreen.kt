@@ -40,6 +40,7 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 // ── Data Models (iOS ReviewModel parity) ─────────────────────────
 
 @Serializable
@@ -474,7 +475,7 @@ fun ReviewsScreen(
                     if (filtered.isEmpty()) {
                         item {
                             Box(
-                                Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                                Modifier.fillMaxWidth().padding(vertical = PaceDreamSpacing.XXL),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text("No reviews in this category", color = PaceDreamColors.TextSecondary)
@@ -613,7 +614,7 @@ private fun ReviewsSummaryCard(
                 breakdown.sortedByDescending { it.rating }.forEach { item ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 2.dp)
+                        modifier = Modifier.padding(vertical = PaceDreamSpacing.XXS)
                     ) {
                         Text("${item.rating}", style = PaceDreamTypography.Caption, modifier = Modifier.width(16.dp))
                         Icon(PaceDreamIcons.Star, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(12.dp))
@@ -688,7 +689,7 @@ private fun ReviewCard(
                             modifier = Modifier.size(14.dp)
                         )
                     }
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(PaceDreamSpacing.XS))
                     Text(String.format("%.1f", review.resolvedRating), style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -725,7 +726,7 @@ private fun ReviewCard(
                 ) {
                     Column(modifier = Modifier.padding(PaceDreamSpacing.SM)) {
                         Text("Host Response", style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold, color = PaceDreamColors.Primary)
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(PaceDreamSpacing.XS))
                         Text(response.comment ?: "", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextPrimary)
                     }
                 }
@@ -737,9 +738,10 @@ private fun ReviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // intentional: 0.dp contentPadding so the TextButton's icon+label hug the leading edge
                 TextButton(onClick = onHelpful, contentPadding = PaddingValues(0.dp)) {
                     Icon(PaceDreamIcons.ThumbUp, null, modifier = Modifier.size(14.dp), tint = PaceDreamColors.TextSecondary)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(PaceDreamSpacing.XS))
                     Text("Helpful (${review.helpfulCount})", style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
                 }
 
@@ -750,7 +752,7 @@ private fun ReviewCard(
                     TextButton(
                         onClick = onEdit,
                         enabled = !isMutating,
-                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
                     ) {
                         Icon(
                             PaceDreamIcons.Edit,
@@ -758,7 +760,7 @@ private fun ReviewCard(
                             modifier = Modifier.size(14.dp),
                             tint = PaceDreamColors.Primary,
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             "Edit",
                             style = PaceDreamTypography.Caption,
@@ -769,7 +771,7 @@ private fun ReviewCard(
                     TextButton(
                         onClick = onDelete,
                         enabled = !isMutating,
-                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
                     ) {
                         Icon(
                             PaceDreamIcons.Delete,
@@ -777,7 +779,7 @@ private fun ReviewCard(
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.error,
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             "Delete",
                             style = PaceDreamTypography.Caption,
@@ -798,11 +800,11 @@ private fun CategoryRatingChip(label: String, rating: Double) {
         color = PaceDreamColors.Divider.copy(alpha = 0.5f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(label, style = PaceDreamTypography.Caption, color = PaceDreamColors.TextSecondary)
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(PaceDreamSpacing.XS))
             Text(String.format("%.1f", rating), style = PaceDreamTypography.Caption, fontWeight = FontWeight.SemiBold)
         }
     }
@@ -942,7 +944,7 @@ private fun EditReviewSheet(
                         color = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(PaceDreamSpacing.SM))
                 }
                 Text("Save changes", fontWeight = FontWeight.SemiBold)
             }

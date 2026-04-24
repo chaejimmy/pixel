@@ -99,6 +99,12 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+
+// intentional: 20.dp page gutter is the listing-detail edge padding. Sits off the
+// 4/8/16/24 grid but is the deliberate iOS-parity design for the detail screen.
+private val ListingDetailGutter = 20.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingDetailScreen(
@@ -172,7 +178,7 @@ fun ListingDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentPadding = PaddingValues(bottom = 24.dp)
+                    contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
                 ) {
                     item {
                         HeroGallery(
@@ -192,7 +198,7 @@ fun ListingDetailScreen(
                             androidx.compose.foundation.layout.Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM)
                                     .background(
                                         androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.10f),
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
@@ -202,9 +208,9 @@ fun ListingDetailScreen(
                                         androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.25f),
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
                                     )
-                                    .padding(14.dp),
+                                    .padding(PaceDreamSpacing.MD),
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(PaceDreamSpacing.SM)
                             ) {
                                 androidx.compose.material3.Icon(
                                     imageVector = com.pacedream.common.icon.PaceDreamIcons.Schedule,
@@ -235,7 +241,7 @@ fun ListingDetailScreen(
                                 onRetry = onRetry,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2)
                             )
                         }
                     }
@@ -259,7 +265,7 @@ fun ListingDetailScreen(
                             deliveryModeLabel = listing?.deliveryModeLabel,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                                .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.MD)
                         )
                     }
 
@@ -274,7 +280,7 @@ fun ListingDetailScreen(
                                 bathrooms = listing.bathrooms,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.XS)
                             )
                         }
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
@@ -299,7 +305,7 @@ fun ListingDetailScreen(
                                 onReadMore = { showAboutSheet = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
@@ -314,7 +320,7 @@ fun ListingDetailScreen(
                                 category = listing?.category,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -329,7 +335,7 @@ fun ListingDetailScreen(
                                 checkOutTime = listing.checkOutTime,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -342,7 +348,7 @@ fun ListingDetailScreen(
                                 features = listing.safetyFeatures,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -360,7 +366,7 @@ fun ListingDetailScreen(
                             onWriteReview = { showWriteReviewSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                         )
                     }
 
@@ -372,7 +378,7 @@ fun ListingDetailScreen(
                             cancellationPolicy = listing?.cancellationPolicy,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                         )
                     }
 
@@ -384,7 +390,7 @@ fun ListingDetailScreen(
                             pricing = listing?.pricing,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                         )
                     }
 
@@ -400,7 +406,7 @@ fun ListingDetailScreen(
                                 deadlineAt = listing.deadlineAt,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -422,7 +428,7 @@ fun ListingDetailScreen(
                                     "In-person location" else "Where you'll be",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -438,7 +444,7 @@ fun ListingDetailScreen(
                                 onlineSession = os,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                             )
                         }
                     }
@@ -450,7 +456,7 @@ fun ListingDetailScreen(
                             onReportClick = { showReportSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
                         )
                     }
                 }
@@ -483,7 +489,7 @@ fun ListingDetailScreen(
                     text = listing?.description?.trim().orEmpty(),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp)
+                    modifier = Modifier.padding(ListingDetailGutter)
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -502,10 +508,10 @@ fun ListingDetailScreen(
                     else -> "Highlights"
                 }
                 BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(ListingDetailGutter)) {
                     listing?.amenities.orEmpty().forEach { amenity ->
                         Row(
-                            modifier = Modifier.padding(vertical = 6.dp),
+                            modifier = Modifier.padding(vertical = PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -514,7 +520,7 @@ fun ListingDetailScreen(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(text = amenity, style = MaterialTheme.typography.bodyLarge)
                         }
                     }
@@ -533,7 +539,7 @@ fun ListingDetailScreen(
                 sheetState = sheetState
             ) {
                 BottomSheetHeader(title = "Reviews", onClose = { showReviewsSheet = false })
-                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                LazyColumn(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                     val summary = uiState.reviewSummary
                     val reviews = uiState.reviews
 
@@ -541,9 +547,9 @@ fun ListingDetailScreen(
                     item {
                         if (summary != null && summary.totalCount > 0) {
                             ReviewSummaryHeader(summary = summary)
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                             HorizontalDivider()
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         }
                     }
 
@@ -558,7 +564,7 @@ fun ListingDetailScreen(
                         ) {
                             Text("Write a Review")
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                     }
 
                     if (reviews.isEmpty() && !uiState.isLoadingReviews) {
@@ -566,7 +572,7 @@ fun ListingDetailScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                    .padding(vertical = PaceDreamSpacing.MD),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 if (uiState.reviewsLoadFailed) {
@@ -577,19 +583,19 @@ fun ListingDetailScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(28.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                                     Text(
                                         "Couldn't load reviews",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                                     Text(
                                         "Please try again in a moment.",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                                     TextButton(onClick = { onLoadReviews() }) {
                                         Text("Retry")
                                     }
@@ -600,13 +606,13 @@ fun ListingDetailScreen(
                                         tint = Color(0xFFFFB400),
                                         modifier = Modifier.size(28.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                                     Text(
                                         "No reviews yet",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                                     Text(
                                         "Be the first to share your experience!",
                                         style = MaterialTheme.typography.bodyMedium,
@@ -630,7 +636,7 @@ fun ListingDetailScreen(
                             onDelete = { pendingDeleteReviewId = reviewItem.id },
                         )
                         if (index < reviews.size - 1) {
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                         }
                     }
 
@@ -639,7 +645,7 @@ fun ListingDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(24.dp),
+                                    .padding(PaceDreamSpacing.LG),
                                 contentAlignment = Alignment.Center
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
@@ -841,13 +847,13 @@ private fun ReserveSheet(
                 .weight(1f, fill = false)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = ListingDetailGutter)
         ) {
         // Duration selection chips — hidden for monthly listings (hourly concept doesn't apply).
         if (!isMonthlyListing) {
             Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(10.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                 items(durationOptions) { duration ->
                     val isSelected = duration == selectedDuration
                     val label = when {
@@ -866,7 +872,7 @@ private fun ReserveSheet(
                     ) {
                         Text(
                             text = label,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM),
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
@@ -875,13 +881,13 @@ private fun ReserveSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
 
         if (isMonthlyListing) {
             // Start date row — tapping opens the DatePickerDialog below.
             Text("Start date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Surface(
                 onClick = { showDatePicker = true },
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -890,7 +896,7 @@ private fun ReserveSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -899,7 +905,7 @@ private fun ReserveSheet(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
                         text = selectedDate?.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))
                             ?: "Select a date",
@@ -910,12 +916,12 @@ private fun ReserveSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             // Month-duration chips.
             Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(10.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                 items(monthDurationOptions) { months ->
                     val isSelected = selectedMonthChip == months && customMonthsInput.isEmpty()
                     val label = if (months == 1) "1 month" else "$months months"
@@ -930,7 +936,7 @@ private fun ReserveSheet(
                     ) {
                         Text(
                             text = label,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM),
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
@@ -939,7 +945,7 @@ private fun ReserveSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
             // Custom months input — numeric, overrides chip selection once a valid value is typed.
             OutlinedTextField(
@@ -968,8 +974,8 @@ private fun ReserveSheet(
         } else {
             // 7-day date strip (hourly listings)
             Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(10.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                 items(next7Days) { date ->
                     val isSelected = date == selectedDate
                     val isToday = date == today
@@ -990,7 +996,7 @@ private fun ReserveSheet(
                         }
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
@@ -998,7 +1004,7 @@ private fun ReserveSheet(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                             Text(
                                 text = dateNum,
                                 style = MaterialTheme.typography.titleMedium,
@@ -1013,10 +1019,10 @@ private fun ReserveSheet(
 
         // Time slots grid — hidden for monthly listings (hourly concept doesn't apply).
         if (!isMonthlyListing) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
             if (selectedDate == null) {
                 Text(
@@ -1027,7 +1033,7 @@ private fun ReserveSheet(
             } else if (timeSlots.isEmpty()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 12.dp)
+                    modifier = Modifier.padding(vertical = PaceDreamSpacing.SM2)
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.Schedule,
@@ -1035,7 +1041,7 @@ private fun ReserveSheet(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
                         "No available times for this day",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1045,10 +1051,10 @@ private fun ReserveSheet(
             } else {
                 // 2-column grid of time slot buttons (iOS parity)
                 val rows = timeSlots.chunked(2)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                     rows.forEach { rowSlots ->
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             rowSlots.forEach { slot ->
@@ -1063,7 +1069,7 @@ private fun ReserveSheet(
                                 ) {
                                     Box(
                                         contentAlignment = Alignment.Center,
-                                        modifier = Modifier.padding(vertical = 12.dp)
+                                        modifier = Modifier.padding(vertical = PaceDreamSpacing.SM2)
                                     ) {
                                         Text(
                                             text = label,
@@ -1086,13 +1092,13 @@ private fun ReserveSheet(
 
         // Price breakdown card (shows when a time slot is selected)
         if (subtotal != null && taxes != null && total != null && selectedSlotStart != null && selectedEnd != null) {
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                     val durationLabel = when {
                         selectedDuration < 60 -> "$selectedDuration min"
                         selectedDuration % 60 == 0 -> "${selectedDuration / 60} hr"
@@ -1102,23 +1108,23 @@ private fun ReserveSheet(
                         Text("$durationLabel × ${currencySymbol}${hourlyFrom?.let { trimTrailingZeros(it) } ?: ""}/hr", style = MaterialTheme.typography.bodyMedium)
                         Text("${currencySymbol}${trimTrailingZeros(subtotal)}", style = MaterialTheme.typography.bodyMedium)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         val startLabel = selectedSlotStart?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"
                         val endLabel = selectedEnd?.format(DateTimeFormatter.ofPattern("h:mm a")) ?: "—"
                         val timeRange = "$startLabel – $endLabel"
                         Text(timeRange, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     HorizontalDivider()
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Taxes & fees", style = MaterialTheme.typography.bodyMedium)
                         Text("${currencySymbol}${trimTrailingZeros(taxes)}", style = MaterialTheme.typography.bodyMedium)
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     HorizontalDivider()
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -1128,9 +1134,9 @@ private fun ReserveSheet(
         }
 
         // Guests
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         Text("Guests", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
                 onClick = { guests = (guests - 1).coerceAtLeast(1) },
@@ -1143,13 +1149,13 @@ private fun ReserveSheet(
                     Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                 }
             }
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(ListingDetailGutter))
             Text(
                 "$guests",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(ListingDetailGutter))
             Surface(
                 onClick = { guests = (guests + 1).coerceAtMost(20) },
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -1165,20 +1171,20 @@ private fun ReserveSheet(
 
         // Booking summary card
         if (canConfirm && selectedSlotStart != null && selectedEnd != null) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                     Text(
                         "Booking summary",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     val dayLabel = selectedDate?.dayOfWeek?.name?.lowercase()
                         ?.replaceFirstChar { it.uppercase() } ?: ""
                     val monthDay = selectedDate?.format(DateTimeFormatter.ofPattern("MMM d")) ?: ""
@@ -1187,7 +1193,7 @@ private fun ReserveSheet(
                         Text("$dayLabel, $monthDay", style = MaterialTheme.typography.bodyMedium)
                         Text(timeRange, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("$guests guest${if (guests != 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val durationLabel = when {
@@ -1198,9 +1204,9 @@ private fun ReserveSheet(
                         Text(durationLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (total != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                             Text("${currencySymbol}${trimTrailingZeros(total)}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
@@ -1212,7 +1218,7 @@ private fun ReserveSheet(
 
             // Trailing breathing room inside the scrollable body so the last
             // card isn't visually glued to the sticky CTA bar on short sheets.
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         }
 
         // Sticky CTA bar — always visible, lifts above the keyboard via the
@@ -1227,7 +1233,7 @@ private fun ReserveSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2)
             ) {
                 if (isMonthlyListing) {
                     val canReserveMonthly = selectedDate != null && monthlyDurationMonths != null
@@ -1251,7 +1257,7 @@ private fun ReserveSheet(
                         enabled = canReserveMonthly,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
                     ) {
                         Text(
                             text = "Reserve",
@@ -1259,7 +1265,7 @@ private fun ReserveSheet(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Text(
                         "You won't be charged yet. The host will confirm your request.",
                         style = MaterialTheme.typography.bodySmall,
@@ -1291,7 +1297,7 @@ private fun ReserveSheet(
                         enabled = canConfirm,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
                     ) {
                         Text(
                             text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
@@ -1300,7 +1306,7 @@ private fun ReserveSheet(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Text(
                         "You won't be charged yet",
                         style = MaterialTheme.typography.bodySmall,
@@ -1382,7 +1388,7 @@ private fun BookingBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp)
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD)
                     .padding(WindowInsets.navigationBars.asPaddingValues()),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1395,7 +1401,7 @@ private fun BookingBar(
                         ),
                         color = PaceDreamColors.TextPrimary
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
                         text = "You won't be charged yet",
                         style = PaceDreamTypography.Caption.copy(
@@ -1404,7 +1410,7 @@ private fun BookingBar(
                         color = PaceDreamColors.TextSecondary
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                 Button(
                     onClick = onReserveClick,
                     enabled = isAvailable,
@@ -1413,7 +1419,7 @@ private fun BookingBar(
                         containerColor = PaceDreamColors.Primary,
                         disabledContainerColor = PaceDreamColors.Gray300
                     ),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp)
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
                 ) {
                     Text(
                         "Reserve",
@@ -1475,7 +1481,7 @@ private fun HeroGallery(
             color = Color.Black.copy(alpha = 0.35f),
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
@@ -1490,8 +1496,8 @@ private fun HeroGallery(
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(PaceDreamSpacing.MD),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
                 IconButton(onClick = onShare) {
@@ -1513,8 +1519,8 @@ private fun HeroGallery(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(bottom = PaceDreamSpacing.SM2),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             repeat(urls.size) { idx ->
                 val selected = idx == pagerState.currentPage
@@ -1552,7 +1558,7 @@ private fun TitleMetaBlock(
             ),
             color = PaceDreamColors.TextPrimary
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             val hasRealRating = rating != null && rating > 0.0 && reviewCount != null && reviewCount > 0
@@ -1563,7 +1569,7 @@ private fun TitleMetaBlock(
                     tint = Color(0xFFFFB400),
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                 Text(
                     text = String.format("%.1f", rating ?: 0.0),
                     style = PaceDreamTypography.Subheadline.copy(
@@ -1572,7 +1578,7 @@ private fun TitleMetaBlock(
                     ),
                     color = PaceDreamColors.TextPrimary
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                 Text(
                     text = "(${reviewCount ?: 0} ${if (reviewCount == 1) "review" else "reviews"})",
                     style = MaterialTheme.typography.bodyMedium,
@@ -1586,7 +1592,7 @@ private fun TitleMetaBlock(
                 ) {
                     Text(
                         text = "New",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.tertiary
@@ -1596,7 +1602,7 @@ private fun TitleMetaBlock(
             // Format cityState properly — ensure space after comma
             cityState?.let { raw ->
                 val formatted = raw.replace(Regex(",(?!\\s)"), ", ")
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     text = "· $formatted",
                     style = MaterialTheme.typography.bodyMedium,
@@ -1608,14 +1614,14 @@ private fun TitleMetaBlock(
         }
 
         if (!pricePill.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Surface(
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Text(
                     text = "From $pricePill",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -1627,15 +1633,15 @@ private fun TitleMetaBlock(
         if (propertyType != null || instantBook == true || available != null ||
             deliveryModeLabel != null
         ) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                 deliveryModeLabel?.takeIf { it.isNotBlank() }?.let { label ->
                     Surface(
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -1644,7 +1650,7 @@ private fun TitleMetaBlock(
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelMedium,
@@ -1660,7 +1666,7 @@ private fun TitleMetaBlock(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -1669,7 +1675,7 @@ private fun TitleMetaBlock(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = type.replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.labelMedium,
@@ -1686,7 +1692,7 @@ private fun TitleMetaBlock(
                         color = Color(0xFFFFF3E0)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -1695,7 +1701,7 @@ private fun TitleMetaBlock(
                                 tint = Color(0xFFFF9800),
                                 modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = "Instant Book",
                                 style = MaterialTheme.typography.labelMedium,
@@ -1712,7 +1718,7 @@ private fun TitleMetaBlock(
                         color = if (isAvailable) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -1721,7 +1727,7 @@ private fun TitleMetaBlock(
                                     .clip(CircleShape)
                                     .background(if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444))
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = if (isAvailable) "Available" else "Unavailable",
                                 style = MaterialTheme.typography.labelMedium,
@@ -1750,7 +1756,7 @@ private fun HostCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1805,13 +1811,13 @@ private fun HostCard(
                                 PaceDreamIcons.Star,
                                 contentDescription = "Superhost",
                                 tint = Color.White,
-                                modifier = Modifier.padding(3.dp)
+                                modifier = Modifier.padding(PaceDreamSpacing.XS)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1822,7 +1828,7 @@ private fun HostCard(
                             fontWeight = FontWeight.SemiBold
                         )
                         if (host?.isVerified == true) {
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Icon(
                                 PaceDreamIcons.Verified,
                                 contentDescription = "Verified",
@@ -1849,9 +1855,9 @@ private fun HostCard(
             // Host details row (response rate, response time, joined)
             val hasDetails = host?.responseRate != null || host?.responseTime != null || host?.joinedDate != null
             if (hasDetails) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1904,7 +1910,7 @@ private fun HostCard(
 
             // Host bio
             host?.bio?.takeIf { it.isNotBlank() }?.let { bio ->
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                 Text(
                     text = bio.trim(),
                     style = MaterialTheme.typography.bodyMedium,
@@ -1916,15 +1922,15 @@ private fun HostCard(
 
             // Verification badges
             if (host?.verifications?.isNotEmpty() == true) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+                Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                     host.verifications.take(4).forEach { verification ->
                         Surface(
                             shape = RoundedCornerShape(PaceDreamRadius.Round),
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -1933,7 +1939,7 @@ private fun HostCard(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(14.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                                 Text(
                                     text = verification.replaceFirstChar { it.uppercase() },
                                     style = MaterialTheme.typography.labelSmall,
@@ -1965,7 +1971,7 @@ private fun SectionAbout(
 
     Column(modifier = modifier) {
         Text(sectionTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         if (!description.isNullOrBlank()) {
             Text(
                 text = description.trim(),
@@ -1974,7 +1980,7 @@ private fun SectionAbout(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             TextButton(onClick = onReadMore) {
                 Text("Read more")
             }
@@ -2010,13 +2016,13 @@ private fun SectionAmenities(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         if (amenities.isNotEmpty()) {
             val shown = amenities.take(8)
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 shown.forEach { label ->
                     Surface(
@@ -2026,7 +2032,7 @@ private fun SectionAmenities(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM)
                         )
                     }
                 }
@@ -2057,7 +2063,7 @@ private fun SectionReviews(
                 Text("See all")
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         val displayRating = rating ?: reviewSummary?.averageRating
         val displayCount = reviewCount ?: reviewSummary?.totalCount
@@ -2071,7 +2077,7 @@ private fun SectionReviews(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(PaceDreamSpacing.LG),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
@@ -2080,22 +2086,22 @@ private fun SectionReviews(
                         tint = Color(0xFFFFB400),
                         modifier = Modifier.size(32.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                     Text(
                         "No reviews yet",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Text(
                         "Be the first to share your experience",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                     Button(onClick = onWriteReview) {
                         Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text("Write a Review")
                     }
                 }
@@ -2103,23 +2109,23 @@ private fun SectionReviews(
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(PaceDreamIcons.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     text = String.format("%.1f", displayRating),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text("($displayCount reviews)", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             // Category ratings bar (if available)
             reviewSummary?.categoryAverages?.let { cats ->
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 CategoryRatingBars(categoryRatings = cats)
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             if (isLoadingReviews) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -2127,18 +2133,18 @@ private fun SectionReviews(
                 }
             } else if (reviews.isNotEmpty()) {
                 // Horizontal scrollable review preview cards (max 3)
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)) {
                     items(reviews.take(3)) { review ->
                         ReviewPreviewCard(review = review)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+            Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
                 OutlinedButton(onClick = onWriteReview) {
                     Icon(PaceDreamIcons.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text("Write a Review")
                 }
             }
@@ -2157,7 +2163,7 @@ private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
         categoryRatings.value?.let { "Value" to it }
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
         categories.forEach { (label, value) ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2178,7 +2184,7 @@ private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
                     color = Color(0xFFFFB400),
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     text = String.format("%.1f", value),
                     style = MaterialTheme.typography.bodySmall,
@@ -2196,7 +2202,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = Modifier.width(280.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Avatar
                 if (!review.userAvatarUrl.isNullOrBlank()) {
@@ -2231,7 +2237,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Column {
                     Text(
                         text = review.userName,
@@ -2249,7 +2255,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
                             )
                         }
                         review.createdAt?.let { date ->
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = formatReviewDate(date),
                                 style = MaterialTheme.typography.bodySmall,
@@ -2260,7 +2266,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
                 }
             }
             if (review.comment.isNotBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
                     text = review.comment,
                     style = MaterialTheme.typography.bodyMedium,
@@ -2285,7 +2291,7 @@ private fun ReviewCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (!review.userAvatarUrl.isNullOrBlank()) {
                     AsyncImage(
@@ -2319,7 +2325,7 @@ private fun ReviewCard(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = review.userName,
@@ -2336,7 +2342,7 @@ private fun ReviewCard(
                                 modifier = Modifier.size(14.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text(
                             text = String.format("%.1f", review.rating),
                             style = MaterialTheme.typography.bodySmall,
@@ -2353,7 +2359,7 @@ private fun ReviewCard(
                 }
             }
             if (review.comment.isNotBlank()) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
                     text = review.comment,
                     style = MaterialTheme.typography.bodyMedium
@@ -2363,7 +2369,7 @@ private fun ReviewCard(
             // Owner-only actions — hidden on other users' reviews so the
             // card renders identically for read-only viewers.
             if (isMine) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -2372,7 +2378,7 @@ private fun ReviewCard(
                     TextButton(
                         onClick = onEdit,
                         enabled = !isMutating,
-                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
                     ) {
                         Icon(
                             PaceDreamIcons.Edit,
@@ -2380,7 +2386,7 @@ private fun ReviewCard(
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.primary,
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             "Edit",
                             style = MaterialTheme.typography.labelMedium,
@@ -2391,7 +2397,7 @@ private fun ReviewCard(
                     TextButton(
                         onClick = onDelete,
                         enabled = !isMutating,
-                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
                     ) {
                         Icon(
                             PaceDreamIcons.Delete,
@@ -2399,7 +2405,7 @@ private fun ReviewCard(
                             modifier = Modifier.size(14.dp),
                             tint = MaterialTheme.colorScheme.error,
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             "Delete",
                             style = MaterialTheme.typography.labelMedium,
@@ -2423,13 +2429,13 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                 tint = Color(0xFFFFB400),
                 modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = String.format("%.1f", summary.averageRating),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = "${summary.totalCount} reviews",
                 style = MaterialTheme.typography.bodyLarge,
@@ -2439,8 +2445,8 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
 
         // Rating distribution bars
         if (summary.ratingDistribution.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+            Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
                 for (star in 5 downTo 1) {
                     val count = summary.ratingDistribution[star] ?: 0
                     val fraction = if (summary.totalCount > 0) count.toFloat() / summary.totalCount else 0f
@@ -2456,7 +2462,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                             tint = Color(0xFFFFB400),
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         LinearProgressIndicator(
                             progress = { fraction },
                             modifier = Modifier
@@ -2466,7 +2472,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                             color = Color(0xFFFFB400),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text(
                             text = "$count",
                             style = MaterialTheme.typography.bodySmall,
@@ -2480,7 +2486,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
 
         // Category averages
         summary.categoryAverages?.let { cats ->
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             CategoryRatingBars(categoryRatings = cats)
         }
     }
@@ -2503,10 +2509,10 @@ private fun WriteReviewSheet(
     BottomSheetHeader(title = title, onClose = onClose)
 
     Column(
-        modifier = Modifier.padding(horizontal = 20.dp),
+        modifier = Modifier.padding(horizontal = ListingDetailGutter),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         // Prompt
         Text(
@@ -2515,11 +2521,11 @@ private fun WriteReviewSheet(
             fontWeight = FontWeight.SemiBold,
             color = PaceDreamColors.TextPrimary
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         // Star rating — larger, centered
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
             content = {
@@ -2548,7 +2554,7 @@ private fun WriteReviewSheet(
             5 -> "Excellent"
             else -> ""
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
             text = ratingLabel,
             style = PaceDreamTypography.Callout,
@@ -2557,7 +2563,7 @@ private fun WriteReviewSheet(
             modifier = Modifier.height(24.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(ListingDetailGutter))
 
         // Comment (optional)
         Text(
@@ -2567,7 +2573,7 @@ private fun WriteReviewSheet(
             color = PaceDreamColors.TextPrimary,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         OutlinedTextField(
             value = comment,
             onValueChange = { if (it.length <= 2000) comment = it },
@@ -2601,7 +2607,7 @@ private fun WriteReviewSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
         // Submit button
         Button(
@@ -2622,7 +2628,7 @@ private fun WriteReviewSheet(
                     color = Color.White,
                     strokeWidth = 2.dp
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     submittingCtaLabel,
                     style = PaceDreamTypography.Button,
@@ -2638,7 +2644,7 @@ private fun WriteReviewSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
     }
 }
 
@@ -2648,7 +2654,7 @@ private fun StarRatingInput(
     onRatingChanged: (Double) -> Unit,
     starSize: androidx.compose.ui.unit.Dp = 28.dp
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
         for (star in 1..5) {
             Icon(
                 if (star <= rating.toInt()) PaceDreamIcons.Star else PaceDreamIcons.StarOutlined,
@@ -2694,12 +2700,12 @@ private fun SectionSplitInfo(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Card(
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 if (totalCost != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2709,7 +2715,7 @@ private fun SectionSplitInfo(
                         Text("$${String.format("%,.0f", totalCost)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     }
                     if (slotsTotal != null && slotsTotal > 0) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -2720,7 +2726,7 @@ private fun SectionSplitInfo(
                     }
                 }
                 if (slotsTotal != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2729,7 +2735,7 @@ private fun SectionSplitInfo(
                         Text("Slots", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("${slotsFilled ?: 0} / $slotsTotal filled", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     LinearProgressIndicator(
                         progress = { if (slotsTotal > 0) ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) else 0f },
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(PaceDreamRadius.XS)),
@@ -2738,7 +2744,7 @@ private fun SectionSplitInfo(
                     )
                 }
                 if (splitStatus != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -2755,7 +2761,7 @@ private fun SectionSplitInfo(
                         ) {
                             Text(
                                 splitStatus.replaceFirstChar { it.uppercase() },
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XXS),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = when (splitStatus.uppercase()) {
@@ -2769,7 +2775,7 @@ private fun SectionSplitInfo(
                     }
                 }
                 if (deadlineAt != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -2804,7 +2810,7 @@ private fun SectionLocation(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         MapPreviewCard(
             mapCoordinate = mapCoordinate,
@@ -2812,7 +2818,7 @@ private fun SectionLocation(
         )
 
         location?.fullAddress?.let { addr ->
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(addr, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -2834,7 +2840,7 @@ private fun SectionOnlineSession(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
         val platformLabels = onlineSession.platforms.mapNotNull { id ->
             when (id.trim().lowercase()) {
@@ -2850,7 +2856,7 @@ private fun SectionOnlineSession(
                 text = "Platform: ${platformLabels.joinToString(", ")}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
 
         val link = onlineSession.sessionLink?.trim().orEmpty()
@@ -2862,16 +2868,16 @@ private fun SectionOnlineSession(
         }
         linkLine?.let {
             Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
 
         onlineSession.timeZone?.takeIf { it.isNotBlank() }?.let { tz ->
             Text("Time zone: $tz", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
 
         onlineSession.meetingInstructions?.takeIf { it.isNotBlank() }?.let { instructions ->
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 "Meeting instructions",
                 style = MaterialTheme.typography.labelLarge,
@@ -2881,7 +2887,7 @@ private fun SectionOnlineSession(
         }
 
         onlineSession.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 "Notes",
                 style = MaterialTheme.typography.labelLarge,
@@ -2965,7 +2971,7 @@ private fun MapPreviewCard(
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(PaceDreamSpacing.LG)
                 ) {
                     Surface(
                         shape = CircleShape,
@@ -2981,7 +2987,7 @@ private fun MapPreviewCard(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                     Text(
                         text = if (isGeocoding) "Finding location…" else "Exact location shared after booking",
                         style = MaterialTheme.typography.bodyMedium,
@@ -2989,7 +2995,7 @@ private fun MapPreviewCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (!isGeocoding) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                         Text(
                             text = "General area shown on map",
                             style = MaterialTheme.typography.bodySmall,
@@ -3014,7 +3020,7 @@ private fun InlineErrorBanner(
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -3022,7 +3028,7 @@ private fun InlineErrorBanner(
                 modifier = Modifier.weight(1f),
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             TextButton(onClick = onRetry) {
                 Text("Retry", color = MaterialTheme.colorScheme.onErrorContainer)
             }
@@ -3037,14 +3043,14 @@ private fun FullErrorState(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.padding(24.dp),
+        modifier = modifier.padding(PaceDreamSpacing.LG),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text("Something went wrong", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         Button(onClick = onRetry) { Text("Try Again") }
     }
 }
@@ -3058,14 +3064,14 @@ private fun ListingDetailSkeleton(modifier: Modifier = Modifier) {
                 .height(330.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
             SkeletonLine(widthFraction = 0.75f, height = 28.dp)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
             SkeletonLine(widthFraction = 0.55f, height = 18.dp)
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             SkeletonLine(widthFraction = 1f, height = 90.dp)
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             SkeletonLine(widthFraction = 1f, height = 130.dp)
         }
     }
@@ -3095,7 +3101,7 @@ private fun SectionCancellationPolicy(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Card(
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(
@@ -3105,7 +3111,7 @@ private fun SectionCancellationPolicy(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(PaceDreamSpacing.MD),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -3114,7 +3120,7 @@ private fun SectionCancellationPolicy(
                     tint = Color(0xFF10B981),
                     modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when (policy.type) {
@@ -3127,7 +3133,7 @@ private fun SectionCancellationPolicy(
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF10B981)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
                         text = policy.displayText,
                         style = MaterialTheme.typography.bodyMedium,
@@ -3150,12 +3156,12 @@ private fun SectionPricingBreakdown(
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Card(
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 val rate = pricing?.hourlyFrom ?: pricing?.basePrice
                 val symbol = when ((pricing?.currency ?: "USD").uppercase()) {
                     "USD" -> "$"
@@ -3172,7 +3178,7 @@ private fun SectionPricingBreakdown(
                 }
 
                 pricing?.cleaningFee?.let { fee ->
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     PricingRow(
                         label = "Cleaning fee",
                         value = "$symbol${fee.toLong()}"
@@ -3180,7 +3186,7 @@ private fun SectionPricingBreakdown(
                 }
 
                 pricing?.serviceFee?.let { fee ->
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     PricingRow(
                         label = "Service fee",
                         value = "$symbol${fee.toLong()}"
@@ -3189,7 +3195,7 @@ private fun SectionPricingBreakdown(
 
                 pricing?.weeklyDiscountPercent?.let { discount ->
                     if (discount > 0) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         PricingRow(
                             label = "Weekly discount",
                             value = "-$discount%",
@@ -3200,7 +3206,7 @@ private fun SectionPricingBreakdown(
 
                 pricing?.monthlyDiscountPercent?.let { discount ->
                     if (discount > 0) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                         PricingRow(
                             label = "Monthly discount",
                             value = "-$discount%",
@@ -3209,9 +3215,9 @@ private fun SectionPricingBreakdown(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 HorizontalDivider()
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -3281,13 +3287,13 @@ private fun PropertyDetailsRow(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
         }
 
         // Details chips
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
         ) {
             maxGuests?.let {
                 PropertyDetailItem(
@@ -3334,7 +3340,7 @@ private fun PropertyDetailItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
         Text(
             text = "$value $label",
             style = MaterialTheme.typography.bodyMedium,
@@ -3362,10 +3368,10 @@ private fun SectionHouseRules(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text("House Rules", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         // Check-in / Check-out times
         if (checkInTime != null || checkOutTime != null) {
@@ -3376,13 +3382,13 @@ private fun SectionHouseRules(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .padding(PaceDreamSpacing.SM2),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     checkInTime?.let {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                             Text("Check-in", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
@@ -3390,7 +3396,7 @@ private fun SectionHouseRules(
                     checkOutTime?.let {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(PaceDreamIcons.AccessTime, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                             Text("Check-out", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(it, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
@@ -3398,18 +3404,18 @@ private fun SectionHouseRules(
                 }
             }
             if (houseRules.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
             }
         }
 
         // Rules list
         houseRules.forEach { rule ->
             Row(
-                modifier = Modifier.padding(vertical = 4.dp),
+                modifier = Modifier.padding(vertical = PaceDreamSpacing.XS),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("•", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(rule, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -3434,14 +3440,14 @@ private fun SectionSafetyFeatures(
                 tint = Color(0xFF10B981),
                 modifier = Modifier.size(22.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text("Safety & Property", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             features.forEach { feature ->
                 Surface(
@@ -3449,7 +3455,7 @@ private fun SectionSafetyFeatures(
                     color = Color(0xFF10B981).copy(alpha = 0.08f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -3458,7 +3464,7 @@ private fun SectionSafetyFeatures(
                             tint = Color(0xFF10B981),
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text(
                             text = feature,
                             style = MaterialTheme.typography.labelLarge,
@@ -3477,7 +3483,7 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -3503,7 +3509,7 @@ private fun SectionReportListing(
                 tint = MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(20.dp)
             )
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(PaceDreamSpacing.SM))
             Text(
                 "Report this listing",
                 style = MaterialTheme.typography.bodyMedium,
@@ -3512,7 +3518,7 @@ private fun SectionReportListing(
                 modifier = Modifier.clickable { onReportClick() }
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(PaceDreamSpacing.XS))
         Text(
             "If something looks wrong with this listing, let us know.",
             style = MaterialTheme.typography.bodySmall,
@@ -3552,39 +3558,39 @@ private fun ReportListingSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = PaceDreamSpacing.MD)
-                .padding(bottom = 32.dp)
+                .padding(bottom = PaceDreamSpacing.XL)
         ) {
             Text(
                 "Report Listing",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(PaceDreamSpacing.XS))
             Text(
                 "Why are you reporting \"$listingTitle\"?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
 
             reportReasons.forEach { reason ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { selectedReason = reason }
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = PaceDreamSpacing.SM),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
                         selected = selectedReason == reason,
                         onClick = { selectedReason = reason }
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(PaceDreamSpacing.SM2))
                     Text(reason, style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(PaceDreamSpacing.MD))
             OutlinedTextField(
                 value = details,
                 onValueChange = { if (it.length <= 5000) details = it },
@@ -3596,7 +3602,7 @@ private fun ReportListingSheet(
                 maxLines = 5
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(ListingDetailGutter))
             Button(
                 onClick = {
                     isSubmitting = true

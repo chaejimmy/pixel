@@ -71,6 +71,11 @@ import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.R
 
+// intentional: 20.dp page gutter is off the 4/8/16/24 scale but is a deliberate
+// design decision for Home's edge-to-edge photographic hero layout. Keep it
+// exported as a private token so future token sweeps recognise it.
+private val HomeHorizontalGutter = 20.dp
+
 object HomeTestTags {
     const val Root = "home_screen_root"
     const val ListingFeed = "home_listing_feed"
@@ -115,7 +120,7 @@ fun HomeScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag(HomeTestTags.ListingFeed),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
@@ -136,7 +141,7 @@ fun HomeScreen(
                         viewModel.selectCategory(category)
                         onCategoryFilterClick(category)
                     },
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = PaceDreamSpacing.XS)
                 )
             }
 
@@ -145,7 +150,7 @@ fun HomeScreen(
                 item {
                     WarningBanner(
                         message = "Some content couldn't load. Pull to refresh.",
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        modifier = Modifier.padding(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2)
                     )
                 }
             }
@@ -154,7 +159,7 @@ fun HomeScreen(
             item {
                 ExtendedCategoriesSection(
                     onCategoryClick = onCategoryClick,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = PaceDreamSpacing.MD)
                 )
             }
 
@@ -236,7 +241,7 @@ fun HomeScreen(
             item {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = PaceDreamSpacing.SM)
                 )
             }
 
@@ -247,7 +252,7 @@ fun HomeScreen(
                         onRetry = { viewModel.refresh() },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(48.dp)
+                            .padding(PaceDreamSpacing.XXL)
                     )
                 }
             }
@@ -272,10 +277,10 @@ private fun SectionSurface(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = PaceDreamSpacing.SM),
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Box(modifier = Modifier.padding(vertical = 16.dp)) {
+        Box(modifier = Modifier.padding(vertical = PaceDreamSpacing.MD)) {
             content()
         }
     }
@@ -330,7 +335,7 @@ private fun HeroHeaderSection(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 20.dp)
+                    .padding(horizontal = HomeHorizontalGutter, vertical = HomeHorizontalGutter)
             ) {
                 // Top row: notification bell (right-aligned; hero copy takes over greeting).
                 Row(
@@ -369,7 +374,7 @@ private fun HeroHeaderSection(
                     ),
                     color = OnBrandSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
                     text = stringResource(R.string.home_hero_subtitle),
                     style = DSTypo.Body.copy(
@@ -378,7 +383,7 @@ private fun HeroHeaderSection(
                     ),
                     color = OnBrandSurface.copy(alpha = 0.92f)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
                 Button(
                     onClick = onAboutClick,
@@ -390,14 +395,14 @@ private fun HeroHeaderSection(
                         containerColor = PaceDreamColors.Primary,
                         contentColor = OnBrandSurface
                     ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2),
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.PlayArrow,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     Text(
                         text = stringResource(R.string.home_hero_cta),
                         style = DSTypo.Callout.copy(
@@ -406,7 +411,7 @@ private fun HeroHeaderSection(
                         )
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             }
         }
 
@@ -414,7 +419,7 @@ private fun HeroHeaderSection(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = HomeHorizontalGutter)
                 .fillMaxWidth()
                 .testTag(HomeTestTags.SearchBar)
                 .adaptiveShadow(
@@ -434,7 +439,7 @@ private fun HeroHeaderSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -453,7 +458,7 @@ private fun HeroHeaderSection(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(14.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Search anywhere",
@@ -463,6 +468,7 @@ private fun HeroHeaderSection(
                         ),
                         color = PaceDreamColors.TextHeadline
                     )
+                    // intentional: 1.dp hairline between title and subcopy; any token would be too loose
                     Spacer(modifier = Modifier.height(1.dp))
                     Text(
                         text = "Spaces \u00B7 Items \u00B7 Services",
@@ -470,7 +476,7 @@ private fun HeroHeaderSection(
                         color = PaceDreamColors.Gray500
                     )
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Surface(
                     modifier = Modifier
                         .size(42.dp)
@@ -520,7 +526,8 @@ private fun CategoryFilterTabs(
 
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+            // intentional: tabs own their own internal horizontal padding so we want zero arrangement gap
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(categories) { (name, outlinedIcon, filledIcon) ->
@@ -562,8 +569,9 @@ private fun CategoryTab(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 14.dp)
-            .padding(top = 12.dp, bottom = 0.dp)
+            .padding(horizontal = PaceDreamSpacing.MD)
+            // intentional: 0.dp bottom so the indicator rule underneath sits flush
+            .padding(top = PaceDreamSpacing.SM2, bottom = 0.dp)
     ) {
         Icon(
             imageVector = icon,
@@ -572,7 +580,7 @@ private fun CategoryTab(
                    else PaceDreamColors.TextSecondary, // Gray-500 for better contrast
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
             text = name,
             style = DSTypo.Caption.copy(
@@ -584,7 +592,7 @@ private fun CategoryTab(
                     else PaceDreamColors.TextSecondary,
             maxLines = 1
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -609,12 +617,12 @@ private fun ExtendedCategoriesSection(
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
             title = "Categories",
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(getCategoryCards()) { category ->
                 QuickCategoryChip(
@@ -659,7 +667,7 @@ private fun QuickCategoryChip(
         border = BorderStroke(0.5.dp, tint.copy(alpha = 0.12f))
     ) {
         Row(
-            modifier = Modifier.padding(start = 6.dp, end = 16.dp),
+            modifier = Modifier.padding(start = PaceDreamSpacing.SM, end = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -675,7 +683,7 @@ private fun QuickCategoryChip(
                     modifier = Modifier.size(18.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = category.name,
                 style = DSTypo.Subheadline.copy(
@@ -725,7 +733,7 @@ private fun WarningBanner(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -734,7 +742,7 @@ private fun WarningBanner(
                 tint = PaceDreamColors.Warning,
                 modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = message,
                 style = DSTypo.Subheadline.copy(
@@ -775,10 +783,10 @@ private fun SectionHeader(
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (onViewAllClick != null) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 TextButton(
                     onClick = onViewAllClick,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                 ) {
                     Text(
                         text = "View All",
@@ -788,7 +796,7 @@ private fun SectionHeader(
                         ),
                         color = PaceDreamColors.Primary
                     )
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
                     Icon(
                         imageVector = PaceDreamIcons.ChevronRight,
                         contentDescription = null,
@@ -832,15 +840,15 @@ private fun ListingSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         if (isLoading) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
             ) {
                 items(3) { ShimmerCard(modifier = Modifier.fillParentMaxWidth(0.62f)) }
             }
@@ -853,7 +861,7 @@ private fun ListingSection(
                     isFavorite = item.id in favoriteIds,
                     onClick = { onItemClick(item) },
                     onFavoriteClick = { onFavoriteClick(item.id) },
-                    modifier = Modifier.padding(horizontal = 20.dp)
+                    modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
                 )
             }
             // Two items: side-by-side compact grid
@@ -861,8 +869,8 @@ private fun ListingSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(horizontal = HomeHorizontalGutter),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items.forEach { item ->
                         Box(modifier = Modifier.weight(1f)) {
@@ -879,8 +887,8 @@ private fun ListingSection(
             // 3+ items: horizontal carousel with peek-optimized card width
             else -> {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items(items) { item ->
                         ListingCard(
@@ -978,7 +986,7 @@ private fun FeaturedFullWidthCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(12.dp),
+                        .padding(PaceDreamSpacing.SM2),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
                     color = badgeOnImageColor()
                 ) {
@@ -995,7 +1003,7 @@ private fun FeaturedFullWidthCard(
                             letterSpacing = 0.3.sp
                         ),
                         color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     )
                 }
 
@@ -1005,13 +1013,13 @@ private fun FeaturedFullWidthCard(
                     onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(12.dp)
+                        .padding(PaceDreamSpacing.SM2)
                         .size(34.dp),
                 )
             }
 
             // Content
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 Text(
                     text = item.title,
                     style = DSTypo.Callout.copy(
@@ -1025,7 +1033,7 @@ private fun FeaturedFullWidthCard(
                 )
 
                 item.location?.let { location ->
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
@@ -1033,7 +1041,7 @@ private fun FeaturedFullWidthCard(
                             tint = PaceDreamColors.Gray400,
                             modifier = Modifier.size(14.dp)
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
@@ -1044,7 +1052,7 @@ private fun FeaturedFullWidthCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1064,7 +1072,7 @@ private fun FeaturedFullWidthCard(
                         if (ratingVal > 0.0) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                             ) {
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
@@ -1110,21 +1118,21 @@ private fun ServicesGridSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         if (isLoading) {
             // 2-column shimmer grid (4 skeleton cards)
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 for (row in 0 until 2) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                     ) {
                         Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
                         Box(modifier = Modifier.weight(1f)) { GridShimmerCard() }
@@ -1134,14 +1142,14 @@ private fun ServicesGridSection(
         } else {
             // 2-column listing grid
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 val rows = items.chunked(2)
                 for (rowItems in rows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                     ) {
                         for (item in rowItems) {
                             Box(modifier = Modifier.weight(1f)) {
@@ -1206,7 +1214,7 @@ private fun GridShimmerCard() {
                     )
                     .background(shimmerBrush)
             )
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.SM2)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -1214,7 +1222,7 @@ private fun GridShimmerCard() {
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
@@ -1222,7 +1230,7 @@ private fun GridShimmerCard() {
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Box(
                     modifier = Modifier
                         .width(56.dp)
@@ -1311,7 +1319,7 @@ private fun GridListingCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(8.dp),
+                        .padding(PaceDreamSpacing.SM),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
                     color = badgeOnImageColor()
                 ) {
@@ -1328,7 +1336,7 @@ private fun GridListingCard(
                             letterSpacing = 0.3.sp
                         ),
                         color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     )
                 }
 
@@ -1338,14 +1346,14 @@ private fun GridListingCard(
                     onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(PaceDreamSpacing.SM)
                         .size(30.dp),
                 )
             }
 
             // Content area below image
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(PaceDreamSpacing.SM2)
             ) {
                 Text(
                     text = item.title,
@@ -1360,7 +1368,7 @@ private fun GridListingCard(
                 )
 
                 item.location?.let { location ->
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
@@ -1368,7 +1376,7 @@ private fun GridListingCard(
                             tint = PaceDreamColors.Gray400,
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
@@ -1379,7 +1387,7 @@ private fun GridListingCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1399,7 +1407,7 @@ private fun GridListingCard(
                         if (ratingVal > 0.0) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XXS)
                             ) {
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
@@ -1506,7 +1514,7 @@ private fun ListingCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(10.dp),
+                        .padding(PaceDreamSpacing.SM),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
                     color = badgeOnImageColor()
                 ) {
@@ -1523,7 +1531,7 @@ private fun ListingCard(
                             letterSpacing = 0.3.sp
                         ),
                         color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                     )
                 }
 
@@ -1533,14 +1541,14 @@ private fun ListingCard(
                     onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp)
+                        .padding(PaceDreamSpacing.SM)
                         .size(32.dp),
                 )
             }
 
             // Content area below image
             Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM)
             ) {
                 // Title — primary emphasis
                 Text(
@@ -1557,7 +1565,7 @@ private fun ListingCard(
 
                 // Location — secondary
                 item.location?.let { location ->
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
@@ -1565,7 +1573,7 @@ private fun ListingCard(
                             tint = PaceDreamColors.Gray400,
                             modifier = Modifier.size(12.dp)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
@@ -1577,7 +1585,7 @@ private fun ListingCard(
                 }
 
                 // Price + Rating row — bottom emphasis
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1597,7 +1605,7 @@ private fun ListingCard(
                         if (ratingVal > 0.0) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                             ) {
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
@@ -1626,7 +1634,7 @@ private fun ListingCard(
                                         fontWeight = FontWeight.SemiBold
                                     ),
                                     color = PaceDreamColors.Primary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XXS)
                                 )
                             }
                         }
@@ -1695,21 +1703,21 @@ private fun BrowseByTypeSection(
         SectionHeader(
             title = "Browse by Type",
             subtitle = "Explore spaces, items, and services",
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = HomeHorizontalGutter)
                 .fillMaxWidth()
                 .background(
                     PaceDreamColors.Gray100,
                     RoundedCornerShape(PaceDreamRadius.XL)
                 )
-                .padding(3.dp)
+                .padding(PaceDreamSpacing.XS)
         ) {
             HomeBrowseType.entries.forEach { type ->
                 BrowseTypePill(
@@ -1724,13 +1732,13 @@ private fun BrowseByTypeSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         // Subcategory chips
         val accentColor = selectedType.categoryColor.gradientStart
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(selectedType.subcategories) { sub ->
                 SubcategoryChip(
@@ -1778,7 +1786,7 @@ private fun BrowseTypePill(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 12.dp),
+            .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -1791,7 +1799,7 @@ private fun BrowseTypePill(
                 tint = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500,
                 modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = type.displayTitle,
                 style = DSTypo.Footnote.copy(
@@ -1841,7 +1849,7 @@ private fun SubcategoryChip(
                     }
                 )
             }
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
     ) {
         Icon(
             imageVector = subcategory.icon,
@@ -1849,7 +1857,7 @@ private fun SubcategoryChip(
             tint = accentColor,
             modifier = Modifier.size(16.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
         Text(
             text = subcategory.title,
             style = DSTypo.Caption1.copy(
@@ -1892,19 +1900,19 @@ private fun TrendingDestinationsSection(
             title = "Trending Destinations",
             subtitle = "Popular places our community loves",
             onViewAllClick = onViewAllTap,
-            modifier = Modifier.padding(horizontal = 20.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         val destinations = getTrendingDestinations()
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             for (rowIndex in 0 until (destinations.size + 1) / 2) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                 ) {
                     for (colIndex in 0..1) {
                         val index = rowIndex * 2 + colIndex
@@ -1987,7 +1995,7 @@ private fun TrendingDestinationCard(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp)
+                .padding(PaceDreamSpacing.SM2)
         ) {
             Text(
                 text = destination.title,
@@ -2047,13 +2055,13 @@ private fun ThreeStepsCTASection(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = HomeHorizontalGutter),
         shape = RoundedCornerShape(PaceDreamRadius.XL),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 24.dp),
+            modifier = Modifier.padding(vertical = PaceDreamSpacing.LG),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
@@ -2066,7 +2074,7 @@ private fun ThreeStepsCTASection(
                 color = PaceDreamColors.TextHeadline,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
                 text = "From your next affordable rental",
                 style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
@@ -2074,12 +2082,12 @@ private fun ThreeStepsCTASection(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             // Steps
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 steps.forEachIndexed { index, step ->
                     StepCard(
@@ -2089,7 +2097,7 @@ private fun ThreeStepsCTASection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             // CTA Button
             Button(
@@ -2097,12 +2105,12 @@ private fun ThreeStepsCTASection(
                 modifier = Modifier
                     .widthIn(max = 260.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = HomeHorizontalGutter),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2)
             ) {
                 Text(
                     text = "Get Started",
@@ -2129,8 +2137,8 @@ private fun StepCard(
         color = PaceDreamColors.Background
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.Top
         ) {
             // Step number badge
@@ -2153,10 +2161,10 @@ private fun StepCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -2235,7 +2243,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                     )
                     .background(shimmerBrush)
             )
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.SM2)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -2243,7 +2251,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
@@ -2251,7 +2259,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -2305,6 +2313,7 @@ private fun EmptyState(
                 modifier = Modifier.size(36.dp)
             )
         }
+        // intentional: 20.dp empty-state gap; MD/LG both fall outside 2.dp tolerance
         Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "Nothing to show right now",
@@ -2316,21 +2325,21 @@ private fun EmptyState(
             color = PaceDreamColors.TextHeadline,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         Text(
             text = "Check back later for new spaces and rentals",
             style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
             color = PaceDreamColors.Gray500,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         Button(
             onClick = onRetry,
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PaceDreamColors.Primary
             ),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
         ) {
             Text(
                 text = "Retry",
@@ -2389,7 +2398,7 @@ private fun HomeScreenPreviewBody() {
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
         ) {
             item {
                 val uriHandler = LocalUriHandler.current
@@ -2409,7 +2418,7 @@ private fun HomeScreenPreviewBody() {
                 CategoryFilterTabs(
                     selectedCategory = "All",
                     onCategorySelected = {},
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = PaceDreamSpacing.XS),
                 )
             }
             item {
