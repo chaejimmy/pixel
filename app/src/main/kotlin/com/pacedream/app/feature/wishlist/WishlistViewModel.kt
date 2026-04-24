@@ -7,6 +7,7 @@ import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.listing.ListingPriceFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -15,7 +16,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
@@ -251,9 +251,11 @@ class WishlistViewModel @Inject constructor(
                             ?: return@mapNotNull null,
                         listingId = listingData["_id"]?.jsonPrimitive?.content
                             ?: listingData["id"]?.jsonPrimitive?.content,
-                        title = listingData["name"]?.jsonPrimitive?.content
-                            ?: listingData["title"]?.jsonPrimitive?.content
-                            ?: "Item",
+                        title = ListingPriceFormatter.stripTrailingPriceFromTitle(
+                            listingData["name"]?.jsonPrimitive?.content
+                                ?: listingData["title"]?.jsonPrimitive?.content
+                                ?: "Item"
+                        ),
                         imageUrl = listingData["coverUrl"]?.jsonPrimitive?.content
                             ?: listingData["images"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
                             ?: listingData["image"]?.jsonPrimitive?.content
@@ -266,7 +268,7 @@ class WishlistViewModel @Inject constructor(
                                 else -> try { loc.jsonPrimitive.content } catch (_: Exception) { null }
                             }
                         } ?: listingData["city"]?.jsonPrimitive?.content,
-                        price = parsePrice(listingData),
+                        price = ListingPriceFormatter.parseListingPrice(listingData),
                         rating = listingData["rating"]?.jsonPrimitive?.doubleOrNull,
                         type = type
                     )
@@ -288,63 +290,6 @@ class WishlistViewModel @Inject constructor(
             obj.containsKey("rentalPrice") -> "hourly-gear"
             else -> "time-based" // Safe fallback
         }
-    }
-    
-    private fun parsePrice(obj: JsonObject): String? {
-        return try {
-            // Try dynamic_price first (for hourly spaces)
-            obj["dynamic_price"]?.jsonArray?.firstOrNull()?.jsonObject?.let { price ->
-                val priceValue = price["price"]?.jsonPrimitive?.doubleOrNull
-                    ?: price["price"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                priceValue?.let { formatPrice(it, "hr") }
-            }
-            // Try pricing object
-            ?: obj["pricing"]?.jsonObject?.let { pricing ->
-                val hourlyFrom = pricing["hourlyFrom"]?.jsonPrimitive?.doubleOrNull
-                    ?: pricing["hourly_from"]?.jsonPrimitive?.doubleOrNull
-                val basePrice = pricing["basePrice"]?.jsonPrimitive?.doubleOrNull
-                    ?: pricing["base_price"]?.jsonPrimitive?.doubleOrNull
-                val frequency = pricing["frequencyLabel"]?.jsonPrimitive?.content
-                    ?: pricing["frequency"]?.jsonPrimitive?.content
-                    ?: pricing["unit"]?.jsonPrimitive?.content
-                
-                val amount = hourlyFrom ?: basePrice
-                val unit = frequency?.lowercase()?.takeIf { it.isNotBlank() } ?: "hr"
-                amount?.let { formatPrice(it, unit) }
-            }
-            // Try price object
-            ?: obj["price"]?.let { price ->
-                when (price) {
-                    is JsonObject -> {
-                        val amount = price["amount"]?.jsonPrimitive?.doubleOrNull
-                            ?: price["amount"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                        val unit = price["unit"]?.jsonPrimitive?.content?.lowercase() ?: "hr"
-                        amount?.let { formatPrice(it, unit) }
-                    }
-                    else -> {
-                        val prim = price as? kotlinx.serialization.json.JsonPrimitive
-                        val priceValue = prim?.doubleOrNull
-                            ?: prim?.content?.toDoubleOrNull()
-                        priceValue?.let { formatPrice(it, "hr") }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-    
-    /**
-     * Format price to match iOS format: "$12/hr" (no spaces, lowercase unit)
-     */
-    private fun formatPrice(amount: Double, unit: String): String {
-        val formattedAmount = if (amount == amount.toInt().toDouble()) {
-            amount.toInt().toString()
-        } else {
-            "%.2f".format(amount).trimEnd('0').trimEnd('.')
-        }
-        val normalizedUnit = unit.lowercase().trim()
-        return "$$formattedAmount/$normalizedUnit"
     }
     
     /**
