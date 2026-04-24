@@ -74,9 +74,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.mutableDoubleStateOf
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
@@ -763,6 +769,15 @@ private fun ReserveSheet(
     val today = remember { LocalDate.now() }
     val next7Days = remember { (0L..6L).map { today.plusDays(it) } }
 
+    // Monthly-only state: chip selection, custom months input, and date-picker visibility.
+    // Custom input overrides chip selection; derived monthlyDurationMonths is the source of truth.
+    val monthDurationOptions = listOf(1, 2, 3, 6, 9, 12)
+    var selectedMonthChip by remember { mutableStateOf<Int?>(null) }
+    var customMonthsInput by remember { mutableStateOf("") }
+    val customMonths = customMonthsInput.toIntOrNull()?.takeIf { it >= 1 }
+    val monthlyDurationMonths = customMonths ?: selectedMonthChip
+    var showDatePicker by remember { mutableStateOf(false) }
+
     // Generate 30-min time slots from 8 AM to 10 PM
     val timeSlots = remember(selectedDate, selectedDuration) {
         if (selectedDate == null) emptyList()
@@ -841,45 +856,128 @@ private fun ReserveSheet(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // 7-day date strip
-        Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(next7Days) { date ->
-                val isSelected = date == selectedDate
-                val isToday = date == today
-                val dayLabel = date.dayOfWeek.name.take(3).lowercase()
-                    .replaceFirstChar { it.uppercase() }
-                val dateNum = date.dayOfMonth.toString()
-                Surface(
-                    onClick = {
-                        selectedDate = date
-                        selectedSlotStart = null // reset slot on date change
-                    },
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    border = when {
-                        isSelected -> null
-                        isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    }
+        if (isMonthlyListing) {
+            // Start date row — tapping opens the DatePickerDialog below.
+            Text("Start date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Icon(
+                        imageVector = PaceDreamIcons.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = selectedDate?.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))
+                            ?: "Select a date",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selectedDate != null) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Month-duration chips.
+            Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(monthDurationOptions) { months ->
+                    val isSelected = selectedMonthChip == months && customMonthsInput.isEmpty()
+                    val label = if (months == 1) "1 month" else "$months months"
+                    Surface(
+                        onClick = {
+                            selectedMonthChip = months
+                            customMonthsInput = "" // chip click wins over any stale custom input
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
-                            text = dayLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = dateNum,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Custom months input — numeric, overrides chip selection once a valid value is typed.
+            OutlinedTextField(
+                value = customMonthsInput,
+                onValueChange = { raw ->
+                    val filtered = raw.filter { it.isDigit() }.take(3)
+                    customMonthsInput = filtered
+                    if (filtered.isNotEmpty()) {
+                        // Custom input overrides chips — drop chip highlight.
+                        selectedMonthChip = null
+                    }
+                },
+                placeholder = { Text("Enter months") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = customMonthsInput.isNotEmpty() && (customMonthsInput.toIntOrNull() ?: 0) < 1,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD)
+            )
+        } else {
+            // 7-day date strip (hourly listings)
+            Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(next7Days) { date ->
+                    val isSelected = date == selectedDate
+                    val isToday = date == today
+                    val dayLabel = date.dayOfWeek.name.take(3).lowercase()
+                        .replaceFirstChar { it.uppercase() }
+                    val dateNum = date.dayOfMonth.toString()
+                    Surface(
+                        onClick = {
+                            selectedDate = date
+                            selectedSlotStart = null // reset slot on date change
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        border = when {
+                            isSelected -> null
+                            isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = dayLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = dateNum,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
@@ -1086,47 +1184,129 @@ private fun ReserveSheet(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Confirm button
-        Button(
-            onClick = {
-                val d = selectedDate ?: return@Button
-                val start = selectedSlotStart ?: return@Button
-                val end = selectedEnd ?: return@Button
-                val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
-                val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
-                onConfirm(
-                    BookingDraft(
-                        listingId = listingId,
-                        date = dateIso,
-                        startTimeISO = startIso,
-                        endTimeISO = endIso,
-                        guests = guests,
-                        totalAmountEstimate = total
+        if (isMonthlyListing) {
+            val canReserveMonthly = selectedDate != null && monthlyDurationMonths != null
+            Button(
+                onClick = {
+                    val d = selectedDate ?: return@Button
+                    val months = monthlyDurationMonths ?: return@Button
+                    val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    val endDateIso = d.plusMonths(months.toLong())
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    onConfirm(
+                        BookingDraft(
+                            listingId = listingId,
+                            date = dateIso,
+                            startTimeISO = "${dateIso}T00:00:00",
+                            endTimeISO = "${endDateIso}T00:00:00",
+                            guests = guests
+                        )
                     )
+                },
+                enabled = canReserveMonthly,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Reserve",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
-            },
-            enabled = canConfirm,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
-                       else "Select a time slot",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                "You won't be charged yet. The host will confirm your request.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        } else {
+            // Confirm button (hourly)
+            Button(
+                onClick = {
+                    val d = selectedDate ?: return@Button
+                    val start = selectedSlotStart ?: return@Button
+                    val end = selectedEnd ?: return@Button
+                    val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
+                    val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
+                    onConfirm(
+                        BookingDraft(
+                            listingId = listingId,
+                            date = dateIso,
+                            startTimeISO = startIso,
+                            endTimeISO = endIso,
+                            guests = guests,
+                            totalAmountEstimate = total
+                        )
+                    )
+                },
+                enabled = canConfirm,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                Text(
+                    text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
+                           else "Select a time slot",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "You won't be charged yet",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "You won't be charged yet",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
         Spacer(modifier = Modifier.height(20.dp))
+    }
+
+    // Monthly-only date picker dialog. Past dates are filtered via SelectableDates.
+    if (isMonthlyListing && showDatePicker) {
+        val todayLocal = remember { LocalDate.now() }
+        // DatePicker reports UTC-midnight millis for the picked calendar date;
+        // seed the initial value with UTC midnight of the currently selected date too.
+        val initialMillis = remember(selectedDate) {
+            (selectedDate ?: todayLocal).atStartOfDay(java.time.ZoneOffset.UTC)
+                .toInstant().toEpochMilli()
+        }
+        val dpState = rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val picked = Instant.ofEpochMilli(utcTimeMillis)
+                        .atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                    return !picked.isBefore(todayLocal)
+                }
+                override fun isSelectableYear(year: Int): Boolean =
+                    year >= todayLocal.year
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        dpState.selectedDateMillis?.let { ms ->
+                            selectedDate = Instant.ofEpochMilli(ms)
+                                .atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = dpState)
+        }
     }
 }
 
