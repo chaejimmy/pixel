@@ -188,6 +188,64 @@ class ListingPriceFormatterTest {
     }
 
     @Test
+    fun `bare price with minMonths scheduling field infers month`() {
+        // Host flow only writes minMonths when pricing mode is month.
+        val price = parse("""{ "price": 800, "minMonths": 6 }""")
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `bare price with availableFrom scheduling field infers month`() {
+        val price = parse("""{ "price": 800, "availableFrom": "2026-05-01" }""")
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `bare price with durations scheduling field infers hour`() {
+        val price = parse("""{ "price": 10, "durations": [60, 120] }""")
+        assertEquals("$10/hr", price)
+    }
+
+    @Test
+    fun `bare price with minStay scheduling field infers day`() {
+        val price = parse("""{ "price": 90, "minStay": 2, "maxStay": 7 }""")
+        assertEquals("$90/day", price)
+    }
+
+    @Test
+    fun `bare price with shareType BORROW defaults to day`() {
+        val price = parse("""{ "price": 15, "shareType": "BORROW" }""")
+        assertEquals("$15/day", price)
+    }
+
+    @Test
+    fun `bare price with shareType USE defaults to month`() {
+        // Regression: Hair Booth Rental in Fairfax Salon rendered as "${'$'}800"
+        // because the backend shipped nothing but a bare price + shareType.
+        // Hourly/daily USE listings virtually always carry structured pricing
+        // (dynamic_price.hourly/daily or pricing.hourlyFrom), so treat a bare
+        // USE price as a long-term rental.
+        val price = parse("""{ "price": 800, "shareType": "USE" }""")
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `bare price with shareType SPLIT defaults to month`() {
+        val price = parse("""{ "price": 50, "shareType": "SPLIT" }""")
+        assertEquals("$50/month", price)
+    }
+
+    @Test
+    fun `pricing hourlyFrom stays hourly even when shareType defaults suggest month`() {
+        // hourlyFrom is self-describing; the USE→month share-type default
+        // must never override an explicit hourly field.
+        val price = parse(
+            """{ "pricing": { "hourlyFrom": 10 }, "shareType": "USE" }"""
+        )
+        assertEquals("$10/hr", price)
+    }
+
+    @Test
     fun `stripTrailingPriceFromTitle removes parenthesised monthly suffix`() {
         assertEquals(
             "Sunlit loft desk",

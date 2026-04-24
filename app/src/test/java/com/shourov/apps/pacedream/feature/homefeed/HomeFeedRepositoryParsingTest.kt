@@ -227,6 +227,28 @@ class HomeFeedRepositoryParsingTest {
     }
 
     @Test
+    fun `bare price plus USE shareType renders month badge`() {
+        // Regression: the Hair Booth Rental card rendered a bare "${'$'}800" on
+        // Android because the backend payload had only a bare `price` and
+        // `shareType: "USE"` (no dynamic_price, no pricing object, no prices
+        // map, no scheduling fields). Hourly / daily USE listings always ship
+        // with structured pricing, so a bare USE price must default to month.
+        val body = """
+            [
+              {
+                "_id": "m4",
+                "title": "Hair Booth Rental in Fairfax Salon",
+                "price": 800,
+                "shareType": "USE"
+              }
+            ]
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals("$800/month", cards.first().priceText)
+    }
+
+    @Test
     fun `prices map recovers monthly unit when dynamic_price is absent`() {
         // Regression: the Hair Booth Rental card rendered a bare "${'$'}800" on
         // Android because the backend sent only a `prices` map (and no
