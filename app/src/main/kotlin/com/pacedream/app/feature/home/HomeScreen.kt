@@ -41,7 +41,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -67,6 +69,7 @@ import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
+import com.shourov.apps.pacedream.R
 
 object HomeTestTags {
     const val Root = "home_screen_root"
@@ -82,6 +85,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onSectionViewAll: (String) -> Unit,
     onListingClick: (HomeListingItem) -> Unit,
+    onAboutClick: () -> Unit,
     onSearchClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
@@ -119,7 +123,8 @@ fun HomeScreen(
                     heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
-                    onNotificationClick = onNotificationClick
+                    onNotificationClick = onNotificationClick,
+                    onAboutClick = onAboutClick,
                 )
             }
 
@@ -277,7 +282,7 @@ private fun SectionSurface(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero Header Section (iOS parity: gradient hero with overlapping search bar)
+// Hero Header Section (pacedream.com parity: photographic hero with CTA)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -285,96 +290,123 @@ private fun HeroHeaderSection(
     heroImageUrl: String?,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    onAboutClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(270.dp)
+            .height(360.dp)
     ) {
-        // Gradient background (matches iOS HeroHeader purple gradient)
+        // TODO(product): swap this dark-photographic placeholder for the real
+        //  pacedream.com hero image once the asset ships. The design calls for
+        //  an AsyncImage of that photo; until then we render a subtle deep-grey
+        //  fill so the UI doesn't regress to the old vivid gradient.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(238.dp)
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            PaceDreamColors.GradientStart, // Brand Green
-                            PaceDreamColors.GradientEnd    // Brand Blue
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                    )
-                )
+                .height(328.dp)
+                .background(PaceDreamColors.Gray900)
         ) {
+            if (!heroImageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(heroImageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // Scrim to keep copy readable over photography.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.45f))
+                )
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp, vertical = 20.dp)
             ) {
-                // Top row: greeting + notification bell
+                // Top row: notification bell (right-aligned; hero copy takes over greeting).
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Welcome back",
-                            style = DSTypo.Footnote.copy(
-                                fontFamily = paceDreamFontFamily,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = OnBrandSurface.copy(alpha = 0.85f)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Discover",
-                            style = DSTypo.Title1.copy(
-                                fontFamily = paceDreamDisplayFontFamily,
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = OnBrandSurface
-                        )
-                    }
-                    Box {
-                        Surface(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .testTag(HomeTestTags.NotificationButton)
-                                .semantics { role = Role.Button }
-                                .clickable(onClick = onNotificationClick),
-                            shape = CircleShape,
-                            color = OnBrandSurface.copy(alpha = 0.20f)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.Notifications,
-                                    contentDescription = "Notifications",
-                                    tint = OnBrandSurface,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
+                    Surface(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .testTag(HomeTestTags.NotificationButton)
+                            .semantics { role = Role.Button }
+                            .clickable(onClick = onNotificationClick),
+                        shape = CircleShape,
+                        color = OnBrandSurface.copy(alpha = 0.20f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Notifications,
+                                contentDescription = "Notifications",
+                                tint = OnBrandSurface,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
-                        // Unread badge hidden for v1 — no notification count API yet
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Main headline
                 Text(
-                    text = "Rent spaces, items & services\nfor just the time you need.",
-                    style = DSTypo.Title2.copy(
+                    text = stringResource(R.string.home_hero_title),
+                    style = DSTypo.Title1.copy(
                         fontFamily = paceDreamDisplayFontFamily,
-                        letterSpacing = (-0.3).sp,
-                        lineHeight = 28.sp
+                        letterSpacing = (-0.5).sp,
+                        lineHeight = 34.sp
                     ),
                     color = OnBrandSurface
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.home_hero_subtitle),
+                    style = DSTypo.Body.copy(
+                        fontFamily = paceDreamFontFamily,
+                        lineHeight = 22.sp
+                    ),
+                    color = OnBrandSurface.copy(alpha = 0.92f)
+                )
                 Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onAboutClick,
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 50.dp)
+                        .semantics { role = Role.Button },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Primary,
+                        contentColor = OnBrandSurface
+                    ),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.home_hero_cta),
+                        style = DSTypo.Callout.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
 
@@ -2360,11 +2392,17 @@ private fun HomeScreenPreviewBody() {
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
+                val uriHandler = LocalUriHandler.current
                 HeroHeaderSection(
                     heroImageUrl = null,
                     onSearchClick = {},
                     onFilterClick = {},
                     onNotificationClick = {},
+                    onAboutClick = {
+                        // Preview-only hook so the CTA isn't a no-op in isolation;
+                        // the real screen wires this to the in-app About route.
+                        runCatching { uriHandler.openUri("https://www.pacedream.com") }
+                    },
                 )
             }
             item {

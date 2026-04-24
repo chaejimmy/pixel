@@ -16,6 +16,11 @@
     <string name="profile">Profile</string>
     <string name="not_connected">You are not connected to the internet</string>
 
+    <!-- Home hero (pacedream.com parity) -->
+    <string name="home_hero_title">One place to share it all</string>
+    <string name="home_hero_subtitle">Book, share, or split stays, time, and spaces—on one platform.</string>
+    <string name="home_hero_cta">Get to know PaceDream</string>
+
     <!-- Host Mode — iOS parity -->
     <string name="host_dashboard">Dashboard</string>
     <string name="host_earnings">Earnings</string>
