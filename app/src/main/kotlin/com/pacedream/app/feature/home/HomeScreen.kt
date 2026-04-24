@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -52,9 +51,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import android.content.res.Configuration
+import androidx.compose.ui.tooling.preview.Preview
 import com.pacedream.common.composables.animations.animatedCardEntry
+import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.adaptiveShadow
+import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 
 object HomeTestTags {
     const val Root = "home_screen_root"
@@ -95,7 +101,7 @@ fun HomeScreen(
         onRefresh = { viewModel.refresh() },
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F8FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag(HomeTestTags.ListingFeed),
@@ -256,7 +262,7 @@ private fun SectionSurface(
         modifier = modifier
             .fillMaxWidth()
             .padding(top = 8.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
     ) {
         Box(modifier = Modifier.padding(vertical = 16.dp)) {
             content()
@@ -315,7 +321,7 @@ private fun HeroHeaderSection(
                                 fontFamily = paceDreamFontFamily,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color.White.copy(alpha = 0.85f)
+                            color = OnBrandSurface.copy(alpha = 0.85f)
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -324,7 +330,7 @@ private fun HeroHeaderSection(
                                 fontFamily = paceDreamDisplayFontFamily,
                                 letterSpacing = (-0.5).sp
                             ),
-                            color = Color.White
+                            color = OnBrandSurface
                         )
                     }
                     Box {
@@ -334,13 +340,13 @@ private fun HeroHeaderSection(
                                 .testTag(HomeTestTags.NotificationButton)
                                 .clickable(onClick = onNotificationClick),
                             shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.20f)
+                            color = OnBrandSurface.copy(alpha = 0.20f)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = PaceDreamIcons.Notifications,
                                     contentDescription = "Notifications",
-                                    tint = Color.White,
+                                    tint = OnBrandSurface,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -359,7 +365,7 @@ private fun HeroHeaderSection(
                         letterSpacing = (-0.3).sp,
                         lineHeight = 28.sp
                     ),
-                    color = Color.White
+                    color = OnBrandSurface
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -372,11 +378,9 @@ private fun HeroHeaderSection(
                 .padding(horizontal = 20.dp)
                 .fillMaxWidth()
                 .testTag(HomeTestTags.SearchBar)
-                .shadow(
+                .adaptiveShadow(
                     elevation = 10.dp,
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    ambientColor = Color.Black.copy(alpha = 0.06f),
-                    spotColor = Color.Black.copy(alpha = 0.10f)
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -384,7 +388,7 @@ private fun HeroHeaderSection(
                     onClick = onSearchClick
                 ),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp
         ) {
             Row(
@@ -874,11 +878,10 @@ private fun FeaturedFullWidthCard(
             .fillMaxWidth()
             .animatedCardEntry()
             .scale(scale)
-            .shadow(
+            .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                ambientColor = Color.Black.copy(alpha = 0.06f),
-                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
+                pressed = isPressed
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -886,7 +889,7 @@ private fun FeaturedFullWidthCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column {
             // Image — 16:9 aspect ratio for featured
@@ -920,7 +923,7 @@ private fun FeaturedFullWidthCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.20f)
+                                    scrimOnImage(0.20f)
                                 )
                             )
                         )
@@ -932,7 +935,7 @@ private fun FeaturedFullWidthCard(
                         .align(Alignment.TopStart)
                         .padding(12.dp),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = Color.White.copy(alpha = 0.95f)
+                    color = badgeOnImageColor()
                 ) {
                     Text(
                         text = when (item.type) {
@@ -958,14 +961,14 @@ private fun FeaturedFullWidthCard(
                         .padding(12.dp)
                         .size(34.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.30f),
+                    color = scrimOnImage(0.30f),
                     onClick = onFavoriteClick
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -1152,7 +1155,7 @@ private fun GridShimmerCard() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Column {
@@ -1216,11 +1219,10 @@ private fun GridListingCard(
         modifier = Modifier
             .fillMaxWidth()
             .scale(scale)
-            .shadow(
+            .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                ambientColor = Color.Black.copy(alpha = 0.06f),
-                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
+                pressed = isPressed
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1228,7 +1230,7 @@ private fun GridListingCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column {
             // Image area — 4:3 aspect ratio
@@ -1263,7 +1265,7 @@ private fun GridListingCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.20f)
+                                    scrimOnImage(0.20f)
                                 )
                             )
                         )
@@ -1275,7 +1277,7 @@ private fun GridListingCard(
                         .align(Alignment.TopStart)
                         .padding(8.dp),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = Color.White.copy(alpha = 0.95f)
+                    color = badgeOnImageColor()
                 ) {
                     Text(
                         text = when (item.type) {
@@ -1301,14 +1303,14 @@ private fun GridListingCard(
                         .padding(8.dp)
                         .size(30.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.30f),
+                    color = scrimOnImage(0.30f),
                     onClick = onFavoriteClick
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1421,11 +1423,10 @@ private fun ListingCard(
         modifier = modifier
             .widthIn(min = 200.dp)
             .scale(scale)
-            .shadow(
+            .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                ambientColor = Color.Black.copy(alpha = 0.06f),
-                spotColor = Color.Black.copy(alpha = if (isPressed) 0.12f else 0.08f)
+                pressed = isPressed
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1433,7 +1434,7 @@ private fun ListingCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column {
             // Image area — 4:3 aspect ratio for consistent proportions
@@ -1468,7 +1469,7 @@ private fun ListingCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.18f)
+                                    scrimOnImage(0.18f)
                                 )
                             )
                         )
@@ -1480,7 +1481,7 @@ private fun ListingCard(
                         .align(Alignment.TopStart)
                         .padding(10.dp),
                     shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = Color.White.copy(alpha = 0.95f)
+                    color = badgeOnImageColor()
                 ) {
                     Text(
                         text = when (item.type) {
@@ -1506,14 +1507,14 @@ private fun ListingCard(
                         .padding(10.dp)
                         .size(32.dp),
                     shape = CircleShape,
-                    color = Color.Black.copy(alpha = 0.30f),
+                    color = scrimOnImage(0.30f),
                     onClick = onFavoriteClick
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1767,7 +1768,7 @@ private fun BrowseTypePill(
             Icon(
                 imageVector = type.icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else PaceDreamColors.Gray500,
+                tint = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -1777,7 +1778,7 @@ private fun BrowseTypePill(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = if (isSelected) Color.White else PaceDreamColors.Gray500
+                color = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500
             )
         }
     }
@@ -1953,7 +1954,7 @@ private fun TrendingDestinationCard(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.55f)
+                            scrimOnImage(0.55f)
                         ),
                         startY = Float.POSITIVE_INFINITY * 0.4f,
                         endY = Float.POSITIVE_INFINITY
@@ -1974,7 +1975,7 @@ private fun TrendingDestinationCard(
                     fontSize = if (isLarge) 18.sp else 15.sp,
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color.White,
+                color = OnBrandSurface,
                 maxLines = 1
             )
             Text(
@@ -1983,7 +1984,7 @@ private fun TrendingDestinationCard(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.Medium
                 ),
-                color = Color.White.copy(alpha = 0.85f)
+                color = OnBrandSurface.copy(alpha = 0.85f)
             )
         }
     }
@@ -2027,7 +2028,7 @@ private fun ThreeStepsCTASection(
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Column(
@@ -2089,7 +2090,7 @@ private fun ThreeStepsCTASection(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }
@@ -2125,7 +2126,7 @@ private fun StepCard(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
@@ -2197,7 +2198,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.widthIn(min = 200.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
         Column {
@@ -2316,9 +2317,113 @@ private fun EmptyState(
                     fontFamily = paceDreamFontFamily,
                     fontSize = 15.sp
                 ),
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark. Exercises the dark-theme surfaces, shadows and
+// overlays so regressions show up in the PR render without standing up the
+// ViewModel / data layer.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val PreviewListingItems = listOf(
+    HomeListingItem(
+        id = "preview-1",
+        title = "Bright corner meeting room",
+        imageUrl = null,
+        location = "Downtown, SF",
+        price = "$18 / hr",
+        rating = 4.8,
+        type = "time-based",
+    ),
+    HomeListingItem(
+        id = "preview-2",
+        title = "DSLR camera kit",
+        imageUrl = null,
+        location = "Mission, SF",
+        price = "$42 / day",
+        rating = 4.6,
+        type = "gear",
+    ),
+    HomeListingItem(
+        id = "preview-3",
+        title = "Apartment cleaning",
+        imageUrl = null,
+        location = "Bay Area",
+        price = "$60",
+        rating = 4.9,
+        type = "split-stay",
+    ),
+)
+
+@Composable
+private fun HomeScreenPreviewBody() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            item {
+                HeroHeaderSection(
+                    heroImageUrl = null,
+                    onSearchClick = {},
+                    onFilterClick = {},
+                    onNotificationClick = {},
+                )
+            }
+            item {
+                CategoryFilterTabs(
+                    selectedCategory = "All",
+                    onCategorySelected = {},
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            item {
+                SectionSurface {
+                    ListingSection(
+                        title = "Spaces",
+                        subtitle = "Popular nearby",
+                        items = PreviewListingItems,
+                        isLoading = false,
+                        favoriteIds = setOf("preview-1"),
+                        onViewAllClick = {},
+                        onItemClick = {},
+                        onFavoriteClick = {},
+                    )
+                }
+            }
+            item {
+                ThreeStepsCTASection(onGetStarted = {})
+            }
+        }
+    }
+}
+
+@Preview(name = "HomeScreen Light", showBackground = true, widthDp = 360, heightDp = 900)
+@Composable
+private fun HomeScreenLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        HomeScreenPreviewBody()
+    }
+}
+
+@Preview(
+    name = "HomeScreen Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 900,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun HomeScreenDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        HomeScreenPreviewBody()
+    }
+}
