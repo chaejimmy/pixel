@@ -104,7 +104,7 @@ class SearchViewModel @Inject constructor(
         _uiState.update { it.copy(query = q, errorMessage = null) }
         fetchAutocompleteDebounced(q)
     }
-    
+
     fun updateSearchParams(
         shareType: String? = null,
         whatQuery: String? = null,
@@ -273,8 +273,26 @@ class SearchViewModel @Inject constructor(
 
                 when (res) {
                     is ApiResult.Success -> {
+                        // Backend /v1/poc/listings and /v1/search match the
+                        // query with a case-insensitive regex on title OR
+                        // description.  A short query like "gym" will
+                        // therefore surface any listing whose description
+                        // merely mentions the word (e.g. a salon listing
+                        // that says "near the gym").  Re-rank on the
+                        // client to prefer structured matches (title,
+                        // category, location) and drop the description-
+                        // only false positives when at least one
+                        // structured match exists in this page.
+                        val effectiveQuery = (current.whatQuery?.takeIf { it.isNotBlank() }
+                            ?: whereQuery.takeIf { it.isNotBlank() })
+                            ?.trim()
+                        val ranked = if (!effectiveQuery.isNullOrBlank()) {
+                            rankByRelevance(res.data.items, effectiveQuery)
+                        } else {
+                            res.data.items
+                        }
                         _uiState.update { s ->
-                            val newItems = if (reset) res.data.items else (s.items + res.data.items)
+                            val newItems = if (reset) ranked else (s.items + ranked)
                             s.copy(
                                 phase = if (newItems.isEmpty()) SearchPhase.Empty else SearchPhase.Success,
                                 items = newItems,
@@ -335,6 +353,51 @@ class SearchViewModel @Inject constructor(
             }
         }
     }
+
+    companion object {
+        /**
+         * Client-side relevance pass over a single page of search
+         * results.  Scores each item by where the query matches
+         * (title > category > location) and drops items that only
+         * matched on description — those leak in because the backend
+         * regex matches title OR description indifferently.  If no
+         * item matches a structured field we fall back to the raw
+         * server order so the user still sees results.
+         *
+         * Package-private + @JvmStatic so the helper can be covered
+         * by a plain JVM unit test without constructing the full
+         * Hilt graph.
+         */
+        @JvmStatic
+        internal fun rankByRelevance(
+            items: List<SearchResultItem>,
+            query: String
+        ): List<SearchResultItem> {
+            val q = query.trim().lowercase()
+            if (q.isEmpty()) return items
+
+            val wordBoundary = Regex("\\b${Regex.escape(q)}\\b")
+
+            fun score(item: SearchResultItem): Int {
+                val title = item.title.lowercase()
+                val category = item.category?.lowercase().orEmpty()
+                val location = item.location?.lowercase().orEmpty()
+                return when {
+                    title.startsWith(q) -> 100
+                    wordBoundary.containsMatchIn(title) -> 80
+                    title.contains(q) -> 60
+                    category.contains(q) -> 40
+                    location.contains(q) -> 20
+                    else -> 0
+                }
+            }
+
+            val scored = items.map { it to score(it) }
+            val matched = scored.filter { it.second > 0 }
+            if (matched.isEmpty()) return items
+            return matched.sortedByDescending { it.second }.map { it.first }
+        }
+    }
 }
 
 /**
@@ -389,4 +452,3 @@ enum class SearchPhase {
     Empty,
     Error
 }
-
