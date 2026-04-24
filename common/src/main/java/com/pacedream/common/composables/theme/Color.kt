@@ -238,6 +238,17 @@ object PaceDreamColors {
     val GlassBorder = Color(0xFFFFFFFF).copy(alpha = 0.20f) // subtle glass edge
     val GlassBorderDark = Color(0xFFFFFFFF).copy(alpha = 0.10f)
     val GlassHighlight = Color(0xFFFFFFFF).copy(alpha = 0.40f) // specular highlight
+
+    // Extra text / icon tokens used by feature screens. Kept alongside the
+    // existing iOS-aligned palette so feature code does not reach for hex.
+    val TextHeadline = Color(0xFF1A1A1A) // section headers, card titles
+    val TextBody = Color(0xFF111827)     // primary body text (same as TextPrimary)
+    val IconNeutral = Color(0xFF374151)  // gray-700 filter icons, rating labels
+    val OnWarningContainer = Color(0xFF78350F) // text on warning-tinted banner
+
+    // Shimmer skeleton gradient stops
+    val ShimmerHighlight = Color(0xFFF0F0F0)
+    val ShimmerBase = Color(0xFFE0E0E0)
 }
 
 // ============================================================================
