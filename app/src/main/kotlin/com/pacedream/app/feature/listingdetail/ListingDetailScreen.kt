@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -74,10 +76,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import com.shourov.apps.pacedream.R
 import com.pacedream.app.feature.checkout.BookingDraft
 import java.time.Instant
@@ -712,6 +725,14 @@ fun ListingDetailScreen(
         }
 
         if (showReserveSheet) {
+            val isMonthlyListing = listing?.pricing?.frequencyLabel
+                ?.trim()
+                ?.lowercase()
+                ?.let { it == "month" || it == "monthly" || it == "mo" } == true
+            android.util.Log.d(
+                "BookingMonthly",
+                "isMonthlyListing=$isMonthlyListing listingId=${listing?.id}"
+            )
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
                 onDismissRequest = { showReserveSheet = false },
@@ -721,13 +742,13 @@ fun ListingDetailScreen(
                     listingId = listing?.id.orEmpty(),
                     hourlyFrom = listing?.pricing?.hourlyFrom ?: listing?.pricing?.basePrice,
                     currency = listing?.pricing?.currency,
+                    isMonthlyListing = isMonthlyListing,
                     onClose = { showReserveSheet = false },
                     onConfirm = { draft ->
                         showReserveSheet = false
                         onConfirmReserve(draft)
                     }
                 )
-                Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
         }
 
@@ -735,23 +756,43 @@ fun ListingDetailScreen(
     }
 }
 
+private val LocalDateNullableSaver: Saver<LocalDate?, Long> = Saver(
+    save = { it?.toEpochDay() ?: Long.MIN_VALUE },
+    restore = { if (it == Long.MIN_VALUE) null else LocalDate.ofEpochDay(it) }
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReserveSheet(
     listingId: String,
     hourlyFrom: Double?,
     currency: String?,
+    isMonthlyListing: Boolean = false,
     onClose: () -> Unit,
     onConfirm: (BookingDraft) -> Unit
 ) {
     val durationOptions = listOf(30, 60, 90, 120) // iOS parity: 4 duration options
     var selectedDuration by remember { mutableStateOf(60) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(LocalDate.now()) }
+    // Survives rotation (shared by hourly + monthly flows).
+    var selectedDate by rememberSaveable(stateSaver = LocalDateNullableSaver) {
+        mutableStateOf<LocalDate?>(LocalDate.now())
+    }
     var selectedSlotStart by remember { mutableStateOf<LocalTime?>(null) }
     var guests by remember { mutableStateOf(1) }
 
     val today = remember { LocalDate.now() }
     val next7Days = remember { (0L..6L).map { today.plusDays(it) } }
+
+    // Monthly-only state: chip selection, custom months input, and date-picker visibility.
+    // Custom input overrides chip selection; derived monthlyDurationMonths is the source of truth.
+    // Saveable so rotation / process death doesn't wipe user input mid-flow.
+    val monthDurationOptions = listOf(1, 2, 3, 6, 9, 12)
+    var selectedMonthChip by rememberSaveable { mutableStateOf<Int?>(null) }
+    var customMonthsInput by rememberSaveable { mutableStateOf("") }
+    val customMonths = customMonthsInput.toIntOrNull()?.takeIf { it >= 1 }
+    val monthlyDurationMonths = customMonths ?: selectedMonthChip
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     // Generate 30-min time slots from 8 AM to 10 PM
     val timeSlots = remember(selectedDate, selectedDuration) {
@@ -788,156 +829,255 @@ private fun ReserveSheet(
 
     val canConfirm = selectedDate != null && selectedSlotStart != null
 
-    BottomSheetHeader(title = "Reserve", onClose = onClose)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
+            .imePadding()
     ) {
-        // Duration selection chips
-        Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(durationOptions) { duration ->
-                val isSelected = duration == selectedDuration
-                val label = when {
-                    duration < 60 -> "${duration} min"
-                    duration % 60 == 0 -> "${duration / 60} hr"
-                    else -> "${duration / 60}h ${duration % 60}m"
+        BottomSheetHeader(title = "Reserve", onClose = onClose)
+
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+        ) {
+        // Duration selection chips — hidden for monthly listings (hourly concept doesn't apply).
+        if (!isMonthlyListing) {
+            Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(durationOptions) { duration ->
+                    val isSelected = duration == selectedDuration
+                    val label = when {
+                        duration < 60 -> "${duration} min"
+                        duration % 60 == 0 -> "${duration / 60} hr"
+                        else -> "${duration / 60}h ${duration % 60}m"
+                    }
+                    Surface(
+                        onClick = {
+                            selectedDuration = duration
+                            selectedSlotStart = null // reset slot on duration change
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Text(
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                        )
+                    }
                 }
-                Surface(
-                    onClick = {
-                        selectedDuration = duration
-                        selectedSlotStart = null // reset slot on duration change
-                    },
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        if (isMonthlyListing) {
+            // Start date row — tapping opens the DatePickerDialog below.
+            Text("Start date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(
+                onClick = { showDatePicker = true },
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = label,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                        text = selectedDate?.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy"))
+                            ?: "Select a date",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (selectedDate != null) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // 7-day date strip
-        Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(next7Days) { date ->
-                val isSelected = date == selectedDate
-                val isToday = date == today
-                val dayLabel = date.dayOfWeek.name.take(3).lowercase()
-                    .replaceFirstChar { it.uppercase() }
-                val dateNum = date.dayOfMonth.toString()
-                Surface(
-                    onClick = {
-                        selectedDate = date
-                        selectedSlotStart = null // reset slot on date change
-                    },
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    border = when {
-                        isSelected -> null
-                        isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                        else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            // Month-duration chips.
+            Text("Duration", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(monthDurationOptions) { months ->
+                    val isSelected = selectedMonthChip == months && customMonthsInput.isEmpty()
+                    val label = if (months == 1) "1 month" else "$months months"
+                    Surface(
+                        onClick = {
+                            selectedMonthChip = months
+                            customMonthsInput = "" // chip click wins over any stale custom input
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
-                            text = dayLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = label,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = dateNum,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Custom months input — numeric, overrides chip selection once a valid value is typed.
+            OutlinedTextField(
+                value = customMonthsInput,
+                onValueChange = { raw ->
+                    val filtered = raw.filter { it.isDigit() }.take(3)
+                    customMonthsInput = filtered
+                    if (filtered.isNotEmpty()) {
+                        // Custom input overrides chips — drop chip highlight.
+                        selectedMonthChip = null
+                    }
+                },
+                placeholder = { Text("Enter months") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                ),
+                isError = customMonthsInput.isNotEmpty() && (customMonthsInput.toIntOrNull() ?: 0) < 1,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD)
+            )
+        } else {
+            // 7-day date strip (hourly listings)
+            Text("Date", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(next7Days) { date ->
+                    val isSelected = date == selectedDate
+                    val isToday = date == today
+                    val dayLabel = date.dayOfWeek.name.take(3).lowercase()
+                        .replaceFirstChar { it.uppercase() }
+                    val dateNum = date.dayOfMonth.toString()
+                    Surface(
+                        onClick = {
+                            selectedDate = date
+                            selectedSlotStart = null // reset slot on date change
+                        },
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        border = when {
+                            isSelected -> null
+                            isToday -> BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            else -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = dayLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = dateNum,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Time slots grid — hidden for monthly listings (hourly concept doesn't apply).
+        if (!isMonthlyListing) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Time slots grid
-        Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(modifier = Modifier.height(10.dp))
+            Text("Available times", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(10.dp))
 
-        if (selectedDate == null) {
-            Text(
-                "Select a date to see available times",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        } else if (timeSlots.isEmpty()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 12.dp)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            if (selectedDate == null) {
                 Text(
-                    "No available times for this day",
+                    "Select a date to see available times",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
-            }
-        } else {
-            // 2-column grid of time slot buttons (iOS parity)
-            val rows = timeSlots.chunked(2)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                rows.forEach { rowSlots ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        rowSlots.forEach { slot ->
-                            val isSelected = slot == selectedSlotStart
-                            val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
-                            Surface(
-                                onClick = { selectedSlotStart = slot },
-                                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.padding(vertical = 12.dp)
+            } else if (timeSlots.isEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "No available times for this day",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                // 2-column grid of time slot buttons (iOS parity)
+                val rows = timeSlots.chunked(2)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rows.forEach { rowSlots ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowSlots.forEach { slot ->
+                                val isSelected = slot == selectedSlotStart
+                                val label = slot.format(DateTimeFormatter.ofPattern("h:mm a"))
+                                Surface(
+                                    onClick = { selectedSlotStart = slot },
+                                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        // Fill remaining columns if row is incomplete
-                        repeat(2 - rowSlots.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+                            // Fill remaining columns if row is incomplete
+                            repeat(2 - rowSlots.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -1070,49 +1210,149 @@ private fun ReserveSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Confirm button
-        Button(
-            onClick = {
-                val d = selectedDate ?: return@Button
-                val start = selectedSlotStart ?: return@Button
-                val end = selectedEnd ?: return@Button
-                val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
-                val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
-                val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
-                onConfirm(
-                    BookingDraft(
-                        listingId = listingId,
-                        date = dateIso,
-                        startTimeISO = startIso,
-                        endTimeISO = endIso,
-                        guests = guests,
-                        totalAmountEstimate = total
-                    )
-                )
-            },
-            enabled = canConfirm,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            Text(
-                text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
-                       else "Select a time slot",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            // Trailing breathing room inside the scrollable body so the last
+            // card isn't visually glued to the sticky CTA bar on short sheets.
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            "You won't be charged yet",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+        // Sticky CTA bar — always visible, lifts above the keyboard via the
+        // outer Column's imePadding(), and clears the navigation bar inset on
+        // its own so the call site doesn't need to pad around the sheet.
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                if (isMonthlyListing) {
+                    val canReserveMonthly = selectedDate != null && monthlyDurationMonths != null
+                    Button(
+                        onClick = {
+                            val d = selectedDate ?: return@Button
+                            val months = monthlyDurationMonths ?: return@Button
+                            val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            val endDateIso = d.plusMonths(months.toLong())
+                                .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            onConfirm(
+                                BookingDraft(
+                                    listingId = listingId,
+                                    date = dateIso,
+                                    startTimeISO = "${dateIso}T00:00:00",
+                                    endTimeISO = "${endDateIso}T00:00:00",
+                                    guests = guests
+                                )
+                            )
+                        },
+                        enabled = canReserveMonthly,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        Text(
+                            text = "Reserve",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "You won't be charged yet. The host will confirm your request.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                } else {
+                    // Confirm button (hourly)
+                    Button(
+                        onClick = {
+                            val d = selectedDate ?: return@Button
+                            val start = selectedSlotStart ?: return@Button
+                            val end = selectedEnd ?: return@Button
+                            val dateIso = d.format(DateTimeFormatter.ISO_LOCAL_DATE)
+                            val startIso = "${dateIso}T${start.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
+                            val endIso = "${dateIso}T${end.format(DateTimeFormatter.ofPattern("HH:mm"))}:00"
+                            onConfirm(
+                                BookingDraft(
+                                    listingId = listingId,
+                                    date = dateIso,
+                                    startTimeISO = startIso,
+                                    endTimeISO = endIso,
+                                    guests = guests,
+                                    totalAmountEstimate = total
+                                )
+                            )
+                        },
+                        enabled = canConfirm,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        Text(
+                            text = if (total != null) "Confirm and Pay (${currencySymbol}${trimTrailingZeros(total)})"
+                                   else "Select a time slot",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "You won't be charged yet",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+
+    // Monthly-only date picker dialog. Past dates are filtered via SelectableDates.
+    if (isMonthlyListing && showDatePicker) {
+        val todayLocal = remember { LocalDate.now() }
+        // DatePicker reports UTC-midnight millis for the picked calendar date;
+        // seed the initial value with UTC midnight of the currently selected date too.
+        val initialMillis = remember(selectedDate) {
+            (selectedDate ?: todayLocal).atStartOfDay(java.time.ZoneOffset.UTC)
+                .toInstant().toEpochMilli()
+        }
+        val dpState = rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val picked = Instant.ofEpochMilli(utcTimeMillis)
+                        .atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                    return !picked.isBefore(todayLocal)
+                }
+                override fun isSelectableYear(year: Int): Boolean =
+                    year >= todayLocal.year
+            }
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        dpState.selectedDateMillis?.let { ms ->
+                            selectedDate = Instant.ofEpochMilli(ms)
+                                .atZone(java.time.ZoneOffset.UTC).toLocalDate()
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = dpState)
+        }
     }
 }
 
