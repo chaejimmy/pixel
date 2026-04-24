@@ -225,5 +225,26 @@ class HomeFeedRepositoryParsingTest {
         val cards = repo.parseListingsToCards(body)
         assertEquals("$800/month", cards.first().priceText)
     }
+
+    @Test
+    fun `prices map recovers monthly unit when dynamic_price is absent`() {
+        // Regression: the Hair Booth Rental card rendered a bare "${'$'}800" on
+        // Android because the backend sent only a `prices` map (and no
+        // dynamic_price / pricing shape). The map's non-zero key must be used
+        // as the unit so the badge reads "${'$'}800/month".
+        val body = """
+            [
+              {
+                "_id": "m3",
+                "title": "Hair Booth Rental in Fairfax Salon",
+                "price": 800,
+                "prices": { "hour": 0, "day": 0, "month": 800 }
+              }
+            ]
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals("$800/month", cards.first().priceText)
+    }
 }
 

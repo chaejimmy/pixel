@@ -129,6 +129,65 @@ class ListingPriceFormatterTest {
     }
 
     @Test
+    fun `prices map with only monthly entry renders month badge`() {
+        // Host flow posts { hour: 0, day: 0, month: 800 } — the backend echoes
+        // this back verbatim, so the Discover card must infer "month" from the
+        // non-zero key instead of falling back to a bare "$800".
+        val price = parse(
+            """
+            {
+              "title": "Hair Booth Rental in Fairfax Salon",
+              "price": 800,
+              "prices": { "hour": 0, "day": 0, "month": 800 }
+            }
+            """.trimIndent()
+        )
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `prices map with only daily entry renders day badge`() {
+        val price = parse("""{ "prices": { "hour": 0, "day": 6, "month": 0 } }""")
+        assertEquals("$6/day", price)
+    }
+
+    @Test
+    fun `prices map with hour and month entries prefers hour`() {
+        // If a host happens to post multiple periods, prefer the more granular
+        // one (hr > day > wk > month), matching the nested dynamic_price rules.
+        val price = parse("""{ "prices": { "hour": 10, "day": 0, "month": 800 } }""")
+        assertEquals("$10/hr", price)
+    }
+
+    @Test
+    fun `price primitive with top-level rentalPeriod uses that unit`() {
+        val price = parse("""{ "price": 800, "rentalPeriod": "monthly" }""")
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `price primitive with top-level pricing_type uses that unit`() {
+        val price = parse("""{ "price": 800, "pricing_type": "month" }""")
+        assertEquals("$800/month", price)
+    }
+
+    @Test
+    fun `pricing price with no unit borrows unit from prices map`() {
+        // Backend sends `pricing.price` without any frequency, but the sibling
+        // `prices` map carries the period. Using the map as a fallback unit
+        // source avoids a unit-less "$800" badge.
+        val price = parse(
+            """
+            {
+              "pricing": { "price": "800" },
+              "prices": { "hour": 0, "day": 0, "month": 800 }
+            }
+            """.trimIndent()
+        )
+        assertEquals("$800/month", price)
+    }
+
+    @Test
     fun `stripTrailingPriceFromTitle removes parenthesised monthly suffix`() {
         assertEquals(
             "Sunlit loft desk",
