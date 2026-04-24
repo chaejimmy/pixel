@@ -82,7 +82,7 @@ fun EnhancedSearchBar(
                 label = "What",
                 value = whatQuery,
                 onValueChange = onWhatQueryChange,
-                placeholder = "Studios, gear, meeting rooms...",
+                placeholder = "Search spaces, items, or services",
                 leadingIcon = PaceDreamIcons.Search,
                 modifier = Modifier.fillMaxWidth()
             )

@@ -303,16 +303,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                             searchInitialFocus = null
                                             showSearchDialog = true
                                         },
+                                        onWhatClick = {
+                                            searchInitialFocus = "what"
+                                            showSearchDialog = true
+                                        },
                                         onWhereClick = {
                                             searchInitialFocus = "where"
                                             showSearchDialog = true
                                         },
                                         onWhenClick = {
                                             searchInitialFocus = "when"
-                                            showSearchDialog = true
-                                        },
-                                        onWhoClick = {
-                                            searchInitialFocus = "who"
                                             showSearchDialog = true
                                         },
                                         onSeeAll = { section ->
@@ -1274,6 +1274,7 @@ fun NavGraphBuilder.DashboardNavigation(
                             ) {
                                 val focus = remember(searchInitialFocus) {
                                     when (searchInitialFocus?.lowercase()) {
+                                        "what" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHAT
                                         "where" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHERE
                                         "when" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHEN
                                         "who" -> com.shourov.apps.pacedream.feature.search.SearchInitialFocus.WHO

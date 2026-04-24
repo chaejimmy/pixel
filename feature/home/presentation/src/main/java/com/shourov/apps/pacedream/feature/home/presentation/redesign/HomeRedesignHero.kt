@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
@@ -45,7 +44,8 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 
 /**
  * Hero — purple canvas with logo, bell, tagline, primary tabs, access chips,
- * layered search card (What / Where / When / Who) and an inline trust row.
+ * layered search card (What / Where / When) and an inline trust row.  Guest
+ * count is handled later in the booking flow, not on the homepage search bar.
  */
 @Composable
 fun HomeHero(
@@ -177,7 +177,7 @@ fun HomeHero(
     }
 }
 
-/** Layered search card shown inside the hero — What / Where / When / Who + primary Search button. */
+/** Layered search card shown inside the hero — What / Where / When + primary Search button. */
 @Composable
 private fun SearchCard(whatPlaceholder: String, onClick: () -> Unit) {
     Column(
@@ -199,15 +199,11 @@ private fun SearchCard(whatPlaceholder: String, onClick: () -> Unit) {
         )
         Row {
             Box(Modifier.weight(1f)) {
-                SearchRow(icon = Icons.Outlined.LocationOn, label = "WHERE", value = "Brooklyn", compact = true)
+                SearchRow(icon = Icons.Outlined.LocationOn, label = "WHERE", value = "Anywhere", compact = true)
             }
             VerticalFieldDivider()
             Box(Modifier.weight(1f)) {
-                SearchRow(icon = Icons.Outlined.CalendarMonth, label = "WHEN", value = "Thu · 2–5PM", compact = true)
-            }
-            VerticalFieldDivider()
-            Box(Modifier.weight(1f)) {
-                SearchRow(icon = Icons.Outlined.Person, label = "WHO", value = "Add guests", compact = true)
+                SearchRow(icon = Icons.Outlined.CalendarMonth, label = "WHEN", value = "Any time", compact = true)
             }
         }
         Spacer(Modifier.height(6.dp))
@@ -370,7 +366,7 @@ fun StickyCompactSearch(type: PrimaryType, onClick: () -> Unit, modifier: Modifi
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(subtitle, color = HomeRedesignTheme.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text("Thu · 2–5 PM · 3 people", color = HomeRedesignTheme.InkFaint, fontSize = 11.5.sp)
+            Text("Any time", color = HomeRedesignTheme.InkFaint, fontSize = 11.5.sp)
         }
         Box(
             Modifier

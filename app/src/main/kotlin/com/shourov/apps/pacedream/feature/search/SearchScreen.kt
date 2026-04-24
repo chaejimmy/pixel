@@ -164,10 +164,12 @@ private fun mapCategoryToBackend(cat: String): String {
 
 /**
  * Target field to auto-engage when the search screen opens.  Used so the
- * hero "Where / When / Who" segments on Home route the user directly to
- * the right picker in a single tap, matching Airbnb/Turo.
+ * hero "What / Where / When" segments on Home route the user directly to
+ * the right picker in a single tap, matching Airbnb/Turo.  WHO is kept so
+ * booking / listing detail entry points can still deep-link to the guest
+ * sheet; the Home search bar no longer surfaces it.
  */
-enum class SearchInitialFocus { WHERE, WHEN, WHO }
+enum class SearchInitialFocus { WHAT, WHERE, WHEN, WHO }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -331,6 +333,7 @@ fun SearchScreen(
                             showGuestsSheet = true
                             pickerHandled = true
                         }
+                        SearchInitialFocus.WHAT,
                         SearchInitialFocus.WHERE,
                         null -> Unit
                     }

@@ -90,9 +90,9 @@ fun HomeFeedScreen(
     onSeeAll: (HomeSectionKey) -> Unit,
     onShowAuthSheet: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    onWhatClick: () -> Unit = onSearchClick,
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
-    onWhoClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel()
@@ -145,9 +145,9 @@ fun HomeFeedScreen(
                     DiscoverHeader(
                         onSearchClick = onSearchClick,
                         onFilterClick = onSearchClick,
+                        onWhatClick = onWhatClick,
                         onWhereClick = onWhereClick,
                         onWhenClick = onWhenClick,
-                        onWhoClick = onWhoClick,
                         onNotificationClick = onNotificationClick
                     )
                 }
@@ -257,9 +257,9 @@ private data class SectionContentState(
 private fun DiscoverHeader(
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
+    onWhatClick: () -> Unit = onSearchClick,
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
-    onWhoClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {}
 ) {
     Column(
@@ -311,9 +311,10 @@ private fun DiscoverHeader(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Airbnb-style structured search pill: three tappable segments
-        // (Where / When / Who).  Tapping the trailing primary circle
-        // opens the full search (and also serves as "go to filters").
+        // Structured search pill: three tappable segments
+        // (What / Where / When) — matches the web search structure.
+        // Guests are handled later in the booking flow.  Tapping the
+        // trailing primary circle opens the full search.
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -333,24 +334,27 @@ private fun DiscoverHeader(
                     .padding(horizontal = 6.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Short visible hint keeps three segments readable on small
+                // screens; full placeholder ("Search spaces, items, or
+                // services") lives inside the What text field.
+                SearchSegment(
+                    label = "What",
+                    value = "Spaces · items · services",
+                    onClick = onWhatClick,
+                    modifier = Modifier.weight(1.3f)
+                )
+                SegmentDivider()
                 SearchSegment(
                     label = "Where",
                     value = "Anywhere",
                     onClick = onWhereClick,
-                    modifier = Modifier.weight(1.2f)
+                    modifier = Modifier.weight(1f)
                 )
                 SegmentDivider()
                 SearchSegment(
                     label = "When",
                     value = "Any time",
                     onClick = onWhenClick,
-                    modifier = Modifier.weight(1f)
-                )
-                SegmentDivider()
-                SearchSegment(
-                    label = "Who",
-                    value = "Add guests",
-                    onClick = onWhoClick,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -404,7 +408,8 @@ private fun SearchSegment(
             style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
             fontWeight = FontWeight.SemiBold,
             color = PaceDreamColors.TextPrimary,
-            maxLines = 1
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(1.dp))
         Text(
@@ -414,7 +419,8 @@ private fun SearchSegment(
                 fontSize = 12.sp
             ),
             color = PaceDreamColors.Gray500,
-            maxLines = 1
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }
