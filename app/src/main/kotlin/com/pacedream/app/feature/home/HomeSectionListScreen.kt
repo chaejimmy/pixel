@@ -235,7 +235,7 @@ private fun FeaturedListingCard(
                         Icon(
                             imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFBBF24),
+                            tint = PaceDreamColors.Warning,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))

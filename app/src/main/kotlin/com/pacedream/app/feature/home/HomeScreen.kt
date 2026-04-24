@@ -57,6 +57,8 @@ import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.shourov.apps.pacedream.designsystem.CategoryColor
+import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
@@ -421,7 +423,7 @@ private fun HeroHeaderSection(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color(0xFF1A1A1A)
+                        color = PaceDreamColors.TextHeadline
                     )
                     Spacer(modifier = Modifier.height(1.dp))
                     Text(
@@ -444,7 +446,7 @@ private fun HeroHeaderSection(
                         Icon(
                             imageVector = PaceDreamIcons.Tune,
                             contentDescription = "Filters",
-                            tint = Color(0xFF374151),
+                            tint = PaceDreamColors.IconNeutral,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -527,7 +529,7 @@ private fun CategoryTab(
             imageVector = icon,
             contentDescription = name,
             tint = if (isSelected) PaceDreamColors.Primary
-                   else Color(0xFF6B7280), // Gray-500 for better contrast
+                   else PaceDreamColors.TextSecondary, // Gray-500 for better contrast
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -539,7 +541,7 @@ private fun CategoryTab(
                 letterSpacing = if (isSelected) 0.sp else 0.1.sp
             ),
             color = if (isSelected) PaceDreamColors.Primary
-                    else Color(0xFF6B7280),
+                    else PaceDreamColors.TextSecondary,
             maxLines = 1
         )
         Spacer(modifier = Modifier.height(10.dp))
@@ -596,6 +598,7 @@ private fun QuickCategoryChip(
         label = "chipScale"
     )
 
+    val tint = category.color.tint
     Surface(
         modifier = Modifier
             .height(48.dp)
@@ -611,8 +614,8 @@ private fun QuickCategoryChip(
                 )
             },
         shape = RoundedCornerShape(PaceDreamRadius.Round),
-        color = category.bgColor.copy(alpha = 0.08f),
-        border = BorderStroke(0.5.dp, category.bgColor.copy(alpha = 0.12f))
+        color = tint.copy(alpha = 0.08f),
+        border = BorderStroke(0.5.dp, tint.copy(alpha = 0.12f))
     ) {
         Row(
             modifier = Modifier.padding(start = 6.dp, end = 16.dp),
@@ -621,13 +624,13 @@ private fun QuickCategoryChip(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(category.bgColor.copy(alpha = 0.12f), CircleShape),
+                    .background(tint.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = category.icon,
                     contentDescription = category.name,
-                    tint = category.bgColor,
+                    tint = tint,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -638,7 +641,7 @@ private fun QuickCategoryChip(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.Medium
                 ),
-                color = Color(0xFF1A1A1A),
+                color = PaceDreamColors.TextHeadline,
                 maxLines = 1
             )
         }
@@ -648,19 +651,19 @@ private fun QuickCategoryChip(
 private data class CategoryCardData(
     val name: String,
     val icon: ImageVector,
-    val bgColor: Color
+    val color: CategoryColor,
 )
 
 private fun getCategoryCards(): List<CategoryCardData> {
     return listOf(
-        CategoryCardData("Rest Room", PaceDreamIcons.Wc, Color(0xFF3B82F6)),
-        CategoryCardData("Time-Based", PaceDreamIcons.Schedule, Color(0xFF5527D7)),
-        CategoryCardData("Parking", PaceDreamIcons.LocalParking, Color(0xFFF59E0B)),
-        CategoryCardData("Items", PaceDreamIcons.Build, Color(0xFF10B981)),
-        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, Color(0xFFEC4899)),
-        CategoryCardData("Meeting Rooms", PaceDreamIcons.MeetingRoom, Color(0xFF8B5CF6)),
-        CategoryCardData("Workspace", PaceDreamIcons.Laptop, Color(0xFF5527D7)),
-        CategoryCardData("Storage", PaceDreamIcons.Storage, Color(0xFF10B981))
+        CategoryCardData("Rest Room", PaceDreamIcons.Wc, CategoryColors.Restroom),
+        CategoryCardData("Time-Based", PaceDreamIcons.Schedule, CategoryColors.ShortStay),
+        CategoryCardData("Parking", PaceDreamIcons.LocalParking, CategoryColors.Parking),
+        CategoryCardData("Items", PaceDreamIcons.Build, CategoryColors.Items),
+        CategoryCardData("EV Parking", PaceDreamIcons.ElectricCar, CategoryColors.EVParking),
+        CategoryCardData("Meeting Rooms", PaceDreamIcons.MeetingRoom, CategoryColors.MeetingRoom),
+        CategoryCardData("Workspace", PaceDreamIcons.Laptop, CategoryColors.Workspace),
+        CategoryCardData("Storage", PaceDreamIcons.Storage, CategoryColors.StorageSpace),
     )
 }
 
@@ -697,7 +700,7 @@ private fun WarningBanner(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Color(0xFF78350F)
+                color = PaceDreamColors.OnWarningContainer
             )
         }
     }
@@ -727,7 +730,7 @@ private fun SectionHeader(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.2).sp
                 ),
-                color = Color(0xFF1A1A1A),
+                color = PaceDreamColors.TextHeadline,
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (onViewAllClick != null) {
@@ -984,7 +987,7 @@ private fun FeaturedFullWidthCard(
                         fontWeight = FontWeight.SemiBold,
                         lineHeight = 20.sp
                     ),
-                    color = Color(0xFF111827),
+                    color = PaceDreamColors.TextBody,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1002,7 +1005,7 @@ private fun FeaturedFullWidthCard(
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                            color = Color(0xFF6B7280),
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1034,7 +1037,7 @@ private fun FeaturedFullWidthCard(
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
                                     contentDescription = null,
-                                    tint = Color(0xFFF59E0B),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Text(
@@ -1043,7 +1046,7 @@ private fun FeaturedFullWidthCard(
                                         fontFamily = paceDreamFontFamily,
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = Color(0xFF374151)
+                                    color = PaceDreamColors.IconNeutral
                                 )
                             }
                         }
@@ -1144,9 +1147,9 @@ private fun GridShimmerCard() {
 
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFF0F0F0),
-            Color(0xFFE0E0E0),
-            Color(0xFFF0F0F0)
+            PaceDreamColors.ShimmerHighlight,
+            PaceDreamColors.ShimmerBase,
+            PaceDreamColors.ShimmerHighlight,
         ),
         start = Offset(shimmerX.value, 0f),
         end = Offset(shimmerX.value + 300f, 0f)
@@ -1328,7 +1331,7 @@ private fun GridListingCard(
                         fontWeight = FontWeight.SemiBold,
                         lineHeight = 18.sp
                     ),
-                    color = Color(0xFF111827),
+                    color = PaceDreamColors.TextBody,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1346,7 +1349,7 @@ private fun GridListingCard(
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
-                            color = Color(0xFF6B7280),
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1378,7 +1381,7 @@ private fun GridListingCard(
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
                                     contentDescription = null,
-                                    tint = Color(0xFFF59E0B),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
@@ -1387,7 +1390,7 @@ private fun GridListingCard(
                                         fontFamily = paceDreamFontFamily,
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = Color(0xFF374151)
+                                    color = PaceDreamColors.IconNeutral
                                 )
                             }
                         }
@@ -1533,7 +1536,7 @@ private fun ListingCard(
                         fontWeight = FontWeight.SemiBold,
                         lineHeight = 18.sp
                     ),
-                    color = Color(0xFF111827),
+                    color = PaceDreamColors.TextBody,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1552,7 +1555,7 @@ private fun ListingCard(
                         Text(
                             text = location.replace(Regex(",(?!\\s)"), ", "),
                             style = DSTypo.Caption2.copy(fontFamily = paceDreamFontFamily),
-                            color = Color(0xFF6B7280),
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1585,7 +1588,7 @@ private fun ListingCard(
                                 Icon(
                                     imageVector = PaceDreamIcons.Star,
                                     contentDescription = null,
-                                    tint = Color(0xFFF59E0B),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Text(
@@ -1594,7 +1597,7 @@ private fun ListingCard(
                                         fontFamily = paceDreamFontFamily,
                                         fontWeight = FontWeight.SemiBold
                                     ),
-                                    color = Color(0xFF374151)
+                                    color = PaceDreamColors.IconNeutral
                                 )
                             }
                         } else {
@@ -1628,11 +1631,11 @@ private enum class HomeBrowseType(
     val displayTitle: String,
     val subtitle: String,
     val icon: ImageVector,
-    val gradientColors: List<Color>
+    val categoryColor: CategoryColor,
 ) {
-    SPACES("Spaces", "Book flexible places nearby", PaceDreamIcons.Apartment, listOf(Color(0xFF5527D7), Color(0xFF7C5CE7))),
-    ITEMS("Items", "Borrow useful things on demand", PaceDreamIcons.Category, listOf(Color(0xFF3B82F6), Color(0xFF60A5FA))),
-    SERVICES("Services", "Find help for everyday needs", PaceDreamIcons.Build, listOf(Color(0xFF10B981), Color(0xFF34D399)));
+    SPACES("Spaces", "Book flexible places nearby", PaceDreamIcons.Apartment, CategoryColors.Apartment),
+    ITEMS("Items", "Borrow useful things on demand", PaceDreamIcons.Category, CategoryColors.Items),
+    SERVICES("Services", "Find help for everyday needs", PaceDreamIcons.Build, CategoryColors.Services);
 
     data class Subcategory(val id: String, val title: String, val icon: ImageVector)
 
@@ -1710,6 +1713,7 @@ private fun BrowseByTypeSection(
         Spacer(modifier = Modifier.height(12.dp))
 
         // Subcategory chips
+        val accentColor = selectedType.categoryColor.gradientStart
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1717,7 +1721,7 @@ private fun BrowseByTypeSection(
             items(selectedType.subcategories) { sub ->
                 SubcategoryChip(
                     subcategory = sub,
-                    accentColor = selectedType.gradientColors.first(),
+                    accentColor = accentColor,
                     onClick = { onSubcategoryTap(selectedType.displayTitle, sub.title) }
                 )
             }
@@ -1738,6 +1742,7 @@ private fun BrowseTypePill(
         label = "pillBg"
     )
 
+    val gradientColors = type.categoryColor.gradient
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
@@ -1745,7 +1750,7 @@ private fun BrowseTypePill(
                 if (bgAlpha > 0f) {
                     Modifier.background(
                         Brush.linearGradient(
-                            colors = type.gradientColors,
+                            colors = gradientColors,
                             start = Offset.Zero,
                             end = Offset(Float.POSITIVE_INFINITY, 0f)
                         ),
@@ -1835,7 +1840,7 @@ private fun SubcategoryChip(
                 fontFamily = paceDreamFontFamily,
                 fontWeight = FontWeight.Medium
             ),
-            color = Color(0xFF1A1A1A),
+            color = PaceDreamColors.TextHeadline,
             maxLines = 1
         )
     }
@@ -2042,7 +2047,7 @@ private fun ThreeStepsCTASection(
                     fontFamily = paceDreamDisplayFontFamily,
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color(0xFF1A1A1A),
+                color = PaceDreamColors.TextHeadline,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -2150,7 +2155,7 @@ private fun StepCard(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color(0xFF1A1A1A)
+                        color = PaceDreamColors.TextHeadline
                     )
                 }
                 Text(
@@ -2187,9 +2192,9 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
 
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFF0F0F0),
-            Color(0xFFE0E0E0),
-            Color(0xFFF0F0F0)
+            PaceDreamColors.ShimmerHighlight,
+            PaceDreamColors.ShimmerBase,
+            PaceDreamColors.ShimmerHighlight,
         ),
         start = Offset(shimmerX.value, 0f),
         end = Offset(shimmerX.value + 300f, 0f)
@@ -2292,7 +2297,7 @@ private fun EmptyState(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.2).sp
             ),
-            color = Color(0xFF1A1A1A),
+            color = PaceDreamColors.TextHeadline,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
