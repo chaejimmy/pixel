@@ -42,6 +42,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +62,7 @@ import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
+import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
@@ -340,6 +344,7 @@ private fun HeroHeaderSection(
                             modifier = Modifier
                                 .size(44.dp)
                                 .testTag(HomeTestTags.NotificationButton)
+                                .semantics { role = Role.Button }
                                 .clickable(onClick = onNotificationClick),
                             shape = CircleShape,
                             color = OnBrandSurface.copy(alpha = 0.20f)
@@ -384,6 +389,7 @@ private fun HeroHeaderSection(
                     elevation = 10.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
+                .semantics { role = Role.Button }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -437,6 +443,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
+                        .semantics { role = Role.Button }
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
                     color = PaceDreamColors.Gray100,
@@ -517,6 +524,7 @@ private fun CategoryTab(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -603,6 +611,7 @@ private fun QuickCategoryChip(
         modifier = Modifier
             .height(48.dp)
             .scale(scale)
+            .semantics { role = Role.Button }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -886,6 +895,7 @@ private fun FeaturedFullWidthCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 pressed = isPressed
             )
+            .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -958,24 +968,14 @@ private fun FeaturedFullWidthCard(
                 }
 
                 // Heart button
-                Surface(
+                FavoriteIconButton(
+                    isFavorite = isFavorite,
+                    onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(12.dp)
                         .size(34.dp),
-                    shape = CircleShape,
-                    color = scrimOnImage(0.30f),
-                    onClick = onFavoriteClick
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                )
             }
 
             // Content
@@ -1227,6 +1227,7 @@ private fun GridListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 pressed = isPressed
             )
+            .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1300,24 +1301,14 @@ private fun GridListingCard(
                 }
 
                 // Heart button (top-right)
-                Surface(
+                FavoriteIconButton(
+                    isFavorite = isFavorite,
+                    onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .size(30.dp),
-                    shape = CircleShape,
-                    color = scrimOnImage(0.30f),
-                    onClick = onFavoriteClick
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+                )
             }
 
             // Content area below image
@@ -1431,6 +1422,7 @@ private fun ListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 pressed = isPressed
             )
+            .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1504,24 +1496,14 @@ private fun ListingCard(
                 }
 
                 // Heart button (top-right)
-                Surface(
+                FavoriteIconButton(
+                    isFavorite = isFavorite,
+                    onToggle = onFavoriteClick,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
                         .size(32.dp),
-                    shape = CircleShape,
-                    color = scrimOnImage(0.30f),
-                    onClick = onFavoriteClick
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorderOutlined,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
+                )
             }
 
             // Content area below image
@@ -1758,6 +1740,7 @@ private fun BrowseTypePill(
                     )
                 } else Modifier
             )
+            .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1815,6 +1798,7 @@ private fun SubcategoryChip(
                 color = PaceDreamColors.Gray200,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
             )
+            .semantics { role = Role.Button }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
