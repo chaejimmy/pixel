@@ -222,9 +222,10 @@ fun EnhancedDashboardHeader(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Airbnb-style structured search pill: Where • When • Who.
-                // Single tap anywhere opens SearchScreen; the dedicated filter
-                // button remains as a trailing circular affordance.
+                // Structured search pill: What • Where • When, matching the web
+                // search structure.  Single tap anywhere opens SearchScreen; the
+                // dedicated filter button remains as a trailing circular
+                // affordance.  Guest count is handled later in the booking flow.
                 StructuredSearchPill(
                     onSearchClick = onSearchClick,
                     onFilterClick = onFilterClick,
@@ -255,20 +256,20 @@ private fun StructuredSearchPill(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SearchSegment(
+                label = stringResource(R.string.feature_home_search_what),
+                value = stringResource(R.string.feature_home_search_what_placeholder),
+                modifier = Modifier.weight(1.3f),
+            )
+            SegmentDivider()
+            SearchSegment(
                 label = stringResource(R.string.feature_home_search_where),
                 value = stringResource(R.string.feature_home_search_where_placeholder),
-                modifier = Modifier.weight(1.1f),
+                modifier = Modifier.weight(1f),
             )
             SegmentDivider()
             SearchSegment(
                 label = stringResource(R.string.feature_home_search_when),
                 value = stringResource(R.string.feature_home_search_when_placeholder),
-                modifier = Modifier.weight(1f),
-            )
-            SegmentDivider()
-            SearchSegment(
-                label = stringResource(R.string.feature_home_search_who),
-                value = stringResource(R.string.feature_home_search_who_placeholder),
                 modifier = Modifier.weight(1f),
             )
 

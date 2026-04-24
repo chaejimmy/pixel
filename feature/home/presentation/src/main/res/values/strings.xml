@@ -17,10 +17,13 @@
 <resources>
     <string name="feature_home_good_morning">Good Morning,</string>
     <string name="feature_home_find_your_perfect_stay">Rent spaces, borrow items, book services.</string>
+    <string name="feature_home_search_what">What</string>
+    <string name="feature_home_search_what_placeholder">Search spaces, items, or services</string>
     <string name="feature_home_search_where">Where</string>
     <string name="feature_home_search_where_placeholder">Anywhere</string>
     <string name="feature_home_search_when">When</string>
     <string name="feature_home_search_when_placeholder">Any time</string>
+    <!-- Retained for booking / listing flows that still surface guest count. -->
     <string name="feature_home_search_who">Who</string>
     <string name="feature_home_search_who_placeholder">Add guests</string>
     <string name="feature_home_categories">Categories</string>
