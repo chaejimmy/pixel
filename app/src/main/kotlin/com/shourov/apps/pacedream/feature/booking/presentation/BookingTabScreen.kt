@@ -492,7 +492,7 @@ private fun UnifiedBookingCard(
                         .fillMaxWidth()
                         .height(44.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(PaceDreamRadius.MD)
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.Visibility,
@@ -701,20 +701,20 @@ private fun BookingCardSkeleton() {
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(18.dp)
-                        .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
                         .height(14.dp)
-                        .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 repeat(3) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(14.dp)
-                            .background(PaceDreamColors.Gray200.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Gray200.copy(alpha = 0.25f), RoundedCornerShape(PaceDreamRadius.SM))
                     )
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -722,13 +722,13 @@ private fun BookingCardSkeleton() {
                         modifier = Modifier
                             .width(120.dp)
                             .height(20.dp)
-                            .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(PaceDreamRadius.SM))
                     )
                     Box(
                         modifier = Modifier
                             .width(90.dp)
                             .height(16.dp)
-                            .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(PaceDreamRadius.SM))
                     )
                 }
             }
@@ -738,7 +738,7 @@ private fun BookingCardSkeleton() {
                     .padding(horizontal = PaceDreamSpacing.MD)
                     .padding(bottom = PaceDreamSpacing.MD)
                     .height(44.dp)
-                    .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                    .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(PaceDreamRadius.MD))
             )
         }
     }
@@ -811,7 +811,7 @@ private fun BookingsEmptyState(
             Button(
                 onClick = onExplore,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
                 modifier = Modifier.height(48.dp),
                 contentPadding = PaddingValues(horizontal = 32.dp)
             ) {

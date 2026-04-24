@@ -506,7 +506,7 @@ private fun TimeSlotRow(
             modifier = Modifier
                 .width(4.dp)
                 .height(40.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                 .background(statusColor)
         )
 

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pacedream.common.composables.theme.PaceDreamRadius
 
 /**
  * Hero — purple canvas with logo, bell, tagline, primary tabs, access chips,
@@ -91,15 +92,15 @@ fun HomeHero(
                     Box(
                         Modifier
                             .size(30.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
                             .background(Color.White.copy(alpha = 0.18f))
-                            .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(8.dp)),
+                            .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(PaceDreamRadius.SM)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
                             Modifier
                                 .size(12.dp)
-                                .clip(RoundedCornerShape(3.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                                 .background(Color.White),
                         )
                     }
@@ -252,7 +253,7 @@ private fun SearchRow(icon: ImageVector, label: String, value: String, compact: 
         Box(
             modifier = Modifier
                 .size(if (compact) 26.dp else 32.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
                 .background(HomeRedesignTheme.Purple.c50),
             contentAlignment = Alignment.Center,
         ) {

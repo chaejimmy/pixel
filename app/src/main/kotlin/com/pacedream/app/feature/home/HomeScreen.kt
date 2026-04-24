@@ -385,7 +385,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .defaultMinSize(minHeight = 50.dp)
                         .semantics { role = Role.Button },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PaceDreamColors.Primary,
                         contentColor = OnBrandSurface
@@ -591,7 +591,7 @@ private fun CategoryTab(
                 .height(2.5.dp)
                 .background(
                     color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                    shape = RoundedCornerShape(2.dp)
+                    shape = RoundedCornerShape(PaceDreamRadius.XS)
                 )
         )
     }
@@ -1211,7 +1211,7 @@ private fun GridShimmerCard() {
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
                         .height(14.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1219,7 +1219,7 @@ private fun GridShimmerCard() {
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
                         .height(10.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1227,7 +1227,7 @@ private fun GridShimmerCard() {
                     modifier = Modifier
                         .width(56.dp)
                         .height(12.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
             }
@@ -2048,7 +2048,7 @@ private fun ThreeStepsCTASection(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.XL),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
     ) {
@@ -2098,7 +2098,7 @@ private fun ThreeStepsCTASection(
                     .widthIn(max = 260.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
@@ -2125,7 +2125,7 @@ private fun StepCard(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = PaceDreamColors.Background
     ) {
         Row(
@@ -2240,7 +2240,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
                         .height(16.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2248,7 +2248,7 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
                         .height(12.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(shimmerBrush)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -2260,14 +2260,14 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                         modifier = Modifier
                             .width(64.dp)
                             .height(14.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
                             .background(shimmerBrush)
                     )
                     Box(
                         modifier = Modifier
                             .width(36.dp)
                             .height(14.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
                             .background(shimmerBrush)
                     )
                 }

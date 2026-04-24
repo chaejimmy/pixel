@@ -1040,7 +1040,7 @@ private fun ListingStatusBadge(status: String) {
         ),
         color = fgColor,
         modifier = Modifier
-            .background(bgColor, shape = RoundedCornerShape(50))
+            .background(bgColor, shape = RoundedCornerShape(PaceDreamRadius.Round))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     )
 }

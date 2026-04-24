@@ -149,12 +149,12 @@ fun HostListingPreviewScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 20.dp, vertical = 12.dp)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
                                     .background(Color(0xFFFFA500).copy(alpha = 0.10f))
                                     .border(
                                         1.dp,
                                         Color(0xFFFFA500).copy(alpha = 0.25f),
-                                        RoundedCornerShape(12.dp)
+                                        RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -208,7 +208,7 @@ fun HostListingPreviewScreen(
                             if (deliveryLabel != null) {
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(50))
+                                        .clip(RoundedCornerShape(PaceDreamRadius.Round))
                                         .background(PaceDreamColors.HostAccent.copy(alpha = 0.12f))
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
@@ -256,7 +256,7 @@ fun HostListingPreviewScreen(
                             // Status badge
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
+                                    .clip(RoundedCornerShape(PaceDreamRadius.Round))
                                     .background(
                                         when {
                                             listing.isPendingReview -> PaceDreamColors.Warning.copy(alpha = 0.15f)
@@ -323,7 +323,7 @@ fun HostListingPreviewScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(200.dp)
-                                            .clip(RoundedCornerShape(12.dp))
+                                            .clip(RoundedCornerShape(PaceDreamRadius.MD))
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }

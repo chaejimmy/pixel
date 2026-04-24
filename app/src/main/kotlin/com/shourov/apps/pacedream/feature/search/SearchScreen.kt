@@ -1723,7 +1723,7 @@ private fun SearchMapResults(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(PaceDreamSpacing.MD),
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
                 color = Color.White,
                 shadowElevation = 4.dp,
             ) {
@@ -1791,7 +1791,7 @@ private fun SearchMapResults(
                         showSearchThisAreaPill = false
                     }
                 },
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
                 color = PaceDreamColors.Primary,
                 shadowElevation = 6.dp,
             ) {

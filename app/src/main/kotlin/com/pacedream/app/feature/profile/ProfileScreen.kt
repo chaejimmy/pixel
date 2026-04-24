@@ -239,7 +239,7 @@ private fun LoggedOutSection(
                 .widthIn(max = 320.dp)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             colors = ButtonDefaults.buttonColors(
                 containerColor = PaceDreamColors.Primary
             ),
@@ -259,7 +259,7 @@ private fun LoggedOutSection(
                 .widthIn(max = 320.dp)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
                 PaceDreamColors.Primary.copy(alpha = 0.30f)
@@ -294,10 +294,10 @@ private fun UserProfileHeader(
             .fillMaxWidth()
             .shadow(
                 elevation = 4.dp,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.XL),
                 ambientColor = Color.Black.copy(alpha = 0.04f)
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.XL),
         color = PaceDreamColors.Card
     ) {
         Row(
@@ -421,7 +421,7 @@ private fun SectionGroup(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {

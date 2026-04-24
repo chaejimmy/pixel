@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.TopAppBarDefaults
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.Button
@@ -243,7 +244,7 @@ private fun CollectionCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -256,7 +257,7 @@ private fun CollectionCard(
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (!collection.coverImageUrl.isNullOrBlank()) {
@@ -457,7 +458,7 @@ fun AddToCollectionSheet(
                             .fillMaxWidth()
                             .clickable { onSelect(collection.id) }
                             .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(PaceDreamRadius.MD)
                     ) {
                         Row(
                             modifier = Modifier

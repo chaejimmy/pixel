@@ -51,6 +51,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.ui.text.style.TextAlign
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
@@ -166,7 +167,7 @@ private fun FeaturedListingCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -290,7 +291,7 @@ private fun ImagePlaceholder() {
 private fun SkeletonCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -306,14 +307,14 @@ private fun SkeletonCard() {
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(16.dp)
-                        .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                        .background(PaceDreamColors.Gray100, RoundedCornerShape(PaceDreamRadius.XS))
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.4f)
                         .height(12.dp)
-                        .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                        .background(PaceDreamColors.Gray100, RoundedCornerShape(PaceDreamRadius.XS))
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -321,13 +322,13 @@ private fun SkeletonCard() {
                         modifier = Modifier
                             .width(50.dp)
                             .height(12.dp)
-                            .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                            .background(PaceDreamColors.Gray100, RoundedCornerShape(PaceDreamRadius.XS))
                     )
                     Box(
                         modifier = Modifier
                             .width(60.dp)
                             .height(14.dp)
-                            .background(PaceDreamColors.Gray100, RoundedCornerShape(4.dp))
+                            .background(PaceDreamColors.Gray100, RoundedCornerShape(PaceDreamRadius.XS))
                     )
                 }
             }
