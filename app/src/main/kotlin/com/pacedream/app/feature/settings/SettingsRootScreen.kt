@@ -290,7 +290,7 @@ private fun SettingsRow(
                 .size(40.dp)
                 .background(
                     iconColor.copy(alpha = 0.15f),
-                    RoundedCornerShape(10.dp)
+                    RoundedCornerShape(PaceDreamRadius.MD)
                 ),
             contentAlignment = Alignment.Center
         ) {

@@ -96,7 +96,7 @@ private fun TrendingDestinationCard(
     Box(
         modifier = modifier
             .height(height)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .clickable(onClick = onClick),
     ) {
         AsyncImage(

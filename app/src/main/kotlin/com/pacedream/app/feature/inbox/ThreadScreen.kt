@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import kotlinx.coroutines.launch
 
@@ -419,7 +420,7 @@ private fun MessageInputBar(
                             color = PaceDreamColors.TextTertiary
                         ) 
                     },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.XXL),
                     maxLines = 4,
                     enabled = !isSending,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -489,7 +490,7 @@ private fun MessageBubble(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
                     ) {
                         AsyncImage(
                             model = attachment.url,

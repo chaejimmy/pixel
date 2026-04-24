@@ -245,7 +245,7 @@ private fun StructuredSearchPill(
             .fillMaxWidth()
             .height(62.dp),
         color = Color.White,
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.Round),
         shadowElevation = 10.dp,
     ) {
         Row(

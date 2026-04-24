@@ -659,7 +659,7 @@ private fun CancelSection(isCancelling: Boolean, onCancelClick: () -> Unit) {
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = PaceDreamColors.Error
         ),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             PaceDreamColors.Error.copy(alpha = 0.25f)
@@ -778,13 +778,13 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(22.dp)
-                        .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .background(PaceDreamColors.Gray200.copy(alpha = 0.4f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.4f)
                         .height(16.dp)
-                        .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .background(PaceDreamColors.Gray200.copy(alpha = 0.3f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
             }
 
@@ -817,7 +817,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                                         .height(10.dp)
                                         .background(
                                             PaceDreamColors.Gray200.copy(alpha = 0.3f),
-                                            RoundedCornerShape(4.dp)
+                                            RoundedCornerShape(PaceDreamRadius.XS)
                                         )
                                 )
                                 Box(
@@ -826,7 +826,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                                         .height(14.dp)
                                         .background(
                                             PaceDreamColors.Gray200.copy(alpha = 0.4f),
-                                            RoundedCornerShape(4.dp)
+                                            RoundedCornerShape(PaceDreamRadius.XS)
                                         )
                                 )
                             }
@@ -852,7 +852,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                                 .height(14.dp)
                                 .background(
                                     PaceDreamColors.Gray200.copy(alpha = 0.3f),
-                                    RoundedCornerShape(4.dp)
+                                    RoundedCornerShape(PaceDreamRadius.XS)
                                 )
                         )
                         Box(
@@ -861,7 +861,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                                 .height(24.dp)
                                 .background(
                                     PaceDreamColors.Gray200.copy(alpha = 0.4f),
-                                    RoundedCornerShape(6.dp)
+                                    RoundedCornerShape(PaceDreamRadius.SM)
                                 )
                         )
                     }

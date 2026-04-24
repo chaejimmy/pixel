@@ -459,7 +459,7 @@ private fun StripePendingContent(
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.MD))
                                 .background(PaceDreamColors.Warning.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {

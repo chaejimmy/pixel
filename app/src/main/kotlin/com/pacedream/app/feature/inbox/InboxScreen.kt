@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 
@@ -348,7 +349,7 @@ private fun ErrorState(
         Button(
             onClick = onRetryClick,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
         ) {
             Text("Try Again", style = PaceDreamTypography.Button)
@@ -372,7 +373,7 @@ private fun ModeToggle(
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(bottom = PaceDreamSpacing.SM),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = PaceDreamColors.Gray100,
         tonalElevation = 0.dp
     ) {
@@ -409,7 +410,7 @@ private fun ModeButton(
     Surface(
         modifier = modifier,
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = if (isActive) Color.White else Color.Transparent,
         shadowElevation = if (isActive) 1.dp else 0.dp
     ) {

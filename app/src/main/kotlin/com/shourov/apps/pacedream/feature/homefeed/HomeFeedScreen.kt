@@ -516,7 +516,7 @@ private fun CategoryTab(
                 .height(2.5.dp)
                 .background(
                     color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                    shape = RoundedCornerShape(2.dp)
+                    shape = RoundedCornerShape(PaceDreamRadius.XS)
                 )
         )
     }
@@ -767,7 +767,7 @@ private fun SkeletonRow() {
                         modifier = Modifier
                             .fillMaxWidth(0.7f)
                             .height(16.dp)
-                            .background(PaceDreamColors.Border.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Border.copy(alpha = 0.3f), RoundedCornerShape(PaceDreamRadius.SM))
                             .shimmerEffect()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -775,7 +775,7 @@ private fun SkeletonRow() {
                         modifier = Modifier
                             .fillMaxWidth(0.45f)
                             .height(12.dp)
-                            .background(PaceDreamColors.Border.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                            .background(PaceDreamColors.Border.copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.SM))
                             .shimmerEffect()
                     )
                 }

@@ -620,7 +620,7 @@ private fun ReviewsSummaryCard(
                         Spacer(Modifier.width(PaceDreamSpacing.XS))
                         LinearProgressIndicator(
                             progress = { (item.percentage / 100).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(PaceDreamRadius.XS)),
                             color = PaceDreamColors.Primary,
                             trackColor = PaceDreamColors.Divider
                         )

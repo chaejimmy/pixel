@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pacedream.app.core.network.ApiResult
 import com.pacedream.app.feature.settings.AccountSettingsRepository
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import timber.log.Timber
 
 enum class ReportReason(val label: String) {
@@ -111,7 +112,7 @@ fun ReportBlockSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { selectedReason = reason },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                         color = if (selectedReason == reason)
                             MaterialTheme.colorScheme.primaryContainer
                         else

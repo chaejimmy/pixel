@@ -497,21 +497,21 @@ private fun BrowseInlineSkeletonCard() {
             modifier = Modifier
                 .width(130.dp)
                 .height(11.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                 .background(PaceDreamGray100)
         )
         Box(
             modifier = Modifier
                 .width(90.dp)
                 .height(9.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                 .background(PaceDreamGray100)
         )
         Box(
             modifier = Modifier
                 .width(70.dp)
                 .height(11.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.XS))
                 .background(PaceDreamGray100)
         )
     }

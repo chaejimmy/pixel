@@ -576,7 +576,7 @@ private fun PhotoPreviewTray(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(PaceDreamDesignSystem.PaceDreamRadius.MD))
                     )
                     // Remove button
                     IconButton(

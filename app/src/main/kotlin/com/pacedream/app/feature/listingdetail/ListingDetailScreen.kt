@@ -2174,7 +2174,7 @@ private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
                     modifier = Modifier
                         .weight(1f)
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
+                        .clip(RoundedCornerShape(PaceDreamRadius.XS)),
                     color = Color(0xFFFFB400),
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
@@ -2462,7 +2462,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                             modifier = Modifier
                                 .weight(1f)
                                 .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
+                                .clip(RoundedCornerShape(PaceDreamRadius.XS)),
                             color = Color(0xFFFFB400),
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
@@ -2732,7 +2732,7 @@ private fun SectionSplitInfo(
                     Spacer(modifier = Modifier.height(4.dp))
                     LinearProgressIndicator(
                         progress = { if (slotsTotal > 0) ((slotsFilled ?: 0).toFloat() / slotsTotal.toFloat()).coerceIn(0f, 1f) else 0f },
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(PaceDreamRadius.XS)),
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
@@ -3011,7 +3011,7 @@ private fun InlineErrorBanner(
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),

@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.SolidColor
 import com.pacedream.common.composables.buttons.CompactProcessButton
 import com.pacedream.common.composables.buttons.OutlineProcessButton
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -493,7 +494,7 @@ fun ShowEachCard(
             .border(
                 width = 1.dp,
                 color = Companion.Gray,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
             )
             .padding(horizontal = 8.dp, vertical = 16.dp),
         colors = CardDefaults.cardColors(
@@ -547,7 +548,7 @@ fun ShowEachCard(
                     .width(150.dp)
                     .height(130.dp)
                     .clip(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                     ),
                 contentScale = ContentScale.Crop,
             )

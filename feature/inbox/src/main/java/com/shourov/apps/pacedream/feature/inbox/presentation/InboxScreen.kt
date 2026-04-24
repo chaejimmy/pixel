@@ -714,7 +714,7 @@ private fun InboxSkeletonList(
                             modifier = Modifier
                                 .fillMaxWidth(0.55f)
                                 .height(14.dp)
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.SM))
                                 .background(PaceDreamColors.Border.copy(alpha = 0.35f))
                                 .shimmerEffect()
                         )
@@ -722,7 +722,7 @@ private fun InboxSkeletonList(
                             modifier = Modifier
                                 .fillMaxWidth(0.85f)
                                 .height(12.dp)
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(PaceDreamRadius.SM))
                                 .background(PaceDreamColors.Border.copy(alpha = 0.25f))
                                 .shimmerEffect()
                         )
@@ -748,7 +748,7 @@ private fun ModeToggle(
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(bottom = PaceDreamSpacing.SM),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = PaceDreamColors.Gray100,
         tonalElevation = 0.dp
     ) {
@@ -785,7 +785,7 @@ private fun ModeButton(
     Surface(
         modifier = modifier,
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = if (isActive) Color.White else Color.Transparent,
         shadowElevation = if (isActive) 1.dp else 0.dp
     ) {

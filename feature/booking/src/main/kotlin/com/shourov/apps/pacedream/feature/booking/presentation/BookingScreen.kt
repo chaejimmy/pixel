@@ -360,7 +360,7 @@ private fun UnifiedBookingCard(
                         onClick = onCancel,
                         enabled = !actionInFlight,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = PaceDreamColors.Error
                         ),
@@ -387,7 +387,7 @@ private fun UnifiedBookingCard(
                         onClick = onConfirm,
                         enabled = !actionInFlight,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(PaceDreamRadius.MD),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = PaceDreamColors.Primary
                         )
@@ -409,7 +409,7 @@ private fun UnifiedBookingCard(
                 Button(
                     onClick = onViewDetails,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PaceDreamColors.Primary
                     )
@@ -540,7 +540,7 @@ private fun InlineErrorBanner(
     onRetry: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = Color(0x1FFF9800)
     ) {
         Row(
@@ -610,19 +610,19 @@ private fun BookingCardSkeleton() {
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(18.dp)
-                        .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.5f)
                         .height(14.dp)
-                        .background(Color.Gray.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                        .background(Color.Gray.copy(alpha = 0.12f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
                         .height(14.dp)
-                        .background(Color.Gray.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
+                        .background(Color.Gray.copy(alpha = 0.10f), RoundedCornerShape(PaceDreamRadius.SM))
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -632,13 +632,13 @@ private fun BookingCardSkeleton() {
                         modifier = Modifier
                             .width(120.dp)
                             .height(20.dp)
-                            .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                            .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(PaceDreamRadius.SM))
                     )
                     Box(
                         modifier = Modifier
                             .width(90.dp)
                             .height(16.dp)
-                            .background(Color.Gray.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                            .background(Color.Gray.copy(alpha = 0.12f), RoundedCornerShape(PaceDreamRadius.SM))
                     )
                 }
             }
@@ -648,7 +648,7 @@ private fun BookingCardSkeleton() {
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
                     .height(44.dp)
-                    .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                    .background(Color.Gray.copy(alpha = 0.15f), RoundedCornerShape(PaceDreamRadius.MD))
             )
         }
     }

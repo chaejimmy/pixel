@@ -58,6 +58,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.text.style.TextAlign
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamIconSize
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import timber.log.Timber
@@ -362,7 +363,7 @@ private fun EmptyPaymentMethodsState(
             onClick = onAddCardClick,
             enabled = isStripeConfigured && !isCreatingSetupIntent,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             modifier = Modifier
                 .fillMaxWidth(0.65f)
                 .height(48.dp)
@@ -427,7 +428,7 @@ private fun PaymentMethodCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         )

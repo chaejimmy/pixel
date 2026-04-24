@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import kotlinx.coroutines.delay
 
 // ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ fun CategoryRow(
                     Modifier
                         .height(2.dp)
                         .width(underlineW)
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.XS))
                         .background(HomeRedesignTheme.Ink),
                 )
             }
@@ -400,7 +401,7 @@ fun PhotoPlaceholder(hueSeed: Int, label: String? = null, modifier: Modifier = M
                 Modifier
                     .align(Alignment.BottomStart)
                     .padding(10.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(PaceDreamRadius.XS))
                     .background(Color.White.copy(alpha = 0.75f))
                     .padding(horizontal = 6.dp, vertical = 3.dp),
             ) {

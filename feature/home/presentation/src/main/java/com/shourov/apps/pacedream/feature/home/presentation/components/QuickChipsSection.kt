@@ -109,7 +109,7 @@ private fun CategoryChip(
         label = "chipElev",
     )
 
-    val chipShape = RoundedCornerShape(14.dp)
+    val chipShape = RoundedCornerShape(PaceDreamRadius.LG)
 
     Surface(
         onClick = onClick,
@@ -147,7 +147,7 @@ private fun CategoryChip(
                 Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(
                             if (isSelected) Color.White.copy(alpha = 0.2f)
                             else data.accentColor.copy(alpha = 0.1f)
