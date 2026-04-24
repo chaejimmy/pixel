@@ -4,14 +4,13 @@ import com.shourov.apps.pacedream.core.network.api.ApiClient
 import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.config.AppConfig
+import com.pacedream.app.feature.listing.ListingPriceFormatter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import okhttp3.HttpUrl
 import timber.log.Timber
@@ -122,9 +121,11 @@ class HomeFeedRepository @Inject constructor(
                 ?: obj["id"].stringOrNull()
                 ?: return null
 
-            val title = obj["title"].stringOrNull()
-                ?: obj["name"].stringOrNull()
-                ?: "Listing"
+            val title = ListingPriceFormatter.stripTrailingPriceFromTitle(
+                obj["title"].stringOrNull()
+                    ?: obj["name"].stringOrNull()
+                    ?: "Listing"
+            )
 
             val location = obj["city"].stringOrNull()
                 ?: (obj["location"] as? JsonObject)?.get("city").stringOrNull()
@@ -142,45 +143,12 @@ class HomeFeedRepository @Inject constructor(
             val rating = (obj["rating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
                 ?: (obj["avgRating"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
 
-            // Try to extract frequency from any available source on the listing object.
-            // pricingUnit is the top-level field the backend sends in list responses (iOS reads this).
-            val standaloneFrequency = obj["pricingUnit"]?.stringOrNull()?.let { formatPriceUnit(it) }
-                ?: obj["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
-                ?: (obj["pricing"] as? JsonObject)?.let { p ->
-                    p["pricing_type"]?.stringOrNull()?.let { formatPriceUnit(it) }
-                        ?: p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) }
-                }
-                ?: obj["dynamic_price"]?.let { dp ->
-                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.get("frequency")?.stringOrNull()?.let { formatPriceUnit(it) }
-                }
-
+            // Discover cards — route through the shared formatter so nested
+            // dynamic_price.monthly/daily/hourly sub-objects render the correct
+            // unit (e.g. "$800/month" instead of a bare "$800"). Backend
+            // pre-formatted priceText still wins when present.
             val priceText = obj["priceText"].stringOrNull()
-                ?: (obj["price"] as? JsonObject)?.let { p ->
-                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
-                    if (amount != null && frequency != null) "$amount/$frequency" else amount
-                }
-                ?: (obj["price"] as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
-                    val amount = p["amount"]?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
-                    if (amount != null && frequency != null) "$amount/$frequency" else amount
-                }
-                ?: obj["price"].stringOrNull()?.let { raw ->
-                    val amount = normalizePriceText(raw)
-                    if (amount.isNotBlank() && standaloneFrequency != null) "$amount/$standaloneFrequency" else amount
-                }
-                ?: (obj["pricing"] as? JsonObject)?.let { pricing ->
-                    val amount = (pricing["base_price"] ?: pricing["price"])?.stringOrNull()?.let { normalizePriceText(it) }
-                    val frequency = pricing["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
-                    if (amount != null && frequency != null) "$amount/$frequency" else amount
-                }
-                ?: obj["dynamic_price"]?.let { dp ->
-                    (dp as? JsonArray)?.firstOrNull()?.jsonObject?.let { p ->
-                        val amount = p["price"]?.stringOrNull()?.let { normalizePriceText(it) }
-                        val frequency = p["frequency"]?.stringOrNull()?.let { formatPriceUnit(it) } ?: standaloneFrequency
-                        if (amount != null && frequency != null) "$amount/$frequency" else amount
-                    }
-                }
+                ?: ListingPriceFormatter.parseListingPrice(obj)
 
             // Extract subcategory from multiple possible fields for resource type filtering.
             val subCategory = obj["subCategory"].stringOrNull()
@@ -203,25 +171,6 @@ class HomeFeedRepository @Inject constructor(
         } catch (e: Exception) {
             Timber.w(e, "Failed to parse single card")
             null
-        }
-    }
-
-    private fun normalizePriceText(raw: String): String {
-        val s = raw.trim()
-        if (s.isBlank()) return ""
-        // If backend returns a plain number string, prefix with $
-        val numeric = s.toDoubleOrNull()
-        return if (numeric != null) "$${s}" else s
-    }
-
-    private fun formatPriceUnit(frequency: String): String {
-        return when (frequency.lowercase().trim()) {
-            "hourly", "hour", "hr" -> "hr"
-            "daily", "day" -> "day"
-            "weekly", "week", "wk" -> "wk"
-            "monthly", "month", "mo" -> "mo"
-            "once" -> "total"
-            else -> frequency.lowercase()
         }
     }
 
