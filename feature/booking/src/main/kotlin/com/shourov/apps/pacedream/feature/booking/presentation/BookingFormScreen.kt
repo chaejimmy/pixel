@@ -908,5 +908,11 @@ data class BookingFormUiState(
     val totalPrice: Double = 0.0,
     val error: String? = null,
     /** True while a booking creation request is in flight — prevents double-submit. */
-    val isSubmitting: Boolean = false
+    val isSubmitting: Boolean = false,
+    /** True when the loaded listing is priced monthly (no usable hourly price). */
+    val isMonthly: Boolean = false,
+    /** Selected rental duration in months; null until the user picks a chip or enters a custom value. */
+    val selectedMonths: Int? = null,
+    /** Raw digits the user typed into the custom-months field. */
+    val customMonthsInput: String = ""
 )
