@@ -54,12 +54,25 @@ class BookingFormViewModel @Inject constructor(
                     is Result.Success -> {
                         val property = result.data
                         if (property != null) {
+                            val dynamicPrice = property.dynamic_price?.firstOrNull()
+                            // Monthly is detected when the listing carries a usable monthly
+                            // price — same fallback the web uses in pricingUnit.ts when no
+                            // explicit pricing_type is present on the payload.
+                            val monthlyPrice = dynamicPrice?.monthly?.price?.takeIf { it > 0 }
+                            val hourlyPrice = dynamicPrice?.hourly?.price?.takeIf { it > 0 }
+                            val isMonthly = monthlyPrice != null && hourlyPrice == null
+                            val basePrice = (monthlyPrice
+                                ?: hourlyPrice
+                                ?: dynamicPrice?.price
+                                ?: 0).toDouble()
+
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 propertyName = property.name ?: "Property",
                                 propertyImage = property.images?.firstOrNull(),
-                                basePrice = (property.dynamic_price?.firstOrNull()?.price ?: 0).toDouble(),
-                                currency = "USD"
+                                basePrice = basePrice,
+                                currency = dynamicPrice?.currency ?: "USD",
+                                isMonthly = isMonthly
                             )
                             calculateTotalPrice()
                         } else {
@@ -115,6 +128,27 @@ class BookingFormViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(guestCount = count.coerceIn(1, 20))
     }
 
+    // ── Monthly rental handlers ───────────────────────────────────
+
+    fun onMonthlyDurationChange(months: Int) {
+        val clamped = months.coerceAtLeast(1)
+        _uiState.value = _uiState.value.copy(
+            selectedMonths = clamped,
+            customMonthsInput = ""
+        )
+        calculateTotalPrice()
+    }
+
+    fun onCustomMonthsChange(raw: String) {
+        val digits = raw.filter { it.isDigit() }.take(3)
+        val parsed = digits.toIntOrNull()
+        _uiState.value = _uiState.value.copy(
+            customMonthsInput = digits,
+            selectedMonths = parsed?.takeIf { it >= 1 }
+        )
+        calculateTotalPrice()
+    }
+
     private fun calculateEndTime() {
         val currentState = _uiState.value
         if (currentState.startTime.isNotEmpty() && currentState.selectedDuration > 0) {
@@ -131,8 +165,13 @@ class BookingFormViewModel @Inject constructor(
 
     private fun calculateTotalPrice() {
         val currentState = _uiState.value
-        val durationHours = currentState.selectedDuration / 60.0
-        val totalPrice = currentState.basePrice * durationHours
+        val totalPrice = if (currentState.isMonthly) {
+            val months = currentState.selectedMonths ?: 0
+            currentState.basePrice * months
+        } else {
+            val durationHours = currentState.selectedDuration / 60.0
+            currentState.basePrice * durationHours
+        }
         _uiState.value = _uiState.value.copy(totalPrice = totalPrice)
     }
 
@@ -144,18 +183,27 @@ class BookingFormViewModel @Inject constructor(
             val currentState = _uiState.value
 
             if (currentState.startDate.isEmpty()) {
-                _uiState.value = currentState.copy(error = "Please select a date")
+                _uiState.value = currentState.copy(error = "Please select a start date")
                 return@launch
             }
 
-            if (currentState.startTime.isEmpty()) {
-                _uiState.value = currentState.copy(error = "Please select a start time")
-                return@launch
-            }
-
-            if (currentState.selectedDuration <= 0) {
-                _uiState.value = currentState.copy(error = "Please select a duration")
-                return@launch
+            if (currentState.isMonthly) {
+                val months = currentState.selectedMonths
+                if (months == null || months < 1) {
+                    _uiState.value = currentState.copy(
+                        error = "Please choose a rental duration of at least 1 month"
+                    )
+                    return@launch
+                }
+            } else {
+                if (currentState.startTime.isEmpty()) {
+                    _uiState.value = currentState.copy(error = "Please select a start time")
+                    return@launch
+                }
+                if (currentState.selectedDuration <= 0) {
+                    _uiState.value = currentState.copy(error = "Please select a duration")
+                    return@launch
+                }
             }
 
             if (authSession.authState.value == AuthState.Unauthenticated) {
@@ -166,15 +214,35 @@ class BookingFormViewModel @Inject constructor(
             // Lock submission state
             _uiState.value = currentState.copy(isSubmitting = true, error = null)
 
-            // ── Step 1: Check availability with backend (source of truth) ──
-            // Build ISO date-times for check-availability endpoint
-            val startDateTime = "${currentState.startDate}T${currentState.startTime}:00Z"
-            val endDateTime = if (currentState.endTime.isNotEmpty()) {
-                "${currentState.endDate.ifEmpty { currentState.startDate }}T${currentState.endTime}:00Z"
+            val startDateTime: String
+            val endDateTime: String
+            if (currentState.isMonthly) {
+                val months = currentState.selectedMonths ?: 1
+                val cal = Calendar.getInstance()
+                try {
+                    val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val start = fmt.parse(currentState.startDate) ?: cal.time
+                    cal.time = start
+                    startDateTime = "${fmt.format(cal.time)}T00:00:00Z"
+                    cal.add(Calendar.MONTH, months)
+                    endDateTime = "${fmt.format(cal.time)}T00:00:00Z"
+                } catch (_: Exception) {
+                    _uiState.value = _uiState.value.copy(
+                        isSubmitting = false,
+                        error = "Please choose a valid start date"
+                    )
+                    return@launch
+                }
             } else {
-                startDateTime
+                startDateTime = "${currentState.startDate}T${currentState.startTime}:00Z"
+                endDateTime = if (currentState.endTime.isNotEmpty()) {
+                    "${currentState.endDate.ifEmpty { currentState.startDate }}T${currentState.endTime}:00Z"
+                } else {
+                    startDateTime
+                }
             }
 
+            // ── Step 1: Check availability with backend (source of truth) ──
             val availResult = bookingRepository.checkAvailability(
                 listingId = currentState.propertyId,
                 startDate = startDateTime,
@@ -215,6 +283,16 @@ class BookingFormViewModel @Inject constructor(
             val user = authSession.currentUser.value
             val userId = user?.id.orEmpty()
 
+            val monthlyEndDate: String? = if (currentState.isMonthly) {
+                try {
+                    val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                    val cal = Calendar.getInstance()
+                    cal.time = fmt.parse(currentState.startDate) ?: cal.time
+                    cal.add(Calendar.MONTH, currentState.selectedMonths ?: 1)
+                    fmt.format(cal.time)
+                } catch (_: Exception) { null }
+            } else null
+
             val booking = BookingModel(
                 id = UUID.randomUUID().toString(),
                 userName = userId.ifBlank { user?.displayName },
@@ -223,13 +301,13 @@ class BookingFormViewModel @Inject constructor(
                 propertyName = currentState.propertyName,
                 propertyImage = currentState.propertyImage,
                 startDate = currentState.startDate,
-                endDate = currentState.endDate.ifEmpty { currentState.startDate },
+                endDate = monthlyEndDate ?: currentState.endDate.ifEmpty { currentState.startDate },
                 totalPrice = currentState.totalPrice,
                 currency = currentState.currency,
                 status = BookingStatus.PENDING,
                 hostName = "",
-                checkInTime = currentState.startTime.takeIf { it.isNotEmpty() },
-                checkOutTime = currentState.endTime.takeIf { it.isNotEmpty() }
+                checkInTime = if (currentState.isMonthly) null else currentState.startTime.takeIf { it.isNotEmpty() },
+                checkOutTime = if (currentState.isMonthly) null else currentState.endTime.takeIf { it.isNotEmpty() }
             )
 
             when (val result = bookingRepository.createBooking(booking)) {
