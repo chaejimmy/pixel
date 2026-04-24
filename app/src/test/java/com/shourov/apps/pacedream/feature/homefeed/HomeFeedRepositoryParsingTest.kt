@@ -158,5 +158,50 @@ class HomeFeedRepositoryParsingTest {
         assertEquals("Space B", cards[1].title)
         assertEquals("$15", cards[1].priceText)
     }
+
+    @Test
+    fun `parseListingsToCards renders dynamic_price monthly as price per month`() {
+        val body = """
+            [
+              {
+                "_id": "m1",
+                "title": "Hair Booth Rental in Fairfax Salon (${'$'}800/month)",
+                "city": "Fairfax",
+                "dynamic_price": [
+                  {
+                    "currency": "USD",
+                    "hourly": null,
+                    "daily": null,
+                    "monthly": { "price": 800 }
+                  }
+                ]
+              }
+            ]
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals(1, cards.size)
+        // Price lives in the badge, not the title — parenthesised suffix is stripped.
+        assertEquals("Hair Booth Rental in Fairfax Salon", cards.first().title)
+        assertEquals("$800/month", cards.first().priceText)
+    }
+
+    @Test
+    fun `parseListingsToCards keeps hourly dynamic_price badge`() {
+        val body = """
+            [
+              {
+                "_id": "h1",
+                "title": "Home Gym",
+                "dynamic_price": [
+                  { "hourly": { "price": 10 } }
+                ]
+              }
+            ]
+        """.trimIndent()
+
+        val cards = repo.parseListingsToCards(body)
+        assertEquals("$10/hr", cards.first().priceText)
+    }
 }
 
