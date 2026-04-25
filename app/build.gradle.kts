@@ -24,8 +24,8 @@ listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
 android {
     defaultConfig {
         applicationId = "com.shourov.apps.pacedream"
-        versionCode = 13
-        versionName = "0.1.3" // X.Y.Z; X = Major, Y = minor, Z = Patch level
+        versionCode = 14
+        versionName = "0.1.4" // X.Y.Z; X = Major, Y = minor, Z = Patch level
 
         vectorDrawables {
             useSupportLibrary = true
