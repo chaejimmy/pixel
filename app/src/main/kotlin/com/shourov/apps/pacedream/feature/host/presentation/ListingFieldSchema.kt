@@ -305,9 +305,18 @@ object ListingSchemaRegistry {
         id = "wifi",
         category = ListingCategory.SPACE,
         displayLabel = "Wi-Fi",
+        // Web parity: `src/config/listingWizard.ts` declares wifi as
+        // `allowedUnits: ['day', 'month']` with `primaryUnit: 'day'`.
+        // Mirror that here so hosts can publish monthly Wi-Fi plans on
+        // Android the same way they can on web.  The schedule field set
+        // is the union of HourlySchedule (for daily access windows) and
+        // MonthlySchedule (so MONTH listings collect min-months and the
+        // available-from date — without these fields the wizard renders
+        // the inputs but the publish payload silently drops them).
         fields = FieldSets.Core + FieldSets.PhysicalPlace +
-            ListingField.WIFI_ACCESS + FieldSets.HourlySchedule,
-        allowedPricingUnits = listOf(PricingUnit.HOUR, PricingUnit.DAY),
+            ListingField.WIFI_ACCESS + FieldSets.HourlySchedule +
+            FieldSets.MonthlySchedule,
+        allowedPricingUnits = listOf(PricingUnit.DAY, PricingUnit.MONTH),
         amenityOptions = emptyList(),
         needsSchedule = true,
     )
