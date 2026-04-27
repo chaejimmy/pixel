@@ -323,11 +323,13 @@ private fun HeroHeaderSection(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
-                // Scrim to keep copy readable over photography.
+                // Scrim to keep copy readable over photography. Routes through
+                // the design-system helper so the overlay tones down in dark
+                // mode rather than crushing the image into a black rectangle.
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.45f))
+                        .background(scrimOnImage(0.45f))
                 )
             }
 
