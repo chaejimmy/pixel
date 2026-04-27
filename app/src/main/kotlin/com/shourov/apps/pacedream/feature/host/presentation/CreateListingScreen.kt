@@ -107,6 +107,7 @@ import com.shourov.apps.pacedream.feature.host.data.DetailsPayload
 import com.shourov.apps.pacedream.feature.host.data.CreateListingDraftStore
 import com.shourov.apps.pacedream.feature.host.data.CreateListingRequest
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.data.ListingAddressRule
 import com.shourov.apps.pacedream.feature.host.data.ListingDraftData
 import com.shourov.apps.pacedream.feature.host.data.LocationPayload
 import com.shourov.apps.pacedream.feature.host.data.OnlineSessionDraft
@@ -1503,9 +1504,12 @@ private fun CreateListingWizardScreen(
                 // listings have no SESSION_TYPE so they always enforce
                 // the address contract.  Service listings enforce it
                 // only when the host picked In Person or Both.
-                val needsAddress = schema.hasField(ListingField.LOCATION) &&
-                    listingMode != ListingMode.SPLIT &&
-                    (!hasSessionType || st == SessionType.IN_PERSON || st == SessionType.BOTH)
+                val needsAddress = ListingAddressRule.isAddressRequired(
+                    schemaHasLocation = schema.hasField(ListingField.LOCATION),
+                    isSplit = listingMode == ListingMode.SPLIT,
+                    hasSessionType = hasSessionType,
+                    sessionType = st,
+                )
                 if (needsAddress) {
                     if (address.isBlank()) return "Address is required."
                     // The autocomplete contract: pick a suggestion so the
@@ -1670,8 +1674,10 @@ private fun CreateListingWizardScreen(
                             // a missing address when the host explicitly chose
                             // remote delivery.
                             val sessionTypeLocal = sessionType
-                            val omitLocation = hasSessionType &&
-                                sessionTypeLocal == SessionType.ONLINE
+                            val omitLocation = ListingAddressRule.shouldOmitLocation(
+                                hasSessionType = hasSessionType,
+                                sessionType = sessionTypeLocal,
+                            )
                             val locationPayload = if (listingMode != ListingMode.SPLIT && !omitLocation) {
                                 LocationPayload(
                                     street = address,
@@ -2320,10 +2326,12 @@ private fun PhotosLocationPricingStep(
     // section — that is the whole point of the Session Type choice.
     // In-Person and Both still render the address; physical-space
     // listings with no session type keep their existing behaviour.
-    val showLocation = schema.hasField(ListingField.LOCATION) &&
-        (!hasSessionType ||
-            sessionType == SessionType.IN_PERSON ||
-            sessionType == SessionType.BOTH)
+    val showLocation = ListingAddressRule.isAddressRequired(
+        schemaHasLocation = schema.hasField(ListingField.LOCATION),
+        isSplit = isSplit,
+        hasSessionType = hasSessionType,
+        sessionType = sessionType,
+    )
     val showOnlineSection = hasSessionType &&
         (sessionType == SessionType.ONLINE || sessionType == SessionType.BOTH)
     val showPhotos = schema.hasField(ListingField.PHOTOS)
@@ -3893,7 +3901,10 @@ private fun ReviewPublishStep(
             // suppress the "\u2014" address rows that would otherwise
             // read like the host forgot to fill them in.  In-Person /
             // Both / non-service listings keep the address rows.
-            val omitAddressRow = hasSessionType && sessionType == SessionType.ONLINE
+            val omitAddressRow = ListingAddressRule.shouldOmitLocation(
+                hasSessionType = hasSessionType,
+                sessionType = sessionType,
+            )
             if (!omitAddressRow) {
                 SummaryRow("Address", address.ifBlank { "\u2014" })
                 SummaryRow("City/State", "$city, $state".trim(' ', ',').ifBlank { "\u2014" })
