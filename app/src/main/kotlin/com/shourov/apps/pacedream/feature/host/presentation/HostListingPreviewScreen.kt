@@ -23,6 +23,7 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.*
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
+import com.shourov.apps.pacedream.feature.host.data.ListingAddressRule
 import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.model.Property
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -226,8 +227,11 @@ fun HostListingPreviewScreen(
                             // listings so we don't render a stray
                             // "city, state" line pulled from cached
                             // form state that no longer applies.
-                            val hideAddress = SessionType
-                                .fromValue(listing.sessionType) == SessionType.ONLINE
+                            val parsedSessionType = SessionType.fromValue(listing.sessionType)
+                            val hideAddress = ListingAddressRule.shouldOmitLocation(
+                                hasSessionType = parsedSessionType != null,
+                                sessionType = parsedSessionType,
+                            )
                             val location = if (hideAddress) "" else listOfNotNull(
                                 listing.location.city.takeIf { it.isNotBlank() },
                                 listing.location.state.takeIf { it.isNotBlank() },

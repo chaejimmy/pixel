@@ -87,6 +87,7 @@ import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
+import com.shourov.apps.pacedream.feature.host.data.ListingAddressRule
 import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import com.shourov.apps.pacedream.model.OnlineSession
@@ -487,11 +488,15 @@ class EditListingViewModel @Inject constructor(
             }
             // In-Person / Both: address is still required.  Online:
             // address is optional and intentionally not validated.
-            if (st == SessionType.IN_PERSON || st == SessionType.BOTH) {
-                if (s.address.isBlank()) {
-                    _uiState.value = s.copy(error = "Address is required.")
-                    return
-                }
+            val needsAddress = ListingAddressRule.isAddressRequired(
+                schemaHasLocation = true,
+                isSplit = false,
+                hasSessionType = true,
+                sessionType = st,
+            )
+            if (needsAddress && s.address.isBlank()) {
+                _uiState.value = s.copy(error = "Address is required.")
+                return
             }
         }
 
