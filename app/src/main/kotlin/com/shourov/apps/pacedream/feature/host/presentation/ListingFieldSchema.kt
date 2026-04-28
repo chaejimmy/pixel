@@ -97,8 +97,15 @@ data class SubcategorySchema(
     val displayLabel: String,
     val fields: Set<ListingField>,
     val allowedPricingUnits: List<PricingUnit>,
-    /** Display-only copy for Step 1 Pricing. */
-    val defaultPricingUnit: PricingUnit = allowedPricingUnits.first(),
+    /**
+     * Display-only copy for Step 1 Pricing.  Defaults to the first
+     * allowed unit, or [PricingUnit.HOUR] when [allowedPricingUnits]
+     * is empty so a misconfigured schema can't crash the wizard at
+     * construction time.  Matches the safe-fallback convention used
+     * by [PricingUnit.fromValue].
+     */
+    val defaultPricingUnit: PricingUnit =
+        allowedPricingUnits.firstOrNull() ?: PricingUnit.HOUR,
     /**
      * Curated amenity suggestions for this subcategory.
      * Empty list hides the amenities section entirely.

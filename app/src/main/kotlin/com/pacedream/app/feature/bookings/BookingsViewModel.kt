@@ -24,6 +24,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import java.text.NumberFormat
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Currency
@@ -588,8 +589,15 @@ class BookingsViewModel @Inject constructor(
                     val fmt = SimpleDateFormat(pattern, Locale.US)
                     if (tz != null) fmt.timeZone = TimeZone.getTimeZone(tz)
                     return fmt.parse(trimmed)
-                } catch (_: Exception) { }
+                } catch (_: ParseException) {
+                    // Expected when the candidate format does not match;
+                    // fall through to the next pattern.  Any other
+                    // exception type is unexpected and is allowed to
+                    // propagate so a real bug surfaces in Crashlytics
+                    // instead of being swallowed here.
+                }
             }
+            Timber.d("parseIsoDate: no ISO format matched, falling back to numeric timestamp")
             // Try as timestamp
             val d = trimmed.toDoubleOrNull() ?: return null
             return when {

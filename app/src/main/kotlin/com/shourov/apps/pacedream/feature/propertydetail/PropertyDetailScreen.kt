@@ -61,7 +61,6 @@ import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamGlass

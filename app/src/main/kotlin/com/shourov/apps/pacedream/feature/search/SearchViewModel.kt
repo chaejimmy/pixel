@@ -357,12 +357,30 @@ class SearchViewModel @Inject constructor(
     companion object {
         /**
          * Client-side relevance pass over a single page of search
-         * results.  Scores each item by where the query matches
-         * (title > category > location) and drops items that only
-         * matched on description — those leak in because the backend
-         * regex matches title OR description indifferently.  If no
-         * item matches a structured field we fall back to the raw
-         * server order so the user still sees results.
+         * results.  Two responsibilities:
+         *
+         * 1. Drop items that only matched the query on description —
+         *    those leak in because the backend regex matches title OR
+         *    description indifferently for short queries like "gym"
+         *    (PR #457).  If no item matches a structured field
+         *    (title / category / location) we fall back to the raw
+         *    server page so the user still sees results.
+         *
+         * 2. Within the kept set, sort by where the query landed
+         *    (title.startsWith > title word-boundary > title.contains
+         *    > category > location).  The default-sort search path
+         *    cannot rely on the backend returning results in
+         *    relevance order, so without this boost a `location`
+         *    match could appear above a `title.startsWith` match
+         *    within the same page.
+         *
+         * Known limitation: this runs per-page, so a strong match
+         * arriving on page 2 is still appended after page 1 in the
+         * accumulated UI list — see BUG_TESTING_REPORT_2026-04-28.md
+         * §2.3.  Cross-page reordering would require re-ranking the
+         * merged list on every page load and is left as follow-up
+         * work; the per-page boost is the higher-value half of
+         * PR #457 and is preserved here.
          *
          * Package-private + @JvmStatic so the helper can be covered
          * by a plain JVM unit test without constructing the full
