@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -298,7 +299,13 @@ class BookingTabViewModel @Inject constructor(
                     val fmt = SimpleDateFormat(pattern, Locale.US)
                     if (tz != null) fmt.timeZone = TimeZone.getTimeZone(tz)
                     return fmt.parse(raw.trim())
-                } catch (_: Exception) { }
+                } catch (_: ParseException) {
+                    // Expected when the candidate format does not match;
+                    // fall through to the next pattern.  Any other
+                    // exception type is unexpected and is allowed to
+                    // propagate so a real bug surfaces instead of
+                    // being silently swallowed here.
+                }
             }
             return null
         }

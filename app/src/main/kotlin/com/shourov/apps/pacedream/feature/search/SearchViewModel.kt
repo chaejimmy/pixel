@@ -357,12 +357,20 @@ class SearchViewModel @Inject constructor(
     companion object {
         /**
          * Client-side relevance pass over a single page of search
-         * results.  Scores each item by where the query matches
-         * (title > category > location) and drops items that only
-         * matched on description — those leak in because the backend
-         * regex matches title OR description indifferently.  If no
-         * item matches a structured field we fall back to the raw
-         * server order so the user still sees results.
+         * results.  Drops items that only match the query on
+         * description — those leak in because the backend regex
+         * matches title OR description indifferently for short queries
+         * like "gym".  If no item matches a structured field
+         * (title / category / location) we fall back to the raw
+         * server page so the user still sees results.
+         *
+         * The backend already returns each page in its own globally
+         * relevance-ordered slice, so this helper deliberately
+         * preserves the server's order rather than re-sorting by a
+         * client-side score.  Re-sorting per page would let a
+         * page-2 title-match appear after a page-1 title-contains
+         * once the new page is appended — see PR #457 follow-up
+         * (BUG_TESTING_REPORT_2026-04-28.md §2.3).
          *
          * Package-private + @JvmStatic so the helper can be covered
          * by a plain JVM unit test without constructing the full
@@ -378,24 +386,19 @@ class SearchViewModel @Inject constructor(
 
             val wordBoundary = Regex("\\b${Regex.escape(q)}\\b")
 
-            fun score(item: SearchResultItem): Int {
+            fun matchesStructured(item: SearchResultItem): Boolean {
                 val title = item.title.lowercase()
                 val category = item.category?.lowercase().orEmpty()
                 val location = item.location?.lowercase().orEmpty()
-                return when {
-                    title.startsWith(q) -> 100
-                    wordBoundary.containsMatchIn(title) -> 80
-                    title.contains(q) -> 60
-                    category.contains(q) -> 40
-                    location.contains(q) -> 20
-                    else -> 0
-                }
+                return title.startsWith(q) ||
+                    wordBoundary.containsMatchIn(title) ||
+                    title.contains(q) ||
+                    category.contains(q) ||
+                    location.contains(q)
             }
 
-            val scored = items.map { it to score(it) }
-            val matched = scored.filter { it.second > 0 }
-            if (matched.isEmpty()) return items
-            return matched.sortedByDescending { it.second }.map { it.first }
+            val matched = items.filter { matchesStructured(it) }
+            return if (matched.isEmpty()) items else matched
         }
     }
 }
