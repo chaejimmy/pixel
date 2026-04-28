@@ -357,20 +357,30 @@ class SearchViewModel @Inject constructor(
     companion object {
         /**
          * Client-side relevance pass over a single page of search
-         * results.  Drops items that only match the query on
-         * description — those leak in because the backend regex
-         * matches title OR description indifferently for short queries
-         * like "gym".  If no item matches a structured field
-         * (title / category / location) we fall back to the raw
-         * server page so the user still sees results.
+         * results.  Two responsibilities:
          *
-         * The backend already returns each page in its own globally
-         * relevance-ordered slice, so this helper deliberately
-         * preserves the server's order rather than re-sorting by a
-         * client-side score.  Re-sorting per page would let a
-         * page-2 title-match appear after a page-1 title-contains
-         * once the new page is appended — see PR #457 follow-up
-         * (BUG_TESTING_REPORT_2026-04-28.md §2.3).
+         * 1. Drop items that only matched the query on description —
+         *    those leak in because the backend regex matches title OR
+         *    description indifferently for short queries like "gym"
+         *    (PR #457).  If no item matches a structured field
+         *    (title / category / location) we fall back to the raw
+         *    server page so the user still sees results.
+         *
+         * 2. Within the kept set, sort by where the query landed
+         *    (title.startsWith > title word-boundary > title.contains
+         *    > category > location).  The default-sort search path
+         *    cannot rely on the backend returning results in
+         *    relevance order, so without this boost a `location`
+         *    match could appear above a `title.startsWith` match
+         *    within the same page.
+         *
+         * Known limitation: this runs per-page, so a strong match
+         * arriving on page 2 is still appended after page 1 in the
+         * accumulated UI list — see BUG_TESTING_REPORT_2026-04-28.md
+         * §2.3.  Cross-page reordering would require re-ranking the
+         * merged list on every page load and is left as follow-up
+         * work; the per-page boost is the higher-value half of
+         * PR #457 and is preserved here.
          *
          * Package-private + @JvmStatic so the helper can be covered
          * by a plain JVM unit test without constructing the full
@@ -386,19 +396,24 @@ class SearchViewModel @Inject constructor(
 
             val wordBoundary = Regex("\\b${Regex.escape(q)}\\b")
 
-            fun matchesStructured(item: SearchResultItem): Boolean {
+            fun score(item: SearchResultItem): Int {
                 val title = item.title.lowercase()
                 val category = item.category?.lowercase().orEmpty()
                 val location = item.location?.lowercase().orEmpty()
-                return title.startsWith(q) ||
-                    wordBoundary.containsMatchIn(title) ||
-                    title.contains(q) ||
-                    category.contains(q) ||
-                    location.contains(q)
+                return when {
+                    title.startsWith(q) -> 100
+                    wordBoundary.containsMatchIn(title) -> 80
+                    title.contains(q) -> 60
+                    category.contains(q) -> 40
+                    location.contains(q) -> 20
+                    else -> 0
+                }
             }
 
-            val matched = items.filter { matchesStructured(it) }
-            return if (matched.isEmpty()) items else matched
+            val scored = items.map { it to score(it) }
+            val matched = scored.filter { it.second > 0 }
+            if (matched.isEmpty()) return items
+            return matched.sortedByDescending { it.second }.map { it.first }
         }
     }
 }

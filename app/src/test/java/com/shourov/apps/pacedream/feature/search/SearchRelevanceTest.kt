@@ -48,31 +48,33 @@ class SearchRelevanceTest {
     }
 
     @Test
-    fun `category and location matches are kept`() {
-        val titleHit = item("a", "City Gym")
-        val categoryHit = item("b", "Workout space", category = "Gym")
+    fun `title beats category beats location within a page`() {
+        // For sort=null queries we cannot trust the backend to return
+        // results in relevance order, so the helper boosts strong
+        // structured matches above weaker ones on the same page.
         val locationHit = item("c", "Studio loft", location = "Near the gym")
+        val categoryHit = item("b", "Workout space", category = "Gym")
+        val titleHit = item("a", "City Gym")
         val ranked = SearchViewModel.rankByRelevance(
-            listOf(titleHit, categoryHit, locationHit),
+            // Server order is intentionally weakest-first to prove the
+            // re-sort runs.
+            listOf(locationHit, categoryHit, titleHit),
             "gym",
         )
         assertEquals(listOf(titleHit, categoryHit, locationHit), ranked)
     }
 
     @Test
-    fun `server order is preserved among kept matches`() {
-        // The score-based rerank in the prior implementation pulled
-        // title.startsWith ahead of title.contains, which made
-        // pagination produce out-of-order pages once appended.  We now
-        // preserve the server order verbatim.
-        val mid = item("mid", "Cool gym time")          // contains
-        val start = item("start", "Gymnastics studio")  // startsWith
-        val end = item("end", "Outdoor gym")            // ends with
+    fun `title startsWith outranks title contains within a page`() {
+        val mid = item("mid", "Cool gym time")          // word-boundary in title (80)
+        val start = item("start", "Gymnastics studio")  // startsWith title (100)
+        val end = item("end", "Outdoor gym")            // word-boundary in title (80)
         val ranked = SearchViewModel.rankByRelevance(
             listOf(mid, start, end),
             "gym",
         )
-        assertEquals(listOf(mid, start, end), ranked)
+        assertEquals(start, ranked.first())
+        assertEquals(setOf(mid, end), ranked.drop(1).toSet())
     }
 
     @Test
