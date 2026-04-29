@@ -881,14 +881,97 @@ private fun ErrorBanner(error: String, onDismiss: () -> Unit) {
 
 @Composable
 private fun BookingFormLoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.LG)
     ) {
-        CircularProgressIndicator(
-            color = PaceDreamColors.Primary
+        // Step 1: Duration chips skeleton
+        SkeletonSectionHeader()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            repeat(4) {
+                SkeletonBox(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .width(64.dp)
+                )
+            }
+        }
+
+        // Step 2: Date selector skeleton
+        SkeletonSectionHeader()
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        )
+
+        // Step 3: Time grid skeleton
+        SkeletonSectionHeader()
+        Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+            repeat(2) {
+                Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+                    repeat(4) {
+                        SkeletonBox(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Guests + special requests skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+        )
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(96.dp)
+        )
+
+        // Sticky bottom bar skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
         )
     }
+}
+
+@Composable
+private fun SkeletonSectionHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+    ) {
+        SkeletonBox(modifier = Modifier.size(28.dp), shape = CircleShape)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SkeletonBox(modifier = Modifier.height(14.dp).width(120.dp))
+            SkeletonBox(modifier = Modifier.height(10.dp).width(180.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBox(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(PaceDreamRadius.SM)
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f))
+    )
 }
 
 data class BookingFormUiState(

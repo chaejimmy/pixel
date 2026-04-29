@@ -394,11 +394,54 @@ private fun WishlistItemCard(
 
 @Composable
 private fun LoadingState() {
-    Box(
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentPadding = PaddingValues(PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
     ) {
-        CircularProgressIndicator(color = PaceDreamColors.Primary)
+        items(6) {
+            WishlistCardSkeleton()
+        }
+    }
+}
+
+@Composable
+private fun WishlistCardSkeleton() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .background(Color.Gray.copy(alpha = 0.15f))
+            )
+            Column(
+                modifier = Modifier.padding(PaceDreamSpacing.MD),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Gray.copy(alpha = 0.15f))
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Gray.copy(alpha = 0.10f))
+                )
+            }
+        }
     }
 }
 
