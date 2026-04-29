@@ -196,6 +196,13 @@ private fun BookingFormContent(
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            // Trust block — surface cancellation/refund policy and a payment
+            // security signal *before* the user reaches checkout. Hiding these
+            // until after payment hurts trust and conversion.
+            BookingTrustBlock()
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
 
         // Sticky Bottom: Booking Summary + CTA
@@ -879,6 +886,75 @@ private fun ErrorBanner(error: String, onDismiss: () -> Unit) {
                 text = "Dismiss",
                 onClick = onDismiss,
                 modifier = Modifier,
+            )
+        }
+    }
+}
+
+// ─── Trust Block (cancellation policy + secure payment) ─────────
+
+@Composable
+private fun BookingTrustBlock() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Primary.copy(alpha = 0.05f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            TrustRow(
+                icon = PaceDreamIcons.CheckCircle,
+                title = "Free cancellation",
+                description = "Cancel before the booking start time for a full refund."
+            )
+            TrustRow(
+                icon = PaceDreamIcons.Lock,
+                title = "Secure payment",
+                description = "Your card is processed by Stripe. PaceDream never stores card numbers."
+            )
+            TrustRow(
+                icon = PaceDreamIcons.Help,
+                title = "We're here to help",
+                description = "Reach support any time from your booking detail page."
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrustRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String
+) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier
+                .size(18.dp)
+                .padding(top = 2.dp)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+        Column {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = description,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
             )
         }
     }

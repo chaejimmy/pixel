@@ -171,9 +171,32 @@ private fun SuccessState(
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center
         )
-        
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        // Email receipt confirmation row — gives users an explicit signal
+        // that a paper trail exists, reducing post-purchase anxiety.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Email,
+                contentDescription = null,
+                tint = PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.size(PaceDreamSpacing.XS))
+            Text(
+                text = "Receipt sent to your email",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-        
+
         // Booking details card
         Card(
             modifier = Modifier.fillMaxWidth(),
