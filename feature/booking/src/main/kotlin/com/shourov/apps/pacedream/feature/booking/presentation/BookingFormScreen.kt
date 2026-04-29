@@ -121,11 +121,18 @@ private fun BookingFormContent(
             uiState.startTime.isNotEmpty() &&
             uiState.selectedDuration > 0
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            // Apply IME inset to the whole pane so the sticky bottom CTA is
+            // also pushed up when the keyboard opens. Without this, the
+            // BookingSummaryBar gets covered by the IME and users can't tap
+            // "Book Now" while a TextField is focused.
+            .imePadding()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 140.dp) // Space for sticky bottom bar
         ) {
