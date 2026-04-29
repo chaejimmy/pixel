@@ -244,10 +244,17 @@ class InboxRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            return ApiResult.Failure(ApiError.NetworkError("All message endpoints failed: ${e.message}"))
+            // Log the raw exception for ops, but never surface SocketTimeoutException,
+            // JSON parser errors, etc. to the user.
+            Timber.e(e, "InboxRepository: all message endpoints failed for chatId=$chatId")
+            return ApiResult.Failure(
+                ApiError.NetworkError(
+                    com.pacedream.common.util.UserFacingErrorMapper.forLoadMessages(e)
+                )
+            )
         }
     }
-    
+
     /**
      * Send a message to a thread
      */
