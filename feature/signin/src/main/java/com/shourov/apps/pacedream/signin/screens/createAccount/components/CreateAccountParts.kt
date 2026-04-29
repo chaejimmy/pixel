@@ -16,15 +16,57 @@
 
 package com.shourov.apps.pacedream.signin.screens.createAccount.components
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.shourov.apps.pacedream.core.data.UserSetupGender
 import com.shourov.apps.pacedream.signin.model.CreateAccountComponents
 import com.shourov.apps.pacedream.signin.model.CreateAccountData
 import com.shourov.apps.pacedream.signin.screens.startWithEmailOrPhone.StartWithEmailOrPhoneScreen
+
+// Saver so the multi-step form survives configuration changes and process
+// death — losing 6 steps of onboarding to a low-memory kill is a major
+// abandonment risk.
+private val CreateAccountDataSaver = mapSaver(
+    save = { data ->
+        mapOf(
+            "email" to data.email,
+            "phoneNumber" to data.phoneNumber,
+            "password" to data.password,
+            "firstName" to data.firstName,
+            "lastName" to data.lastName,
+            "profilePicture" to data.profilePicture.toString(),
+            "dateOfBirthMillis" to data.dateOfBirthMillis,
+            "gender" to data.gender.name,
+            "hobbiesNInterest" to ArrayList(data.hobbiesNInterest)
+        )
+    },
+    restore = { map ->
+        @Suppress("UNCHECKED_CAST")
+        CreateAccountData(
+            email = map["email"] as? String ?: "",
+            phoneNumber = map["phoneNumber"] as? String ?: "",
+            password = map["password"] as? String ?: "",
+            firstName = map["firstName"] as? String ?: "",
+            lastName = map["lastName"] as? String ?: "",
+            profilePicture = (map["profilePicture"] as? String)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { Uri.parse(it) }
+                ?: Uri.EMPTY,
+            dateOfBirthMillis = map["dateOfBirthMillis"] as? Long,
+            gender = (map["gender"] as? String)
+                ?.let { runCatching { UserSetupGender.valueOf(it) }.getOrNull() }
+                ?: UserSetupGender.PREFERS_NOT_TO_SAY,
+            hobbiesNInterest = (map["hobbiesNInterest"] as? ArrayList<String>)
+                ?.toSet() ?: emptySet()
+        )
+    }
+)
 
 @Composable
 fun CreateAccountParts(
@@ -32,7 +74,9 @@ fun CreateAccountParts(
     accountDataStateChange: (CreateAccountData) -> Unit = {},
     onNavigateToSignIn : () -> Unit = {}
 ) {
-    var accountData by remember { mutableStateOf(CreateAccountData()) }
+    var accountData by rememberSaveable(stateSaver = CreateAccountDataSaver) {
+        mutableStateOf(CreateAccountData())
+    }
 
 
         AnimatedContent(targetState = state, label = "createAccountScreenAnimation") { it ->
