@@ -190,6 +190,16 @@ class DestinationViewModel @Inject constructor(
         _uiState.update { it.copy(activeFilters = if (filter in it.activeFilters) it.activeFilters - filter else it.activeFilters + filter) }
         loadListings()
     }
+
+    /**
+     * Clear search query and active filters in one shot, triggering a single
+     * listings reload rather than N+1 reloads if the caller toggled filters
+     * individually.
+     */
+    fun clearFiltersAndSearch() {
+        _uiState.update { it.copy(searchQuery = "", activeFilters = emptyList()) }
+        loadListings()
+    }
 }
 
 // ── City Fallback Images ─────────────────────────────────────────
@@ -392,7 +402,7 @@ fun DestinationListingsScreen(
                         icon = PaceDreamIcons.Search,
                         actionText = if (hasFilters) "Browse all" else null,
                         onActionClick = if (hasFilters) {
-                            { viewModel.updateSearch(""); uiState.activeFilters.toList().forEach { viewModel.toggleFilter(it) }; onBrowseAll() }
+                            { viewModel.clearFiltersAndSearch(); onBrowseAll() }
                         } else null,
                         modifier = Modifier.fillMaxSize()
                     )

@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.navigation
 import androidx.lifecycle.ViewModel
 import com.pacedream.app.core.auth.AuthState
 import com.pacedream.app.core.auth.SessionManager
+import com.pacedream.app.core.auth.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -12,6 +13,7 @@ class AuthGateViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : ViewModel() {
     val authState: StateFlow<AuthState> = sessionManager.authState
+    val currentUser: StateFlow<User?> = sessionManager.currentUser
 
     /**
      * Sign out through the new SessionManager, which also cascades to the

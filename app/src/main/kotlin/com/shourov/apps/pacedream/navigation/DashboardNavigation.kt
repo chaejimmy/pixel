@@ -886,6 +886,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                 arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
                             ) { backStackEntry ->
                                 val bookingId = backStackEntry.arguments?.getString("bookingId") ?: ""
+                                val confirmationAuthGate = hiltViewModel<AuthGateViewModel>()
+                                val confirmationUser by confirmationAuthGate.currentUser.collectAsStateWithLifecycle()
                                 ConfirmationScreen(
                                     bookingId = bookingId,
                                     onBackClick = {
@@ -899,7 +901,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     },
                                     onDone = {
                                         navigateToTab(navController, DashboardDestination.HOME.name)
-                                    }
+                                    },
+                                    userEmail = confirmationUser?.email,
+                                    onContactSupport = { navController.navigate("support") }
                                 )
                             }
 

@@ -940,8 +940,8 @@ private fun TrustRow(
             contentDescription = null,
             tint = PaceDreamColors.Primary,
             modifier = Modifier
-                .size(18.dp)
                 .padding(top = 2.dp)
+                .size(18.dp)
         )
         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
         Column {
