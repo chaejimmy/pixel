@@ -51,6 +51,26 @@ data class PendingNativePayment(
      * booking instead of creating a duplicate.
      */
     val confirmIdempotencyKey: String? = null,
+    /**
+     * X-Request-ID reused across every confirm-booking attempt for this
+     * PaymentIntent.  Surfaced to the user as a support reference and
+     * lets backend logs trace every retry to a single token.
+     */
+    val confirmRequestId: String? = null,
+    /** Total amount captured, in minor units (cents). */
+    val amountCents: Int? = null,
+    /** ISO currency code (lowercase, e.g. "usd"). */
+    val currency: String? = null,
+    /** Authenticated user id, when known. */
+    val userId: String? = null,
+    /** Listing title, when known.  Surfaced to the user / support. */
+    val listingTitle: String? = null,
+    /** Booking start ISO-8601 string. */
+    val startTimeISO: String? = null,
+    /** Booking end ISO-8601 string. */
+    val endTimeISO: String? = null,
+    /** Last user-facing error message, if any. */
+    val lastErrorMessage: String? = null,
 )
 
 /**
@@ -140,6 +160,17 @@ class PendingPaymentStore @Inject constructor(
             paymentSucceededLocally = true,
             lastAttemptAt = System.currentTimeMillis(),
         )
+        return if (save(updated)) updated else current
+    }
+
+    /**
+     * Persists the last user-facing error against the in-flight pending
+     * record (e.g. a transient confirm-booking failure).  No-op when
+     * there is no stored record.
+     */
+    fun recordLastError(message: String?): PendingNativePayment? {
+        val current = load() ?: return null
+        val updated = current.copy(lastErrorMessage = message?.take(512))
         return if (save(updated)) updated else current
     }
 

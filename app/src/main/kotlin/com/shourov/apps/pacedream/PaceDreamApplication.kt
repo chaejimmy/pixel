@@ -1,8 +1,10 @@
 package com.shourov.apps.pacedream
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
@@ -25,7 +27,10 @@ import javax.inject.Inject
  * [Application] class for PaceDream
  */
 @HiltAndroidApp
-class PaceDreamApplication : Application(), ImageLoaderFactory {
+class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Provider {
+
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
 
     @Inject
     lateinit var profileVerifierLogger: ProfileVerifierLogger
@@ -153,6 +158,12 @@ class PaceDreamApplication : Application(), ImageLoaderFactory {
             }
         }
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.INFO)
+            .build()
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)

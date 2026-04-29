@@ -171,6 +171,25 @@ fun CheckoutScreen(
         }
     }
 
+    // Post-payment pending-confirmation state — payment captured,
+    // booking not yet finalised on the backend.  This is its own UI
+    // surface (no green check, no "Booking Confirmed" copy) until the
+    // backend responds and the ViewModel transitions to SUCCEEDED.
+    if (uiState.status == CheckoutStatus.PAYMENT_CAPTURED_PENDING_CONFIRMATION) {
+        PendingConfirmationContent(
+            paymentIntentId = uiState.pendingPaymentIntentId,
+            requestId = uiState.lastConfirmRequestId,
+            isConfirmingBooking = uiState.isConfirmingBooking,
+            confirmRetryCount = uiState.confirmRetryCount,
+            hasExhaustedRetries = uiState.hasExhaustedRetries,
+            failureKind = uiState.failureKind,
+            listingTitle = uiState.listingTitle ?: uiState.draft?.listingId.orEmpty(),
+            onRetryFinalize = { viewModel.retryConfirmBooking() },
+            onGoHome = onBackClick,
+        )
+        return
+    }
+
     // Post-payment success state (iOS parity: NativeCheckoutView.successContent)
     if (uiState.status == CheckoutStatus.SUCCEEDED) {
         Scaffold(containerColor = PaceDreamColors.Background) { padding ->
@@ -704,6 +723,227 @@ private fun CancellationPolicyCard() {
                 color = PaceDreamColors.TextSecondary
             )
         }
+    }
+}
+
+// ── Payment Captured / Pending Confirmation surface ─────────────
+
+/**
+ * Dedicated screen rendered while Stripe has captured the funds but
+ * the backend has not yet confirmed the booking.  Always truthful
+ * about state, always surfaces the PaymentIntent reference, never
+ * shows raw network / Stripe errors.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PendingConfirmationContent(
+    paymentIntentId: String?,
+    requestId: String?,
+    isConfirmingBooking: Boolean,
+    confirmRetryCount: Int,
+    hasExhaustedRetries: Boolean,
+    failureKind: CheckoutFailureKind?,
+    listingTitle: String,
+    onRetryFinalize: () -> Unit,
+    onGoHome: () -> Unit,
+) {
+    val title = when {
+        hasExhaustedRetries -> "Payment received"
+        isConfirmingBooking -> "Payment received"
+        else -> "Payment received"
+    }
+    val headline = when {
+        hasExhaustedRetries -> "We couldn’t finish your booking yet."
+        isConfirmingBooking -> "We’re finalizing your booking."
+        else -> "We’re still finalizing your booking."
+    }
+    val supportingCopy = when (failureKind) {
+        CheckoutFailureKind.SUPPORT_NEEDED ->
+            "Our team has been notified and is reconciling your payment. Please don’t pay again."
+        CheckoutFailureKind.NETWORK_RETRYING ->
+            "We’re retrying automatically. Please don’t pay again."
+        else ->
+            "Please don’t pay again. Keep this app open while we finalize."
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Confirm & Pay", style = PaceDreamTypography.Headline) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background,
+                ),
+            )
+        },
+        containerColor = PaceDreamColors.Background,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Icon(
+                imageVector = PaceDreamIcons.Info,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(56.dp),
+            )
+            Text(
+                text = title,
+                style = PaceDreamTypography.Title2,
+                fontWeight = FontWeight.Bold,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Text(
+                text = headline,
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = supportingCopy,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+
+            if (isConfirmingBooking) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                ) {
+                    CircularProgressIndicator(
+                        color = PaceDreamColors.Primary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        text = "Checking with our servers…",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                }
+            }
+
+            // Reference card — always shown so the user can quote
+            // the PaymentIntent + request id to support if needed.
+            if (!paymentIntentId.isNullOrBlank() || !requestId.isNullOrBlank()) {
+                Card(
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        0.5.dp,
+                        PaceDreamColors.Border.copy(alpha = 0.4f),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(PaceDreamSpacing.MD),
+                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+                    ) {
+                        Text(
+                            text = "Reference",
+                            style = PaceDreamTypography.Callout,
+                            fontWeight = FontWeight.SemiBold,
+                            color = PaceDreamColors.TextPrimary,
+                        )
+                        if (!paymentIntentId.isNullOrBlank()) {
+                            ReferenceRow(label = "Payment", value = paymentIntentId)
+                        }
+                        if (!requestId.isNullOrBlank()) {
+                            ReferenceRow(label = "Request", value = requestId)
+                        }
+                        Text(
+                            text = "We’ll keep checking. Contact support if this doesn’t update.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextTertiary,
+                        )
+                    }
+                }
+            }
+
+            // CTA stack — Retry finalizing, Contact support, Go home.
+            // Retry only when not already confirming and within budget.
+            val retryEnabled = !isConfirmingBooking &&
+                confirmRetryCount < CheckoutViewModel.MAX_CONFIRM_RETRIES
+            if (retryEnabled) {
+                Button(
+                    onClick = onRetryFinalize,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+                ) {
+                    Text(
+                        text = "Retry finalizing",
+                        style = PaceDreamTypography.Button,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            // Support row is always available in this state.
+            if (!paymentIntentId.isNullOrBlank()) {
+                SupportActionRow(
+                    paymentIntentId = paymentIntentId,
+                    listingTitle = listingTitle,
+                    requestId = requestId,
+                )
+            }
+
+            // Go home / View bookings — only safe to expose once we've
+            // either exhausted retries (the worker takes over) or the
+            // user is no longer being asked to wait actively.
+            if (hasExhaustedRetries || !isConfirmingBooking) {
+                OutlinedButton(
+                    onClick = onGoHome,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    Text(
+                        text = "Go home",
+                        style = PaceDreamTypography.Button,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PaceDreamColors.Primary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReferenceRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+        )
+        Text(
+            text = value,
+            style = PaceDreamTypography.Caption,
+            fontFamily = FontFamily.Monospace,
+            color = PaceDreamColors.TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .padding(start = PaceDreamSpacing.SM)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(PaceDreamColors.Border.copy(alpha = 0.15f))
+                .padding(horizontal = PaceDreamSpacing.SM, vertical = 4.dp),
+        )
     }
 }
 
