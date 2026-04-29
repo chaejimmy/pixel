@@ -249,8 +249,13 @@ class MessageRepository @Inject constructor(
                                 else -> "You don't have permission to send messages in this chat."
                             }
                         }
-                        else -> "Failed to send message: ${response.message()}"
+                        else -> "Your message couldn't be sent. Please try again."
                     }
+                    timber.log.Timber.w(
+                        "send-message HTTP %d %s",
+                        response.code(),
+                        response.message()
+                    )
                     Result.Error(Exception(errorMsg))
                 }
             } catch (e: Exception) {
@@ -323,9 +328,15 @@ class MessageRepository @Inject constructor(
                 val errorBody = response.errorBody()?.string()
                 val errorMsg = when (response.code()) {
                     403 -> "Photos can only be shared after a booking is confirmed"
-                    400 -> errorBody ?: "Invalid file type or size"
-                    else -> "Failed to upload photos: ${response.message()}"
+                    400 -> "We couldn't accept that photo. Try a smaller image or a JPEG/PNG file."
+                    else -> "We couldn't upload your photos. Please try again."
                 }
+                timber.log.Timber.w(
+                    "upload-media HTTP %d %s body=%s",
+                    response.code(),
+                    response.message(),
+                    errorBody?.take(200)
+                )
                 Result.Error(Exception(errorMsg))
             }
         } catch (e: Exception) {

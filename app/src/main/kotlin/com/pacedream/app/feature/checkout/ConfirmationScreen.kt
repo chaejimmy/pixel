@@ -50,7 +50,9 @@ fun ConfirmationScreen(
     bookingId: String,
     onBackClick: () -> Unit,
     onViewBooking: () -> Unit,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    userEmail: String? = null,
+    onContactSupport: (() -> Unit)? = null
 ) {
     // Prevent system back from navigating to checkout
     androidx.activity.compose.BackHandler { onDone() }
@@ -115,6 +117,32 @@ fun ConfirmationScreen(
                 color = PaceDreamColors.TextSecondary,
                 textAlign = TextAlign.Center
             )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            // Email receipt confirmation row — addresses user anxiety about
+            // whether a paper trail / receipt actually arrived.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Email,
+                    contentDescription = null,
+                    tint = PaceDreamColors.TextSecondary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                Text(
+                    text = userEmail?.takeIf { it.isNotBlank() }
+                        ?.let { "Receipt sent to $it" }
+                        ?: "Receipt sent to your email",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
@@ -234,6 +262,23 @@ fun ConfirmationScreen(
                 contentPadding = PaddingValues(vertical = 14.dp)
             ) {
                 Text("Back to Home", style = PaceDreamTypography.Button, color = PaceDreamColors.Primary)
+            }
+
+            // Support link — users who paid but suspect something went wrong
+            // need a fast path to help. Including this here reduces refund
+            // requests and improves trust.
+            if (onContactSupport != null) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                androidx.compose.material3.TextButton(
+                    onClick = onContactSupport,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Need help? Contact support",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))

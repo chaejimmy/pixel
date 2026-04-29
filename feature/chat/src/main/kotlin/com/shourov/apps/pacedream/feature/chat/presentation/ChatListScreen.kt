@@ -45,7 +45,8 @@ import java.util.*
 fun ChatListScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = hiltViewModel(),
-    onChatClick: (String) -> Unit = {}
+    onChatClick: (String) -> Unit = {},
+    onStartConversation: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -76,7 +77,7 @@ fun ChatListScreen(
                 )
             }
             uiState.chats.isEmpty() -> {
-                ChatListEmptyState()
+                ChatListEmptyState(onStartConversation = onStartConversation)
             }
             else -> {
                 ChatListContent(
@@ -194,18 +195,65 @@ private fun ChatItemCard(
 
 @Composable
 private fun ChatListLoadingState() {
-    Box(
+    LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM)
     ) {
-        CircularProgressIndicator(
-            color = PaceDreamDesignSystem.PaceDreamColors.Primary
+        items(8) {
+            ChatRowSkeleton()
+        }
+    }
+}
+
+@Composable
+private fun ChatRowSkeleton() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.MD)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(Color.Gray.copy(alpha = 0.15f))
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.55f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Gray.copy(alpha = 0.15f))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Gray.copy(alpha = 0.10f))
+            )
+        }
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(10.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(Color.Gray.copy(alpha = 0.10f))
         )
     }
 }
 
 @Composable
-private fun ChatListEmptyState() {
+private fun ChatListEmptyState(
+    onStartConversation: () -> Unit = {}
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -231,6 +279,24 @@ private fun ChatListEmptyState() {
                 style = PaceDreamDesignSystem.PaceDreamTypography.Body,
                 color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.7f)
             )
+            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.LG))
+            Button(
+                onClick = onStartConversation,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                    contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
+                ),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(
+                    horizontal = PaceDreamDesignSystem.PaceDreamSpacing.LG,
+                    vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM
+                )
+            ) {
+                Text(
+                    text = "Start a conversation",
+                    style = PaceDreamDesignSystem.PaceDreamTypography.Button
+                )
+            }
         }
     }
 }

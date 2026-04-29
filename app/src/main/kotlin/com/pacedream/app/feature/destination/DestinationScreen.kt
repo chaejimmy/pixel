@@ -239,7 +239,7 @@ fun DestinationLandingScreen(
     Scaffold(containerColor = PaceDreamColors.Background) { padding ->
         PullToRefreshBox(uiState.isRefreshing, { viewModel.refresh() }, Modifier.fillMaxSize().padding(padding)) {
             when {
-                uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.Primary) }
+                uiState.isLoading -> DestinationLandingSkeleton()
                 uiState.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(uiState.error ?: "Error", color = PaceDreamColors.TextSecondary)
@@ -331,6 +331,7 @@ fun DestinationLandingScreen(
 @Composable
 fun DestinationListingsScreen(
     destinationId: String, onBackClick: () -> Unit = {}, onListingClick: (String) -> Unit = {},
+    onBrowseAll: () -> Unit = {},
     viewModel: DestinationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -378,13 +379,24 @@ fun DestinationListingsScreen(
             Spacer(Modifier.height(PaceDreamSpacing.SM))
             // Listings Grid
             when {
-                uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = PaceDreamColors.Primary) }
-                uiState.listings.isEmpty() -> PaceDreamEmptyState(
-                    title = "No listings found",
-                    description = "Try a different destination or check back later.",
-                    icon = PaceDreamIcons.Search,
-                    modifier = Modifier.fillMaxSize()
-                )
+                uiState.isLoading -> DestinationListingsSkeleton()
+                uiState.listings.isEmpty() -> {
+                    val hasFilters = uiState.searchQuery.isNotBlank() || uiState.activeFilters.isNotEmpty()
+                    PaceDreamEmptyState(
+                        title = "No listings found",
+                        description = if (hasFilters) {
+                            "Try a different search or remove filters to see more results."
+                        } else {
+                            "Try a different destination or check back later."
+                        },
+                        icon = PaceDreamIcons.Search,
+                        actionText = if (hasFilters) "Browse all" else null,
+                        onActionClick = if (hasFilters) {
+                            { viewModel.updateSearch(""); uiState.activeFilters.toList().forEach { viewModel.toggleFilter(it) }; onBrowseAll() }
+                        } else null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 else -> LazyVerticalGrid(GridCells.Fixed(2),
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
@@ -555,6 +567,140 @@ private fun DestinationIndexCard(dest: TravelDestination, onClick: () -> Unit) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+            }
+        }
+    }
+}
+
+// ── Skeleton Loading States ──────────────────────────────────────
+
+@Composable
+private fun SkeletonBlock(
+    modifier: Modifier = Modifier,
+    cornerRadius: androidx.compose.ui.unit.Dp = PaceDreamRadius.SM,
+    alpha: Float = 0.15f
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(Color.Gray.copy(alpha = alpha))
+    )
+}
+
+@Composable
+private fun DestinationLandingSkeleton() {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        // Hero placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp),
+            cornerRadius = 0.dp
+        )
+        Spacer(Modifier.height(PaceDreamSpacing.MD))
+        // Search bar placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD)
+                .height(48.dp),
+            cornerRadius = PaceDreamRadius.Round
+        )
+        Spacer(Modifier.height(PaceDreamSpacing.LG))
+        // Section header placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .padding(horizontal = PaceDreamSpacing.MD)
+                .height(16.dp)
+                .fillMaxWidth(0.4f)
+        )
+        Spacer(Modifier.height(PaceDreamSpacing.SM))
+        // Horizontal listings row
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.MD),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            repeat(3) {
+                SkeletonBlock(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(200.dp),
+                    cornerRadius = PaceDreamRadius.MD
+                )
+            }
+        }
+        Spacer(Modifier.height(PaceDreamSpacing.LG))
+        // Local categories grid
+        SkeletonBlock(
+            modifier = Modifier
+                .padding(horizontal = PaceDreamSpacing.MD)
+                .height(16.dp)
+                .fillMaxWidth(0.45f)
+        )
+        Spacer(Modifier.height(PaceDreamSpacing.SM))
+        Column(Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+            repeat(2) {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = PaceDreamSpacing.XS),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    repeat(2) {
+                        SkeletonBlock(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            cornerRadius = PaceDreamRadius.MD
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(PaceDreamSpacing.XL))
+    }
+}
+
+@Composable
+private fun DestinationListingsSkeleton() {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+    ) {
+        items(6) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.CardBackground),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column {
+                    SkeletonBlock(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f),
+                        cornerRadius = 0.dp
+                    )
+                    Column(
+                        Modifier.padding(PaceDreamSpacing.SM),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SkeletonBlock(
+                            modifier = Modifier
+                                .fillMaxWidth(0.7f)
+                                .height(14.dp)
+                        )
+                        SkeletonBlock(
+                            modifier = Modifier
+                                .fillMaxWidth(0.4f)
+                                .height(12.dp),
+                            alpha = 0.10f
+                        )
+                    }
                 }
             }
         }

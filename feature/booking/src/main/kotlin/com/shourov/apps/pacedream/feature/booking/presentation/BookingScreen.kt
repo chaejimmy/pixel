@@ -53,7 +53,8 @@ import java.util.*
 @Composable
 fun BookingScreen(
     modifier: Modifier = Modifier,
-    viewModel: BookingViewModel = hiltViewModel()
+    viewModel: BookingViewModel = hiltViewModel(),
+    onExploreListings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -110,7 +111,10 @@ fun BookingScreen(
                 BookingLoadingState()
             }
             uiState.filteredBookings.isEmpty() -> {
-                BookingEmptyState(tab = uiState.selectedTab)
+                BookingEmptyState(
+                    tab = uiState.selectedTab,
+                    onExploreListings = onExploreListings
+                )
             }
             else -> {
                 PullToRefreshBox(
@@ -657,7 +661,10 @@ private fun BookingCardSkeleton() {
 // MARK: - Per-Tab Empty States (matching iOS GuestBookingsEmptyState)
 
 @Composable
-private fun BookingEmptyState(tab: BookingTab) {
+private fun BookingEmptyState(
+    tab: BookingTab,
+    onExploreListings: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -708,6 +715,29 @@ private fun BookingEmptyState(tab: BookingTab) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
+
+            // CTA \u2014 show on the ALL tab where the empty state is the user's
+            // first impression. Other tabs auto-fill once a booking exists.
+            if (tab == BookingTab.ALL) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                Button(
+                    onClick = onExploreListings,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Primary
+                    ),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    contentPadding = PaddingValues(
+                        horizontal = PaceDreamSpacing.LG,
+                        vertical = PaceDreamSpacing.SM2
+                    )
+                ) {
+                    Text(
+                        text = "Find a stay",
+                        style = PaceDreamTypography.Button,
+                        color = PaceDreamColors.OnPrimary
+                    )
+                }
+            }
         }
     }
 }

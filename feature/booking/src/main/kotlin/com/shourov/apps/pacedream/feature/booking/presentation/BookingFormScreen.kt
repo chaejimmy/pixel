@@ -121,11 +121,18 @@ private fun BookingFormContent(
             uiState.startTime.isNotEmpty() &&
             uiState.selectedDuration > 0
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            // Apply IME inset to the whole pane so the sticky bottom CTA is
+            // also pushed up when the keyboard opens. Without this, the
+            // BookingSummaryBar gets covered by the IME and users can't tap
+            // "Book Now" while a TextField is focused.
+            .imePadding()
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 140.dp) // Space for sticky bottom bar
         ) {
@@ -187,6 +194,13 @@ private fun BookingFormContent(
                 specialRequests = uiState.specialRequests,
                 onSpecialRequestsChange = onSpecialRequestsChange
             )
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+
+            // Trust block — surface cancellation/refund policy and a payment
+            // security signal *before* the user reaches checkout. Hiding these
+            // until after payment hurts trust and conversion.
+            BookingTrustBlock()
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
         }
@@ -877,18 +891,170 @@ private fun ErrorBanner(error: String, onDismiss: () -> Unit) {
     }
 }
 
+// ─── Trust Block (cancellation policy + secure payment) ─────────
+
+@Composable
+private fun BookingTrustBlock() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Primary.copy(alpha = 0.05f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            TrustRow(
+                icon = PaceDreamIcons.CheckCircle,
+                title = "Free cancellation",
+                description = "Cancel before the booking start time for a full refund."
+            )
+            TrustRow(
+                icon = PaceDreamIcons.Lock,
+                title = "Secure payment",
+                description = "Your card is processed by Stripe. PaceDream never stores card numbers."
+            )
+            TrustRow(
+                icon = PaceDreamIcons.Help,
+                title = "We're here to help",
+                description = "Reach support any time from your booking detail page."
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrustRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    description: String
+) {
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = PaceDreamColors.Primary,
+            modifier = Modifier
+                .size(18.dp)
+                .padding(top = 2.dp)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+        Column {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = description,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+    }
+}
+
 // ─── Loading State ───────────────────────────────────────────────
 
 @Composable
 private fun BookingFormLoadingState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.LG)
     ) {
-        CircularProgressIndicator(
-            color = PaceDreamColors.Primary
+        // Step 1: Duration chips skeleton
+        SkeletonSectionHeader()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            repeat(4) {
+                SkeletonBox(
+                    modifier = Modifier
+                        .height(36.dp)
+                        .width(64.dp)
+                )
+            }
+        }
+
+        // Step 2: Date selector skeleton
+        SkeletonSectionHeader()
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        )
+
+        // Step 3: Time grid skeleton
+        SkeletonSectionHeader()
+        Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+            repeat(2) {
+                Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
+                    repeat(4) {
+                        SkeletonBox(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Guests + special requests skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+        )
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(96.dp)
+        )
+
+        // Sticky bottom bar skeleton
+        SkeletonBox(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
         )
     }
+}
+
+@Composable
+private fun SkeletonSectionHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+    ) {
+        SkeletonBox(modifier = Modifier.size(28.dp), shape = CircleShape)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            SkeletonBox(modifier = Modifier.height(14.dp).width(120.dp))
+            SkeletonBox(modifier = Modifier.height(10.dp).width(180.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonBox(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(PaceDreamRadius.SM)
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.15f))
+    )
 }
 
 data class BookingFormUiState(

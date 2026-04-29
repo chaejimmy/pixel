@@ -18,6 +18,7 @@ package com.shourov.apps.pacedream.feature.chat.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.common.util.UserFacingErrorMapper
 import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
 import com.shourov.apps.pacedream.model.MessageModel
@@ -56,7 +57,7 @@ class ChatListViewModel @Inject constructor(
                 if (json == null) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Unable to load chats. Please check your connection."
+                        error = UserFacingErrorMapper.forLoadMessages(null)
                     )
                     return@launch
                 }
@@ -69,7 +70,7 @@ class ChatListViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to load chats. Please try again."
+                    error = UserFacingErrorMapper.forLoadMessages(e)
                 )
             }
         }
