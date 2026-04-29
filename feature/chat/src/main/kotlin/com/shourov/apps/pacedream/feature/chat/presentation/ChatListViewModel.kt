@@ -19,7 +19,6 @@ package com.shourov.apps.pacedream.feature.chat.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.common.util.UserFacingErrorMapper
-import com.shourov.apps.pacedream.core.common.result.Result
 import com.shourov.apps.pacedream.core.data.repository.MessageRepository
 import com.shourov.apps.pacedream.model.MessageModel
 import dagger.hilt.android.lifecycle.HiltViewModel
