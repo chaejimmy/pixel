@@ -211,6 +211,11 @@ dependencies {
     // Stripe Android SDK for Payment Methods
     implementation("com.stripe:stripe-android:22.5.0")
 
+    // WorkManager (background reconciliation for captured-but-unconfirmed payments)
+    implementation(libs.androidx.work.ktx)
+    implementation(libs.hilt.ext.work)
+    ksp(libs.hilt.ext.compiler)
+
     implementation(libs.identity.credential)
     implementation(project(":feature:home"))
     implementation(project(":feature:home:presentation"))
