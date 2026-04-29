@@ -45,7 +45,8 @@ import java.util.*
 fun ChatListScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = hiltViewModel(),
-    onChatClick: (String) -> Unit = {}
+    onChatClick: (String) -> Unit = {},
+    onStartConversation: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -76,7 +77,7 @@ fun ChatListScreen(
                 )
             }
             uiState.chats.isEmpty() -> {
-                ChatListEmptyState()
+                ChatListEmptyState(onStartConversation = onStartConversation)
             }
             else -> {
                 ChatListContent(
@@ -250,7 +251,9 @@ private fun ChatRowSkeleton() {
 }
 
 @Composable
-private fun ChatListEmptyState() {
+private fun ChatListEmptyState(
+    onStartConversation: () -> Unit = {}
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -276,6 +279,24 @@ private fun ChatListEmptyState() {
                 style = PaceDreamDesignSystem.PaceDreamTypography.Body,
                 color = PaceDreamDesignSystem.PaceDreamColors.OnBackground.copy(alpha = 0.7f)
             )
+            Spacer(modifier = Modifier.height(PaceDreamDesignSystem.PaceDreamSpacing.LG))
+            Button(
+                onClick = onStartConversation,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
+                    contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
+                ),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(
+                    horizontal = PaceDreamDesignSystem.PaceDreamSpacing.LG,
+                    vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM
+                )
+            ) {
+                Text(
+                    text = "Start a conversation",
+                    style = PaceDreamDesignSystem.PaceDreamTypography.Button
+                )
+            }
         }
     }
 }

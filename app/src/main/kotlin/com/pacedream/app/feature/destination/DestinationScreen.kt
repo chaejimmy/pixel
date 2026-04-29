@@ -331,6 +331,7 @@ fun DestinationLandingScreen(
 @Composable
 fun DestinationListingsScreen(
     destinationId: String, onBackClick: () -> Unit = {}, onListingClick: (String) -> Unit = {},
+    onBrowseAll: () -> Unit = {},
     viewModel: DestinationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -379,12 +380,23 @@ fun DestinationListingsScreen(
             // Listings Grid
             when {
                 uiState.isLoading -> DestinationListingsSkeleton()
-                uiState.listings.isEmpty() -> PaceDreamEmptyState(
-                    title = "No listings found",
-                    description = "Try a different destination or check back later.",
-                    icon = PaceDreamIcons.Search,
-                    modifier = Modifier.fillMaxSize()
-                )
+                uiState.listings.isEmpty() -> {
+                    val hasFilters = uiState.searchQuery.isNotBlank() || uiState.activeFilters.isNotEmpty()
+                    PaceDreamEmptyState(
+                        title = "No listings found",
+                        description = if (hasFilters) {
+                            "Try a different search or remove filters to see more results."
+                        } else {
+                            "Try a different destination or check back later."
+                        },
+                        icon = PaceDreamIcons.Search,
+                        actionText = if (hasFilters) "Browse all" else null,
+                        onActionClick = if (hasFilters) {
+                            { viewModel.updateSearch(""); uiState.activeFilters.toList().forEach { viewModel.toggleFilter(it) }; onBrowseAll() }
+                        } else null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
                 else -> LazyVerticalGrid(GridCells.Fixed(2),
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
