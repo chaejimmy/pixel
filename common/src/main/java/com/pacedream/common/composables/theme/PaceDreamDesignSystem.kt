@@ -25,6 +25,10 @@ object PaceDreamDesignSystem {
     val Typography get() = com.pacedream.common.composables.theme.PaceDreamTypography
     val Colors get() = com.pacedream.common.composables.theme.PaceDreamColors
     val Glass get() = com.pacedream.common.composables.theme.PaceDreamGlass
+    val Stroke get() = com.pacedream.common.composables.theme.PaceDreamStroke
+    val Opacity get() = com.pacedream.common.composables.theme.PaceDreamOpacity
+    val FocusRing get() = com.pacedream.common.composables.theme.PaceDreamFocusRing
+    val Motion get() = com.pacedream.common.composables.theme.PaceDreamMotion
 }
 
 /**
@@ -401,4 +405,84 @@ object PaceDreamEasing {
     val Spring = CubicBezierEasing(0.175f, 0.885f, 0.32f, 1.275f)
     // iOS deceleration curve (for scroll settling)
     val Decelerate = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+}
+
+// ============================================================================
+// Stroke / Border Width System
+// Semantic widths so feature code stops hard-coding 1.dp / 0.5.dp / 2.dp
+// inline. Hairline matches iOS opaque-separator rendering on @2x/@3x.
+// ============================================================================
+object PaceDreamStroke {
+    val Hairline = 0.5.dp   // iOS opaque separator, glass edge
+    val Thin = 1.dp         // Standard divider, card outline
+    val Regular = 1.5.dp    // Selected state, emphasis outline
+    val Thick = 2.dp        // Focus ring, primary outlined button
+    val Heavy = 3.dp        // Tab indicator, progress accents
+}
+
+// ============================================================================
+// Opacity / State-Layer System
+// One canonical place for the alphas applied to interactive states and
+// quiet content. Matches Material 3 state-layer guidance with iOS-tuned
+// disabled/quiet values (iOS leans softer than M3 default 0.38).
+// ============================================================================
+object PaceDreamOpacity {
+    // Interactive state layers (apply on top of base color)
+    val Hover = 0.08f
+    val Focus = 0.12f
+    val Pressed = 0.12f
+    val Dragged = 0.16f
+    val Selected = 0.12f
+
+    // Content quiet levels
+    val Disabled = 0.38f         // Disabled foreground (iOS / M3 alignment)
+    val DisabledContainer = 0.12f // Disabled container fill
+    val MediumEmphasis = 0.74f   // Secondary content (iOS HIG: 60% on label, ~74% on full color)
+    val LowEmphasis = 0.60f      // Tertiary content
+    val Divider = 0.12f          // Hairline dividers when drawn from solid color
+    val Scrim = 0.40f            // Modal overlays (matches PaceDreamColors.ModalOverlay)
+    val Shimmer = 0.30f          // Placeholder shimmer pass
+
+    // Glass surface presets - mirror PaceDreamGlass.* for callers that want
+    // the alpha without pulling the whole Glass token group.
+    val GlassRegular = PaceDreamGlass.RegularAlpha
+    val GlassThin = PaceDreamGlass.ThinAlpha
+    val GlassThick = PaceDreamGlass.ThickAlpha
+}
+
+// ============================================================================
+// Focus Ring System
+// Accessible keyboard / d-pad navigation indicator. Drawn outside the
+// component bounds so it never clips against tight cards / pills.
+// ============================================================================
+object PaceDreamFocusRing {
+    val Width = PaceDreamStroke.Thick   // 2.dp — visible without overpowering
+    val Offset = 2.dp                   // Air gap between component and ring
+    val CornerInflation = 2.dp          // Add to component radius for outer ring
+    val Alpha = 0.85f                   // Slightly translucent so brand color shines
+    val DisabledAlpha = 0.30f
+}
+
+// ============================================================================
+// Motion System
+// Material 3 emphasized curves alongside the existing iOS easings so screens
+// that opt into the M3 "expressive" motion language can do so without
+// hand-rolling cubic-beziers. Pair with PaceDreamAnimationDuration.
+// ============================================================================
+object PaceDreamMotion {
+    // Standard - balanced, the safe default for most transitions
+    val Standard = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+    // Emphasized - hero / shared-element style, dramatic acceleration + deceleration
+    val Emphasized = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)
+    val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0.0f, 0.8f, 0.15f)
+    val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+    // Linear - rare, mostly for ProgressIndicator-style sweeps
+    val Linear = CubicBezierEasing(0.0f, 0.0f, 1.0f, 1.0f)
+
+    // Semantic duration aliases (re-export so callers can use one import)
+    val DurationFast = PaceDreamAnimationDuration.FAST
+    val DurationShort = PaceDreamAnimationDuration.SHORT
+    val DurationStandard = PaceDreamAnimationDuration.NORMAL
+    val DurationMedium = PaceDreamAnimationDuration.MEDIUM
+    val DurationLong = PaceDreamAnimationDuration.LONG
 }
