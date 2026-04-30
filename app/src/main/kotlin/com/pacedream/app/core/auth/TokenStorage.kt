@@ -32,6 +32,14 @@ import javax.inject.Singleton
  *     prefs are not ready yet. Callers treat a null return as "not
  *     initialised yet" and must tolerate it.
  *
+ * Pre-init writes are NOT silently dropped. A write performed before the
+ * encrypted prefs are ready is queued in [pendingOps] and replayed in
+ * order when the init thread completes (under [opsLock] so a write that
+ * arrives during drain does not race ahead of queued writes). Pre-init
+ * reads on a thread that cannot block also consult the in-memory mirror
+ * [pendingValues] so a token written and then read in the same cold-start
+ * window is visible.
+ *
  * We deliberately do NOT fall back to a plaintext SharedPreferences file:
  * writing auth tokens to a separate unencrypted file would both (a) leak
  * tokens at rest and (b) cause ghost logouts when the fallback file is
@@ -47,6 +55,18 @@ class TokenStorage @Inject constructor(
     private val prefsRef = AtomicReference<SharedPreferences?>()
     private val prefsLatch = CountDownLatch(1)
 
+    // Pre-init write queue. Operations are enqueued (in order) when a write
+    // arrives before encrypted prefs are ready, then replayed under
+    // [opsLock] when init finishes. Direct writes that arrive after prefs
+    // are ready also acquire [opsLock] briefly so they cannot interleave
+    // ahead of queued operations during drain.
+    private val opsLock = Any()
+    private val pendingOps = ArrayList<(SharedPreferences) -> Unit>()
+    // In-memory mirror of pre-init string writes, so a put-then-get in the
+    // same cold-start window returns the queued value instead of null.
+    // null in the map means a tombstone (the key was removed / cleared).
+    private val pendingValues = HashMap<String, String?>()
+
     init {
         // Proactively delete any legacy plaintext fallback file that earlier
         // builds may have created. Defensive: any stale tokens that leaked
@@ -58,15 +78,53 @@ class TokenStorage @Inject constructor(
         }
 
         Thread({
-            try {
-                prefsRef.set(createEncryptedPrefsOrNull())
+            val created = try {
+                createEncryptedPrefsOrNull()
             } catch (e: Exception) {
                 Timber.e(e, "EncryptedSharedPreferences init failed completely")
-                prefsRef.set(null)
-            } finally {
-                prefsLatch.countDown()
+                null
             }
+            // Publish prefs and drain the pending-op queue under the same
+            // lock new writes will take, so wall-clock-later writes that
+            // bypass the queue cannot land before queued writes do.
+            synchronized(opsLock) {
+                prefsRef.set(created)
+                if (created != null && pendingOps.isNotEmpty()) {
+                    val drained = pendingOps.size
+                    pendingOps.forEach { op ->
+                        try {
+                            op(created)
+                        } catch (e: Exception) {
+                            Timber.e(e, "TokenStorage: queued op failed during drain")
+                        }
+                    }
+                    pendingOps.clear()
+                    pendingValues.clear()
+                    Timber.d("TokenStorage: drained $drained queued op(s) after init")
+                } else if (created == null && pendingOps.isNotEmpty()) {
+                    Timber.e("TokenStorage: ${pendingOps.size} queued op(s) lost — encrypted prefs unavailable")
+                    pendingOps.clear()
+                    pendingValues.clear()
+                }
+            }
+            prefsLatch.countDown()
         }, "TokenStorage-init").start()
+    }
+
+    /**
+     * Suspend-friendly readiness check. Returns true if encrypted prefs
+     * finished initialising within [timeoutMs], false otherwise. Callers
+     * that must guarantee a token write is durable before continuing
+     * (e.g. a logout that has to invalidate state on disk) should await
+     * this from a background dispatcher before issuing the write.
+     */
+    fun awaitReady(timeoutMs: Long = 10_000L): Boolean {
+        return try {
+            prefsLatch.await(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
     }
 
     /**
@@ -202,13 +260,42 @@ class TokenStorage @Inject constructor(
             prefs?.getBoolean(KEY_IS_HOST_MODE, false) ?: false
         } catch (e: Exception) { Timber.e(e, "Failed to read isHostMode"); false }
         set(value) {
-            try {
-                prefs?.edit()?.putBoolean(KEY_IS_HOST_MODE, value)?.apply()
-                    ?: Timber.w("Dropping isHostMode write: encrypted prefs not ready")
-            } catch (e: Exception) { Timber.e(e, "Failed to write isHostMode") }
+            withWritablePrefs(
+                onReady = { p ->
+                    try {
+                        p.edit().putBoolean(KEY_IS_HOST_MODE, value).apply()
+                    } catch (e: Exception) { Timber.e(e, "Failed to write isHostMode") }
+                },
+                enqueue = {
+                    pendingOps += { p ->
+                        try { p.edit().putBoolean(KEY_IS_HOST_MODE, value).apply() }
+                        catch (e: Exception) { Timber.e(e, "Failed to replay isHostMode write") }
+                    }
+                }
+            )
         }
 
     private fun safeGetString(key: String): String? {
+        // Fast path: prefs ready (no lock needed for read of an immutable
+        // SharedPreferences reference).
+        prefsRef.get()?.let { p ->
+            return try { p.getString(key, null) }
+            catch (e: Exception) { Timber.e(e, "Failed to read key: $key"); null }
+        }
+        // Pre-init fallback: consult the in-memory mirror so a value that
+        // was written in this same cold-start window is still visible.
+        synchronized(opsLock) {
+            // Re-check inside the lock in case init completed between the
+            // fast-path read and the lock acquisition.
+            prefsRef.get()?.let { p ->
+                return try { p.getString(key, null) }
+                catch (e: Exception) { Timber.e(e, "Failed to read key: $key"); null }
+            }
+            if (pendingValues.containsKey(key)) return pendingValues[key]
+            // No queued write for this key; if the caller is on a background
+            // thread, fall through to prefs (which will block on the latch).
+            // On the main thread, prefs returns null without blocking.
+        }
         return try {
             prefs?.getString(key, null)
         } catch (e: Exception) {
@@ -218,15 +305,40 @@ class TokenStorage @Inject constructor(
     }
 
     private fun safePutString(key: String, value: String?) {
-        try {
-            val p = prefs
-            if (p == null) {
-                Timber.w("Dropping write for $key: encrypted prefs not ready")
-                return
+        withWritablePrefs(
+            onReady = { p ->
+                try { p.edit().putString(key, value).apply() }
+                catch (e: Exception) { Timber.e(e, "Failed to write key: $key") }
+            },
+            enqueue = {
+                pendingValues[key] = value
+                pendingOps += { p ->
+                    try { p.edit().putString(key, value).apply() }
+                    catch (e: Exception) { Timber.e(e, "Failed to replay write for $key") }
+                }
             }
-            p.edit().putString(key, value).apply()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to write key: $key to encrypted prefs")
+        )
+    }
+
+    /**
+     * Acquires [opsLock] briefly. If encrypted prefs are ready, runs
+     * [onReady] with the prefs (the caller writes through). Otherwise
+     * runs [enqueue] which is expected to mutate [pendingOps] and
+     * [pendingValues] for later replay. The lock is what keeps
+     * post-init direct writes from interleaving ahead of pre-init
+     * queued writes during drain.
+     */
+    private inline fun withWritablePrefs(
+        onReady: (SharedPreferences) -> Unit,
+        enqueue: () -> Unit,
+    ) {
+        synchronized(opsLock) {
+            val ready = prefsRef.get()
+            if (ready != null) {
+                onReady(ready)
+            } else {
+                enqueue()
+            }
         }
     }
 
@@ -242,23 +354,39 @@ class TokenStorage @Inject constructor(
     fun hasTokens(): Boolean = try { !accessToken.isNullOrBlank() } catch (e: Exception) { Timber.e(e, "Failed to check tokens"); false }
 
     /**
-     * Store backend tokens
+     * Store backend tokens. Pre-init writes are queued and replayed when
+     * encrypted prefs become available, so a token written during cold
+     * start is never silently dropped.
      */
     fun storeTokens(accessToken: String?, refreshToken: String?) {
-        try {
-            val p = prefs
-            if (p == null) {
-                Timber.w("Dropping storeTokens: encrypted prefs not ready")
-                return
+        withWritablePrefs(
+            onReady = { p ->
+                try {
+                    p.edit()
+                        .putString(KEY_ACCESS_TOKEN, accessToken)
+                        .putString(KEY_REFRESH_TOKEN, refreshToken)
+                        .apply()
+                    Timber.d("Tokens stored")
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to store tokens")
+                }
+            },
+            enqueue = {
+                pendingValues[KEY_ACCESS_TOKEN] = accessToken
+                pendingValues[KEY_REFRESH_TOKEN] = refreshToken
+                pendingOps += { p ->
+                    try {
+                        p.edit()
+                            .putString(KEY_ACCESS_TOKEN, accessToken)
+                            .putString(KEY_REFRESH_TOKEN, refreshToken)
+                            .apply()
+                        Timber.d("Tokens stored (queued -> replayed)")
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to replay storeTokens")
+                    }
+                }
             }
-            p.edit()
-                .putString(KEY_ACCESS_TOKEN, accessToken)
-                .putString(KEY_REFRESH_TOKEN, refreshToken)
-                .apply()
-            Timber.d("Tokens stored")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to store tokens")
-        }
+        )
     }
 
     /**
@@ -278,28 +406,53 @@ class TokenStorage @Inject constructor(
     }
 
     /**
-     * Clear all tokens and user data
+     * Clear all tokens and user data. Pre-init clears are queued so a
+     * logout issued during cold start still takes effect.
      */
     fun clearAll() {
-        try {
-            val p = prefs
-            if (p == null) {
-                Timber.w("Dropping clearAll: encrypted prefs not ready")
-                return
+        withWritablePrefs(
+            onReady = { p ->
+                try {
+                    p.edit()
+                        .remove(KEY_ACCESS_TOKEN)
+                        .remove(KEY_REFRESH_TOKEN)
+                        .remove(KEY_AUTH0_ACCESS_TOKEN)
+                        .remove(KEY_AUTH0_ID_TOKEN)
+                        .remove(KEY_USER_ID)
+                        .remove(KEY_CACHED_USER_SUMMARY)
+                        .remove(KEY_CACHED_USER_SHARED)
+                        .apply()
+                    Timber.d("All tokens cleared")
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to clear tokens")
+                }
+            },
+            enqueue = {
+                // Tombstone every key in the in-memory mirror so reads
+                // during the pre-init window see the cleared state.
+                listOf(
+                    KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN,
+                    KEY_AUTH0_ACCESS_TOKEN, KEY_AUTH0_ID_TOKEN,
+                    KEY_USER_ID, KEY_CACHED_USER_SUMMARY, KEY_CACHED_USER_SHARED,
+                ).forEach { pendingValues[it] = null }
+                pendingOps += { p ->
+                    try {
+                        p.edit()
+                            .remove(KEY_ACCESS_TOKEN)
+                            .remove(KEY_REFRESH_TOKEN)
+                            .remove(KEY_AUTH0_ACCESS_TOKEN)
+                            .remove(KEY_AUTH0_ID_TOKEN)
+                            .remove(KEY_USER_ID)
+                            .remove(KEY_CACHED_USER_SUMMARY)
+                            .remove(KEY_CACHED_USER_SHARED)
+                            .apply()
+                        Timber.d("All tokens cleared (queued -> replayed)")
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to replay clearAll")
+                    }
+                }
             }
-            p.edit()
-                .remove(KEY_ACCESS_TOKEN)
-                .remove(KEY_REFRESH_TOKEN)
-                .remove(KEY_AUTH0_ACCESS_TOKEN)
-                .remove(KEY_AUTH0_ID_TOKEN)
-                .remove(KEY_USER_ID)
-                .remove(KEY_CACHED_USER_SUMMARY)
-                .remove(KEY_CACHED_USER_SHARED)
-                .apply()
-            Timber.d("All tokens cleared")
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to clear tokens")
-        }
+        )
     }
 
     /**

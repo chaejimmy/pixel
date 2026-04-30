@@ -249,19 +249,37 @@ fun CheckoutScreen(
                         style = PaceDreamTypography.Caption,
                         color = PaceDreamColors.TextSecondary
                     )
-                } else if (uiState.hasExhaustedRetries && uiState.pendingPaymentIntentId != null) {
+                } else if (uiState.hasExhaustedRetries) {
                     // Local retries exhausted — truthful stuck copy
                     // with payment reference + copy + contact support.
-                    StuckFallbackBanner(
-                        paymentIntentId = uiState.pendingPaymentIntentId!!,
-                        requestId = uiState.lastConfirmRequestId,
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    SupportActionRow(
-                        paymentIntentId = uiState.pendingPaymentIntentId!!,
-                        listingTitle = uiState.draft?.listingId ?: "",
-                        requestId = uiState.lastConfirmRequestId,
-                    )
+                    // Capture into a local so the smart-cast holds across the
+                    // composable calls (state-backed property reads do not smart-cast).
+                    val pendingPaymentIntentId = uiState.pendingPaymentIntentId
+                    if (pendingPaymentIntentId != null) {
+                        StuckFallbackBanner(
+                            paymentIntentId = pendingPaymentIntentId,
+                            requestId = uiState.lastConfirmRequestId,
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        SupportActionRow(
+                            paymentIntentId = pendingPaymentIntentId,
+                            listingTitle = uiState.draft?.listingId ?: "",
+                            requestId = uiState.lastConfirmRequestId,
+                        )
+                    } else {
+                        // Defensive: state machine should not reach exhausted
+                        // retries without a payment intent. If it does, do not
+                        // crash — surface a recovery affordance instead.
+                        StuckFallbackNoReferenceBanner(
+                            requestId = uiState.lastConfirmRequestId,
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        SupportActionRowNoReference(
+                            listingTitle = uiState.draft?.listingId ?: "",
+                            requestId = uiState.lastConfirmRequestId,
+                            onReturnToListing = onBackClick,
+                        )
+                    }
                 } else {
                     // Payment succeeded but booking confirmation failed — show retry
                     Row(
@@ -1088,6 +1106,133 @@ private fun SupportActionRow(
                     if (!requestId.isNullOrBlank()) append("Request id: $requestId\n")
                     if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
                     append("\nPlease reconcile and confirm my booking.")
+                }
+                val uri = android.net.Uri.parse(
+                    "mailto:support@pacedream.com" +
+                        "?subject=" + android.net.Uri.encode(subject) +
+                        "&body=" + android.net.Uri.encode(body)
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
+                try {
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to launch mailto intent")
+                }
+            },
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Text("Contact support", style = PaceDreamTypography.Button, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+/**
+ * Recovery banner shown when local retries are exhausted but no payment-intent
+ * reference is available (defensive path — should not normally happen).
+ */
+@Composable
+private fun StuckFallbackNoReferenceBanner(requestId: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD)
+            .background(
+                color = PaceDreamColors.Warning.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            .padding(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Warning,
+                contentDescription = null,
+                tint = PaceDreamColors.Warning,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "We couldn’t finish creating your booking.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                Text(
+                    "If you were charged, our team will reconcile and contact you. Please don’t pay again.",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+        }
+        if (!requestId.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Request id",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Text(
+                    text = requestId,
+                    style = PaceDreamTypography.Caption,
+                    fontFamily = FontFamily.Monospace,
+                    color = PaceDreamColors.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = PaceDreamSpacing.SM),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Recovery action row used when there is no payment-intent reference to copy or
+ * include in a support email. Offers "Return to listing" and "Contact support".
+ */
+@Composable
+private fun SupportActionRowNoReference(
+    listingTitle: String,
+    requestId: String?,
+    onReturnToListing: () -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+    ) {
+        OutlinedButton(
+            onClick = onReturnToListing,
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            Text(
+                "Return to listing",
+                style = PaceDreamTypography.Button,
+                fontWeight = FontWeight.SemiBold,
+                color = PaceDreamColors.Primary,
+            )
+        }
+        Button(
+            onClick = {
+                val subject = "PaceDream booking didn’t finalize"
+                val body = buildString {
+                    append("Hi PaceDream support,\n\n")
+                    append("My booking did not finalize after checkout.\n\n")
+                    if (!requestId.isNullOrBlank()) append("Request id: $requestId\n")
+                    if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
+                    append("\nPlease check whether a charge went through and reconcile.")
                 }
                 val uri = android.net.Uri.parse(
                     "mailto:support@pacedream.com" +

@@ -3025,31 +3025,15 @@ private fun MapPreviewCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
-        } else if (mapCoordinate != null && !mapsEnabled) {
-            // Static map fallback using OpenStreetMap embed when no Google Maps key
-            Box(modifier = Modifier.fillMaxSize()) {
-                val lat = mapCoordinate.latitude
-                val lng = mapCoordinate.longitude
-                // Build a small bounding box around the coordinate for the embed
-                val delta = 0.005
-                val bbox = "${lng - delta},${lat - delta},${lng + delta},${lat + delta}"
-                val embedUrl = "https://www.openstreetmap.org/export/embed.html" +
-                    "?bbox=$bbox&layer=mapnik&marker=$lat,$lng"
-                val context = LocalContext.current
-                androidx.compose.ui.viewinterop.AndroidView(
-                    factory = {
-                        android.webkit.WebView(context).apply {
-                            settings.javaScriptEnabled = true
-                            settings.loadWithOverviewMode = true
-                            settings.useWideViewPort = true
-                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                            loadUrl(embedUrl)
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
         } else {
+            // No Google Maps key configured (or no coordinate yet).
+            // Previously this branch loaded an OpenStreetMap embed in a WebView
+            // with JavaScript enabled — that is an XSS / data-exfiltration
+            // surface (compromised tile server or MITM can run arbitrary JS
+            // against the WebView origin). We intentionally fall through to
+            // the existing privacy-preserving placeholder ("Exact location
+            // shared after booking") rather than rendering a blank WebView
+            // with JS disabled, which would be a worse UX than the placeholder.
             Box(
                 modifier = Modifier
                     .fillMaxSize()

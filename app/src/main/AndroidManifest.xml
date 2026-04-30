@@ -149,16 +149,29 @@
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
 
-        <receiver
-            android:name="com.shourov.apps.pacedream.core.data.receiver.OTPReceiver"
-            android:exported="true"
-            android:permission="com.google.android.gms.auth.api.phone.permission.SEND">
-            <intent-filter>
-                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED" />
-            </intent-filter>
-        </receiver>
+        <!--
+        OTPReceiver is intentionally NOT declared as a manifest-registered
+        broadcast receiver. A statically-registered <receiver> with
+        android:exported="true" relying on
+        com.google.android.gms.auth.api.phone.permission.SEND is not a safe
+        protection model in this codebase: the OTPReceiver class is not
+        wired into any caller, and a stale manifest registration would
+        leave SMS_RETRIEVED handling enabled with no application-level
+        validation of incoming OTP payloads.
 
-        <!-- FCM default notification channel for background notifications (Android 8+).
+        If/when SMS auto-retrieval is actually wired into a sign-in flow,
+        register OTPReceiver at runtime via
+        Context.registerReceiver(receiver, IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION),
+            SmsRetriever.SEND_PERMISSION, null,
+            ContextCompat.RECEIVER_NOT_EXPORTED on API 33+ where compatible)
+        for the duration of the OTP screen, then unregister on screen exit.
+        See OTPReceiver.kt and startSMSRetrieverClient().
+
+        Remaining work (tracked): full SmsRetriever integration into the
+        OtpVerificationScreen flow.
+        -->
+
+<!-- FCM default notification channel for background notifications (Android 8+).
              Without this, notification+data payloads delivered while app is in background
              are silently dropped because FCM has no channel to post them on. -->
         <meta-data

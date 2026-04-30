@@ -10,12 +10,29 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
 
 /**
- * BroadcastReceiver to wait for SMS messages. This can be registered either
- * in the AndroidManifest or at runtime. Should filter Intents on
- * SmsRetriever.SMS_RETRIEVED_ACTION.
+ * BroadcastReceiver that listens for SMS_RETRIEVED broadcasts from Google
+ * Play Services' SmsRetriever API.
  *
- * Note: SMS auto-retrieval requires Android 13+ (API 33). On older devices,
- * users must enter the OTP manually (handled by OtpVerificationScreen).
+ * IMPORTANT: do NOT register this receiver statically in AndroidManifest.xml
+ * with android:exported="true". Although the SmsRetriever API documents
+ * com.google.android.gms.auth.api.phone.permission.SEND as the gating
+ * permission, manifest-registered exported receivers add a long-lived,
+ * always-on broadcast surface — register at runtime instead, only while
+ * an OTP-entry UI is on screen, via:
+ *
+ *   ContextCompat.registerReceiver(
+ *       context,
+ *       OTPReceiver().also { it.init(listener) },
+ *       IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION),
+ *       SmsRetriever.SEND_PERMISSION,
+ *       null,
+ *       ContextCompat.RECEIVER_EXPORTED
+ *   )
+ *
+ * and unregister it on screen exit / lifecycle stop.
+ *
+ * Note: SMS auto-retrieval is opportunistic. On unsupported devices users
+ * must enter the OTP manually (handled by OtpVerificationScreen).
  */
 class OTPReceiver : BroadcastReceiver() {
     private var otpReceiveListener: OTPReceiveListener? = null
