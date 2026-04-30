@@ -691,6 +691,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNavigateToThread = { threadId ->
                                         navController.navigate("${InboxDestination.THREAD.name}/$threadId")
                                     },
+                                    onNavigateToHostProfile = { hostId ->
+                                        navController.navigate("host/$hostId")
+                                    },
                                     onNavigateToCheckout = { draft ->
                                         navController.currentBackStackEntry?.savedStateHandle?.set(
                                             "booking_draft_json_${draft.listingId}",
@@ -703,6 +706,37 @@ fun NavGraphBuilder.DashboardNavigation(
                                 if (showAuthSheet) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
                                         subtitle = "Book spaces and save your favorites.",
+                                        onDismiss = { showAuthSheet = false },
+                                        onSuccess = { showAuthSheet = false }
+                                    )
+                                }
+                            }
+
+                            // Host Profile Screen — full-screen, never a modal.
+                            composable(
+                                route = "host/{hostId}",
+                                arguments = listOf(
+                                    navArgument("hostId") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val hostId = backStackEntry.arguments?.getString("hostId") ?: ""
+                                var showAuthSheet by remember { mutableStateOf(false) }
+
+                                com.pacedream.app.feature.hostprofile.HostProfileRoute(
+                                    hostId = hostId,
+                                    onBackClick = { navController.popBackStack() },
+                                    onLoginRequired = { showAuthSheet = true },
+                                    onNavigateToThread = { threadId ->
+                                        navController.navigate("${InboxDestination.THREAD.name}/$threadId")
+                                    },
+                                    onNavigateToListing = { listing ->
+                                        navController.navigate("${PropertyDestination.DETAIL.name}/${listing.id}")
+                                    },
+                                )
+
+                                if (showAuthSheet) {
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        subtitle = "Sign in to message hosts.",
                                         onDismiss = { showAuthSheet = false },
                                         onSuccess = { showAuthSheet = false }
                                     )
@@ -1236,6 +1270,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                 onNavigateToThread = { threadId ->
                                     selectedListingId = null
                                     navController.navigate("${InboxDestination.THREAD.name}/$threadId")
+                                },
+                                onNavigateToHostProfile = { hostId ->
+                                    selectedListingId = null
+                                    navController.navigate("host/$hostId")
                                 },
                                 onNavigateToCheckout = { draft ->
                                     selectedListingId = null
