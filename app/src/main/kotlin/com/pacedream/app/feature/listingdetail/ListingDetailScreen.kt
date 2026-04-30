@@ -150,6 +150,7 @@ fun ListingDetailScreen(
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
                 available = listing?.available,
+                isOnline = listing?.isOnlineOnly == true,
                 onReserveClick = { showReserveSheet = true }
             )
         }
@@ -435,13 +436,16 @@ fun ListingDetailScreen(
 
                     // Online session summary — surfaces platforms, time
                     // zone, and the link-reveal rule so guests know how
-                    // they'll join the session before booking.
-                    val os = listing?.onlineSession
-                    if (os != null && (listing.isOnlineOnly || listing.isHybridDelivery)) {
+                    // they'll join the session before booking.  Shown
+                    // for any listing with an online delivery mode,
+                    // even when the host hasn't filled in extra
+                    // metadata, so the screen always replaces the
+                    // physical map with a "this is virtual" affordance.
+                    if (listing != null && (listing.isOnlineOnly || listing.isHybridDelivery)) {
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
                         item {
                             SectionOnlineSession(
-                                onlineSession = os,
+                                onlineSession = listing.onlineSession ?: OnlineSessionInfo(),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
@@ -1372,6 +1376,7 @@ private fun trimTrailingZeros(value: Double): String {
 private fun BookingBar(
     pricingLabel: String?,
     available: Boolean? = null,
+    isOnline: Boolean = false,
     onReserveClick: () -> Unit
 ) {
     val isAvailable = available != false
@@ -1403,7 +1408,8 @@ private fun BookingBar(
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
-                        text = "You won't be charged yet",
+                        text = if (isOnline) "Online session · Link after booking"
+                            else "You won't be charged yet",
                         style = PaceDreamTypography.Caption.copy(
                             fontFamily = paceDreamFontFamily
                         ),
@@ -2827,74 +2833,158 @@ private fun SectionLocation(
 /**
  * Guest-facing summary of the online-session configuration: which
  * conferencing tools the host supports, the timezone the session runs
- * in, and how the meeting link is revealed.
+ * in, and how the meeting link is revealed.  Rendered as a self-
+ * contained card so online listings get a clear "this is virtual"
+ * affordance in place of the physical map.
  */
 @Composable
 private fun SectionOnlineSession(
     onlineSession: OnlineSessionInfo,
     modifier: Modifier = Modifier
 ) {
+    val platformLabels = onlineSession.platforms.mapNotNull { id ->
+        when (id.trim().lowercase()) {
+            "zoom" -> "Zoom"
+            "google_meet", "google-meet", "meet" -> "Google Meet"
+            "microsoft_teams", "ms_teams", "teams" -> "Microsoft Teams"
+            "other" -> "Other"
+            else -> id.takeIf { it.isNotBlank() }
+        }
+    }
+    val timeZone = onlineSession.timeZone?.takeIf { it.isNotBlank() }
+    val link = onlineSession.sessionLink?.trim().orEmpty()
+    val subtitle = when {
+        link.isNotEmpty() -> "Meeting link: $link"
+        onlineSession.shareLinkAfterBooking -> "Meeting link will be shared after booking"
+        else -> "Meeting link provided by host"
+    }
+
     Column(modifier = modifier) {
         Text(
-            "Joining online",
+            "How you'll meet",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-        val platformLabels = onlineSession.platforms.mapNotNull { id ->
-            when (id.trim().lowercase()) {
-                "zoom" -> "Zoom"
-                "google_meet", "google-meet", "meet" -> "Google Meet"
-                "microsoft_teams", "ms_teams", "teams" -> "Microsoft Teams"
-                "other" -> "Other"
-                else -> id.takeIf { it.isNotBlank() }
-            }
-        }
-        if (platformLabels.isNotEmpty()) {
-            Text(
-                text = "Platform: ${platformLabels.joinToString(", ")}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
             )
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        }
+        ) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Videocam,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Online session",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
 
-        val link = onlineSession.sessionLink?.trim().orEmpty()
-        val linkLine = when {
-            link.isNotEmpty() -> "Session link: $link"
-            onlineSession.shareLinkAfterBooking ->
-                "Session link will be shared after booking."
-            else -> null
-        }
-        linkLine?.let {
-            Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        }
+                if (platformLabels.isNotEmpty() || timeZone != null) {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                    )
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-        onlineSession.timeZone?.takeIf { it.isNotBlank() }?.let { tz ->
-            Text("Time zone: $tz", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                    if (platformLabels.isNotEmpty()) {
+                        OnlineSessionDetailRow(
+                            icon = PaceDreamIcons.Videocam,
+                            label = "Platform",
+                            value = platformLabels.joinToString(", ")
+                        )
+                    }
+                    if (timeZone != null) {
+                        if (platformLabels.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                        }
+                        OnlineSessionDetailRow(
+                            icon = PaceDreamIcons.Language,
+                            label = "Time zone",
+                            value = timeZone
+                        )
+                    }
+                }
+            }
         }
 
         onlineSession.meetingInstructions?.takeIf { it.isNotBlank() }?.let { instructions ->
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Text(
                 "Meeting instructions",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(instructions, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         onlineSession.notes?.takeIf { it.isNotBlank() }?.let { notes ->
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
             Text(
                 "Notes",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
             )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(notes, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+@Composable
+private fun OnlineSessionDetailRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+        Text(
+            "$label: ",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }
 
