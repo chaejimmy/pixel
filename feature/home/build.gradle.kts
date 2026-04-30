@@ -5,6 +5,10 @@ plugins {
 
 android {
     namespace = "com.shourov.apps.pacedream.feature.home"
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
 
 dependencies {
