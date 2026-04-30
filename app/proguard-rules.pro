@@ -107,6 +107,27 @@
 -keep class com.google.maps.** { *; }
 -dontwarn com.google.maps.**
 
+# ── Strip android.util.Log calls in release ─────────────────────────────────
+# All android.util.Log.* calls are no-ops at runtime in release builds. Their
+# argument-evaluation and string-formatting side effects are also removed by
+# R8, so PII / token / message-content arguments never reach logcat in
+# minified release builds.
+#
+# Timber is configured to plant no Tree in release (PaceDreamApplication),
+# so Timber.* calls are already free / no-op. This rule covers the remaining
+# direct android.util.Log call sites that a previous audit flagged as
+# leaking booking IDs and message content.
+-assumenosideeffects class android.util.Log {
+    public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
+    public static *** println(...);
+    public static *** isLoggable(...);
+}
+
 # ── Dokka / Freemarker / KSP / Jaxen / Jython / JRebel ────────────────────
 # These are build-time / JVM-only dependencies that leak into the runtime
 # classpath via transitive dependencies. They are never used at runtime.
