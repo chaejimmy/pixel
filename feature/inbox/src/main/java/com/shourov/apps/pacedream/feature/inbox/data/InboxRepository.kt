@@ -355,10 +355,9 @@ class InboxRepository @Inject constructor(
         val parts = withContext(Dispatchers.IO) {
             val result = mutableListOf<MultipartBody.Part>()
             for (uri in imageUris) {
-                val inputStream = context.contentResolver.openInputStream(uri) ?: continue
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream.close()
-                if (bitmap == null) continue
+                val bitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                } ?: continue
 
                 val scaled = downscaleBitmap(bitmap, MAX_UPLOAD_DIMENSION)
                 val outputStream = ByteArrayOutputStream()

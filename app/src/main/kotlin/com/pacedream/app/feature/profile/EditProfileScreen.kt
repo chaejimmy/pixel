@@ -287,13 +287,11 @@ class EditProfileViewModel @Inject constructor(
     private suspend fun uploadProfileImage(imageUri: Uri): ApiResult<String> =
         withContext(Dispatchers.IO) {
             try {
-                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val stream = context.contentResolver.openInputStream(imageUri)
                     ?: return@withContext ApiResult.Failure(
                         com.pacedream.app.core.network.ApiError.Unknown("Cannot read image")
                     )
-
-                val originalBitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream.close()
+                val originalBitmap = stream.use { BitmapFactory.decodeStream(it) }
 
                 if (originalBitmap == null) {
                     return@withContext ApiResult.Failure(
