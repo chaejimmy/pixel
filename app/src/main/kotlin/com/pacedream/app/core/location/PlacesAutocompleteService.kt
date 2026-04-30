@@ -5,6 +5,7 @@ import com.shourov.apps.pacedream.core.network.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 import java.net.HttpURLConnection
@@ -136,7 +137,7 @@ class PlacesAutocompleteService @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Timber.w(e, "Device Geocoder failed for query: $query")
+            Timber.w(e, "Device Geocoder failed")
             emptyList()
         }
     }
@@ -155,21 +156,7 @@ class PlacesAutocompleteService @Inject constructor(
             val typesParam = URLEncoder.encode(types, "UTF-8")
             val url = URL("$backendMapsBaseUrl/autocomplete?input=$encoded&types=$typesParam")
 
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
-            conn.setRequestProperty("Accept", "application/json")
-
-            val responseCode = conn.responseCode
-            if (responseCode != 200) {
-                Timber.w("Backend autocomplete returned HTTP $responseCode")
-                conn.disconnect()
-                return@withContext emptyList()
-            }
-
-            val response = conn.inputStream.bufferedReader().readText()
-            conn.disconnect()
-
+            val response = httpGet(url) ?: return@withContext emptyList()
             val json = JSONObject(response)
             if (!json.optBoolean("success", false)) {
                 Timber.w("Backend autocomplete error: ${json.optString("error")}")
@@ -177,8 +164,7 @@ class PlacesAutocompleteService @Inject constructor(
             }
 
             val data = json.optJSONArray("data") ?: return@withContext emptyList()
-            (0 until data.length()).map { i ->
-                val p = data.getJSONObject(i)
+            parsePredictions(data) { p ->
                 PlacePrediction(
                     placeId = p.optString("placeId", ""),
                     description = p.optString("description", ""),
@@ -187,7 +173,7 @@ class PlacesAutocompleteService @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Timber.e(e, "Backend autocomplete failed")
+            Timber.e("Backend autocomplete failed: ${e.javaClass.simpleName}: ${e.message}")
             emptyList()
         }
     }
@@ -202,26 +188,21 @@ class PlacesAutocompleteService @Inject constructor(
         try {
             val encoded = URLEncoder.encode(query, "UTF-8")
             val typesParam = URLEncoder.encode(types, "UTF-8")
+            // API key is appended only here — never logged, never exposed in errors below.
             val url = URL(
                 "https://maps.googleapis.com/maps/api/place/autocomplete/json" +
                     "?input=$encoded&types=$typesParam&key=$apiKey"
             )
-            val conn = url.openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 5000
 
-            val response = conn.inputStream.bufferedReader().readText()
-            conn.disconnect()
-
+            val response = httpGet(url) ?: return@withContext emptyList()
             val json = JSONObject(response)
             if (json.optString("status") != "OK") {
                 Timber.w("Google Places Autocomplete status: ${json.optString("status")}")
                 return@withContext emptyList()
             }
 
-            val predictions = json.getJSONArray("predictions")
-            (0 until predictions.length()).map { i ->
-                val p = predictions.getJSONObject(i)
+            val predictions = json.optJSONArray("predictions") ?: return@withContext emptyList()
+            parsePredictions(predictions) { p ->
                 val structured = p.optJSONObject("structured_formatting")
                 PlacePrediction(
                     placeId = p.optString("place_id", ""),
@@ -231,7 +212,9 @@ class PlacesAutocompleteService @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Timber.e(e, "Google Places Autocomplete failed")
+            // Avoid logging the throwable directly — its message may include the
+            // request URL (with the API key) on some HTTP errors.
+            Timber.e("Google Places Autocomplete failed: ${e.javaClass.simpleName}")
             emptyList()
         }
     }
@@ -263,20 +246,7 @@ class PlacesAutocompleteService @Inject constructor(
                     "$backendMapsBaseUrl/place/${URLEncoder.encode(placeId, "UTF-8")}" +
                         "?fields=geometry,formatted_address,address_components"
                 )
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-                conn.setRequestProperty("Accept", "application/json")
-
-                val responseCode = conn.responseCode
-                if (responseCode != 200) {
-                    conn.disconnect()
-                    return@withContext null
-                }
-
-                val response = conn.inputStream.bufferedReader().readText()
-                conn.disconnect()
-
+                val response = httpGet(url) ?: return@withContext null
                 val json = JSONObject(response)
                 if (!json.optBoolean("success", false)) return@withContext null
 
@@ -286,7 +256,10 @@ class PlacesAutocompleteService @Inject constructor(
 
                 val lat = location?.optDouble("lat", 0.0) ?: data.optDouble("lat", 0.0)
                 val lng = location?.optDouble("lng", 0.0) ?: data.optDouble("lng", 0.0)
-                val formattedAddress = data.optString("formattedAddress", data.optString("formatted_address", ""))
+                val formattedAddress = data.optString(
+                    "formattedAddress",
+                    data.optString("formatted_address", "")
+                )
 
                 // Parse address components
                 var city = ""
@@ -301,10 +274,12 @@ class PlacesAutocompleteService @Inject constructor(
 
                 if (lat == 0.0 && lng == 0.0) return@withContext null
 
-                PlaceDetails(lat = lat, lng = lng, formattedAddress = formattedAddress,
-                    city = city, state = state, country = country)
+                PlaceDetails(
+                    lat = lat, lng = lng, formattedAddress = formattedAddress,
+                    city = city, state = state, country = country
+                )
             } catch (e: Exception) {
-                Timber.e(e, "Backend place details failed for placeId=$placeId")
+                Timber.e("Backend place details failed: ${e.javaClass.simpleName}: ${e.message}")
                 null
             }
         }
@@ -315,29 +290,28 @@ class PlacesAutocompleteService @Inject constructor(
     private suspend fun getPlaceDetailsFromGoogle(placeId: String): PlaceDetails? =
         withContext(Dispatchers.IO) {
             try {
+                // API key is appended only here — never logged, never exposed in errors below.
                 val url = URL(
                     "https://maps.googleapis.com/maps/api/place/details/json" +
                         "?place_id=${URLEncoder.encode(placeId, "UTF-8")}" +
                         "&fields=geometry,formatted_address,address_components" +
                         "&key=$apiKey"
                 )
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 5000
-
-                val response = conn.inputStream.bufferedReader().readText()
-                conn.disconnect()
-
+                val response = httpGet(url) ?: return@withContext null
                 val json = JSONObject(response)
                 if (json.optString("status") != "OK") {
                     Timber.w("Place Details status: ${json.optString("status")}")
                     return@withContext null
                 }
 
-                val result = json.getJSONObject("result")
-                val location = result.getJSONObject("geometry").getJSONObject("location")
-                val lat = location.getDouble("lat")
-                val lng = location.getDouble("lng")
+                val result = json.optJSONObject("result") ?: return@withContext null
+                val location = result.optJSONObject("geometry")?.optJSONObject("location")
+                    ?: return@withContext null
+                if (!location.has("lat") || !location.has("lng")) return@withContext null
+                val lat = location.optDouble("lat", Double.NaN)
+                val lng = location.optDouble("lng", Double.NaN)
+                if (lat.isNaN() || lng.isNaN()) return@withContext null
+
                 val formattedAddress = result.optString("formatted_address", "")
 
                 var city = ""
@@ -346,9 +320,11 @@ class PlacesAutocompleteService @Inject constructor(
                 val components = result.optJSONArray("address_components")
                 if (components != null) {
                     for (i in 0 until components.length()) {
-                        val comp = components.getJSONObject(i)
-                        val types = comp.getJSONArray("types")
-                        val typeList = (0 until types.length()).map { types.getString(it) }
+                        val comp = components.optJSONObject(i) ?: continue
+                        val typesArr = comp.optJSONArray("types") ?: continue
+                        val typeList = (0 until typesArr.length()).mapNotNull { idx ->
+                            typesArr.optString(idx, "").takeIf { it.isNotEmpty() }
+                        }
                         when {
                             "locality" in typeList -> city = comp.optString("long_name", "")
                             "sublocality_level_1" in typeList && city.isEmpty() ->
@@ -360,11 +336,55 @@ class PlacesAutocompleteService @Inject constructor(
                     }
                 }
 
-                PlaceDetails(lat = lat, lng = lng, formattedAddress = formattedAddress,
-                    city = city, state = state, country = country)
+                PlaceDetails(
+                    lat = lat, lng = lng, formattedAddress = formattedAddress,
+                    city = city, state = state, country = country
+                )
             } catch (e: Exception) {
-                Timber.e(e, "Google Place Details failed for placeId=$placeId")
+                // Avoid logging the throwable directly — its message may include the
+                // request URL (with the API key) on some HTTP errors.
+                Timber.e("Google Place Details failed: ${e.javaClass.simpleName}")
                 null
             }
         }
+
+    /**
+     * Perform a GET against [url], returning the response body on HTTP 200 or null otherwise.
+     * Always closes the connection's input/error streams via `.use {}` to avoid leaks,
+     * and never logs the full URL (which may contain an API key).
+     */
+    private fun httpGet(url: URL): String? {
+        val conn = url.openConnection() as HttpURLConnection
+        return try {
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+            conn.setRequestProperty("Accept", "application/json")
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                // Drain (and close) the error stream so the connection can be pooled.
+                conn.errorStream?.use { it.bufferedReader().readText() }
+                Timber.w("HTTP $code from ${url.host}${url.path}")
+                return null
+            }
+            conn.inputStream.use { it.bufferedReader().readText() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /**
+     * Map a JSONArray of prediction objects via [transform], skipping malformed entries.
+     */
+    private inline fun parsePredictions(
+        arr: JSONArray,
+        transform: (JSONObject) -> PlacePrediction
+    ): List<PlacePrediction> {
+        val out = ArrayList<PlacePrediction>(arr.length())
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            out.add(transform(obj))
+        }
+        return out
+    }
 }
