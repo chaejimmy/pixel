@@ -115,6 +115,7 @@ fun ListingDetailScreen(
     onToggleFavorite: () -> Unit,
     onShare: () -> Unit,
     onContactHost: () -> Unit,
+    onViewHostProfile: (String) -> Unit = {},
     onOpenInMaps: () -> Unit,
     onConfirmReserve: (BookingDraft) -> Unit,
     onSubmitReview: (Double, String, CategoryRatings?) -> Unit = { _, _, _ -> },
@@ -291,6 +292,9 @@ fun ListingDetailScreen(
                         HostCard(
                             host = listing?.host,
                             onContact = onContactHost,
+                            onViewProfile = {
+                                listing?.host?.id?.takeIf { it.isNotBlank() }?.let(onViewHostProfile)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = PaceDreamSpacing.MD)
@@ -1752,6 +1756,7 @@ private fun TitleMetaBlock(
 private fun HostCard(
     host: ListingHost?,
     onContact: () -> Unit,
+    onViewProfile: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -1826,7 +1831,6 @@ private fun HostCard(
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM2))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Hosted by", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             host?.name ?: "Host",
@@ -1843,6 +1847,11 @@ private fun HostCard(
                             )
                         }
                     }
+                    Text(
+                        text = "Host on PaceDream",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     if (host?.isSuperhost == true) {
                         Text(
                             "Superhost",
@@ -1852,9 +1861,24 @@ private fun HostCard(
                         )
                     }
                 }
+            }
 
-                OutlinedButton(onClick = onContact) {
-                    Text("Contact")
+            // Message + View Profile actions — only when we have a host id we can route to.
+            val hasHostId = !host?.id.isNullOrBlank()
+            if (hasHostId) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                ) {
+                    OutlinedButton(
+                        onClick = onContact,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Message") }
+                    Button(
+                        onClick = onViewProfile,
+                        modifier = Modifier.weight(1f)
+                    ) { Text("View Profile") }
                 }
             }
 

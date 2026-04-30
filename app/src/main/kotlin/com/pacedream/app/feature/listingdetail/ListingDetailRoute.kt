@@ -21,6 +21,7 @@ fun ListingDetailRoute(
     onLoginRequired: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToThread: (String) -> Unit,
+    onNavigateToHostProfile: (String) -> Unit = {},
     onNavigateToCheckout: (com.pacedream.app.feature.checkout.BookingDraft) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -72,6 +73,7 @@ fun ListingDetailRoute(
                 viewModel.contactHost()
             }
         },
+        onViewHostProfile = onNavigateToHostProfile,
         onOpenInMaps = { viewModel.openInMaps() },
         onConfirmReserve = { draft ->
             onNavigateToCheckout(draft.copy(listingType = viewModel.getListingType()))
