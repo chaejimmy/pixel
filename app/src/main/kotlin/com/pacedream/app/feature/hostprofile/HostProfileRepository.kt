@@ -17,16 +17,33 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Best-effort host profile fetcher.
+ * Outcome surface for [HostProfileRepository.fetchHostProfile].
  *
- * The backend does not yet expose a unified `GET /v1/hosts/:id` endpoint, so
- * the repository attempts a small set of plausible candidates and returns the
- * first usable response. When no candidate succeeds, callers fall back to seed
- * data already available on the listing detail (avatar, name, etc.).
+ * - [Success]   The backend returned a parseable host payload.
+ * - [NotFound]  The host does not exist (404 from the canonical endpoint).
+ * - [Error]     Network or 5xx error after the fallback chain ran out.
+ */
+sealed interface HostProfileResult {
+    data class Success(val host: HostProfileModel) : HostProfileResult
+    data object NotFound : HostProfileResult
+    data class Error(val message: String) : HostProfileResult
+}
+
+/**
+ * Fetches the host profile + listings using the canonical endpoint with
+ * a documented fallback chain.
  *
- * No fake fields are synthesized — trust signals (rating, review count,
- * verified badges, response time, joined date) are only populated when the
- * backend supplies real values.
+ * Canonical: `GET /v1/hosts/{id}` (id can be Host._id or User._id).
+ * Fallbacks (5xx / network only):
+ *   1. GET /v1/users/get/{id}
+ *   2. GET /v1/listings?ownerUserId={id}&limit=50
+ *   3. GET /v1/listings?ownerHostId={hostProfileId}
+ *   4. GET /v1/listings?owner={id}
+ *   5. GET /v1/listings?limit=100  (client-side filter as last resort)
+ *
+ * No fake fields are synthesised. Trust signals (rating, reviewCount,
+ * completedBookings, verifiedBadges, responseTime, joinedAt, superHost)
+ * are passed through unchanged when present and left null otherwise.
  */
 @Singleton
 class HostProfileRepository @Inject constructor(
@@ -34,180 +51,311 @@ class HostProfileRepository @Inject constructor(
     private val appConfig: AppConfig,
     private val json: Json,
 ) {
-    suspend fun fetchHostProfile(hostId: String): ApiResult<HostProfileModel> {
-        val candidates = listOf(
-            // Preferred future shape — matches the documented MVP API.
-            appConfig.buildApiUrl("hosts", hostId),
-            // Common alternates seen in other modules (`user/get/profile` is the
-            // current-user variant; these are best-effort guesses for parity).
-            appConfig.buildApiUrl("users", hostId),
-            appConfig.buildApiUrl("user", hostId),
-            appConfig.buildApiUrl("user", "profile", hostId),
-        )
+    suspend fun fetchHostProfile(id: String): HostProfileResult {
+        if (id.isBlank()) return HostProfileResult.NotFound
 
-        var lastError: ApiError = ApiError.NotFound
-        for (url in candidates) {
-            when (val result = apiClient.get(url, includeAuth = true)) {
-                is ApiResult.Success -> {
-                    val parsed = parseHostProfile(hostId, result.data)
-                    if (parsed != null) return ApiResult.Success(parsed)
-                    Timber.d("Host profile parse failed for url=$url; trying next candidate")
-                }
-                is ApiResult.Failure -> {
-                    Timber.d("Host profile endpoint failed: $url — ${result.error.message}")
-                    lastError = result.error
-                }
+        val canonicalUrl = appConfig.buildApiUrl("hosts", id)
+        when (val result = apiClient.get(canonicalUrl, includeAuth = true)) {
+            is ApiResult.Success -> {
+                val host = parseHostPayload(id, result.data)
+                if (host != null) return HostProfileResult.Success(host)
+                Timber.d("Host payload from /hosts/$id failed to parse; running fallback chain")
+            }
+            is ApiResult.Failure -> {
+                if (result.error is ApiError.NotFound) return HostProfileResult.NotFound
+                Timber.d("Canonical /hosts/$id failed: ${result.error.message}; running fallback chain")
             }
         }
-        return ApiResult.Failure(lastError)
+
+        // Fallback chain runs only when the canonical endpoint failed with
+        // something other than a definitive 404.
+        return runFallbackChain(id)
     }
 
-    /**
-     * Fetch listings owned by a host. Returns an empty list (not failure) when
-     * no endpoint is available so the screen can render its empty state cleanly.
-     */
-    suspend fun fetchHostListings(hostId: String): List<HostListingSummary> {
-        val candidates = listOf(
-            // Search-style queries that several backends support.
-            appConfig.buildApiUrl("listings", queryParams = mapOf("owner" to hostId)),
-            appConfig.buildApiUrl("listings", queryParams = mapOf("hostId" to hostId)),
-            appConfig.buildApiUrl("poc", "listings", queryParams = mapOf("owner" to hostId)),
-            // Per-resource variants — properties is the time-based listing collection.
-            appConfig.buildApiUrl("properties", queryParams = mapOf("owner" to hostId)),
+    private suspend fun runFallbackChain(id: String): HostProfileResult {
+        val userPayload = fetchUserPayload(id)
+        val listings = fetchListingsByOwner(
+            ownerUserId = id,
+            ownerHostId = userPayload?.string("hostId", "host_id"),
         )
 
-        for (url in candidates) {
+        if (userPayload == null && listings.isEmpty()) {
+            return HostProfileResult.Error("We couldn't load this host. Please try again.")
+        }
+
+        val name = userPayload?.let { extractDisplayName(it) }
+        val (firstName, lastName) = userPayload?.let { extractNameParts(it) } ?: (null to null)
+        val location = userPayload?.let { extractLocation(it) }
+        val avatar = userPayload?.let { extractAvatar(it) }
+        val verificationState = userPayload?.get("verificationState")?.asObjectOrNull()
+
+        val host = HostProfileModel(
+            hostId = userPayload?.string("hostId", "host_id"),
+            userId = userPayload?.string("_id", "id") ?: id,
+            name = name,
+            firstName = firstName,
+            lastName = lastName,
+            avatarUrl = avatar,
+            location = location,
+            bio = userPayload?.string("bio", "about", "description"),
+            listings = listings,
+            verifiedBadges = extractVerifiedBadges(userPayload, verificationState),
+            rating = userPayload?.double("rating", "averageRating"),
+            reviewCount = userPayload?.int("reviewCount", "reviewsCount", "numReviews"),
+            completedBookings = userPayload?.int("completedBookings", "completed_bookings"),
+            responseTime = userPayload?.string("responseTime", "response_time"),
+            joinedAt = userPayload?.string("joinedAt", "createdAt", "created_at"),
+            superHost = userPayload?.boolean("superHost", "isSuperhost", "is_superhost"),
+        )
+        return HostProfileResult.Success(host)
+    }
+
+    private suspend fun fetchUserPayload(id: String): JsonObject? {
+        val url = appConfig.buildApiUrl("users", "get", id)
+        return when (val result = apiClient.get(url, includeAuth = true)) {
+            is ApiResult.Success -> {
+                runCatching {
+                    val obj = json.parseToJsonElement(result.data).jsonObject
+                    unwrapPayload(obj)
+                }.getOrNull()
+            }
+            is ApiResult.Failure -> {
+                Timber.d("User fallback failed for $id: ${result.error.message}")
+                null
+            }
+        }
+    }
+
+    private suspend fun fetchListingsByOwner(
+        ownerUserId: String,
+        ownerHostId: String?,
+    ): List<HostListingSummary> {
+        // Documented owner-aware filters. Each is tried in turn; the first
+        // non-empty response wins so a single round-trip is enough most of
+        // the time.
+        val ownerCandidates = buildList {
+            add(appConfig.buildApiUrl(
+                "listings",
+                queryParams = mapOf("ownerUserId" to ownerUserId, "limit" to "50"),
+            ))
+            if (!ownerHostId.isNullOrBlank()) {
+                add(appConfig.buildApiUrl(
+                    "listings",
+                    queryParams = mapOf("ownerHostId" to ownerHostId),
+                ))
+            }
+            add(appConfig.buildApiUrl(
+                "listings",
+                queryParams = mapOf("owner" to ownerUserId),
+            ))
+        }
+        for (url in ownerCandidates) {
             val result = apiClient.get(url, includeAuth = true)
             if (result is ApiResult.Success) {
-                val parsed = parseListings(result.data)
-                if (parsed.isNotEmpty()) return parsed
-            } else if (result is ApiResult.Failure) {
-                Timber.d("Host listings endpoint failed: $url — ${result.error.message}")
+                val listings = parseListingsArray(result.data)
+                if (listings.isNotEmpty()) return listings
             }
+        }
+
+        // Last-resort: pull a bounded page and filter client-side.
+        val fallbackUrl = appConfig.buildApiUrl(
+            "listings",
+            queryParams = mapOf("limit" to "100"),
+        )
+        val result = apiClient.get(fallbackUrl, includeAuth = true)
+        if (result is ApiResult.Success) {
+            return parseListingsArray(result.data)
+                .filter { summary -> summary.ownerMatches(ownerUserId, ownerHostId) }
         }
         return emptyList()
     }
 
-    private fun parseHostProfile(hostId: String, body: String): HostProfileModel? {
+    private fun parseHostPayload(id: String, body: String): HostProfileModel? {
         return try {
             val root = json.parseToJsonElement(body).jsonObject
-            val obj = unwrapPayload(root)
-            // Some backends nest the user under userId/user.
-            val user = obj["userId"]?.asObjectOrNull()
-                ?: obj["user"]?.asObjectOrNull()
-                ?: obj
-
-            val firstName = user.string("first_name", "firstName")
-            val lastName = user.string("last_name", "lastName")
-            val combinedName = listOfNotNull(firstName, lastName)
-                .joinToString(" ").trim().takeIf { it.isNotBlank() }
-            val name = user.string("name", "fullName")
-                ?: combinedName
-                ?: user.string("username")
-                ?: obj.string("name", "fullName")
-
-            val avatar = user.string("avatar", "avatarUrl", "profilePic", "profile_pic")
-                ?: user["profilePic"]?.asArrayOrNull()?.firstOrNull()?.asStringOrNull()
-                ?: obj.string("avatar", "avatarUrl", "profilePic", "profile_pic")
-
-            val locationObj = user["location"]?.asObjectOrNull()
-                ?: obj["location"]?.asObjectOrNull()
-            val location = locationObj?.let {
-                listOfNotNull(
-                    it.string("city"),
-                    it.string("state", "region"),
-                    it.string("country"),
-                ).joinToString(", ").takeIf { s -> s.isNotBlank() }
-            } ?: user.string("city")
-
-            val verificationState = user["verificationState"]?.asObjectOrNull()
-                ?: obj["verificationState"]?.asObjectOrNull()
-            val verifiedBadges = buildList {
-                (user["verifications"]?.asArrayOrNull() ?: obj["verifications"]?.asArrayOrNull())
-                    ?.forEach { el ->
-                        el.asStringOrNull()?.let { add(it) }
-                            ?: el.asObjectOrNull()?.string("type", "method")?.let { add(it) }
-                    }
-                if (verificationState?.boolean("verified") == true) {
-                    if (none { it.equals("identity", ignoreCase = true) }) add("Identity")
-                }
-            }.distinct()
+            val data = unwrapPayload(root)
+            val name = extractDisplayName(data)
+            val (firstName, lastName) = extractNameParts(data)
 
             HostProfileModel(
-                id = user.string("_id", "id") ?: obj.string("_id", "id") ?: hostId,
+                hostId = data.string("id", "_id", "hostId", "host_id"),
+                userId = data.string("userId", "user_id"),
                 name = name,
-                avatarUrl = avatar,
-                location = location,
-                bio = user.string("bio", "about", "description")
-                    ?: obj.string("bio", "about", "description"),
-                listings = emptyList(), // populated by fetchHostListings
-                rating = obj.double("rating", "averageRating")
-                    ?: user.double("rating", "averageRating"),
-                reviewCount = obj.int("reviewCount", "reviewsCount", "numReviews")
-                    ?: user.int("reviewCount", "reviewsCount", "numReviews"),
-                completedBookings = obj.int("completedBookings", "completed_bookings")
-                    ?: user.int("completedBookings", "completed_bookings"),
-                verifiedBadges = verifiedBadges,
-                responseTime = obj.string("responseTime", "response_time")
-                    ?: user.string("responseTime", "response_time"),
-                joinedAt = obj.string("joinedAt", "joined_at", "createdAt", "created_at")
-                    ?: user.string("joinedAt", "joined_at", "createdAt", "created_at"),
+                firstName = firstName,
+                lastName = lastName,
+                avatarUrl = extractAvatar(data),
+                location = extractLocation(data),
+                bio = data.string("bio", "about", "description"),
+                listings = parseListingsField(data),
+                verifiedBadges = (data["verifiedBadges"]?.asArrayOrNull()
+                    ?.mapNotNull { it.asStringOrNull() }
+                    ?: emptyList())
+                    .ifEmpty { extractVerifiedBadges(data, data["verificationState"]?.asObjectOrNull()) },
+                rating = data.double("rating", "averageRating"),
+                reviewCount = data.int("reviewCount", "reviewsCount"),
+                completedBookings = data.int("completedBookings"),
+                responseTime = data.string("responseTime", "response_time"),
+                joinedAt = data.string("joinedAt", "createdAt", "created_at"),
+                superHost = data.boolean("superHost", "isSuperhost"),
             )
         } catch (e: Exception) {
-            Timber.d(e, "Failed to parse host profile body")
+            Timber.d(e, "Failed to parse host payload")
             null
         }
     }
 
-    private fun parseListings(body: String): List<HostListingSummary> {
+    private fun parseListingsField(data: JsonObject): List<HostListingSummary> {
+        val arr = data["listings"]?.asArrayOrNull() ?: return emptyList()
+        return arr.mapNotNull { it.asObjectOrNull()?.let(::parseListingSummary) }
+    }
+
+    private fun parseListingsArray(body: String): List<HostListingSummary> {
         return try {
-            val root = json.parseToJsonElement(body)
-            val array = when {
-                root is JsonArray -> root
-                root is JsonObject -> {
-                    val obj = unwrapPayload(root)
-                    obj["listings"]?.asArrayOrNull()
-                        ?: obj["items"]?.asArrayOrNull()
-                        ?: obj["data"]?.asArrayOrNull()
-                        ?: obj["results"]?.asArrayOrNull()
+            val element = json.parseToJsonElement(body)
+            val arr = when (element) {
+                is JsonArray -> element
+                is JsonObject -> {
+                    val unwrapped = unwrapPayload(element)
+                    unwrapped["listings"]?.asArrayOrNull()
+                        ?: unwrapped["items"]?.asArrayOrNull()
+                        ?: unwrapped["results"]?.asArrayOrNull()
+                        ?: (element["data"] as? JsonArray)
                         ?: return emptyList()
                 }
                 else -> return emptyList()
             }
-            array.mapNotNull { el ->
-                val o = el.asObjectOrNull() ?: return@mapNotNull null
-                val id = o.string("_id", "id", "listingId") ?: return@mapNotNull null
-                val title = o.string("title", "name") ?: return@mapNotNull null
-                val image = extractFirstImage(o)
-                val location = o["location"]?.asObjectOrNull()?.let { loc ->
-                    listOfNotNull(loc.string("city"), loc.string("state", "region"))
-                        .joinToString(", ").takeIf { it.isNotBlank() }
-                }
-                HostListingSummary(
-                    id = id,
-                    title = title,
-                    imageUrl = image,
-                    location = location,
-                    priceLabel = null,
-                    type = o.string("type", "category", "listingType") ?: "",
-                )
-            }
+            arr.mapNotNull { it.asObjectOrNull()?.let(::parseListingSummary) }
         } catch (e: Exception) {
-            Timber.d(e, "Failed to parse host listings body")
+            Timber.d(e, "Failed to parse listings array")
             emptyList()
         }
     }
 
-    private fun extractFirstImage(o: JsonObject): String? {
-        o.string("imageUrl", "image", "thumbnail")?.let { return it }
-        val images = o["images"]?.asArrayOrNull()
-            ?: o["photos"]?.asArrayOrNull()
-            ?: o["gallery"]?.asArrayOrNull()
-        images?.forEach { el ->
-            el.asStringOrNull()?.let { return it }
-            el.asObjectOrNull()?.string("url", "src", "secure_url")?.let { return it }
+    private fun parseListingSummary(o: JsonObject): HostListingSummary? {
+        val id = o.string("_id", "id", "listingId") ?: return null
+        val title = o.string("title", "name") ?: return null
+        val gallery = o["gallery"]?.asObjectOrNull()
+        val image = gallery?.string("thumbnail")
+            ?: gallery?.get("images")?.asArrayOrNull()?.firstOrNull()?.firstImage()
+            ?: o.string("cover", "coverImage", "imageUrl", "image", "thumbnail")
+            ?: o["images"]?.asArrayOrNull()?.firstOrNull()?.firstImage()
+            ?: o["photos"]?.asArrayOrNull()?.firstOrNull()?.firstImage()
+
+        val locationObj = o["location"]?.asObjectOrNull()
+        val locationDisplay = locationObj?.let {
+            listOfNotNull(
+                it.string("city"),
+                it.string("state", "region"),
+                it.string("country"),
+            ).joinToString(", ").takeIf { s -> s.isNotBlank() }
         }
+
+        val priceLabel = formatPrice(o)
+        val category = o.string("category", "listing_type", "type")
+        val listingType = when {
+            o.string("_source") == "rentable_item" -> "gear"
+            o.string("shareType")?.equals("SPLIT", ignoreCase = true) == true -> "split-stay"
+            category?.contains("gear", ignoreCase = true) == true -> "gear"
+            else -> "time-based"
+        }
+        return HostListingSummary(
+            id = id,
+            title = title,
+            imageUrl = image,
+            location = locationDisplay,
+            priceLabel = priceLabel,
+            rating = o.double("rating", "averageRating"),
+            category = category,
+            listingType = listingType,
+        )
+    }
+
+    private fun formatPrice(o: JsonObject): String? {
+        val priceArray = o["price"]?.asArrayOrNull()
+        val first = priceArray?.firstOrNull()?.asObjectOrNull()
+        val pricing = o["pricing"]?.asObjectOrNull()
+
+        val amount = first?.double("amount")
+            ?: pricing?.double("base_price", "basePrice")
+            ?: o.double("price", "amount")
+            ?: return null
+        val currency = first?.string("currency")
+            ?: pricing?.string("currency")
+            ?: o.string("currency")
+            ?: "USD"
+        val frequency = first?.string("frequency", "pricing_type")
+            ?: pricing?.string("frequency")
+            ?: o.string("frequency")
+        val symbol = currencySymbol(currency)
+        val unit = when ((frequency ?: "").lowercase()) {
+            "hourly", "hour", "hr" -> "/hr"
+            "daily", "day" -> "/day"
+            "weekly", "week" -> "/wk"
+            "monthly", "month" -> "/mo"
+            else -> ""
+        }
+        val asLong = amount.toLong()
+        val formatted = if (amount == asLong.toDouble()) asLong.toString() else amount.toString()
+        return "$symbol$formatted$unit"
+    }
+
+    private fun currencySymbol(currency: String): String = when (currency.uppercase()) {
+        "USD" -> "$"
+        "EUR" -> "€"
+        "GBP" -> "£"
+        "CAD" -> "CA$"
+        "AUD" -> "A$"
+        else -> "$"
+    }
+
+    private fun extractDisplayName(o: JsonObject): String? {
+        val direct = o.string("name", "fullName")
+        if (!direct.isNullOrBlank()) return direct
+        val first = o.string("firstName", "first_name")
+        val last = o.string("lastName", "last_name")
+        val combined = listOfNotNull(first, last).joinToString(" ").trim()
+        return combined.takeIf { it.isNotBlank() } ?: o.string("username")
+    }
+
+    private fun extractNameParts(o: JsonObject): Pair<String?, String?> {
+        val first = o.string("firstName", "first_name")
+        val last = o.string("lastName", "last_name")
+        return first to last
+    }
+
+    private fun extractAvatar(o: JsonObject): String? {
+        o.string("avatarUrl", "avatar", "profilePic", "profile_pic")?.let { return it }
+        o["profilePic"]?.asArrayOrNull()?.firstOrNull()?.asStringOrNull()?.let { return it }
         return null
+    }
+
+    private fun extractLocation(o: JsonObject): HostLocation? {
+        val loc = o["location"]?.asObjectOrNull() ?: return null
+        return HostLocation(
+            city = loc.string("city"),
+            state = loc.string("state", "region"),
+            country = loc.string("country"),
+        ).takeIf { it.display != null }
+    }
+
+    private fun extractVerifiedBadges(
+        user: JsonObject?,
+        verificationState: JsonObject?,
+    ): List<String> {
+        val badges = mutableListOf<String>()
+        user?.get("verifiedBadges")?.asArrayOrNull()?.forEach { el ->
+            el.asStringOrNull()?.let { badges += it }
+        }
+        user?.get("verifications")?.asArrayOrNull()?.forEach { el ->
+            el.asStringOrNull()?.let { badges += it }
+                ?: el.asObjectOrNull()?.string("type", "method")?.let { badges += it }
+        }
+        if (verificationState?.boolean("verified") == true &&
+            badges.none { it.equals("identity", ignoreCase = true) }
+        ) {
+            badges += "identity"
+        }
+        return badges.distinctBy { it.lowercase() }
     }
 
     private fun unwrapPayload(obj: JsonObject): JsonObject {
@@ -216,10 +364,22 @@ class HostProfileRepository @Inject constructor(
     }
 }
 
+private fun HostListingSummary.ownerMatches(userId: String, hostId: String?): Boolean {
+    // The light-touch fallback only knows the listing summary, so we can't
+    // verify ownership reliably. Filtering down to nothing is intentional —
+    // we'd rather show an empty listings section than guess.
+    if (userId.isBlank() && hostId.isNullOrBlank()) return true
+    return false
+}
+
 private fun JsonElement.asObjectOrNull(): JsonObject? = this as? JsonObject
 private fun JsonElement.asArrayOrNull(): JsonArray? = this as? JsonArray
 private fun JsonElement.asStringOrNull(): String? =
     runCatching { this.jsonPrimitive.content.takeIf { it.isNotBlank() } }.getOrNull()
+
+private fun JsonElement.firstImage(): String? =
+    asStringOrNull()
+        ?: asObjectOrNull()?.let { it.string("url", "src", "secure_url", "thumbnail") }
 
 private fun JsonObject.string(vararg keys: String): String? =
     keys.firstNotNullOfOrNull { k -> this[k]?.asStringOrNull() }

@@ -714,16 +714,16 @@ fun NavGraphBuilder.DashboardNavigation(
 
                             // Host Profile Screen — full-screen, never a modal.
                             composable(
-                                route = "host/{hostId}",
+                                route = "host/{${com.pacedream.app.feature.hostprofile.HOST_PROFILE_ID_ARG}}",
                                 arguments = listOf(
-                                    navArgument("hostId") { type = NavType.StringType }
+                                    navArgument(com.pacedream.app.feature.hostprofile.HOST_PROFILE_ID_ARG) {
+                                        type = NavType.StringType
+                                    }
                                 )
-                            ) { backStackEntry ->
-                                val hostId = backStackEntry.arguments?.getString("hostId") ?: ""
+                            ) {
                                 var showAuthSheet by remember { mutableStateOf(false) }
 
                                 com.pacedream.app.feature.hostprofile.HostProfileRoute(
-                                    hostId = hostId,
                                     onBackClick = { navController.popBackStack() },
                                     onLoginRequired = { showAuthSheet = true },
                                     onNavigateToThread = { threadId ->
