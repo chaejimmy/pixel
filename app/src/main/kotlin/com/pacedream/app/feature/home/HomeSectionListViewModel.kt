@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -158,7 +159,16 @@ class HomeSectionListViewModel @Inject constructor(
                         shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
                         subCategory = (itemObj["subCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: (itemObj["roomType"] as? kotlinx.serialization.json.JsonPrimitive)?.content
-                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                        instantBook = itemObj["instantBook"]?.jsonPrimitive?.booleanOrNull
+                            ?: itemObj["instant_book"]?.jsonPrimitive?.booleanOrNull
+                            ?: itemObj["isInstantBook"]?.jsonPrimitive?.booleanOrNull,
+                        available = itemObj["available"]?.jsonPrimitive?.booleanOrNull
+                            ?: itemObj["isAvailable"]?.jsonPrimitive?.booleanOrNull,
+                        latitude = (itemObj["location"] as? JsonObject)?.get("latitude")?.jsonPrimitive?.doubleOrNull
+                            ?: itemObj["latitude"]?.jsonPrimitive?.doubleOrNull,
+                        longitude = (itemObj["location"] as? JsonObject)?.get("longitude")?.jsonPrimitive?.doubleOrNull
+                            ?: itemObj["longitude"]?.jsonPrimitive?.doubleOrNull
                     )
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to parse listing item")

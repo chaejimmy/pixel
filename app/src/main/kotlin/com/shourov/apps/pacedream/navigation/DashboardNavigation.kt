@@ -71,6 +71,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.shourov.apps.pacedream.feature.home.presentation.components.FilterScreen
 import com.shourov.apps.pacedream.feature.search.CategoryResultsScreen
+import com.shourov.apps.pacedream.feature.search.SearchFiltersStoreEntryPoint
 import com.shourov.apps.pacedream.feature.home.presentation.components.DestinationListScreen
 import com.shourov.apps.pacedream.feature.destinations.DestinationsViewModel
 import com.shourov.apps.pacedream.feature.home.presentation.components.RecentSearchesScreen
@@ -364,7 +365,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onListingClick = { propertyId ->
                                             selectedListingId = propertyId
                                         },
-                                        onShowAuthSheet = { showAuthSheet = true }
+                                        onShowAuthSheet = { showAuthSheet = true },
+                                        onOpenFilters = {
+                                            navController.navigate(PropertyDestination.FILTER.name)
+                                        }
                                     )
 
                                     if (showAuthSheet) {
@@ -843,7 +847,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                         selectedListingId = propertyId
                                     },
                                     initialQuery = initialQuery,
-                                    onShowAuthSheet = { showAuthSheet = true }
+                                    onShowAuthSheet = { showAuthSheet = true },
+                                    onOpenFilters = {
+                                        navController.navigate(PropertyDestination.FILTER.name)
+                                    }
                                 )
 
                                 if (showAuthSheet) {
@@ -857,9 +864,20 @@ fun NavGraphBuilder.DashboardNavigation(
                             
                             // Filter Screen
                             composable(PropertyDestination.FILTER.name) {
+                                val ctx = LocalContext.current
+                                val filtersStore = remember(ctx) {
+                                    EntryPointAccessors.fromApplication(
+                                        ctx.applicationContext,
+                                        SearchFiltersStoreEntryPoint::class.java
+                                    ).searchFiltersStore()
+                                }
                                 FilterScreen(
                                     onBackClick = { navController.popBackStack() },
-                                    onApplyFilters = { navController.popBackStack() }
+                                    initial = filtersStore.criteria.value,
+                                    onApplyFilters = { criteria ->
+                                        filtersStore.update(criteria)
+                                        navController.popBackStack()
+                                    }
                                 )
                             }
                             
@@ -1334,7 +1352,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                         selectedListingId = propertyId
                                     },
                                     initialFocus = focus,
-                                    onShowAuthSheet = { showAuthSheetForSearch = true }
+                                    onShowAuthSheet = { showAuthSheetForSearch = true },
+                                    onOpenFilters = {
+                                        showSearchDialog = false
+                                        searchInitialFocus = null
+                                        navController.navigate(PropertyDestination.FILTER.name)
+                                    }
                                 )
                             }
                         }

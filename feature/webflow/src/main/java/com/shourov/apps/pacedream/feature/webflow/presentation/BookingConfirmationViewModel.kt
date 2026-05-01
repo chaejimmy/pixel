@@ -36,6 +36,19 @@ class BookingConfirmationViewModel @Inject constructor(
         // Prevent double-tap — ignore if already in-flight loading
         val current = _uiState.value
         if (current is BookingConfirmationUiState.Loading) return
+
+        // Launch-critical: never render success without a real session id from
+        // the Stripe return URL. A blank/missing id means the deep link is
+        // malformed or the user reopened a stale link, so fail fast instead
+        // of hitting the backend with an empty key.
+        if (sessionId.isBlank()) {
+            Timber.w("BookingConfirmation invoked with blank sessionId; refusing to call backend")
+            _uiState.value = BookingConfirmationUiState.Error(
+                "We couldn't verify this booking. Please check your email for confirmation or contact support."
+            )
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = BookingConfirmationUiState.Loading
 
