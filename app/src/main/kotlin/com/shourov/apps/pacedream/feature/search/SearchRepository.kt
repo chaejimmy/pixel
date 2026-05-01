@@ -82,18 +82,137 @@ class SearchRepository @Inject constructor(
         val webCategory = category?.takeIf { it in VALID_WEB_CATEGORIES }
             ?: mapShareTypeToCategory(shareType)
 
-        val offset = page0 * perPage
-
         // Build the text query: prefer whatQuery, fall back to q (WHERE)
         val textQuery = whatQuery?.takeIf { it.isNotBlank() }
             ?: q.takeIf { it.isNotBlank() }
 
-        // Website parity: map web category to backend category values
-        val backendCategory = BACKEND_CATEGORY_MAP[webCategory] ?: "time_based"
-
         // Website parity: time-based and hourly-rental-gears use /poc/listings,
         // others use /listings
         val usePOCEndpoint = webCategory == "time-based" || webCategory == "hourly-rental-gears"
+
+        val primary = buildPrimaryWireRequest(
+            webCategory = webCategory,
+            usePOCEndpoint = usePOCEndpoint,
+            textQuery = textQuery,
+            city = city,
+            sort = sort,
+            shareType = shareType,
+            page0 = page0,
+            perPage = perPage,
+            startDate = startDate,
+            endDate = endDate,
+            swLat = swLat,
+            swLng = swLng,
+            neLat = neLat,
+            neLng = neLng,
+            guests = guests,
+            bedrooms = bedrooms,
+            beds = beds,
+            bathrooms = bathrooms,
+            instantBook = instantBook,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
+            amenities = amenities,
+            propertyType = propertyType,
+        )
+
+        val primaryUrl = appConfig.buildApiUrlWithQuery(
+            *primary.pathSegments.toTypedArray(),
+            queryParams = primary.queryParams,
+        )
+
+        Timber.d("Search primary URL: $primaryUrl")
+        val primaryRes = apiClient.get(primaryUrl, includeAuth = false)
+        if (primaryRes is ApiResult.Success) {
+            return ApiResult.Success(parseSearchPage(primaryRes.data, perPage))
+        }
+
+        // Fallback: backend /v1/search endpoint.  Same structured filters
+        // are forwarded so a primary→fallback transition does not silently
+        // drop user-applied constraints.
+        val fallbackParams = buildFallbackQueryParams(
+            textQuery = textQuery,
+            page0 = page0,
+            perPage = perPage,
+            city = city,
+            category = category,
+            sort = sort,
+            shareType = shareType,
+            whatQuery = whatQuery,
+            startDate = startDate,
+            endDate = endDate,
+            swLat = swLat,
+            swLng = swLng,
+            neLat = neLat,
+            neLng = neLng,
+            guests = guests,
+            bedrooms = bedrooms,
+            beds = beds,
+            bathrooms = bathrooms,
+            instantBook = instantBook,
+            minPrice = minPrice,
+            maxPrice = maxPrice,
+            amenities = amenities,
+            propertyType = propertyType,
+        )
+        val fallbackUrl = appConfig.buildApiUrlWithQuery(
+            "search",
+            queryParams = fallbackParams,
+        )
+
+        Timber.d("Search fallback URL: $fallbackUrl")
+        return when (val fallback = apiClient.get(fallbackUrl, includeAuth = false)) {
+            is ApiResult.Success -> ApiResult.Success(parseSearchPage(fallback.data, perPage))
+            is ApiResult.Failure -> fallback
+        }
+    }
+
+    /**
+     * Pure builder for the primary `/v1/poc/listings` or `/v1/listings`
+     * wire request.  Extracted from [search] so the wire contract can be
+     * asserted in unit tests without an OkHttp client.  No network calls,
+     * no side effects.
+     *
+     * Empty / zero / null filter values are dropped from the query map,
+     * so the base "no filters" request matches the pre-filter behaviour
+     * byte-for-byte.
+     *
+     * NOTE on backend support: the keys named below are emitted by this
+     * client, but PaceDream's backend handlers for these endpoints live
+     * in a separate repository.  Whether the server actually consumes
+     * each key — i.e. whether `instantBook=true` causes non-instant-book
+     * rows to be filtered out — has NOT been verified from this codebase
+     * (see SEARCH_FILTER_CONTRACT.md).  Each filter param below is
+     * marked `NEEDS_BACKEND_SUPPORT` accordingly.
+     */
+    @Suppress("LongParameterList")
+    private fun buildPrimaryWireRequest(
+        webCategory: String,
+        usePOCEndpoint: Boolean,
+        textQuery: String?,
+        city: String?,
+        sort: String?,
+        shareType: String?,
+        page0: Int,
+        perPage: Int,
+        startDate: String?,
+        endDate: String?,
+        swLat: Double?,
+        swLng: Double?,
+        neLat: Double?,
+        neLng: Double?,
+        guests: Int?,
+        bedrooms: Int?,
+        beds: Int?,
+        bathrooms: Int?,
+        instantBook: Boolean?,
+        minPrice: Int?,
+        maxPrice: Int?,
+        amenities: Set<String>,
+        propertyType: String?,
+    ): WireRequest {
+        val backendCategory = BACKEND_CATEGORY_MAP[webCategory] ?: "time_based"
+        val offset = page0 * perPage
 
         val queryParams = mutableMapOf<String, String?>(
             "status" to "published",
@@ -138,6 +257,11 @@ class SearchRepository @Inject constructor(
         // Airbnb-parity structured filters.  Only emit keys whose value is
         // a meaningful constraint — empty / zero / null are dropped so the
         // base "no filters" query stays unchanged.
+        //
+        // NEEDS_BACKEND_SUPPORT: each of the keys below depends on the
+        // backend listing handler honouring it; a server that ignores
+        // unknown keys will silently return unfiltered results.  See
+        // SEARCH_FILTER_CONTRACT.md for verification status per key.
         guests?.takeIf { it > 0 }?.let { queryParams["guests"] = it.toString() }
         bedrooms?.takeIf { it > 0 }?.let { queryParams["bedrooms"] = it.toString() }
         beds?.takeIf { it > 0 }?.let { queryParams["beds"] = it.toString() }
@@ -154,45 +278,184 @@ class SearchRepository @Inject constructor(
             queryParams["propertyType"] = it.lowercase()
         }
 
-        val primaryUrl = if (usePOCEndpoint) {
-            appConfig.buildApiUrlWithQuery("poc", "listings", queryParams = queryParams)
-        } else {
-            appConfig.buildApiUrlWithQuery("listings", queryParams = queryParams)
-        }
-
-        Timber.d("Search primary URL: $primaryUrl")
-        val primary = apiClient.get(primaryUrl, includeAuth = false)
-        if (primary is ApiResult.Success) {
-            return ApiResult.Success(parseSearchPage(primary.data, perPage))
-        }
-
-        // Fallback: backend /v1/search endpoint
-        val fallbackUrl = appConfig.buildApiUrlWithQuery(
-            "search",
-            queryParams = mapOf(
-                "q" to (textQuery ?: ""),
-                "page" to page0.toString(),
-                "perPage" to perPage.toString(),
-                "city" to city,
-                "category" to category,
-                "sort" to sort,
-                "shareType" to shareType,
-                "what" to whatQuery,
-                "startDate" to startDate,
-                "endDate" to endDate,
-                "swLat" to swLat?.toString(),
-                "swLng" to swLng?.toString(),
-                "neLat" to neLat?.toString(),
-                "neLng" to neLng?.toString(),
-            )
-        )
-
-        Timber.d("Search fallback URL: $fallbackUrl")
-        return when (val fallback = apiClient.get(fallbackUrl, includeAuth = false)) {
-            is ApiResult.Success -> ApiResult.Success(parseSearchPage(fallback.data, perPage))
-            is ApiResult.Failure -> fallback
-        }
+        val pathSegments = if (usePOCEndpoint) listOf("poc", "listings") else listOf("listings")
+        return WireRequest(pathSegments = pathSegments, queryParams = queryParams.toMap())
     }
+
+    /**
+     * Pure builder for the `/v1/search` fallback endpoint.  Mirrors
+     * [buildPrimaryWireRequest]'s filter set (Airbnb-parity structured
+     * filters included) so a primary→fallback transition does not
+     * silently regress filter coverage.  See SEARCH_FILTER_CONTRACT.md.
+     */
+    @Suppress("LongParameterList")
+    private fun buildFallbackQueryParams(
+        textQuery: String?,
+        page0: Int,
+        perPage: Int,
+        city: String?,
+        category: String?,
+        sort: String?,
+        shareType: String?,
+        whatQuery: String?,
+        startDate: String?,
+        endDate: String?,
+        swLat: Double?,
+        swLng: Double?,
+        neLat: Double?,
+        neLng: Double?,
+        guests: Int?,
+        bedrooms: Int?,
+        beds: Int?,
+        bathrooms: Int?,
+        instantBook: Boolean?,
+        minPrice: Int?,
+        maxPrice: Int?,
+        amenities: Set<String>,
+        propertyType: String?,
+    ): Map<String, String?> {
+        val params = mutableMapOf<String, String?>(
+            "q" to (textQuery ?: ""),
+            "page" to page0.toString(),
+            "perPage" to perPage.toString(),
+            "city" to city,
+            "category" to category,
+            "sort" to sort,
+            "shareType" to shareType,
+            "what" to whatQuery,
+            "startDate" to startDate,
+            "endDate" to endDate,
+            "swLat" to swLat?.toString(),
+            "swLng" to swLng?.toString(),
+            "neLat" to neLat?.toString(),
+            "neLng" to neLng?.toString(),
+        )
+        // NEEDS_BACKEND_SUPPORT: same caveat as the primary builder.
+        guests?.takeIf { it > 0 }?.let { params["guests"] = it.toString() }
+        bedrooms?.takeIf { it > 0 }?.let { params["bedrooms"] = it.toString() }
+        beds?.takeIf { it > 0 }?.let { params["beds"] = it.toString() }
+        bathrooms?.takeIf { it > 0 }?.let { params["bathrooms"] = it.toString() }
+        if (instantBook == true) params["instantBook"] = "true"
+        minPrice?.takeIf { it > 0 }?.let { params["minPrice"] = it.toString() }
+        maxPrice?.takeIf { it > 0 }?.let { params["maxPrice"] = it.toString() }
+        if (amenities.isNotEmpty()) {
+            params["amenities"] = amenities.joinToString(",") {
+                it.trim().lowercase().replace(' ', '_')
+            }
+        }
+        propertyType?.takeIf { it.isNotBlank() }?.let {
+            params["propertyType"] = it.lowercase()
+        }
+        return params.toMap()
+    }
+
+    /** Path segments + query params used to build a search HTTP request. */
+    internal data class WireRequest(
+        val pathSegments: List<String>,
+        val queryParams: Map<String, String?>,
+    )
+
+    @VisibleForTesting
+    internal fun buildPrimaryWireRequestForTest(
+        webCategory: String,
+        usePOCEndpoint: Boolean,
+        textQuery: String? = null,
+        city: String? = null,
+        sort: String? = null,
+        shareType: String? = null,
+        page0: Int = 0,
+        perPage: Int = 24,
+        startDate: String? = null,
+        endDate: String? = null,
+        swLat: Double? = null,
+        swLng: Double? = null,
+        neLat: Double? = null,
+        neLng: Double? = null,
+        guests: Int? = null,
+        bedrooms: Int? = null,
+        beds: Int? = null,
+        bathrooms: Int? = null,
+        instantBook: Boolean? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        amenities: Set<String> = emptySet(),
+        propertyType: String? = null,
+    ): WireRequest = buildPrimaryWireRequest(
+        webCategory = webCategory,
+        usePOCEndpoint = usePOCEndpoint,
+        textQuery = textQuery,
+        city = city,
+        sort = sort,
+        shareType = shareType,
+        page0 = page0,
+        perPage = perPage,
+        startDate = startDate,
+        endDate = endDate,
+        swLat = swLat,
+        swLng = swLng,
+        neLat = neLat,
+        neLng = neLng,
+        guests = guests,
+        bedrooms = bedrooms,
+        beds = beds,
+        bathrooms = bathrooms,
+        instantBook = instantBook,
+        minPrice = minPrice,
+        maxPrice = maxPrice,
+        amenities = amenities,
+        propertyType = propertyType,
+    )
+
+    @VisibleForTesting
+    internal fun buildFallbackQueryParamsForTest(
+        textQuery: String? = null,
+        page0: Int = 0,
+        perPage: Int = 24,
+        city: String? = null,
+        category: String? = null,
+        sort: String? = null,
+        shareType: String? = null,
+        whatQuery: String? = null,
+        startDate: String? = null,
+        endDate: String? = null,
+        swLat: Double? = null,
+        swLng: Double? = null,
+        neLat: Double? = null,
+        neLng: Double? = null,
+        guests: Int? = null,
+        bedrooms: Int? = null,
+        beds: Int? = null,
+        bathrooms: Int? = null,
+        instantBook: Boolean? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        amenities: Set<String> = emptySet(),
+        propertyType: String? = null,
+    ): Map<String, String?> = buildFallbackQueryParams(
+        textQuery = textQuery,
+        page0 = page0,
+        perPage = perPage,
+        city = city,
+        category = category,
+        sort = sort,
+        shareType = shareType,
+        whatQuery = whatQuery,
+        startDate = startDate,
+        endDate = endDate,
+        swLat = swLat,
+        swLng = swLng,
+        neLat = neLat,
+        neLng = neLng,
+        guests = guests,
+        bedrooms = bedrooms,
+        beds = beds,
+        bathrooms = bathrooms,
+        instantBook = instantBook,
+        minPrice = minPrice,
+        maxPrice = maxPrice,
+        amenities = amenities,
+        propertyType = propertyType,
+    )
 
     companion object {
         /** Valid category values accepted by the web /api/search endpoint */

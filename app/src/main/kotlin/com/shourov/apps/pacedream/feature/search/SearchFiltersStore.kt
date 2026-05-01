@@ -55,3 +55,34 @@ interface SearchFiltersStoreEntryPoint {
     fun searchFiltersStore(): SearchFiltersStore
 }
 
+/**
+ * Compact human-readable summary of the active filter set, suitable for
+ * a single Timber.d line in debug builds.  Lists only fields that are
+ * actually constraining the query — empty/zero/null fields are omitted
+ * so the log scans cleanly even when most filters are at their defaults.
+ *
+ * NOT for user-facing display; the search summary bar reads structured
+ * fields off [SearchUiState] directly.  Releases never see this string
+ * (Timber's DebugTree is planted only in BuildConfig.DEBUG).
+ */
+internal fun FilterCriteria.toDebugSummary(): String {
+    if (isEmpty) return "FilterCriteria(empty)"
+    val parts = buildList {
+        if (checkInEpochDay != null || checkOutEpochDay != null) {
+            add("dates=$checkInEpochDay..$checkOutEpochDay")
+        }
+        if (totalGuests > 0) add("guests=$totalGuests")
+        if (infants > 0) add("infants=$infants")
+        if (pets > 0) add("pets=$pets")
+        if (!propertyType.isNullOrBlank()) add("propertyType=$propertyType")
+        if (minPrice != null) add("min=$minPrice")
+        if (maxPrice != null) add("max=$maxPrice")
+        if (bedrooms != null) add("bedrooms=$bedrooms")
+        if (beds != null) add("beds=$beds")
+        if (bathrooms != null) add("baths=$bathrooms")
+        if (instantBookOnly) add("instantBook=true")
+        if (amenities.isNotEmpty()) add("amenities=${amenities.joinToString(",")}")
+    }
+    return "FilterCriteria(${parts.joinToString(" ")})"
+}
+

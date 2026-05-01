@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -236,11 +237,18 @@ class SearchViewModel @Inject constructor(
      * triggers the actual query reload via the collector wired in init.
      */
     fun applyFilters(criteria: FilterCriteria) {
+        // Timber.d only emits in debug builds — DebugTree is planted in
+        // PaceDreamApplication only when BuildConfig.DEBUG is true, so
+        // release builds drop this entirely (and R8 strips android.util.Log
+        // calls per `5aaab45`).  Kept verbose on purpose so QA can pin
+        // an unexpected result set to the exact filter shape that produced it.
+        Timber.d("applyFilters: %s", criteria.toDebugSummary())
         filtersStore.update(criteria)
     }
 
     /** Reset all FilterScreen-sourced filters and re-run the query. */
     fun clearFilters() {
+        Timber.d("clearFilters called")
         filtersStore.clear()
     }
 
