@@ -62,6 +62,21 @@ class SearchRepository @Inject constructor(
         swLng: Double? = null,
         neLat: Double? = null,
         neLng: Double? = null,
+        // Airbnb-parity structured filters surfaced from the FilterScreen.
+        // All optional; nulls / zeros are dropped from the query string so
+        // unsupported params never reach the backend.  The backend silently
+        // ignores keys it does not recognise (verified via the tolerant
+        // /v1/poc/listings + /v1/listings + /v1/search fallback chain), so
+        // adding these is forward-compatible.
+        guests: Int? = null,
+        bedrooms: Int? = null,
+        beds: Int? = null,
+        bathrooms: Int? = null,
+        instantBook: Boolean? = null,
+        minPrice: Int? = null,
+        maxPrice: Int? = null,
+        amenities: Set<String> = emptySet(),
+        propertyType: String? = null,
     ): ApiResult<SearchPage> {
         // Map shareType to the web category key
         val webCategory = category?.takeIf { it in VALID_WEB_CATEGORIES }
@@ -118,6 +133,25 @@ class SearchRepository @Inject constructor(
             queryParams["swLng"] = swLng.toString()
             queryParams["neLat"] = neLat.toString()
             queryParams["neLng"] = neLng.toString()
+        }
+
+        // Airbnb-parity structured filters.  Only emit keys whose value is
+        // a meaningful constraint — empty / zero / null are dropped so the
+        // base "no filters" query stays unchanged.
+        guests?.takeIf { it > 0 }?.let { queryParams["guests"] = it.toString() }
+        bedrooms?.takeIf { it > 0 }?.let { queryParams["bedrooms"] = it.toString() }
+        beds?.takeIf { it > 0 }?.let { queryParams["beds"] = it.toString() }
+        bathrooms?.takeIf { it > 0 }?.let { queryParams["bathrooms"] = it.toString() }
+        if (instantBook == true) queryParams["instantBook"] = "true"
+        minPrice?.takeIf { it > 0 }?.let { queryParams["minPrice"] = it.toString() }
+        maxPrice?.takeIf { it > 0 }?.let { queryParams["maxPrice"] = it.toString() }
+        if (amenities.isNotEmpty()) {
+            queryParams["amenities"] = amenities.joinToString(",") {
+                it.trim().lowercase().replace(' ', '_')
+            }
+        }
+        propertyType?.takeIf { it.isNotBlank() }?.let {
+            queryParams["propertyType"] = it.lowercase()
         }
 
         val primaryUrl = if (usePOCEndpoint) {

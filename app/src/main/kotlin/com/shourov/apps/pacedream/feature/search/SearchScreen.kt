@@ -179,6 +179,7 @@ fun SearchScreen(
     initialQuery: String? = null,
     initialFocus: SearchInitialFocus? = null,
     onShowAuthSheet: () -> Unit = {},
+    onOpenFilters: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
@@ -552,7 +553,10 @@ fun SearchScreen(
                                     if (state.phase != SearchPhase.Idle) {
                                         viewModel.submitSearch()
                                     }
-                                }
+                                },
+                                activeFilterCount = state.activeFilterCount,
+                                onOpenFilters = onOpenFilters,
+                                onClearFilters = { viewModel.clearFilters() },
                             )
 
                             when (state.phase) {
@@ -804,7 +808,10 @@ private fun FiltersRow(
     onSortSelected: (String) -> Unit,
     shareType: String,
     selectedCategories: Set<String>,
-    onCategoryToggle: (String) -> Unit
+    onCategoryToggle: (String) -> Unit,
+    activeFilterCount: Int = 0,
+    onOpenFilters: () -> Unit = {},
+    onClearFilters: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -817,6 +824,47 @@ private fun FiltersRow(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Filters entry-point chip — opens the FilterScreen.  Badged
+            // with the active filter count so users can tell at a glance
+            // how many constraints are currently applied.
+            FilterChip(
+                selected = activeFilterCount > 0,
+                onClick = onOpenFilters,
+                label = {
+                    Text(
+                        text = if (activeFilterCount > 0) "Filters · $activeFilterCount" else "Filters",
+                        style = PaceDreamTypography.Subheadline
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        PaceDreamIcons.Tune,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                trailingIcon = if (activeFilterCount > 0) {
+                    {
+                        IconButton(
+                            onClick = onClearFilters,
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Icon(
+                                PaceDreamIcons.Close,
+                                contentDescription = "Clear filters",
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = PaceDreamColors.Surface,
+                    selectedContainerColor = PaceDreamColors.Primary.copy(alpha = 0.12f),
+                    selectedLabelColor = PaceDreamColors.Primary,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                border = null,
+            )
             // Sort dropdown
             Box {
                 val sortLabel = SORT_OPTIONS.find { it.value == selectedSort }?.label ?: "Relevance"
