@@ -10,8 +10,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun HostProfileRoute(
-    hostId: String,
-    seed: HostProfileModel? = null,
     viewModel: HostProfileViewModel = hiltViewModel(),
     onBackClick: () -> Unit,
     onLoginRequired: () -> Unit,
@@ -21,16 +19,14 @@ fun HostProfileRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(hostId) {
-        viewModel.load(hostId, seed)
+    LaunchedEffect(Unit) {
+        viewModel.snackbar.collect { msg -> snackbarHostState.showSnackbar(msg.text) }
     }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is HostProfileViewModel.Effect.ShowAuthRequired -> onLoginRequired()
-                is HostProfileViewModel.Effect.ShowToast ->
-                    snackbarHostState.showSnackbar(effect.message)
                 is HostProfileViewModel.Effect.NavigateToThread ->
                     onNavigateToThread(effect.threadId)
             }

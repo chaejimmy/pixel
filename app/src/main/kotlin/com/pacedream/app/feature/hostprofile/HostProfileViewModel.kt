@@ -1,5 +1,6 @@
 package com.pacedream.app.feature.hostprofile
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.AuthState
@@ -8,7 +9,6 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,8 +22,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 import javax.inject.Inject
 
+const val HOST_PROFILE_ID_ARG = "hostId"
+
+/** One-shot UI message surfaced to the screen via SnackbarHost. */
+data class SnackbarMessage(val text: String)
+
 @HiltViewModel
 class HostProfileViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val repository: HostProfileRepository,
     private val sessionManager: SessionManager,
     private val apiClient: ApiClient,
@@ -33,79 +39,38 @@ class HostProfileViewModel @Inject constructor(
 
     sealed class Effect {
         data object ShowAuthRequired : Effect()
-        data class ShowToast(val message: String) : Effect()
         data class NavigateToThread(val threadId: String) : Effect()
     }
 
-    private val _uiState = MutableStateFlow(HostProfileUiState())
+    private val hostId: String = savedStateHandle.get<String>(HOST_PROFILE_ID_ARG).orEmpty()
+
+    private val _uiState = MutableStateFlow<HostProfileUiState>(HostProfileUiState.Loading)
     val uiState: StateFlow<HostProfileUiState> = _uiState.asStateFlow()
+
+    private val _snackbar = Channel<SnackbarMessage>(Channel.BUFFERED)
+    val snackbar = _snackbar.receiveAsFlow()
 
     private val _effects = Channel<Effect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
-    private var hostId: String? = null
-
-    /**
-     * Load a host profile.
-     *
-     * @param id           Host (user) id.
-     * @param seed         Optional preview pulled from the listing detail (avatar, name).
-     *                     Used to render the screen instantly while the fetch is in flight,
-     *                     and as a graceful fallback if the backend has no host endpoint yet.
-     */
-    fun load(id: String, seed: HostProfileModel? = null) {
-        if (id.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Host not found", isLoading = false) }
-            return
-        }
-        if (hostId == id && _uiState.value.host != null) return
-        hostId = id
-
-        if (seed != null) {
-            _uiState.update { it.copy(host = seed) }
-        }
+    init {
         refresh()
     }
 
     fun refresh() {
-        val id = hostId ?: return
+        if (hostId.isBlank()) {
+            _uiState.value = HostProfileUiState.NotFound
+            return
+        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val profileDeferred = async { repository.fetchHostProfile(id) }
-            val listingsDeferred = async { repository.fetchHostListings(id) }
-            val profile = profileDeferred.await()
-            val hostListings = listingsDeferred.await()
-
-            when (profile) {
-                is ApiResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            host = profile.data.copy(listings = hostListings),
-                            errorMessage = null,
-                        )
-                    }
-                }
-                is ApiResult.Failure -> {
-                    val seeded = _uiState.value.host
-                    if (seeded != null) {
-                        // Fall back to the seed (from listing detail) and any listings we found.
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                host = seeded.copy(listings = hostListings),
-                                errorMessage = null,
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = "We couldn't load this host. Please try again.",
-                            )
-                        }
-                    }
-                }
+            _uiState.value = HostProfileUiState.Loading
+            when (val result = repository.fetchHostProfile(hostId)) {
+                is HostProfileResult.Success ->
+                    _uiState.value = HostProfileUiState.Content(host = result.host)
+                is HostProfileResult.NotFound ->
+                    _uiState.value = HostProfileUiState.NotFound
+                is HostProfileResult.Error ->
+                    _uiState.value = HostProfileUiState.Error(result.message)
             }
         }
     }
@@ -113,20 +78,24 @@ class HostProfileViewModel @Inject constructor(
     fun isAuthenticated(): Boolean = sessionManager.authState.value == AuthState.Authenticated
 
     /**
-     * Open or create a conversation with this host using the existing inbox flow.
-     * Mirrors ListingDetailViewModel.contactHost so the messaging contract stays
-     * a single source of truth on the backend (POST /v1/inbox/thread).
+     * Open or create a 1:1 conversation with this host.
+     * Mirrors ListingDetailViewModel.contactHost so the messaging contract
+     * stays a single source of truth on the backend
+     * (POST /v1/inbox/thread).
      */
     fun contactHost() {
-        val id = hostId ?: return
+        val state = _uiState.value as? HostProfileUiState.Content ?: return
+        val targetUserId = state.host.userId?.takeIf { it.isNotBlank() }
+            ?: state.host.hostId
+            ?: hostId
         if (!isAuthenticated()) {
             viewModelScope.launch { _effects.send(Effect.ShowAuthRequired) }
             return
         }
         viewModelScope.launch {
-            _uiState.update { it.copy(isContactingHost = true) }
+            _uiState.value = state.copy(isContactingHost = true)
             val url = appConfig.buildApiUrl("inbox", "thread")
-            val body = "{\"otherUserId\":\"$id\",\"mode\":\"guest\"}"
+            val body = "{\"otherUserId\":\"$targetUserId\",\"mode\":\"guest\"}"
             when (val result = apiClient.post(url, body, includeAuth = true)) {
                 is ApiResult.Success -> {
                     val threadId = try {
@@ -138,17 +107,23 @@ class HostProfileViewModel @Inject constructor(
                         Timber.e(e, "Failed to parse thread response")
                         null
                     }
-                    _uiState.update { it.copy(isContactingHost = false) }
+                    _uiState.update { current ->
+                        (current as? HostProfileUiState.Content)?.copy(isContactingHost = false)
+                            ?: current
+                    }
                     if (threadId != null) {
                         _effects.send(Effect.NavigateToThread(threadId))
                     } else {
-                        _effects.send(Effect.ShowToast("Could not start conversation"))
+                        _snackbar.send(SnackbarMessage("Could not start conversation"))
                     }
                 }
                 is ApiResult.Failure -> {
                     Timber.e("Failed to create thread: ${result.error.message}")
-                    _uiState.update { it.copy(isContactingHost = false) }
-                    _effects.send(Effect.ShowToast("We couldn't start this conversation. Please try again."))
+                    _uiState.update { current ->
+                        (current as? HostProfileUiState.Content)?.copy(isContactingHost = false)
+                            ?: current
+                    }
+                    _snackbar.send(SnackbarMessage("We couldn't start this conversation. Please try again."))
                 }
             }
         }
