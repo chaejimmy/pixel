@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -412,7 +413,16 @@ class HomeViewModel @Inject constructor(
                         shareCategory = (itemObj["shareCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
                         subCategory = (itemObj["subCategory"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                             ?: (itemObj["roomType"] as? kotlinx.serialization.json.JsonPrimitive)?.content
-                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                            ?: (itemObj["listing_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+                        instantBook = (itemObj["instantBook"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull
+                            ?: (itemObj["instant_book"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull
+                            ?: (itemObj["isInstantBook"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull,
+                        available = (itemObj["available"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull
+                            ?: (itemObj["isAvailable"] as? kotlinx.serialization.json.JsonPrimitive)?.booleanOrNull,
+                        latitude = (itemObj["location"] as? JsonObject)?.get("latitude")?.jsonPrimitive?.doubleOrNull
+                            ?: (itemObj["latitude"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull,
+                        longitude = (itemObj["location"] as? JsonObject)?.get("longitude")?.jsonPrimitive?.doubleOrNull
+                            ?: (itemObj["longitude"] as? kotlinx.serialization.json.JsonPrimitive)?.doubleOrNull
                     )
                 } catch (e: Exception) {
                     Timber.w(e, "Failed to parse listing item")

@@ -13,11 +13,11 @@ Legend: ✅ implemented · 🟡 partial · ❌ missing
 
 | Area | Airbnb | PaceDream Android | Status |
 |---|---|---|---|
-| **Search — map view** | Map with price pins, draggable bounds, "Search this area" | List‑only; no map view | ❌ |
-| **Search — filter sheet** | Type, price slider w/ histogram, dates, guests, rooms/beds, amenities, host language, instant book, accessibility | `FilterScreen.kt`: type, price range, amenities | 🟡 |
+| **Search — map view** | Map with price pins, draggable bounds, "Search this area" | List/Map toggle, GoogleMap with markers, gesture-gated "Search this area" pill | ✅ |
+| **Search — filter sheet** | Type, price slider w/ histogram, dates, guests, rooms/beds, amenities, host language, instant book, accessibility | `FilterScreen.kt`: type, price range, dates, guests (adults/children/infants/pets), bedrooms/beds/baths, instant-book toggle, amenities (criteria emitted via `FilterCriteria`; wiring into SearchViewModel still pending) | 🟡 |
 | **Search — categories** | Iconic horizontal category rail (Beachfront, Treehouse, …) that re‑queries | Category chips (Restroom, Nap Pod, Meeting Room, Storage, Parking) — fewer than the website's 9 | 🟡 |
 | **Search — autocomplete / "where to"** | Location search with recents, nearby, "I'm flexible" | Single search bar `Where to?`; no recents/nearby | 🟡 |
-| **Search — "search this area" pan** | Yes | n/a (no map) | ❌ |
+| **Search — "search this area" pan** | Yes | Pill surfaces after gesture-driven camera move when bounds meaningfully differ | ✅ |
 | **Listing — photo gallery** | Pager + grid, share/save in bar | `HorizontalPager` gallery, share, save | ✅ |
 | **Listing — amenities** | Categorised, "Show all 28 amenities" sheet | Amenities list | ✅ |
 | **Listing — reviews** | Per‑category bars (cleanliness, accuracy, …), search & filter reviews, host responses | Categories present (cleanliness, accuracy, comm, location, check‑in, value, comfort, convenience), host responses | ✅ |
@@ -26,7 +26,7 @@ Legend: ✅ implemented · 🟡 partial · ❌ missing
 | **Listing — similar listings** | "Other things to consider" carousel | Carousel infrastructure exists | 🟡 |
 | **Listing — translation** | "Translated automatically — show original" | None | ❌ |
 | **Booking — price breakdown** | Nightly × n, cleaning, service, taxes, total in one sheet | Price breakdown shown | ✅ |
-| **Booking — instant book vs request** | Both, badged on card | Not surfaced as separate flow | ❌ |
+| **Booking — instant book vs request** | Both, badged on card | Card `BookingModeBadge` (Instant Book / Request to Book / Unavailable); listing-detail CTA toggles between "Reserve" and "Request to book" with charge-timing copy | ✅ |
 | **Booking — house rules / cancellation** | Clear surface before pay, must‑agree checkbox | Cancellation policy displayed | 🟡 |
 | **Booking — split payments / pay‑less‑upfront** | Yes | No | ❌ |
 | **Booking — guest selector w/ infants/pets** | Adults / Children / Infants / Pets, with rules | Guest selector | 🟡 |

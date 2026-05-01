@@ -859,7 +859,10 @@ fun NavGraphBuilder.DashboardNavigation(
                             composable(PropertyDestination.FILTER.name) {
                                 FilterScreen(
                                     onBackClick = { navController.popBackStack() },
-                                    onApplyFilters = { navController.popBackStack() }
+                                    // Captured criteria is intentionally unused here for now;
+                                    // wiring it into the search query is tracked as the
+                                    // follow-up to AIRBNB_COMPARISON.md P0 #2.
+                                    onApplyFilters = { _ -> navController.popBackStack() }
                                 )
                             }
                             

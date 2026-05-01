@@ -151,6 +151,7 @@ fun ListingDetailScreen(
             BookingBar(
                 pricingLabel = listing?.pricing?.displayPrimary,
                 available = listing?.available,
+                instantBook = listing?.instantBook,
                 isOnline = listing?.isOnlineOnly == true,
                 onReserveClick = { showReserveSheet = true }
             )
@@ -1380,10 +1381,19 @@ private fun trimTrailingZeros(value: Double): String {
 private fun BookingBar(
     pricingLabel: String?,
     available: Boolean? = null,
+    instantBook: Boolean? = null,
     isOnline: Boolean = false,
     onReserveClick: () -> Unit
 ) {
     val isAvailable = available != false
+    // Airbnb-parity: differentiate instant-book ("Reserve") from
+    // request-to-book ("Request to book") on the primary CTA so guests know
+    // whether their card will be charged immediately or after host approval.
+    val ctaLabel = when {
+        !isAvailable -> "Unavailable"
+        instantBook == false -> "Request to book"
+        else -> "Reserve"
+    }
     Surface(
         shadowElevation = 12.dp,
         color = PaceDreamColors.Surface,
@@ -1412,8 +1422,11 @@ private fun BookingBar(
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
-                        text = if (isOnline) "Online session · Link after booking"
-                            else "You won't be charged yet",
+                        text = when {
+                            isOnline -> "Online session · Link after booking"
+                            instantBook == false -> "You won't be charged until the host accepts"
+                            else -> "You won't be charged yet"
+                        },
                         style = PaceDreamTypography.Caption.copy(
                             fontFamily = paceDreamFontFamily
                         ),
@@ -1432,7 +1445,7 @@ private fun BookingBar(
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
                 ) {
                     Text(
-                        "Reserve",
+                        ctaLabel,
                         style = PaceDreamTypography.Headline.copy(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.SemiBold

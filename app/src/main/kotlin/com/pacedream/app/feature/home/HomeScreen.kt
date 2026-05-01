@@ -1244,6 +1244,93 @@ private fun GridShimmerCard() {
     }
 }
 
+/**
+ * Booking-mode badge rendered on listing cards. Conveys at-a-glance whether
+ * the listing is "Instant Book" (Airbnb-parity), needs request-to-book, or
+ * is fully unavailable. Returns no UI when both flags are unknown so we
+ * don't add visual noise for legacy backend rows.
+ */
+@Composable
+private fun BookingModeBadge(
+    instantBook: Boolean?,
+    available: Boolean?
+) {
+    when {
+        available == false -> {
+            Surface(
+                shape = RoundedCornerShape(PaceDreamRadius.SM),
+                color = Color.Black.copy(alpha = 0.65f)
+            ) {
+                Text(
+                    text = "Unavailable",
+                    style = DSTypo.Caption2.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.3.sp
+                    ),
+                    color = Color.White,
+                    modifier = Modifier.padding(
+                        horizontal = PaceDreamSpacing.SM,
+                        vertical = PaceDreamSpacing.XS
+                    )
+                )
+            }
+        }
+        instantBook == true -> {
+            Surface(
+                shape = RoundedCornerShape(PaceDreamRadius.SM),
+                color = PaceDreamColors.Primary
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(
+                        horizontal = PaceDreamSpacing.SM,
+                        vertical = PaceDreamSpacing.XS
+                    )
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Bolt,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
+                    Text(
+                        text = "Instant Book",
+                        style = DSTypo.Caption2.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.3.sp
+                        ),
+                        color = Color.White
+                    )
+                }
+            }
+        }
+        instantBook == false -> {
+            Surface(
+                shape = RoundedCornerShape(PaceDreamRadius.SM),
+                color = badgeOnImageColor()
+            ) {
+                Text(
+                    text = "Request to Book",
+                    style = DSTypo.Caption2.copy(
+                        fontFamily = paceDreamFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.3.sp
+                    ),
+                    color = PaceDreamColors.TextPrimary,
+                    modifier = Modifier.padding(
+                        horizontal = PaceDreamSpacing.SM,
+                        vertical = PaceDreamSpacing.XS
+                    )
+                )
+            }
+        }
+        else -> Unit
+    }
+}
+
 @Composable
 private fun GridListingCard(
     item: HomeListingItem,
@@ -1316,29 +1403,34 @@ private fun GridListingCard(
                         )
                 )
 
-                // Type badge (top-left)
-                Surface(
+                // Type + booking-mode badges (top-left, stacked)
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(PaceDreamSpacing.SM),
-                    shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = badgeOnImageColor()
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                 ) {
-                    Text(
-                        text = when (item.type) {
-                            "time-based" -> "Space"
-                            "gear" -> "Item"
-                            "split-stay" -> "Service"
-                            else -> item.type.replaceFirstChar { it.uppercase() }
-                        },
-                        style = DSTypo.Caption2.copy(
-                            fontFamily = paceDreamFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.3.sp
-                        ),
-                        color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        color = badgeOnImageColor()
+                    ) {
+                        Text(
+                            text = when (item.type) {
+                                "time-based" -> "Space"
+                                "gear" -> "Item"
+                                "split-stay" -> "Service"
+                                else -> item.type.replaceFirstChar { it.uppercase() }
+                            },
+                            style = DSTypo.Caption2.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.3.sp
+                            ),
+                            color = PaceDreamColors.Primary,
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+                        )
+                    }
+                    BookingModeBadge(instantBook = item.instantBook, available = item.available)
                 }
 
                 // Heart button (top-right)
@@ -1511,29 +1603,34 @@ private fun ListingCard(
                         )
                 )
 
-                // Type badge (top-left)
-                Surface(
+                // Type + booking-mode badges (top-left, stacked)
+                Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(PaceDreamSpacing.SM),
-                    shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = badgeOnImageColor()
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
                 ) {
-                    Text(
-                        text = when (item.type) {
-                            "time-based" -> "Space"
-                            "gear" -> "Item"
-                            "split-stay" -> "Service"
-                            else -> item.type.replaceFirstChar { it.uppercase() }
-                        },
-                        style = DSTypo.Caption2.copy(
-                            fontFamily = paceDreamFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.3.sp
-                        ),
-                        color = PaceDreamColors.Primary,
-                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.SM),
+                        color = badgeOnImageColor()
+                    ) {
+                        Text(
+                            text = when (item.type) {
+                                "time-based" -> "Space"
+                                "gear" -> "Item"
+                                "split-stay" -> "Service"
+                                else -> item.type.replaceFirstChar { it.uppercase() }
+                            },
+                            style = DSTypo.Caption2.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.3.sp
+                            ),
+                            color = PaceDreamColors.Primary,
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+                        )
+                    }
+                    BookingModeBadge(instantBook = item.instantBook, available = item.available)
                 }
 
                 // Heart button (top-right)
