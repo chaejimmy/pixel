@@ -219,6 +219,12 @@ object ApiEndPoints {
     // ── Content Reporting (iOS/Web parity) ───────────────
     const val REPORT_CONTENT = "users/report"
 
+    // ── Wanted / Requests ─────────────────────────────────
+    const val GET_REQUESTS = "requests"
+    const val CREATE_REQUEST = "requests"
+    const val GET_REQUEST_BY_ID = "requests/{id}"
+    const val CREATE_REQUEST_OFFER = "requests/{id}/offers"
+
     // ── Legacy ────────────────────────────────────────────
     const val GET_ALREADY_BOOKED = "bookings/mine"
     const val HOURLY_RENTED_GEAR = "gear-rentals/get/hourly-rental-gear/{type}"
