@@ -1052,7 +1052,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
                             
-                            // Booking Detail stub
+                            // Booking Detail
                             composable(
                                 route = "${BookingDestination.BOOKING_DETAIL.name}/{bookingId}",
                                 arguments = listOf(

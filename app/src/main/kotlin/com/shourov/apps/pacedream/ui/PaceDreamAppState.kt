@@ -155,6 +155,16 @@ class PaceDreamAppState(
                 is DeepLinkResult.GearDetail -> {
                     navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
                 }
+                is DeepLinkResult.BookingDetail -> {
+                    navController.navigate(
+                        "${BookingDestination.BOOKING_DETAIL.name}/${deepLinkResult.bookingId}"
+                    )
+                }
+                is DeepLinkResult.Thread -> {
+                    navController.navigate(
+                        "${InboxDestination.THREAD.name}/${deepLinkResult.threadId}"
+                    )
+                }
                 is DeepLinkResult.StripeConnectReturn -> {
                     Timber.d("Stripe Connect return deep link received — switching to host mode")
                     // The top-level NavController does NOT register
