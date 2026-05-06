@@ -21,6 +21,64 @@ listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
     rootProject.file(name).takeIf { it.exists() }?.inputStream()?.use { secretsProps.load(it) }
 }
 
+// ── Release-build secrets guard ─────────────────────────────────────
+// Refuses to ship a release APK/AAB built with development placeholders.
+// We hook into the task graph (not configuration) so debug/CI inspection
+// runs are unaffected — this only triggers when a release-shaped task is
+// actually being executed.  Failures point operators directly at the
+// missing secret so CI can surface the issue.
+fun resolvedSecret(propertyName: String, secretKey: String): String =
+    (project.findProperty(propertyName) as? String)
+        ?: secretsProps.getProperty(secretKey, "")
+
+gradle.taskGraph.whenReady {
+    val isReleaseBuild = allTasks.any { task ->
+        val name = task.name
+        // Match assembleRelease / bundleRelease / assembleProdRelease /
+        // bundleProdRelease etc.  Avoid matching debug variants.
+        (name.startsWith("assemble") || name.startsWith("bundle")) &&
+            name.endsWith("Release", ignoreCase = false) &&
+            !name.contains("AndroidTest", ignoreCase = true)
+    }
+    if (!isReleaseBuild) return@whenReady
+
+    val stripeKey = resolvedSecret("stripePublishableKey", "STRIPE_PUBLISHABLE_KEY")
+    val auth0ClientId = resolvedSecret("auth0ClientId", "AUTH0_CLIENT_ID")
+    val auth0Domain = secretsProps.getProperty("AUTH0_DOMAIN", "")
+    val pdEnvironment = secretsProps.getProperty("PD_ENVIRONMENT", "")
+
+    val problems = mutableListOf<String>()
+    when {
+        stripeKey.isBlank() ->
+            problems += "STRIPE_PUBLISHABLE_KEY is blank (set -PstripePublishableKey=pk_live_… or secrets.properties)"
+        stripeKey.startsWith("pk_test_") ->
+            problems += "STRIPE_PUBLISHABLE_KEY starts with pk_test_ (test keys are not allowed in release builds)"
+    }
+    when {
+        auth0Domain.isBlank() ->
+            problems += "AUTH0_DOMAIN is blank (set AUTH0_DOMAIN in secrets.properties)"
+        auth0Domain.startsWith("dev-") ->
+            problems += "AUTH0_DOMAIN starts with dev- ('$auth0Domain' is a development tenant, not allowed in release builds)"
+    }
+    if (auth0ClientId.isBlank()) {
+        problems += "AUTH0_CLIENT_ID is blank (set -Pauth0ClientId=… or secrets.properties)"
+    }
+    if (pdEnvironment.equals("development", ignoreCase = true)) {
+        problems += "PD_ENVIRONMENT=development in secrets — set PD_ENVIRONMENT=production for release builds"
+    }
+
+    if (problems.isNotEmpty()) {
+        throw GradleException(
+            buildString {
+                appendLine("Refusing to build a release variant with placeholder/development secrets:")
+                problems.forEach { appendLine("  • $it") }
+                appendLine()
+                appendLine("Set production values via secrets.properties or -P… gradle properties before running a release build.")
+            }
+        )
+    }
+}
+
 android {
     defaultConfig {
         applicationId = "com.shourov.apps.pacedream"

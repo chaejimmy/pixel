@@ -15,6 +15,9 @@ import androidx.navigation.navOptions
 import androidx.tracing.trace
 import com.shourov.apps.pacedream.core.ui.TrackDisposableJank
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkResult
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.receiveAsFlow
 import timber.log.Timber
 import com.shourov.apps.pacedream.navigation.BookingDestination
 import com.shourov.apps.pacedream.navigation.InboxDestination
@@ -82,6 +85,16 @@ class PaceDreamAppState(
     
     val isHostMode = hostModeManager.isHostMode
 
+    /**
+     * One-shot user-facing messages emitted from deep-link / mode-switch
+     * handling.  Buffered through a Channel so the message survives the
+     * brief window between dispatch and the first collector subscribing
+     * after a mode switch.  Consumed by [com.shourov.apps.pacedream.ui.PaceDreamApp]
+     * which renders them as a Toast.
+     */
+    private val _deepLinkMessages = Channel<String>(capacity = Channel.BUFFERED)
+    val deepLinkMessages: Flow<String> = _deepLinkMessages.receiveAsFlow()
+
     fun navigateToUserStartDestination(
         destination: UserStartTopLevelDestination,
     ) {
@@ -143,13 +156,35 @@ class PaceDreamAppState(
                     navController.navigate("${PropertyDestination.DETAIL.name}/${deepLinkResult.gearId}")
                 }
                 is DeepLinkResult.StripeConnectReturn -> {
-                    Timber.d("Stripe Connect return deep link received, refreshing earnings")
-                    navController.navigate("host_earnings") {
-                        launchSingleTop = true
+                    Timber.d("Stripe Connect return deep link received — switching to host mode")
+                    // The top-level NavController does NOT register
+                    // "host_earnings" — that route lives inside the host
+                    // mode's internal NavHost (HostModeScreen).  Calling
+                    // navigate("host_earnings") here used to throw an
+                    // IllegalArgumentException that was swallowed silently,
+                    // leaving hosts who finished Stripe Connect onboarding
+                    // staring at an unchanged Home screen.  Instead, flip
+                    // the host-mode flag so HostModeScreen mounts on its
+                    // own start destination ("host_dashboard"), and surface
+                    // a one-shot message so the host knows onboarding
+                    // landed.
+                    try {
+                        hostModeManager.setHostMode(true)
+                    } catch (e: Exception) {
+                        Timber.e(
+                            e,
+                            "Stripe Connect return: failed to switch to host mode",
+                        )
                     }
+                    _deepLinkMessages.trySend(
+                        "Stripe setup completed. Check your earnings."
+                    )
                 }
             }
         } catch (e: Exception) {
+            // Non-fatal diagnostic — `Timber.e` already wires Crashlytics
+            // via the prod tree.  Re-emit the deep link in the message so
+            // it is visible in logs without dumping PII.
             Timber.e(e, "handleDeepLink failed for: $deepLinkResult")
         }
     }
