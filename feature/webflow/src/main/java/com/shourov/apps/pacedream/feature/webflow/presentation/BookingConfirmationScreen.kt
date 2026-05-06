@@ -188,8 +188,11 @@ private fun SuccessState(
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.size(PaceDreamSpacing.XS))
+            // Softer copy: this screen runs after the backend confirm-booking
+            // succeeds, but we have no per-booking signal that the receipt
+            // email actually went out, so we don't claim it did.
             Text(
-                text = "Receipt sent to your email",
+                text = "We’ll email your receipt to you shortly.",
                 style = PaceDreamTypography.Caption,
                 color = PaceDreamColors.TextSecondary
             )
