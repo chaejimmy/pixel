@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,7 +84,6 @@ import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmati
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
 import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
-import com.shourov.apps.pacedream.feature.booking.presentation.BookingFormScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
 import com.shourov.apps.pacedream.feature.host.navigation.ImageUploadEntryPoint
@@ -482,10 +482,34 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             ) { backStackEntry ->
                                 val threadId = backStackEntry.arguments?.getString("threadId") ?: ""
-                                ThreadScreen(
-                                    threadId = threadId,
-                                    onBackClick = { navController.popBackStack() }
-                                )
+                                val threadAuthGate = hiltViewModel<AuthGateViewModel>()
+                                val threadAuthState by threadAuthGate.authState
+                                    .collectAsStateWithLifecycle()
+                                var showAuthSheetForThread by remember { mutableStateOf(false) }
+
+                                if (threadAuthState ==
+                                    com.pacedream.app.core.auth.AuthState.Unauthenticated
+                                ) {
+                                    SignInRequiredState(
+                                        title = "Sign in to view this conversation",
+                                        body = "Sign in to read messages and reply.",
+                                        onSignInClick = { showAuthSheetForThread = true },
+                                        onBackClick = { navController.popBackStack() },
+                                    )
+                                } else {
+                                    ThreadScreen(
+                                        threadId = threadId,
+                                        onBackClick = { navController.popBackStack() }
+                                    )
+                                }
+
+                                if (showAuthSheetForThread) {
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        subtitle = "Connect with hosts and guests.",
+                                        onDismiss = { showAuthSheetForThread = false },
+                                        onSuccess = { showAuthSheetForThread = false }
+                                    )
+                                }
                                 }
                             }
                             
@@ -606,6 +630,30 @@ fun NavGraphBuilder.DashboardNavigation(
                             // backend payload includes one, so the in-app
                             // notification list is actionable (Airbnb/Turo parity).
                             composable("notifications") {
+                                val notificationsAuthGate = hiltViewModel<AuthGateViewModel>()
+                                val notificationsAuthState by notificationsAuthGate.authState
+                                    .collectAsStateWithLifecycle()
+                                var showAuthSheetForNotifications by remember { mutableStateOf(false) }
+
+                                if (notificationsAuthState ==
+                                    com.pacedream.app.core.auth.AuthState.Unauthenticated
+                                ) {
+                                    SignInRequiredState(
+                                        title = "Sign in to see notifications",
+                                        body = "Sign in to view bookings, messages, and payment alerts.",
+                                        onSignInClick = { showAuthSheetForNotifications = true },
+                                        onBackClick = { navController.popBackStack() },
+                                    )
+                                    if (showAuthSheetForNotifications) {
+                                        com.pacedream.app.ui.components.AuthFlowSheet(
+                                            subtitle = "Stay up to date with your bookings.",
+                                            onDismiss = { showAuthSheetForNotifications = false },
+                                            onSuccess = { showAuthSheetForNotifications = false }
+                                        )
+                                    }
+                                    return@composable
+                                }
+
                                 NotificationCenterScreen(
                                     onBackClick = { navController.popBackStack() },
                                     onNotificationClick = { notification ->
@@ -802,12 +850,24 @@ fun NavGraphBuilder.DashboardNavigation(
                                         }
                                     )
                                 } else {
-                                    // Fallback: if draft is somehow missing, show BookingFormScreen
-                                    BookingFormScreen(
-                                        propertyId = propertyId,
-                                        onBookingCreated = { bookingId ->
-                                            navController.navigate("booking_success/$bookingId")
-                                        }
+                                    // Recovery surface — the BookingDraft saved by the listing
+                                    // detail screen is missing (process death, deep link landing
+                                    // directly here, or a back-stack restore that lost the
+                                    // savedStateHandle). The legacy BookingFormScreen fallback
+                                    // used to live here, which created a real backend booking
+                                    // with NO payment and routed straight to "Booking Confirmed!" —
+                                    // a fake-success path. We now refuse to proceed and ask the
+                                    // user to start over from the listing.
+                                    LaunchedEffect(propertyId) {
+                                        timber.log.Timber.e(
+                                            IllegalStateException(
+                                                "BOOKING_FORM reached without BookingDraft for propertyId=$propertyId"
+                                            ),
+                                            "Missing booking draft on checkout route"
+                                        )
+                                    }
+                                    MissingBookingDraftRecovery(
+                                        onBack = { navController.popBackStack() }
                                     )
                                 }
 
@@ -992,7 +1052,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
                             
-                            // Booking Detail stub
+                            // Booking Detail
                             composable(
                                 route = "${BookingDestination.BOOKING_DETAIL.name}/{bookingId}",
                                 arguments = listOf(
@@ -1404,4 +1464,115 @@ fun navigateToTab(
  */
 private fun String.encodePathSegment(): String =
     java.net.URLEncoder.encode(this, Charsets.UTF_8.name()).replace("+", "%20")
+
+/**
+ * Generic "sign-in required" surface used by routes that can be reached via
+ * push notification or deep link while the user is signed out.  Keeps the
+ * back button available so the user can leave without authenticating, and
+ * exposes a Sign-in CTA that callers wire to AuthFlowSheet.  This avoids
+ * dropping unauthenticated users into screens that would otherwise render
+ * an empty shell with broken interactions (e.g. ThreadScreen with an
+ * empty currentUserId, NotificationCenter receiving 401s).
+ */
+@Composable
+private fun SignInRequiredState(
+    title: String,
+    body: String,
+    onSignInClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            androidx.compose.material3.TopAppBar(
+                title = { Text("") },
+                navigationIcon = {
+                    androidx.compose.material3.IconButton(onClick = onBackClick) {
+                        androidx.compose.material3.Icon(
+                            com.pacedream.common.icon.PaceDreamIcons.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = PaceDreamColors.Background,
+                ),
+            )
+        },
+        containerColor = PaceDreamColors.Background,
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier.padding(PaceDreamSpacing.LG),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Title3,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                Text(
+                    text = body,
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                androidx.compose.material3.Button(
+                    onClick = onSignInClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Primary,
+                    ),
+                ) { Text("Sign in") }
+            }
+        }
+    }
+}
+
+/**
+ * Recovery surface shown when the BOOKING_FORM route is reached without a
+ * BookingDraft.  Replaces the legacy BookingFormScreen fallback that was
+ * creating bookings without payment and showing "Booking Confirmed!" — a
+ * fake-success path.  This screen never creates a booking and never
+ * navigates to booking_success.
+ */
+@Composable
+private fun MissingBookingDraftRecovery(
+    onBack: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.padding(PaceDreamSpacing.LG),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "We couldn’t load your booking details.",
+                style = PaceDreamTypography.Title3,
+                color = PaceDreamColors.TextPrimary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Text(
+                text = "Please choose your dates again from the listing.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            androidx.compose.material3.Button(
+                onClick = onBack,
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+            ) { Text("Return to listing") }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            androidx.compose.material3.OutlinedButton(onClick = onBack) {
+                Text("Back", color = PaceDreamColors.Primary)
+            }
+        }
+    }
+}
 

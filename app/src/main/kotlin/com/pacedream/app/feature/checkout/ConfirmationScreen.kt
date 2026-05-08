@@ -53,7 +53,16 @@ fun ConfirmationScreen(
     onViewBooking: () -> Unit,
     onDone: () -> Unit,
     userEmail: String? = null,
-    onContactSupport: (() -> Unit)? = null
+    onContactSupport: (() -> Unit)? = null,
+    /**
+     * Whether the backend has explicitly confirmed the receipt email was
+     * sent.  Default is null (unknown) — we render the softer "We'll email
+     * your receipt to …" copy in that case so we never claim an email was
+     * sent when we have no signal that it was.  Wire this from the
+     * confirm-booking response (`receiptEmailSent`) when the backend adds
+     * that field.
+     */
+    receiptEmailSent: Boolean? = null,
 ) {
     // Prevent system back from navigating to checkout
     androidx.activity.compose.BackHandler { onDone() }
@@ -135,10 +144,19 @@ fun ConfirmationScreen(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                // Truthful copy: only claim the receipt was sent when the
+                // backend has explicitly confirmed it via receiptEmailSent.
+                // Otherwise use the softer "We'll email your receipt …" so
+                // a delayed or failed mail send does not leave the user
+                // waiting for a receipt that was never sent.
+                val emailLabel = userEmail?.takeIf { it.isNotBlank() } ?: "your email"
+                val receiptText = if (receiptEmailSent == true) {
+                    "Receipt sent to $emailLabel"
+                } else {
+                    "We’ll email your receipt to $emailLabel"
+                }
                 Text(
-                    text = userEmail?.takeIf { it.isNotBlank() }
-                        ?.let { "Receipt sent to $it" }
-                        ?: "Receipt sent to your email",
+                    text = receiptText,
                     style = PaceDreamTypography.Caption,
                     color = PaceDreamColors.TextSecondary,
                     textAlign = TextAlign.Center,

@@ -148,11 +148,25 @@ fun ListingDetailScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
+            // Reserve must NOT be tappable while the listing payload is still
+            // a navigation seed (no real price, no real availability) or is
+            // mid-fetch.  Tapping through with seed data lets the user open
+            // the Reserve sheet against fields that aren't yet authoritative
+            // and produces a confusing "couldn't get a price quote" error
+            // downstream in checkout.
+            val pricing = listing?.pricing
+            val priceKnown = (pricing?.hourlyFrom ?: pricing?.basePrice)
+                ?.let { it > 0 } == true
+            val canReserve = listing != null &&
+                !uiState.isLoading &&
+                !uiState.isFromSeed &&
+                priceKnown
             BookingBar(
-                pricingLabel = listing?.pricing?.displayPrimary,
+                pricingLabel = pricing?.displayPrimary,
                 available = listing?.available,
                 instantBook = listing?.instantBook,
                 isOnline = listing?.isOnlineOnly == true,
+                canReserve = canReserve,
                 onReserveClick = { showReserveSheet = true }
             )
         }
@@ -1383,6 +1397,7 @@ private fun BookingBar(
     available: Boolean? = null,
     instantBook: Boolean? = null,
     isOnline: Boolean = false,
+    canReserve: Boolean = true,
     onReserveClick: () -> Unit
 ) {
     val isAvailable = available != false
@@ -1390,6 +1405,7 @@ private fun BookingBar(
     // request-to-book ("Request to book") on the primary CTA so guests know
     // whether their card will be charged immediately or after host approval.
     val ctaLabel = when {
+        !canReserve -> "Loading…"
         !isAvailable -> "Unavailable"
         instantBook == false -> "Request to book"
         else -> "Reserve"
@@ -1436,7 +1452,7 @@ private fun BookingBar(
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
                 Button(
                     onClick = onReserveClick,
-                    enabled = isAvailable,
+                    enabled = isAvailable && canReserve,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PaceDreamColors.Primary,

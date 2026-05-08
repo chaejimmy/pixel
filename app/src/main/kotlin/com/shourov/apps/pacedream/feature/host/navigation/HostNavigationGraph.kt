@@ -20,7 +20,7 @@ import com.shourov.apps.pacedream.feature.host.presentation.HostSettingsScreen
 import com.shourov.apps.pacedream.feature.host.presentation.ListingCalendarScreen
 import com.shourov.apps.pacedream.feature.host.presentation.StripeConnectOnboardingScreen
 import com.pacedream.app.feature.profile.EditProfileScreen
-import com.pacedream.app.feature.bookings.BookingDetailScreen
+import com.pacedream.app.feature.bookings.HostBookingDetailScreen
 import com.pacedream.app.feature.inbox.InboxScreen
 import com.pacedream.app.feature.inbox.ThreadScreen
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -91,13 +91,15 @@ fun NavGraphBuilder.HostNavigationGraph(
         )
     }
 
-    // Host-side booking detail — reuses the shared BookingDetailScreen.
-    // The ViewModel reads bookingId from SavedStateHandle automatically.
+    // Host-side booking detail.  Disambiguated from the guest screen by
+    // name (HostBookingDetailScreen) so an accidental import doesn't
+    // silently render the wrong UI.  The ViewModel reads bookingId from
+    // SavedStateHandle automatically.
     composable(
         route = HostNavigationDestinations.BOOKING_DETAILS,
         arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
     ) {
-        BookingDetailScreen(
+        HostBookingDetailScreen(
             onBack = { navController.popBackStack() }
         )
     }

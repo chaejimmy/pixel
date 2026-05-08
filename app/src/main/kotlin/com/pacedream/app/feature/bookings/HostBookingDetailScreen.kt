@@ -63,9 +63,16 @@ import com.pacedream.common.icon.PaceDreamIcons
 // the 4/8/16/24 grid but is the deliberate design for booking/listing detail screens.
 private val BookingDetailGutter = 20.dp
 
+/**
+ * Host-side booking detail screen.  Renamed from `BookingDetailScreen`
+ * to disambiguate from the guest-side
+ * `com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen`.
+ * The two used to share a name across packages, which made it easy to
+ * import the wrong one and silently render the wrong UI.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookingDetailScreen(
+fun HostBookingDetailScreen(
     onBack: () -> Unit,
     onContactHost: (String) -> Unit = {},
     onWriteReview: (bookingId: String, listingId: String, title: String, location: String, status: String) -> Unit = { _, _, _, _, _ -> },

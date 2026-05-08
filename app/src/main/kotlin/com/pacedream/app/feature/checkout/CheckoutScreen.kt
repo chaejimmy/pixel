@@ -1273,8 +1273,15 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                // Defence in depth: even if a ViewModel slipped a raw
+                // server string through (e.g. the historical "Server error
+                // 200: ..." body), [UserFacingErrorMapper] sanitises it
+                // before render.  Previously the screen just `removePrefix`-
+                // stripped that single literal, which left every other
+                // technical leak (HTTP/JSON/null-response strings) on
+                // screen.
                 Text(
-                    message.removePrefix("Server error 200: "),
+                    com.pacedream.common.util.UserFacingErrorMapper.mapMessage(message),
                     color = PaceDreamColors.OnErrorContainer,
                     style = PaceDreamTypography.Callout,
                     modifier = Modifier.weight(1f)

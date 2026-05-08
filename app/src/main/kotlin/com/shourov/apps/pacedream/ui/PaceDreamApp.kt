@@ -52,6 +52,23 @@ fun PaceDreamApp(
             }
         }
     }
+
+    // Surface one-shot messages emitted by handleDeepLink (e.g. Stripe
+    // Connect return, mode switches) so they are visible to the user
+    // even when the navigation target isn't a fresh screen.
+    LaunchedEffect(appState) {
+        appState.deepLinkMessages.collect { message ->
+            try {
+                android.widget.Toast.makeText(
+                    context,
+                    message,
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "Failed to show deep-link toast: $message")
+            }
+        }
+    }
     
     // Wi-Fi session pill is rendered above the Scaffold so it stays visible
     // across host/guest mode and across tabs/screens. The host composable
