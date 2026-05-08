@@ -61,18 +61,28 @@ android {
 }
 ```
 
-### 2. Environment Variables (Optional)
+### 2. secrets.properties (recommended)
 
-You can also use environment variables or a `local.properties` file:
+In practice the BuildConfig fields above are populated from `secrets.properties`
+at the repo root (gitignored). Copy the template and fill in real values:
+
+```bash
+cp secrets.properties.template secrets.properties
+```
 
 ```properties
-# local.properties
-BACKEND_BASE_URL=https://pacedream-backend.onrender.com
-PD_BACKEND_BASE_URL=https://pacedream-backend.onrender.com
+# secrets.properties (NOT committed to git)
+PD_ENVIRONMENT=production
+SERVICE_URL=https://pacedream-backend.onrender.com/v1/
 FRONTEND_BASE_URL=https://www.pacedream.com
-AUTH0_DOMAIN=your-tenant.us.auth0.com
-AUTH0_CLIENT_ID=your-client-id
+AUTH0_DOMAIN=<your-prod-tenant>.us.auth0.com   # must NOT start with dev- for release
+AUTH0_CLIENT_ID=<your-prod-auth0-client-id>
+STRIPE_PUBLISHABLE_KEY=pk_live_<rest-of-key>
 ```
+
+For CI, pass `-PstripePublishableKey=…` / `-Pauth0ClientId=…` as Gradle properties
+instead of writing the file. `local.properties` is **not** read for these — only
+for `sdk.dir`.
 
 ## Auth0 Setup
 

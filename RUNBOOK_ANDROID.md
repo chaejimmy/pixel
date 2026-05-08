@@ -9,13 +9,22 @@
 
 ### Required Secrets (must be set before building)
 
+Real values go in `secrets.properties` at the repo root (gitignored). Loading
+priority is `secrets.defaults.properties` (placeholders, checked in) →
+`secrets.properties` (your overrides) → `~/.gradle/gradle.properties` or `-P`
+flags (highest). Release builds are blocked by the guard in
+`app/build.gradle.kts` if Stripe/Auth0/PD_ENVIRONMENT still hold dev values.
+
 | Key | Location | Description |
 |-----|----------|-------------|
-| `auth0ClientId` | `local.properties` or CI env | Auth0 application client ID |
-| `stripePublishableKey` | `local.properties` or CI env | Stripe publishable API key |
-| Release keystore | `keystore.properties` | Play Store signing keystore (not debug) |
+| `AUTH0_DOMAIN` | `secrets.properties` | Auth0 tenant — must NOT start with `dev-` for release builds |
+| `AUTH0_CLIENT_ID` (alias `auth0ClientId` for `-P` flag) | `secrets.properties` or `-Pauth0ClientId=…` | Auth0 prod Android client ID |
+| `STRIPE_PUBLISHABLE_KEY` (alias `stripePublishableKey` for `-P` flag) | `secrets.properties` or `-PstripePublishableKey=…` | Stripe `pk_live_…`; `pk_test_` and blank are rejected for release |
+| `PD_ENVIRONMENT` | `secrets.properties` | Must be `production` for release |
+| `ONESIGNAL_APP_ID` | `secrets.properties` | OneSignal prod app UUID |
+| `GOOGLE_MAPS_API_KEY` | `secrets.properties` | Android-specific Maps SDK key (separate from iOS) |
+| `RELEASE_KEYSTORE_FILE` / `_PASSWORD` / `RELEASE_KEY_ALIAS` / `_PASSWORD` | `secrets.properties` | Play Store signing; falls back to debug signing if absent |
 | `google-services.json` | `app/` | Firebase project config (per flavor) |
-| Google Maps API key | `app/src/main/res/values/strings.xml` or Secrets Gradle Plugin | Maps SDK key |
 
 ### Required Infrastructure
 
@@ -51,12 +60,25 @@ This regenerates `pacedream_launcher.webp` and `pacedream_launcher_round.webp` i
 
 ## Build Steps
 
-### 1. Configure local.properties
+### 1. Configure secrets.properties
 
-```properties
-# Add to local.properties (NOT committed to git)
-auth0ClientId=<your-auth0-client-id>
-stripePublishableKey=<your-stripe-publishable-key>
+Copy the template and fill in real production values (file is gitignored):
+
+```bash
+cp secrets.properties.template secrets.properties
+# then edit secrets.properties — at minimum set:
+#   PD_ENVIRONMENT=production
+#   AUTH0_DOMAIN=<your prod tenant, NOT starting with dev->
+#   AUTH0_CLIENT_ID=<your prod Android client ID>
+#   STRIPE_PUBLISHABLE_KEY=pk_live_<rest-of-key>
+```
+
+CI alternative — pass values as Gradle properties instead of writing the file:
+
+```bash
+./gradlew :app:bundleProdRelease \
+  -PstripePublishableKey=pk_live_… \
+  -Pauth0ClientId=…
 ```
 
 ### 2. Build Release APK / AAB
