@@ -47,21 +47,35 @@ com.pacedream.app://auth0
 
 **Note:** The app uses `pacedream://callback` as the primary callback URL, which is already configured in `AndroidManifest.xml`.
 
-### Step 3: Add Auth0 Configuration to secrets.defaults.properties
+### Step 3: Add Auth0 Configuration to secrets.properties
 
-Open `secrets.defaults.properties` in the project root and add your Auth0 credentials:
+Real Auth0 credentials go in `secrets.properties` at the repo root (gitignored).
+**Do not put real credentials in `secrets.defaults.properties` — that file is
+checked into git and is for development placeholders only.**
+
+If `secrets.properties` doesn't exist yet, copy it from the template:
+
+```bash
+cp secrets.properties.template secrets.properties
+```
+
+Then edit `secrets.properties` and set:
 
 ```properties
 # Backend API URL
-SERVICE_URL="https://pacedream-backend.onrender.com/v1/"
+SERVICE_URL=https://pacedream-backend.onrender.com/v1/
 
 # Auth0 Configuration (REQUIRED)
-AUTH0_DOMAIN=dev-pacedream.us.auth0.com
-AUTH0_CLIENT_ID=your-actual-auth0-client-id-here
-AUTH0_AUDIENCE=https://dev-pacedream.us.auth0.com/api/v2/
+# For RELEASE builds, AUTH0_DOMAIN must NOT start with `dev-` — the gradle
+# release guard in app/build.gradle.kts rejects dev tenants. For local debug
+# builds the dev tenant from secrets.defaults.properties is used automatically.
+AUTH0_DOMAIN=<your-prod-tenant>.us.auth0.com
+AUTH0_CLIENT_ID=<your-prod-android-client-id>
+AUTH0_AUDIENCE=https://<your-prod-tenant>.us.auth0.com/api/v2/
 ```
 
-**Important:** Replace `your-actual-auth0-client-id-here` with your actual Auth0 Client ID from the Auth0 Dashboard.
+Replace each placeholder with the real value from the Auth0 Dashboard
+(Applications → your Android Native app → Settings).
 
 ### Step 4: Rebuild the App
 
@@ -72,7 +86,7 @@ After adding the Auth0 configuration, rebuild the app:
 ```
 
 This will:
-1. Read the Auth0 configuration from `secrets.defaults.properties`
+1. Read the Auth0 configuration from `secrets.properties` (falling back to the dev defaults in `secrets.defaults.properties` if `secrets.properties` is absent)
 2. Generate BuildConfig fields (`AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_AUDIENCE`)
 3. Make these values available to the app at runtime
 
