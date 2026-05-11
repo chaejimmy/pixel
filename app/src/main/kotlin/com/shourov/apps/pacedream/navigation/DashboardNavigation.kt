@@ -1474,6 +1474,7 @@ private fun String.encodePathSegment(): String =
  * an empty shell with broken interactions (e.g. ThreadScreen with an
  * empty currentUserId, NotificationCenter receiving 401s).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SignInRequiredState(
     title: String,
