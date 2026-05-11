@@ -25,9 +25,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import com.pacedream.common.R
 import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.buttons.PrimaryTextButton
@@ -53,8 +56,10 @@ fun SignIn(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -139,7 +144,12 @@ fun SignIn(
                     onClick = {
                         viewModel.forgotPassword(
                             onSuccess = { message ->
-                                snackbarHostState.currentSnackbarData?.dismiss()
+                                // Surface the backend's confirmation so the user
+                                // knows the reset email was sent. Was previously
+                                // an empty lambda that dismissed nothing (C-02).
+                                snackbarScope.launch {
+                                    snackbarHostState.showSnackbar(message)
+                                }
                             }
                         )
                     },

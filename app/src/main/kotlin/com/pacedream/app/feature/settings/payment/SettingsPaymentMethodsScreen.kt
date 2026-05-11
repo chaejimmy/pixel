@@ -473,8 +473,13 @@ private fun PaymentMethodCard(
                 }
 
                 if (method.isDefault) {
+                    // Disabled tonal button used as a non-interactive
+                    // "Default" status badge — enabled = false guarantees the
+                    // onClick can never fire. We could swap to a Surface/Chip,
+                    // but that would lose the tonal-button visual treatment
+                    // the rest of Settings uses.
                     FilledTonalButton(
-                        onClick = {},
+                        onClick = { /* status badge — enabled = false, never fires */ },
                         enabled = false
                     ) {
                         Text("Default")
