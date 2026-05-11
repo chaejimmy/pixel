@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +60,24 @@ import com.pacedream.common.composables.components.PaceDreamEmptyState
 import com.pacedream.common.composables.components.PaceDreamErrorState
 import com.pacedream.common.composables.components.PaceDreamLockedState
 
+/**
+ * Test tags for the Bookings screen — used by Espresso/Compose-UI tests
+ * to address the screen root, the filter tab strip, the booking list,
+ * and the primary "View details" CTA on each card. Kept in this file
+ * (matching the HomeTestTags / SearchTestTags pattern from 2026-04-23)
+ * so the tag list lives next to the code that emits them and stays
+ * trivially greppable.
+ */
+object BookingsTestTags {
+    const val Root = "bookings_screen_root"
+    const val TabPicker = "bookings_tab_picker"
+    const val List = "bookings_list"
+    const val Card = "bookings_card"
+    const val ViewDetailsButton = "bookings_view_details_button"
+    const val EmptyState = "bookings_empty_state"
+    const val ErrorState = "bookings_error_state"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(
@@ -72,6 +91,7 @@ fun BookingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
+            .testTag(BookingsTestTags.Root)
     ) {
         // ── Header (matching iOS: title + count + filter tabs) ──
         BookingsHeader(
@@ -98,7 +118,9 @@ fun BookingsScreen(
                         title = "Couldn't load bookings",
                         description = uiState.error ?: "An unexpected error occurred",
                         onRetryClick = { viewModel.refresh() },
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(BookingsTestTags.ErrorState)
                     )
                 }
 
@@ -135,7 +157,9 @@ fun BookingsScreen(
                             else -> "Start exploring and find your next stay!"
                         },
                         icon = emptyConfig.first,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(BookingsTestTags.EmptyState)
                     )
                 }
 
@@ -143,7 +167,9 @@ fun BookingsScreen(
                 else -> {
                     // Inline error banner if there's an error but we still have data
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(BookingsTestTags.List),
                         contentPadding = PaddingValues(
                             horizontal = PaceDreamSpacing.MD,
                             vertical = PaceDreamSpacing.SM2
@@ -244,7 +270,8 @@ private fun BookingTabPicker(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+            .horizontalScroll(rememberScrollState())
+            .testTag(BookingsTestTags.TabPicker),
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         BookingTab.entries.forEach { tab ->
@@ -329,7 +356,9 @@ private fun UnifiedBookingCard(
     onViewDetails: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(BookingsTestTags.Card),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -511,7 +540,8 @@ private fun UnifiedBookingCard(
                     onClick = onViewDetails,
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp),
+                        .height(44.dp)
+                        .testTag(BookingsTestTags.ViewDetailsButton),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PaceDreamColors.Primary
                     ),

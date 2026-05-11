@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,6 +106,22 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 // 4/8/16/24 grid but is the deliberate iOS-parity design for the detail screen.
 private val ListingDetailGutter = 20.dp
 
+/**
+ * Test tags for the listing detail screen — used by Espresso to address
+ * the screen root, the bottom booking bar / Reserve CTA, and the
+ * top-bar Back / Favorite / Share buttons. Matches the in-file pattern
+ * established by [com.pacedream.app.feature.home.HomeTestTags].
+ */
+object ListingDetailTestTags {
+    const val Root = "listing_detail_root"
+    const val BackButton = "listing_detail_back_button"
+    const val ShareButton = "listing_detail_share_button"
+    const val FavoriteButton = "listing_detail_favorite_button"
+    const val BookingBar = "listing_detail_booking_bar"
+    const val ReserveButton = "listing_detail_reserve_button"
+    const val ErrorState = "listing_detail_error_state"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListingDetailScreen(
@@ -146,6 +163,7 @@ fun ListingDetailScreen(
     val listing = uiState.listing
 
     Scaffold(
+        modifier = Modifier.testTag(ListingDetailTestTags.Root),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             // Reserve must NOT be tappable while the listing payload is still
@@ -179,6 +197,7 @@ fun ListingDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
+                        .testTag(ListingDetailTestTags.ErrorState)
                 )
             }
 
@@ -1411,6 +1430,7 @@ private fun BookingBar(
         else -> "Reserve"
     }
     Surface(
+        modifier = Modifier.testTag(ListingDetailTestTags.BookingBar),
         shadowElevation = 12.dp,
         color = PaceDreamColors.Surface,
         tonalElevation = 0.dp
@@ -1453,6 +1473,7 @@ private fun BookingBar(
                 Button(
                     onClick = onReserveClick,
                     enabled = isAvailable && canReserve,
+                    modifier = Modifier.testTag(ListingDetailTestTags.ReserveButton),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PaceDreamColors.Primary,
@@ -1522,7 +1543,10 @@ private fun HeroGallery(
                 .align(Alignment.TopStart)
                 .padding(PaceDreamSpacing.MD)
         ) {
-            IconButton(onClick = onBackClick) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.testTag(ListingDetailTestTags.BackButton),
+            ) {
                 Icon(
                     imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
@@ -1539,15 +1563,22 @@ private fun HeroGallery(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
-                IconButton(onClick = onShare) {
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier.testTag(ListingDetailTestTags.ShareButton),
+                ) {
                     Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = Color.White)
                 }
             }
             Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
-                IconButton(onClick = onToggleFavorite) {
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.testTag(ListingDetailTestTags.FavoriteButton),
+                ) {
                     Icon(
                         imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
-                        contentDescription = "Favorite",
+                        // Dynamic label so TalkBack tells the user what tap will do.
+                        contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                         tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White
                     )
                 }
