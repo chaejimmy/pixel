@@ -46,7 +46,9 @@ fun ProfileTabScreen(
     onDestinationsClick: () -> Unit = {},
     onBookingsClick: () -> Unit = {},
     onWishlistClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {}
+    onNotificationsClick: () -> Unit = {},
+    onPostRequestClick: () -> Unit = {},
+    onMyRequestsClick: () -> Unit = {},
 ) {
     val viewModel: ProfileTabViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,6 +132,32 @@ fun ProfileTabScreen(
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                             SwitchToHostModeEntry(onClick = onSwitchToHostMode)
                         }
+                    }
+
+                    // "Post a Request" + "My Requests" — web-parity entry
+                    // for the /v1/requests product. Placed above Settings so
+                    // it sits within the user's primary actions, not buried
+                    // under preferences.
+                    item {
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        ProfileMenuSection(
+                            section = ProfileMenuSection(
+                                title = "Requests",
+                                items = listOf(
+                                    ProfileMenuItem(
+                                        label = "Post a Request",
+                                        icon = PaceDreamIcons.AddCircle,
+                                        onClick = onPostRequestClick,
+                                    ),
+                                    ProfileMenuItem(
+                                        label = "My Requests",
+                                        icon = PaceDreamIcons.Bookmarks,
+                                        onClick = onMyRequestsClick,
+                                    ),
+                                )
+                            ),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
+                        )
                     }
 
                     // Settings shortcuts — iOS parity: Account settings + Notifications + Help Center
