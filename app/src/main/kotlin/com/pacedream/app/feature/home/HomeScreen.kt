@@ -1259,7 +1259,7 @@ private fun BookingModeBadge(
         available == false -> {
             Surface(
                 shape = RoundedCornerShape(PaceDreamRadius.SM),
-                color = Color.Black.copy(alpha = 0.65f)
+                color = scrimOnImage(0.65f)
             ) {
                 Text(
                     text = "Unavailable",
@@ -1268,7 +1268,7 @@ private fun BookingModeBadge(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.3.sp
                     ),
-                    color = Color.White,
+                    color = OnBrandSurface,
                     modifier = Modifier.padding(
                         horizontal = PaceDreamSpacing.SM,
                         vertical = PaceDreamSpacing.XS
@@ -1291,7 +1291,7 @@ private fun BookingModeBadge(
                     Icon(
                         imageVector = PaceDreamIcons.Bolt,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(10.dp)
                     )
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -1302,7 +1302,7 @@ private fun BookingModeBadge(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.3.sp
                         ),
-                        color = Color.White
+                        color = OnBrandSurface
                     )
                 }
             }
@@ -2097,9 +2097,10 @@ private fun TrendingDestinationCard(
         ) {
             Text(
                 text = destination.title,
-                style = DSTypo.Headline.copy(
+                // Token-driven sizes: large cards get Headline (17sp Bold), small
+                // cards get Subheadline (15sp Bold). Was inline 18.sp/15.sp.
+                style = (if (isLarge) DSTypo.Headline else DSTypo.Subheadline).copy(
                     fontFamily = paceDreamFontFamily,
-                    fontSize = if (isLarge) 18.sp else 15.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 color = OnBrandSurface,
@@ -2212,11 +2213,7 @@ private fun ThreeStepsCTASection(
             ) {
                 Text(
                     text = "Get Started",
-                    style = DSTypo.Headline.copy(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = DSTypo.CalloutBold.copy(fontFamily = paceDreamFontFamily),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
@@ -2248,11 +2245,7 @@ private fun StepCard(
             ) {
                 Text(
                     text = "$stepNumber",
-                    style = DSTypo.Headline.copy(
-                        fontFamily = paceDreamFontFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = DSTypo.CalloutBold.copy(fontFamily = paceDreamFontFamily),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
@@ -2441,9 +2434,9 @@ private fun EmptyState(
         ) {
             Text(
                 text = "Retry",
-                style = DSTypo.Headline.copy(
+                style = DSTypo.Subheadline.copy(
                     fontFamily = paceDreamFontFamily,
-                    fontSize = 15.sp
+                    fontWeight = FontWeight.SemiBold
                 ),
                 color = MaterialTheme.colorScheme.onPrimary
             )
