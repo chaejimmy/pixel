@@ -289,7 +289,12 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
 
-
+    // Instrumented tests — currently only SemanticsTraceTest (a11y dump
+    // of ListingDetailScreen). Compose UI test BOM is provided by the
+    // android.application.compose convention plugin; just pull in
+    // ui-test-junit4 here so `createComposeRule()` is on the test
+    // classpath.
+    androidTestImplementation(libs.androidx.compose.ui.test)
 
     baselineProfile(projects.benchmarks)
 }
