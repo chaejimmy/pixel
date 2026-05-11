@@ -1,0 +1,54 @@
+id,file,line,status,commit_sha,notes
+C-01,feature/signin/.../signIn/SignInScreen.kt,145,FIXED,pre-session,login success now navigates to DASHBOARD_ROUTE with popUpTo(0); current line ~152
+C-02,feature/signin/.../signIn/SignInScreen.kt,129,FIXED,49503db,Phase 2 added SnackbarHost + rememberCoroutineScope; success message surfaced via showSnackbar(message)
+C-03,core/ui/.../core/ui/PhoneEntryScreen.kt,111,FIXED,pre-session+49503db,bypass already removed pre-session; Phase 2 added PhoneEntryViewModelValidationTest to lock the gate
+C-04,common/.../components/BaseeScreen.kt,55,FIXED,pre-session,back button now wired to onBackClick parameter via RoundIconButton
+C-05,feature/home/presentation/.../components/DealsCard.kt,156,FIXED,pre-session,Rent Now button now uses hoisted onClick parameter
+C-06,feature/home/presentation/.../components/DealsCard.kt,281,FIXED,pre-session,Book Now button now uses hoisted onClick parameter
+C-07,feature/home/presentation/.../components/DealsCard.kt,349,FIXED,pre-session,Rent Now (gear) button now uses hoisted onClick parameter
+C-08,app/.../pacedream/app/feature/home/HomeScreen.kt,97,FIXED,pre-session,onNotificationClick hoisted to caller; DashboardNavigation:323 navigates to "notifications"
+C-09,app/.../feature/roommate/RoommateFinderScreen.kt,235,REMOVED,pre-session,RoommateFinder feature deleted entirely; FeatureFlags.ROOMMATE_FINDER added in 49503db gates any re-introduction
+C-10,app/.../feature/roommate/RoommateFinderScreen.kt,80,REMOVED,pre-session,RoommateFinder feature deleted entirely; see C-09
+C-11,app/.../bookingdetail/BookingDetailScreen.kt,67,FIXED,pre-session,onWriteReview defaults to no-op but DashboardNavigation supplies a real handler that navigates to write_review
+H-01,app/.../ui/PaceDreamApp.kt,62,FIXED,pre-session,cross-NavHost host-mode property nav removed; host now switches to guest mode and lands on Home (no silent failure)
+H-02,app/.../ui/PaceDreamApp.kt,66,FIXED,pre-session,host-mode booking nav removed entirely; host self-contains
+H-03,app/.../navigation/DashboardNavigation.kt,746,FIXED,pre-session,Apply Filters now writes to SearchFiltersStore via EntryPoint at current line ~937
+H-04,app/.../navigation/DashboardNavigation.kt,932,FIXED,pre-session,listing_calendar/{listingId} route now registered in dashboard NavHost at current line ~1177
+H-05,feature/signin/.../signIn/SignInScreen.kt,165,FIXED,pre-session,Terms/Privacy use buildAnnotatedString + UriHandler at current lines ~174-201
+H-06,feature/signin/.../createAccount/CreateAccountScreen.kt,150,FIXED,pre-session,same pattern as H-05; UriHandler.openUri called from ClickableText onClick
+H-07,feature/chat/.../ChatScreen.kt,251,REMOVED,pre-session,call/video IconButtons removed; comment placeholder at line 251 documents the removal pending real calling feature
+H-08,app/.../settings/SettingsRootScreen.kt,71,FIXED,pre-session,onLogoutClick is now a required parameter (no default value); call site supplies profileAuthGate.signOut()
+H-09,app/.../settings/SettingsRootScreen.kt,70,FIXED,pre-session,onIdentityVerificationClick is now a required parameter (no default value)
+H-10,app/.../feature/roommate/RoommateFinderScreen.kt,73,REMOVED,pre-session,RoommateFinder deleted; see C-09
+H-11,feature/home/presentation/.../components/DashboardContent.kt,123,DEFERRED,(none),legacy DashboardContent is now dead code (only the legacy DashboardScreen.kt calls it and that screen has no callers in DashboardNavigation); zero user impact but the file still exists
+H-12,feature/home/presentation/.../components/DashboardHeader.kt,156,FIXED,pre-session,search IconButton now wired to onSearchClick parameter at current line 161
+H-13,feature/home/presentation/.../components/DashboardHeader.kt,126,FIXED,pre-session,notification image now wrapped in Box with .clickable { onNotificationClick() } at current line 132
+H-14,common/.../inputfields/GeneralSearchBar.kt,45,FIXED,49503db,Phase 2 added optional value: String? param so callers can hoist state; uncontrolled mode preserved via internal rememberSaveable
+H-15,feature/home/presentation/.../components/FilterScreen.kt,55,FIXED,pre-session,Clear All onActionClick now resets selectedAmenities/priceRange/dates/guests at current line 77
+H-16,feature/home/presentation/.../components/FilterScreen.kt,108,FIXED,pre-session,RangeSlider re-enabled at current line 177
+H-17,common/.../texts/TitleText.kt,92,FIXED,49503db,Phase 2 added Modifier.defaultMinSize(48.dp,48.dp) + semantics { role = Role.Button }
+H-18,app/.../feature/profile/ProfileScreen.kt,49,DEFERRED,(none),the cited ProfileScreen.kt is not wired into the live nav graph (live profile uses ProfileTabScreen — see L-03); defaults exist on dead code
+M-01,app/.../checkout/ConfirmationScreen.kt,56,DEFERRED,(none),BackHandler still calls onDone() while X button still calls onBackClick — semantic mismatch unaddressed
+M-02,app/.../reviews/WriteReviewScreen.kt,241,FIXED,pre-session,onReviewSubmitted defaults to {} but DashboardNavigation:1092 supplies navController.popBackStack()
+M-03,app/.../collections/CollectionsScreen.kt,311,DEFERRED,(none),collection delete still fires immediately on tap without confirmation
+M-04,app/.../tripplanner/TripPlannerScreen.kt,255,DEFERRED,(none),trip delete still fires immediately; ApiResult.Failure -> {} still swallows errors silently
+M-05,app/.../tripplanner/TripPlannerScreen.kt,361,DEFERRED,(none),TourCard composable still has no clickable modifier
+M-06,app/.../settings/help/SettingsHelpSupportScreen.kt,127,DEFERRED,(none),email Intent still silently caught at current lines 133/155 with only a comment ("// No email client available") — no Toast or fallback UI
+M-07,app/.../feature/roommate/RoommateFinderScreen.kt,162,REMOVED,pre-session,RoommateFinder deleted; see C-09
+M-08,app/.../about/AboutUsScreen.kt,239,DEFERRED,(none),only the "Open" TextButton is clickable at current line 258; the AboutLinkItem Row is still not tappable as a whole
+M-09,app/.../navigation/DashboardNavigation.kt,897,FIXED,pre-session,DestinationListingsScreen now reads destinationId from backStackEntry.arguments at current line 1145
+M-10,common/.../inputfields/CustomInputTextField.kt,90,DEFERRED,(none),still uses `var text by remember { mutableStateOf(value) }` — captures initial value only; parent updates ignored after first composition
+M-11,common/.../inputfields/CustomPasswordField.kt,71,DEFERRED,(none),same stale-state bug as M-10
+M-12,app/.../host/presentation/HostInboxScreen.kt,17,FIXED,pre-session,screen body now just calls messagesContent() and the only nav graph entry uses InboxScreen directly; the dead onThreadClick parameter has no user impact
+M-13,app/.../host/presentation/HostListingsScreen.kt,35,FIXED,pre-session,delete now goes through an AlertDialog at current line 171 before calling onDeleteListingClick
+M-14,app/.../host/presentation/HostProfileScreen.kt,45,DEFERRED,(none),defaults remain on the composable; need to verify each call site supplies real handlers (parity work; not closed)
+M-15,app/.../host/presentation/HostSettingsScreen.kt,36,DEFERRED,(none),defaults remain on the composable; same as M-14
+M-16,feature/booking/.../BookingScreen.kt,73,DEFERRED,(none),PaceDreamHeroHeader onNotificationClick still empty placeholder comment at current line 74
+M-17,feature/chat/.../ChatListScreen.kt,65,DEFERRED,(none),PaceDreamHeroHeader onNotificationClick still empty placeholder comment at current line 66
+L-01,app/.../ui/PaceDreamApp.kt,102,DEFERRED,(none),navigationIconContentDescription = "Open navigation menu" still mislabeled at current line 111; action is popBackStack() — should read "Back"
+L-02,app/.../ui/PaceDreamApp.kt,70,FIXED,pre-session,the audited dead callbacks (onNavigateToAddListing/EditListing/Analytics/Withdraw) are no longer present on PaceDreamApp; host self-contains and the parameters were removed
+L-03,app/.../profile/presentation/ProfileTabScreen.kt,32,FIXED,pre-session,defaults remain (Compose hygiene) but all 17 callbacks are wired at DashboardNavigation:526-600 — every primary CTA has a real handler
+L-04,app/.../bidding/BiddingScreen.kt,216,DEFERRED,(none),onBackClick still defaults to {} — relies on caller to supply
+L-05,app/.../splitbooking/SplitBookingScreen.kt,262,DEFERRED,(none),onBackClick / onSplitClick still default to {}
+L-06,app/.../blog/BlogScreen.kt,224,DEFERRED,(none),onBackClick / onPostClick / onListingClick still default to {} on BlogScreen + DestinationScreen
+L-07,app/.../tripplanner/TripPlannerScreen.kt,207,DEFERRED,(none),onBackClick still defaults to {}
