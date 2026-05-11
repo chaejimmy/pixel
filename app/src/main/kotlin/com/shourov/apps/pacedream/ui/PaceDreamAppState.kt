@@ -29,7 +29,6 @@ import com.shourov.apps.pacedream.signin.navigation.START_SIGN_IN_WITH_PHONE_ROU
 import com.shourov.apps.pacedream.signin.navigation.START_WITH_EMAIL_ROUTE
 import com.shourov.apps.pacedream.signin.navigation.navigateToCreateAccountScreen
 import com.shourov.apps.pacedream.signin.navigation.navigateToEmailSignInScreen
-import com.shourov.apps.pacedream.signin.navigation.navigateToHomeScreen
 import com.shourov.apps.pacedream.signin.navigation.navigateToSignInWithPhoneScreen
 import com.shourov.apps.pacedream.signin.navigation.navigateToUserOnBoardingScreen
 import kotlinx.coroutines.CoroutineScope

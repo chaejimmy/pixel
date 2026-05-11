@@ -41,24 +41,36 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.SmallPadding
 
+/**
+ * Top-level search field used by Home / Discover.
+ *
+ * Hoist state by passing [value] (and an [onValueChange] handler). When
+ * [value] is null the bar falls back to its own `rememberSaveable` state
+ * — that's the uncontrolled mode kept for callers that don't filter on
+ * the typed query yet. Either mode still notifies [onValueChange] on
+ * every keystroke (closes the audit's H-14 "internal state cannot be
+ * read by parent" issue).
+ */
 @Composable
 fun GeneralSearchBar(
     modifier: Modifier = Modifier,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     placeholderText: String = "Search for a places",
+    value: String? = null,
     onValueChange: (String) -> Unit = {},
 ) {
-    var text by rememberSaveable { mutableStateOf("") }
+    var internalText by rememberSaveable { mutableStateOf("") }
+    val text = value ?: internalText
     BasicTextField(
         modifier = modifier
             .fillMaxWidth()
             .background(PaceDreamColors.Gray50, shape = RoundedCornerShape(PaceDreamRadius.Round))
             .padding(SmallPadding),
         value = text,
-        onValueChange = {
-            text = it
-            onValueChange(it)
+        onValueChange = { typed ->
+            if (value == null) internalText = typed
+            onValueChange(typed)
         },
         singleLine = true,
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),

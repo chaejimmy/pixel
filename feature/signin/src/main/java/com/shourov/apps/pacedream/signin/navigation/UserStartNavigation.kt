@@ -14,7 +14,6 @@ import androidx.navigation.compose.composable
 import com.shourov.apps.pacedream.core.data.UserAuthPath
 import com.shourov.apps.pacedream.core.data.UserAuthPath.EXISTING
 import com.shourov.apps.pacedream.core.data.UserAuthPath.NEW
-import com.shourov.apps.pacedream.home.HomeScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.shourov.apps.pacedream.signin.EmailSignInViewModel
@@ -30,7 +29,6 @@ const val ONBOARDING_ROUTE = "onboarding_route"
 const val START_WITH_EMAIL_ROUTE = "start_with_email_route"
 const val START_SIGN_IN_WITH_PHONE_ROUTE = "sign_in_route"
 const val CREATE_ACCOUNT_ROUTE = "create_account_route"
-const val HOME_ROUTE = "home_route"
 const val OTP_PHONE_ENTRY_ROUTE = "otp_phone_entry_route"
 const val OTP_VERIFICATION_ROUTE = "otp_verification_route/{phoneNumber}"
 const val FORGOT_PASSWORD_ROUTE = "forgot_password_route"
@@ -48,9 +46,6 @@ fun NavController.navigateToEmailSignInScreen(navOptions: NavOptions) =
 
 fun NavController.navigateToCreateAccountScreen(navOptions: NavOptions) =
     navigate(CREATE_ACCOUNT_ROUTE, navOptions)
-
-fun NavController.navigateToHomeScreen(navOptions: NavOptions) =
-    navigate(HOME_ROUTE, navOptions)
 
 fun NavController.navigateToForgotPassword() =
     navigate(FORGOT_PASSWORD_ROUTE)
@@ -145,12 +140,6 @@ fun NavGraphBuilder.userOnBoardingScreen(
         SetupScreen(
             onSetupComplete = onNavigateToAccountSetup,
         )
-    }
-
-    composable(
-        route = HOME_ROUTE,
-    ) {
-        HomeScreen()
     }
 
     composable(

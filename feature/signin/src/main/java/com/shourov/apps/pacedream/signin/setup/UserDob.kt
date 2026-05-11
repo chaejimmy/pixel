@@ -73,6 +73,6 @@ fun UserDob(
 @Preview
 @Composable
 fun DobPrev(){
-    //UserDob(onDateSelected = {})
-    CustomDateTimePickerButton(text = "", onClick = { /*TODO*/ })
+    // Preview-only — onClick is a no-op since previews don't render dialogs.
+    CustomDateTimePickerButton(text = "", onClick = { /* preview no-op */ })
 }

@@ -17,12 +17,17 @@
 package com.pacedream.common.composables.texts
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.HeadlineColor
 import com.pacedream.common.composables.theme.NormalText
 import com.pacedream.common.composables.theme.ViewAllColor
@@ -89,6 +94,11 @@ fun NormalTitleText(
     )
 }
 
+/**
+ * "View All" link rendered in section headers. Enforces a 48 dp minimum
+ * touch target and exposes [Role.Button] to TalkBack so the link reads
+ * as an interactive control rather than plain text (audit H-17).
+ */
 @Composable
 fun ViewAllText(
     modifier: Modifier = Modifier,
@@ -96,7 +106,10 @@ fun ViewAllText(
     onClick: () -> Unit = {},
 ) {
     Text(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clickable { onClick() }
+            .semantics { role = Role.Button },
         text = "View All",
         style = MaterialTheme.typography.titleSmall.copy(
             fontWeight = FontWeight.Medium,
