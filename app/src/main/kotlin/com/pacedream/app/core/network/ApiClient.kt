@@ -37,7 +37,7 @@ import javax.inject.Singleton
 
 /**
  * ApiClient - Network layer with iOS parity
- * 
+ *
  * Features:
  * - URL building via HttpUrl.Builder (NO string concatenation)
  * - Header management (Accept, Content-Type, Authorization)
@@ -46,6 +46,24 @@ import javax.inject.Singleton
  * - In-flight GET request deduplication
  * - Timeout configuration matching iOS
  * - Server message extraction from JSON
+ * - 401 → refresh-token → retry-once for every authenticated verb
+ *   (closes the audit's P1 `ANDROID_AUDIT_REPORT.md` § Finding 3)
+ *
+ * ## Why no `okhttp3.Authenticator`
+ * The 2026-04 audit recommended adding an OkHttp [okhttp3.Authenticator]
+ * for 401 handling, but the same intent is achieved here in each verb
+ * (`get` / `post` / `put` / `patch` / `delete` / `postMultipart`) via an
+ * inline retry path that calls [refreshAccessTokenIfPossible]. A single
+ * shared [refreshMutex] + `inFlightRefresh` ensures concurrent 401s do
+ * not stampede the refresh endpoint. Three reasons we kept it inline:
+ *   1. The refresh endpoint set (primary + frontend proxy fallback) is
+ *      backend-specific; an Authenticator can only return a single new
+ *      `Request`, while our flow needs a fallback chain.
+ *   2. Avoids the suspend/blocking-bridge that would be required to
+ *      orchestrate [refreshMutex] from inside an Authenticator (which
+ *      runs synchronously on the OkHttp dispatcher).
+ *   3. Avoids the DI cycle introduced by depending on `AuthRepository`
+ *      from inside the `OkHttpClient` builder.
  */
 @Singleton
 class ApiClient @Inject constructor(
