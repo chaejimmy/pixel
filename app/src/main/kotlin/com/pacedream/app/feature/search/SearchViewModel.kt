@@ -264,10 +264,24 @@ class SearchViewModel @Inject constructor(
 
 }
 
+/**
+ * Search tab segmented control. The user-facing [label] matches the
+ * website's `Use / Borrow / Split` taxonomy (`UI_UX_COMPARISON.md` § 2).
+ * The enum *names* stay `SPACES / ITEMS / SERVICES` because they feed the
+ * backend share-type mapping in [SearchViewModel] — only the strings the
+ * user reads in the segmented control changed.
+ *
+ * Note: today the `SERVICES` branch filters on-demand services, not
+ * literal split-stays. The "Split" label is therefore aspirational —
+ * a follow-up should either align the filter with split-eligible
+ * listings or rename the third tab back. Tracked alongside the larger
+ * WHAT/WHERE/DATES multi-field rebuild gated by
+ * `FeatureFlags.MULTI_FIELD_SEARCH`.
+ */
 enum class SearchTab(val label: String) {
-    SPACES("Spaces"),
-    ITEMS("Items"),
-    SERVICES("Services")
+    SPACES("Use"),
+    ITEMS("Borrow"),
+    SERVICES("Split")
 }
 
 data class SearchResultItem(
