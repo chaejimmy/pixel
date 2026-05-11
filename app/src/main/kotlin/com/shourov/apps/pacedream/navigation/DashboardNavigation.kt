@@ -546,6 +546,14 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onFaqClick = {
                                         navController.navigate("faq")
                                     },
+                                    onPostRequestClick = {
+                                        navController.navigate(
+                                            "post_request?source=profile_menu"
+                                        )
+                                    },
+                                    onMyRequestsClick = {
+                                        navController.navigate("requests")
+                                    },
                                     onAboutClick = {
                                         navController.navigate("about")
                                     },
@@ -626,6 +634,11 @@ fun NavGraphBuilder.DashboardNavigation(
                                             "support_chat?category=${category.key}&source=$source"
                                         )
                                     },
+                                    onPostRequestClick = {
+                                        navController.navigate(
+                                            "post_request?source=help_center_footer"
+                                        )
+                                    },
                                 )
                             }
 
@@ -652,6 +665,104 @@ fun NavGraphBuilder.DashboardNavigation(
                             ) {
                                 com.shourov.apps.pacedream.feature.help.chat.SupportChatScreen(
                                     onBackClick = { navController.popBackStack() },
+                                )
+                            }
+
+                            // "Post a Request" form (web parity for
+                            // POST /v1/requests). Opens with an optional
+                            // `source` query param so analytics can tell
+                            // which surface drove the post (profile/home/
+                            // search empty state/help/etc.).
+                            composable(
+                                route = "post_request?source={source}",
+                                arguments = listOf(
+                                    navArgument("source") {
+                                        type = NavType.StringType
+                                        defaultValue = "unknown"
+                                    },
+                                ),
+                            ) {
+                                com.shourov.apps.pacedream.feature.wanted.presentation.CreateRequestScreen(
+                                    onBack = { navController.popBackStack() },
+                                    onCreated = { requestId ->
+                                        // Replace the form on the back
+                                        // stack with the success screen so
+                                        // Back from success returns the
+                                        // user to where they came from,
+                                        // not to a half-filled form.
+                                        navController.navigate(
+                                            "post_request_success/$requestId"
+                                        ) {
+                                            popUpTo("post_request?source={source}") {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
+                                )
+                            }
+
+                            // Post-success confirmation. Surfaces a
+                            // "Track my requests" CTA so users always
+                            // know where their post landed.
+                            composable(
+                                route = "post_request_success/{requestId}",
+                                arguments = listOf(
+                                    navArgument("requestId") {
+                                        type = NavType.StringType
+                                    },
+                                ),
+                            ) { backStackEntry ->
+                                val id = backStackEntry.arguments?.getString("requestId").orEmpty()
+                                com.shourov.apps.pacedream.feature.wanted.presentation.PostRequestSuccessScreen(
+                                    requestId = id,
+                                    onViewMyRequests = {
+                                        navController.navigate("requests") {
+                                            popUpTo("post_request_success/{requestId}") {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
+                                    onPostAnother = {
+                                        navController.navigate(
+                                            "post_request?source=success_post_another"
+                                        ) {
+                                            popUpTo("post_request_success/{requestId}") {
+                                                inclusive = true
+                                            }
+                                        }
+                                    },
+                                    onClose = { navController.popBackStack() },
+                                )
+                            }
+
+                            // "My Requests" list — where users can track
+                            // the requests they've posted and see offers.
+                            composable("requests") {
+                                com.shourov.apps.pacedream.feature.wanted.presentation.RequestsScreen(
+                                    onRequestClick = { id ->
+                                        navController.navigate("requests/$id")
+                                    },
+                                    onCreateClick = {
+                                        navController.navigate(
+                                            "post_request?source=requests_list_fab"
+                                        )
+                                    },
+                                )
+                            }
+
+                            // Request detail page (offer list, etc.).
+                            composable(
+                                route = "requests/{requestId}",
+                                arguments = listOf(
+                                    navArgument("requestId") {
+                                        type = NavType.StringType
+                                    },
+                                ),
+                            ) { backStackEntry ->
+                                val id = backStackEntry.arguments?.getString("requestId").orEmpty()
+                                com.shourov.apps.pacedream.feature.wanted.presentation.RequestDetailScreen(
+                                    requestId = id,
+                                    onBack = { navController.popBackStack() },
                                 )
                             }
 

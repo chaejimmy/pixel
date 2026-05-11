@@ -30,14 +30,74 @@ data class WantedOffer(
     val createdAt: String? = null,
 )
 
-/** Request categories shown in the create screen. */
+// ============================================================================
+// Web-parity taxonomy
+//
+// The backend at POST /v1/requests requires `type` to be one of the keys
+// below and `category` to be from the per-type list. Display labels are
+// surfaced in the UI; keys are what hit the wire.
+// ============================================================================
+
+enum class WantedType(val key: String, val label: String, val subtitle: String) {
+    Space("space", "A space",
+        "A room, parking spot, desk, studio, etc."),
+    Item("item", "An item",
+        "A camera, tool, gear, or anything you can borrow."),
+    Service("service", "A service",
+        "Help, delivery, tutoring, moving, and more."),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): WantedType =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Space
+    }
+}
+
+data class WantedCategoryOption(val key: String, val label: String)
+
+/**
+ * Built-in starter set of categories per type. Keys match the most common
+ * web values; the backend is the source of truth and may extend this list
+ * over time. A future `GET /v1/categories` endpoint should drive this
+ * dynamically — see the API assumptions in the PR description.
+ */
+val WantedCategoriesByType: Map<WantedType, List<WantedCategoryOption>> = mapOf(
+    WantedType.Space to listOf(
+        WantedCategoryOption("parking", "Parking"),
+        WantedCategoryOption("workspace", "Workspace"),
+        WantedCategoryOption("meeting_room", "Meeting room"),
+        WantedCategoryOption("study_room", "Study room"),
+        WantedCategoryOption("short_stay", "Short stay"),
+        WantedCategoryOption("apartment", "Apartment"),
+        WantedCategoryOption("storage", "Storage"),
+        WantedCategoryOption("gym", "Gym"),
+        WantedCategoryOption("other", "Other"),
+    ),
+    WantedType.Item to listOf(
+        WantedCategoryOption("camera", "Camera"),
+        WantedCategoryOption("gear", "Outdoor gear"),
+        WantedCategoryOption("electronics", "Electronics"),
+        WantedCategoryOption("sports", "Sports equipment"),
+        WantedCategoryOption("tools", "Tools"),
+        WantedCategoryOption("other", "Other"),
+    ),
+    WantedType.Service to listOf(
+        WantedCategoryOption("home_help", "Home help"),
+        WantedCategoryOption("moving", "Moving"),
+        WantedCategoryOption("delivery", "Delivery"),
+        WantedCategoryOption("tutoring", "Tutoring"),
+        WantedCategoryOption("other", "Other"),
+    ),
+)
+
+/**
+ * @deprecated Kept temporarily so other call sites compile during migration.
+ * Use [WantedType] for the top-level taxonomy.
+ */
 val WantedCategories: List<String> = listOf(
-    "Stay",
-    "Service",
-    "Gear",
-    "Ride",
-    "Help",
-    "Other",
+    WantedType.Space.label,
+    WantedType.Item.label,
+    WantedType.Service.label,
 )
 
 sealed interface RequestsListUiState {
@@ -53,11 +113,14 @@ sealed interface RequestDetailUiState {
 }
 
 data class CreateRequestForm(
-    val type: String = "Stay",
+    val type: WantedType = WantedType.Space,
+    val category: String = "parking",
     val title: String = "",
     val description: String = "",
-    val location: String = "",
-    val dateTime: String = "",
+    val locationCity: String = "",
+    val locationState: String = "",
+    val locationCountry: String = "",
+    val date: String = "",
     val budget: String = "",
     val imageUrl: String? = null,
 )

@@ -58,10 +58,8 @@ include(":feature:wishlist")
 include(":feature:inbox")
 include(":feature:webflow")
 include(":feature:wifi")
-// `:feature:wanted` is intentionally NOT included for this Android launch.
-// The module exists in the source tree but has no entry point in the
-// Android app: not depended on by `:app`, not registered in
-// `DashboardNavigation`, and no CTA/tab opens it.  Including it would
-// build dead code into the production APK.  Re-enable here once the
-// Wanted/Request flow is wired into navigation and product is ready.
-// include(":feature:wanted")
+// `:feature:wanted` powers the "Post a Request" flow (mobile parity with
+// the web `POST /v1/requests` product). It is wired into navigation via
+// `DashboardNavigation` (route: `post_request`) and surfaced from Profile
+// (quick-action row), Home (CTA card), and Search (empty state).
+include(":feature:wanted")

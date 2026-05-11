@@ -197,6 +197,7 @@ dependencies {
     implementation(projects.feature.inbox)
     implementation(projects.feature.webflow)
     implementation(projects.feature.wifi)
+    implementation(projects.feature.wanted)
     implementation(project(":feature:auth"))
 
     implementation(projects.core.common)

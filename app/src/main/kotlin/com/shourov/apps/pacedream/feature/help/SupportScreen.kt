@@ -167,6 +167,7 @@ fun SupportScreen(
     onBackClick: () -> Unit,
     onFaqClick: () -> Unit,
     onSupportChatClick: (category: SupportCategory, source: String) -> Unit = { _, _ -> },
+    onPostRequestClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -325,6 +326,19 @@ fun SupportScreen(
                             // Could not open URL
                         }
                     },
+                )
+            }
+
+            // Post a Request — web-parity discovery CTA. Users who arrive in
+            // the Help Center often can't find what they're looking for; this
+            // lets them broadcast their need to the marketplace instead of
+            // bouncing.
+            item {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                com.shourov.apps.pacedream.feature.wanted.presentation.PostRequestEntryButton(
+                    source = "help_center_footer",
+                    style = com.shourov.apps.pacedream.feature.wanted.presentation.PostRequestEntryStyle.SoftCard,
+                    onClick = onPostRequestClick,
                 )
             }
 
