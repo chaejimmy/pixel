@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.help
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,8 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.feature.help.chat.SupportCategory
+import com.shourov.apps.pacedream.feature.help.chat.toSupportCategory
 import kotlinx.coroutines.launch
 
 // MARK: - Help Center Category Model
@@ -163,6 +166,7 @@ object HelpCenterAnalytics {
 fun SupportScreen(
     onBackClick: () -> Unit,
     onFaqClick: () -> Unit,
+    onSupportChatClick: (category: SupportCategory, source: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -215,11 +219,25 @@ fun SupportScreen(
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
-                    text = "Choose a topic to get started. Support ticket creation is coming soon.",
+                    text = "Chat with us anytime — our assistant answers instantly and a teammate joins when needed.",
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextSecondary,
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            }
+
+            // Primary entry — real-time support chat. Sits above the category
+            // list so users always have a one-tap path to a human regardless
+            // of which topic they pick.
+            item {
+                SupportChatPrimaryCard(
+                    onClick = {
+                        HelpCenterAnalytics.log(
+                            HelpCenterAnalytics.Event.ContextualTapped("help_center_primary")
+                        )
+                        onSupportChatClick(SupportCategory.General, "help_center_primary")
+                    },
+                )
             }
 
             items(HelpCenterCategory.entries) { category ->
@@ -337,6 +355,20 @@ fun SupportScreen(
         ) {
             HelpCenterCategorySheetContent(
                 category = category,
+                onChatWithSupport = {
+                    scope.launch { sheetState.hide() }
+                    val resolvedCategory = category.toSupportCategory()
+                    selectedCategory = null
+                    HelpCenterAnalytics.log(
+                        HelpCenterAnalytics.Event.ContextualTapped(
+                            "help_center_category_${category.key}"
+                        )
+                    )
+                    onSupportChatClick(
+                        resolvedCategory,
+                        "help_center_category_${category.key}",
+                    )
+                },
                 onEmailSupport = {
                     val intent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:support@pacedream.com")
@@ -416,6 +448,7 @@ private fun HelpCenterCategoryCard(
 @Composable
 private fun HelpCenterCategorySheetContent(
     category: HelpCenterCategory,
+    onChatWithSupport: () -> Unit,
     onEmailSupport: () -> Unit,
     onVisitWebHelpCenter: () -> Unit,
     onClose: () -> Unit,
@@ -446,9 +479,34 @@ private fun HelpCenterCategorySheetContent(
             color = PaceDreamColors.TextSecondary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        // Primary action: jump straight into the support chat with this
+        // category preselected.
+        androidx.compose.material3.Button(
+            onClick = onChatWithSupport,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(PaceDreamRadius.MD),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = PaceDreamColors.Primary,
+                contentColor = PaceDreamColors.OnPrimary,
+            ),
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Chat,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = "Chat with support",
+                style = PaceDreamTypography.Headline,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
         Text(
-            text = "Support ticket creation is coming soon. In the meantime you can reach us by email or visit our online help center.",
-            style = PaceDreamTypography.Body,
+            text = "Our assistant replies right away. Ask for a human anytime.",
+            style = PaceDreamTypography.Footnote,
             color = PaceDreamColors.TextSecondary,
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -499,6 +557,79 @@ private fun HelpCenterCategorySheetContent(
                 text = "Close",
                 style = PaceDreamTypography.Headline,
                 color = PaceDreamColors.TextSecondary,
+            )
+        }
+    }
+}
+
+// MARK: - Primary Support Chat Card
+
+/**
+ * Featured row that opens the live support chat. Visually distinct from the
+ * generic category and "other option" rows so users can spot it at a glance.
+ */
+@Composable
+private fun SupportChatPrimaryCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Primary.copy(alpha = 0.10f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Chat,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Chat with PaceDream Support",
+                        style = PaceDreamTypography.Headline,
+                        color = PaceDreamColors.TextPrimary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                    Text(
+                        text = "LIVE",
+                        style = PaceDreamTypography.Caption2,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .background(
+                                color = PaceDreamColors.Success,
+                                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
+                Text(
+                    text = "Real-time help — assistant + human teammates.",
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
