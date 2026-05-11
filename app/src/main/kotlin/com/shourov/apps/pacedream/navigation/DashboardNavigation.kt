@@ -620,7 +620,38 @@ fun NavGraphBuilder.DashboardNavigation(
                             composable("support") {
                                 com.shourov.apps.pacedream.feature.help.SupportScreen(
                                     onBackClick = { navController.popBackStack() },
-                                    onFaqClick = { navController.navigate("faq") }
+                                    onFaqClick = { navController.navigate("faq") },
+                                    onSupportChatClick = { category, source ->
+                                        navController.navigate(
+                                            "support_chat?category=${category.key}&source=$source"
+                                        )
+                                    },
+                                )
+                            }
+
+                            // Real-time customer support chat. Optional query
+                            // params let any screen deep-link with a category
+                            // preselected and a source tag for analytics.
+                            composable(
+                                route = "support_chat?category={category}&source={source}&initialMessage={initialMessage}",
+                                arguments = listOf(
+                                    navArgument("category") {
+                                        type = NavType.StringType
+                                        defaultValue = com.shourov.apps.pacedream.feature.help.chat.SupportCategory.General.key
+                                    },
+                                    navArgument("source") {
+                                        type = NavType.StringType
+                                        defaultValue = "unknown"
+                                    },
+                                    navArgument("initialMessage") {
+                                        type = NavType.StringType
+                                        nullable = true
+                                        defaultValue = null
+                                    },
+                                ),
+                            ) {
+                                com.shourov.apps.pacedream.feature.help.chat.SupportChatScreen(
+                                    onBackClick = { navController.popBackStack() },
                                 )
                             }
 
