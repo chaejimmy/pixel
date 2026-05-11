@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +36,19 @@ import com.shourov.apps.pacedream.feature.booking.model.BookingStatusConfig
 import com.shourov.apps.pacedream.feature.booking.model.BookingStatusFilter
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabEvent
 import com.shourov.apps.pacedream.feature.booking.model.BookingTabUiState
+
+/**
+ * Test tags for the unified Bookings tab — used by Espresso to address
+ * the screen root, the All/Upcoming/Past/Cancelled tab picker, and the
+ * underlying booking list. Mirrors the in-file pattern from
+ * [com.pacedream.app.feature.home.HomeTestTags].
+ */
+object BookingTabTestTags {
+    const val Root = "booking_tab_screen_root"
+    const val TabPicker = "booking_tab_picker"
+    const val List = "booking_tab_list"
+    const val EmptyState = "booking_tab_empty_state"
+}
 
 /**
  * Bookings tab screen — iOS parity.
@@ -66,6 +80,7 @@ fun BookingTabScreen(
             .fillMaxSize()
             .background(PaceDreamColors.Background)
             .statusBarsPadding()
+            .testTag(BookingTabTestTags.Root)
     ) {
         // Header
         PaceDreamHeroHeader(
@@ -170,7 +185,8 @@ fun BookingTabScreen(
             is BookingTabUiState.Empty -> {
                 BookingsEmptyState(
                     tab = BookingStatusFilter.ALL,
-                    onExplore = onNewBookingClick
+                    onExplore = onNewBookingClick,
+                    modifier = Modifier.testTag(BookingTabTestTags.EmptyState)
                 )
             }
 
@@ -185,11 +201,14 @@ fun BookingTabScreen(
                             tab = state.statusFilter,
                             onExplore = if (state.statusFilter == BookingStatusFilter.ALL ||
                                 state.statusFilter == BookingStatusFilter.UPCOMING
-                            ) onNewBookingClick else null
+                            ) onNewBookingClick else null,
+                            modifier = Modifier.testTag(BookingTabTestTags.EmptyState)
                         )
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(BookingTabTestTags.List),
                             contentPadding = PaddingValues(
                                 horizontal = PaceDreamSpacing.MD,
                                 vertical = PaceDreamSpacing.SM
@@ -229,7 +248,8 @@ private fun BookingTabPicker(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
+            .horizontalScroll(rememberScrollState())
+            .testTag(BookingTabTestTags.TabPicker),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         BookingStatusFilter.entries.forEach { tab ->
@@ -751,7 +771,8 @@ private fun BookingCardSkeleton() {
 @Composable
 private fun BookingsEmptyState(
     tab: BookingStatusFilter,
-    onExplore: (() -> Unit)? = null
+    onExplore: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     val icon = when (tab) {
         BookingStatusFilter.ALL -> PaceDreamIcons.CalendarToday
@@ -773,7 +794,7 @@ private fun BookingsEmptyState(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = PaceDreamSpacing.LG),
         horizontalAlignment = Alignment.CenterHorizontally
