@@ -46,9 +46,12 @@ object FeatureFlags {
     const val CHAT_VOICE_VIDEO: Boolean = false
 
     /**
-     * Use / Borrow / Split tabs above the search interface
-     * (`UI_UX_COMPARISON.md` § 2). Off by default until the multi-field
-     * WHAT/WHERE/DATES search lands in Phase 5.
+     * Multi-field WHAT / WHERE / DATES search with a real date picker
+     * and a "Use my location" button (`UI_UX_COMPARISON.md` § 2). The
+     * Use / Borrow / Split *labels* are already on the segmented tabs
+     * — this flag tracks the bigger structural rebuild of the search
+     * card itself, which is not yet implemented. Off by default until
+     * the multi-field UI + location flow lands.
      */
-    const val USE_BORROW_SPLIT_TABS: Boolean = false
+    const val MULTI_FIELD_SEARCH: Boolean = false
 }
