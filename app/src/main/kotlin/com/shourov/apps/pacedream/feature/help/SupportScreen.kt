@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.feature.help
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,13 +24,23 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,6 +49,114 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import kotlinx.coroutines.launch
+
+// MARK: - Help Center Category Model
+
+/**
+ * Mobile-native Help Center categories. Each routes to a placeholder bottom
+ * sheet for now; existing flows (inbox, payments support, safety report) can
+ * be wired in later without changing call-sites.
+ */
+enum class HelpCenterCategory(
+    val key: String,
+    val title: String,
+    val subtitle: String,
+) {
+    MessageHost(
+        key = "message_host",
+        title = "Message host about a booking",
+        subtitle = "Open a conversation about an active booking.",
+    ),
+    PaymentsRefunds(
+        key = "payments_refunds",
+        title = "Payments & refunds",
+        subtitle = "Charges, receipts, and refund status.",
+    ),
+    BookingIssues(
+        key = "booking_issues",
+        title = "Booking issues",
+        subtitle = "Cancellations, dates, and listing problems.",
+    ),
+    AccountHelp(
+        key = "account_help",
+        title = "Account help",
+        subtitle = "Sign-in, verification, and profile.",
+    ),
+    SafetyConcern(
+        key = "safety_concern",
+        title = "Safety concern",
+        subtitle = "Report a safety or trust concern.",
+    ),
+    HelpArticles(
+        key = "help_articles",
+        title = "Help articles",
+        subtitle = "Browse guides and frequently asked questions.",
+    );
+}
+
+private val HelpCenterCategory.icon
+    get() = when (this) {
+        HelpCenterCategory.MessageHost -> PaceDreamIcons.Email
+        HelpCenterCategory.PaymentsRefunds -> PaceDreamIcons.Settings
+        HelpCenterCategory.BookingIssues -> PaceDreamIcons.CalendarToday
+        HelpCenterCategory.AccountHelp -> PaceDreamIcons.Person
+        HelpCenterCategory.SafetyConcern -> PaceDreamIcons.Security
+        HelpCenterCategory.HelpArticles -> PaceDreamIcons.Help
+    }
+
+/**
+ * Calm, accessible colors. Safety uses a muted amber rather than alert-red so
+ * the entry point reads as supportive, not alarming.
+ */
+private val HelpCenterCategory.tint
+    get() = when (this) {
+        HelpCenterCategory.MessageHost -> PaceDreamColors.Info
+        HelpCenterCategory.PaymentsRefunds -> PaceDreamColors.Success
+        HelpCenterCategory.BookingIssues -> PaceDreamColors.Warning
+        HelpCenterCategory.AccountHelp -> PaceDreamColors.Primary
+        HelpCenterCategory.SafetyConcern -> Color(0xFFD97442)
+        HelpCenterCategory.HelpArticles -> PaceDreamColors.Info
+    }
+
+// MARK: - Help Center Analytics
+
+/**
+ * Lightweight analytics shim — logs to logcat only. No third-party dependency
+ * is introduced; a real analytics provider can be plugged in by replacing the
+ * body of [log].
+ */
+object HelpCenterAnalytics {
+    private const val TAG = "HelpCenter"
+
+    sealed interface Event {
+        val name: String
+        val properties: Map<String, String>
+
+        data object Opened : Event {
+            override val name = "help_center_opened"
+            override val properties: Map<String, String> = emptyMap()
+        }
+
+        data class CategoryTapped(val category: HelpCenterCategory) : Event {
+            override val name = "help_category_tapped"
+            override val properties: Map<String, String>
+                get() = mapOf("category" to category.key)
+        }
+
+        data class ContextualTapped(val source: String) : Event {
+            override val name = "contextual_help_tapped"
+            override val properties: Map<String, String>
+                get() = mapOf("source" to source)
+        }
+    }
+
+    fun log(event: Event) {
+        Log.d(TAG, "${event.name} ${event.properties}")
+    }
+}
+
+// MARK: - Help Center Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +166,12 @@ fun SupportScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var selectedCategory by remember { mutableStateOf<HelpCenterCategory?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(Unit) { HelpCenterAnalytics.log(HelpCenterAnalytics.Event.Opened) }
 
     Scaffold(
         modifier = modifier,
@@ -53,7 +179,7 @@ fun SupportScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Help & Support",
+                        text = "Help Center",
                         style = PaceDreamTypography.Headline,
                     )
                 },
@@ -80,6 +206,7 @@ fun SupportScreen(
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
         ) {
             item {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
                     text = "How can we help?",
                     style = PaceDreamTypography.Title1,
@@ -88,9 +215,30 @@ fun SupportScreen(
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
                 Text(
-                    text = "Find answers or get in touch with our team.",
+                    text = "Choose a topic to get started. Support ticket creation is coming soon.",
                     style = PaceDreamTypography.Body,
                     color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            }
+
+            items(HelpCenterCategory.entries) { category ->
+                HelpCenterCategoryCard(
+                    category = category,
+                    onClick = {
+                        HelpCenterAnalytics.log(HelpCenterAnalytics.Event.CategoryTapped(category))
+                        selectedCategory = category
+                    },
+                )
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                Text(
+                    text = "Other support options",
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextSecondary,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             }
@@ -179,7 +327,184 @@ fun SupportScreen(
             }
         }
     }
+
+    val category = selectedCategory
+    if (category != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedCategory = null },
+            sheetState = sheetState,
+            containerColor = PaceDreamColors.Background,
+        ) {
+            HelpCenterCategorySheetContent(
+                category = category,
+                onEmailSupport = {
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:support@pacedream.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "Help: ${category.title}")
+                    }
+                    try { context.startActivity(intent) } catch (_: Exception) {}
+                },
+                onVisitWebHelpCenter = {
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.pacedream.com/help")))
+                    } catch (_: Exception) {}
+                },
+                onClose = {
+                    scope.launch { sheetState.hide() }
+                    selectedCategory = null
+                },
+            )
+        }
+    }
 }
+
+// MARK: - Help Center Category Card
+
+@Composable
+private fun HelpCenterCategoryCard(
+    category: HelpCenterCategory,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.MD),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = category.title,
+                tint = category.tint,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = category.title,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
+                Text(
+                    text = category.subtitle,
+                    style = PaceDreamTypography.Callout,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            }
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = PaceDreamColors.TextTertiary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+// MARK: - Help Center Category Sheet (Placeholder)
+
+@Composable
+private fun HelpCenterCategorySheetContent(
+    category: HelpCenterCategory,
+    onEmailSupport: () -> Unit,
+    onVisitWebHelpCenter: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG)
+            .padding(bottom = PaceDreamSpacing.XL),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = category.tint,
+            modifier = Modifier.size(40.dp),
+        )
+        Text(
+            text = category.title,
+            style = PaceDreamTypography.Title2,
+            color = PaceDreamColors.TextPrimary,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = category.subtitle,
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        Text(
+            text = "Support ticket creation is coming soon. In the meantime you can reach us by email or visit our online help center.",
+            style = PaceDreamTypography.Body,
+            color = PaceDreamColors.TextSecondary,
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        TextButton(
+            onClick = onEmailSupport,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Email,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = "Email Support",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        TextButton(
+            onClick = onVisitWebHelpCenter,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.Help,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = "Visit Help Center on web",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.Primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        TextButton(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "Close",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextSecondary,
+            )
+        }
+    }
+}
+
+// MARK: - Generic Support Option Card
 
 @Composable
 private fun SupportOptionCard(

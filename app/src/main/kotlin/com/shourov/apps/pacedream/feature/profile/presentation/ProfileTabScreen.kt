@@ -132,7 +132,7 @@ fun ProfileTabScreen(
                         }
                     }
 
-                    // Settings shortcuts — iOS parity: just Account settings + Notifications
+                    // Settings shortcuts — iOS parity: Account settings + Notifications + Help Center
                     item {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                         ProfileMenuSection(
@@ -140,7 +140,8 @@ fun ProfileTabScreen(
                                 title = "Settings",
                                 items = listOf(
                                     ProfileMenuItem("Account settings", PaceDreamIcons.Settings, onSettingsClick),
-                                    ProfileMenuItem("Notifications & preferences", PaceDreamIcons.Notifications, onNotificationsClick)
+                                    ProfileMenuItem("Notifications & preferences", PaceDreamIcons.Notifications, onNotificationsClick),
+                                    ProfileMenuItem("Help Center", PaceDreamIcons.Help, onHelpClick)
                                 )
                             ),
                             modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
