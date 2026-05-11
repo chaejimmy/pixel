@@ -71,30 +71,6 @@ class SessionManager @Inject constructor(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    /**
-     * Sync the legacy AuthSession (core/network) after login so that all
-     * production screens observing its authState see the change immediately.
-     *
-     * The two auth systems share the same EncryptedSharedPreferences file.
-     * Tokens are already persisted by the time this runs — we just need
-     * to tell the legacy layer to re-read them and update its in-memory
-     * StateFlows.
-     *
-     * This is a `suspend` function so callers can `await` it before returning
-     * from login/signup paths, eliminating the race where UI consumers
-     * observing the legacy `authState` still see `Unauthenticated` right
-     * after `SessionManager.authState` flipped to `Authenticated`.
-     */
-    private suspend fun syncLegacyAuthSession() {
-        Timber.d("SessionManager: syncing legacy AuthSession after login")
-        try {
-            legacyAuthSession.refreshProfile()
-        } catch (e: Exception) {
-            Timber.w(e, "SessionManager: legacy AuthSession sync failed (continuing)")
-        }
-        Timber.d("SessionManager: legacy AuthSession synced — authState=${legacyAuthSession.authState.value}")
-    }
-    
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
     
@@ -214,11 +190,12 @@ class SessionManager @Inject constructor(
                                 if (exchangeResult) {
                                     Timber.d("SessionManager: Auth0 token exchange succeeded, emitting Authenticated")
                                     _authState.value = AuthState.Authenticated
-                                    // Sync legacy AuthSession BEFORE resuming so every
-                                    // production screen that observes the legacy
-                                    // authState is already Authenticated by the time
-                                    // the login caller returns.
-                                    syncLegacyAuthSession()
+                                    // Synchronously flip the legacy auth state so every
+                                    // screen that still observes it (e.g. HomeFeedViewModel)
+                                    // sees Authenticated before continuation.resume(). The
+                                    // legacy layer fetches its own /account/me on a
+                                    // background scope — no suspend here, no race.
+                                    legacyAuthSession.markAuthenticated()
                                     // Fetch user profile in background so the UI updates immediately
                                     scope.launch { bootstrap() }
                                     continuation.resume(AuthActionResult.Success)
@@ -261,10 +238,10 @@ class SessionManager @Inject constructor(
                 if (parseAndStoreEmailToken(result.data)) {
                     Timber.d("SessionManager: token persisted, emitting Authenticated")
                     _authState.value = AuthState.Authenticated
-                    // Sync legacy AuthSession BEFORE returning to caller so
-                    // every screen observing the legacy authState sees
-                    // Authenticated immediately (closes dual-auth race).
-                    syncLegacyAuthSession()
+                    // Synchronously flip the legacy auth state so every screen
+                    // observing it sees Authenticated before this function
+                    // returns (closes the dual-auth race — Finding 2).
+                    legacyAuthSession.markAuthenticated()
                     // Fetch user profile in background so the UI updates immediately
                     scope.launch { bootstrap() }
                     Timber.d("SessionManager: login success returned to caller")
@@ -295,10 +272,10 @@ class SessionManager @Inject constructor(
                 if (parseAndStoreEmailToken(result.data)) {
                     Timber.d("SessionManager: token persisted, emitting Authenticated")
                     _authState.value = AuthState.Authenticated
-                    // Sync legacy AuthSession BEFORE returning to caller so
-                    // every screen observing the legacy authState sees
-                    // Authenticated immediately (closes dual-auth race).
-                    syncLegacyAuthSession()
+                    // Synchronously flip the legacy auth state so every screen
+                    // observing it sees Authenticated before this function
+                    // returns (closes the dual-auth race — Finding 2).
+                    legacyAuthSession.markAuthenticated()
                     // Fetch user profile in background so the UI updates immediately
                     scope.launch { bootstrap() }
                     Timber.d("SessionManager: registration success returned to caller")

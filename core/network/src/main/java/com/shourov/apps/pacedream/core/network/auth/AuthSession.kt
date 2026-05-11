@@ -12,6 +12,7 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,10 +55,18 @@ class AuthSession constructor(
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unknown)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
-    
+
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
-    
+
+    /**
+     * Internal scope for fire-and-forget profile refreshes triggered by
+     * [markAuthenticated]. Survives a single Hilt-managed session lifetime;
+     * the singleton lives as long as the process so we use SupervisorJob to
+     * keep child failures from cancelling each other.
+     */
+    private val internalScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private var apiClient: ApiClient? = null
     
     /**
@@ -66,7 +75,40 @@ class AuthSession constructor(
     fun setApiClient(client: ApiClient) {
         this.apiClient = client
     }
-    
+
+    /**
+     * Synchronously flip the legacy auth state to [AuthState.Authenticated]
+     * and kick off a background profile fetch.
+     *
+     * Closes the dual-auth race condition (P0 in `ANDROID_AUDIT_REPORT.md` §
+     * Finding 2): the new [com.pacedream.app.core.auth.SessionManager] calls
+     * this immediately after persisting tokens, so every screen that
+     * observes the legacy `authState` (e.g. `HomeFeedViewModel`) sees
+     * `Authenticated` before the login call site even returns to its
+     * caller. The follow-up [bootstrap] populates `currentUser` (including
+     * host-mode flags) without blocking the login coroutine.
+     *
+     * Replaces the previous `suspend` `syncLegacyAuthSession()` shim, which
+     * performed a redundant `/account/me` round-trip on every login.
+     */
+    fun markAuthenticated() {
+        val wasAuthenticated = _authState.value == AuthState.Authenticated
+        _authState.value = AuthState.Authenticated
+        if (wasAuthenticated) return
+        // Fire-and-forget: SessionManager has already persisted tokens, so the
+        // legacy layer just needs to fetch /account/me to populate
+        // `currentUser` with host fields. Errors here are non-fatal — the
+        // auth state stays Authenticated even if the profile fetch fails,
+        // matching the behaviour of [bootstrap].
+        internalScope.launch {
+            try {
+                bootstrap()
+            } catch (e: Exception) {
+                Timber.w(e, "AuthSession.markAuthenticated: background bootstrap failed")
+            }
+        }
+    }
+
     /**
      * Initialize auth session on app launch
      */
