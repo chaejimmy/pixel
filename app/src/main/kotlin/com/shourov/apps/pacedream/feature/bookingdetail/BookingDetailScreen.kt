@@ -1,6 +1,9 @@
 package com.shourov.apps.pacedream.feature.bookingdetail
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,6 +49,7 @@ import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.feature.help.HelpCenterAnalytics
 import com.shourov.apps.pacedream.model.BookingStatus
 import java.text.SimpleDateFormat
 
@@ -70,6 +75,7 @@ fun BookingDetailScreen(
     viewModel: BookingDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -388,6 +394,66 @@ fun BookingDetailScreen(
                         }
                     }
 
+                    // Contextual help — opens an email-based support request for
+                    // this specific booking. Tracked via HelpCenterAnalytics so
+                    // it can be wired to a future ticketing flow without changing
+                    // the call-site.
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                HelpCenterAnalytics.log(
+                                    HelpCenterAnalytics.Event.ContextualTapped(source = "booking_detail")
+                                )
+                                val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                    data = Uri.parse("mailto:support@pacedream.com")
+                                    putExtra(
+                                        Intent.EXTRA_SUBJECT,
+                                        "Help with booking #${booking.id.takeLast(8)}"
+                                    )
+                                }
+                                try { context.startActivity(intent) } catch (_: Exception) {}
+                            },
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                        elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(PaceDreamSpacing.LG),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Help,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Primary,
+                                modifier = Modifier.size(PaceDreamIconSize.MD)
+                            )
+                            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Get help with this booking",
+                                    style = PaceDreamTypography.Headline,
+                                    color = PaceDreamColors.TextPrimary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
+                                Text(
+                                    text = "Message the host, refunds, or report an issue",
+                                    style = PaceDreamTypography.Caption,
+                                    color = PaceDreamColors.TextSecondary
+                                )
+                            }
+                            Icon(
+                                imageVector = PaceDreamIcons.ChevronRight,
+                                contentDescription = null,
+                                tint = PaceDreamColors.TextTertiary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
                     // Action Buttons
                     if (booking.status == BookingStatus.PENDING || booking.status == BookingStatus.CONFIRMED) {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -465,7 +531,7 @@ fun BookingDetailScreen(
     }
 }
 
-// ── BookingStatusHelper ──────────────────────────────────────────
+// ── BookingStatusHelper ─────────────────────────────────
 // The backend status is the source of truth. We do not override it
 // with client-side date logic.
 
