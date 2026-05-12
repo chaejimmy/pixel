@@ -88,8 +88,8 @@ fun EnhancedDashboardHeader(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF4F46E5),
-                                Color(0xFF7B4DFF),
+                                PaceDreamColors.Primary,
+                                PaceDreamColors.Accent,
                             )
                         )
                     )
@@ -112,7 +112,7 @@ fun EnhancedDashboardHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
-                    .background(Color(0xFF4F46E5).copy(alpha = 0.4f))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.4f))
             )
 
             // Decorative blurred circles (matching iOS decorativeElements)
@@ -283,8 +283,8 @@ private fun StructuredSearchPill(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF4F46E5),
-                                Color(0xFF7B4DFF),
+                                PaceDreamColors.Primary,
+                                PaceDreamColors.Accent,
                             )
                         )
                     ),
@@ -314,14 +314,14 @@ private fun SearchSegment(
             text = label,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF111827),
+            color = PaceDreamColors.TextPrimary,
             maxLines = 1,
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
             fontSize = 12.sp,
-            color = Color(0xFF6B7280),
+            color = PaceDreamColors.TextSecondary,
             maxLines = 1,
         )
     }
@@ -333,7 +333,7 @@ private fun SegmentDivider() {
         modifier = Modifier
             .height(28.dp)
             .width(1.dp)
-            .background(Color(0xFFE5E7EB))
+            .background(PaceDreamColors.Gray100)
     )
 }
 

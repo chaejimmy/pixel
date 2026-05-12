@@ -54,19 +54,19 @@ enum class HomeBrowseType(
         displayTitle = "Spaces",
         subtitle = "Book flexible places nearby",
         icon = Icons.Default.Business,
-        gradientColors = listOf(Color(0xFF5527D7), Color(0xFF7C5CE7)),
+        gradientColors = listOf(PaceDreamColors.Primary, PaceDreamColors.Primary.copy(alpha = 0.7f)),
     ),
     ITEMS(
         displayTitle = "Items",
         subtitle = "Borrow useful things on demand",
         icon = Icons.Default.Inventory2,
-        gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF60A5FA)),
+        gradientColors = listOf(PaceDreamColors.Info, PaceDreamColors.Info.copy(alpha = 0.7f)),
     ),
     SERVICES(
         displayTitle = "Services",
         subtitle = "Find help for everyday needs",
         icon = Icons.Default.CleaningServices,
-        gradientColors = listOf(Color(0xFF10B981), Color(0xFF34D399)),
+        gradientColors = listOf(PaceDreamColors.Success, PaceDreamColors.Success.copy(alpha = 0.7f)),
     );
 
     val subcategories: List<BrowseSubcategory>
