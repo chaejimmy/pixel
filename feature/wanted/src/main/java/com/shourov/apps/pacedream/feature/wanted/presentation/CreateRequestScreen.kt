@@ -641,16 +641,16 @@ private fun InlineErrorBanner(message: String) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                PaceDreamColors.Warning.copy(alpha = 0.12f),
+                PaceDreamColors.Error.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
             )
             .padding(PaceDreamSpacing.SM2),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
-            imageVector = PaceDreamIcons.Warning,
+            imageVector = PaceDreamIcons.Error,
             contentDescription = null,
-            tint = PaceDreamColors.Warning,
+            tint = PaceDreamColors.Error,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(PaceDreamSpacing.SM))
