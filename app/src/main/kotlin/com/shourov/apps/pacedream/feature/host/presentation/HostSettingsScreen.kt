@@ -28,13 +28,13 @@ private data class SettingsItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostSettingsScreen(
-    onBackClick: () -> Unit = {},
-    onPaymentSetupClick: () -> Unit = {},
-    onEarningsClick: () -> Unit = {},
-    onBookingsClick: () -> Unit = {},
-    onListingsClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onHelpClick: () -> Unit = {}
+    onBackClick: () -> Unit,
+    onPaymentSetupClick: () -> Unit,
+    onEarningsClick: () -> Unit,
+    onBookingsClick: () -> Unit,
+    onListingsClick: () -> Unit,
+    onNotificationsClick: () -> Unit,
+    onHelpClick: () -> Unit,
 ) {
     val sections = listOf(
             SettingsSection(
