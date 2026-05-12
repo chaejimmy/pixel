@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,6 +52,7 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFo
 fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
+    onRequireAuth: () -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
     onViewMyOffers: (() -> Unit)? = null,
 ) {
@@ -77,23 +79,41 @@ fun RequestDetailScreen(
             )
         },
         bottomBar = {
-            (state as? RequestDetailUiState.Content)?.let {
+            (state as? RequestDetailUiState.Content)?.let { content ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    val alreadySent = offerState.submitted
-                    Button(
-                        onClick = {
-                            viewModel.resetOfferSheet()
-                            sheetVisible = true
-                        },
-                        enabled = !alreadySent,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (alreadySent) "Offer sent" else "Make an Offer")
+                    if (content.isOwner) {
+                        OutlinedButton(
+                            onClick = { /* TODO: edit-request flow */ },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Edit request")
+                        }
+                    } else {
+                        // Once `submitted` flips true the bottom button locks
+                        // into a disabled "Offer sent" state so users can't
+                        // double-submit. Pre-submit we still need to send
+                        // signed-out users through the auth flow before
+                        // opening the sheet.
+                        val alreadySent = offerState.submitted
+                        Button(
+                            onClick = {
+                                if (!content.isSignedIn) {
+                                    onRequireAuth()
+                                } else {
+                                    viewModel.resetOfferSheet()
+                                    sheetVisible = true
+                                }
+                            },
+                            enabled = !alreadySent,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (alreadySent) "Offer sent" else "Make an Offer")
+                        }
                     }
                 }
             }

@@ -20,6 +20,7 @@ data class WantedRequest(
     val dateTime: String?,
     val endDate: String? = null,
     val imageUrl: String?,
+    val authorId: String? = null,
     val authorName: String? = null,
     val authorAvatarUrl: String? = null,
     val offerCount: Int = 0,
@@ -115,7 +116,11 @@ sealed interface RequestsListUiState {
 sealed interface RequestDetailUiState {
     data object Loading : RequestDetailUiState
     data class Error(val message: String) : RequestDetailUiState
-    data class Content(val request: WantedRequest) : RequestDetailUiState
+    data class Content(
+        val request: WantedRequest,
+        val isOwner: Boolean = false,
+        val isSignedIn: Boolean = false,
+    ) : RequestDetailUiState
 }
 
 data class CreateRequestForm(

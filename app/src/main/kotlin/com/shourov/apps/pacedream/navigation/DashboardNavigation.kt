@@ -758,10 +758,19 @@ fun NavGraphBuilder.DashboardNavigation(
                                 ),
                             ) { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("requestId").orEmpty()
+                                var showAuthSheetForOffer by remember { mutableStateOf(false) }
                                 com.shourov.apps.pacedream.feature.wanted.presentation.RequestDetailScreen(
                                     requestId = id,
                                     onBack = { navController.popBackStack() },
+                                    onRequireAuth = { showAuthSheetForOffer = true },
                                 )
+                                if (showAuthSheetForOffer) {
+                                    com.pacedream.app.ui.components.AuthFlowSheet(
+                                        subtitle = "Sign in to make an offer.",
+                                        onDismiss = { showAuthSheetForOffer = false },
+                                        onSuccess = { showAuthSheetForOffer = false }
+                                    )
+                                }
                             }
 
                             // Notification Center Screen (iOS parity).
