@@ -21,7 +21,13 @@ import javax.inject.Singleton
 
 interface WantedRepository {
     suspend fun getRequests(): Result<List<WantedRequest>>
+    /** Requests authored by the currently authenticated user. */
+    suspend fun getMyRequests(): Result<List<WantedRequest>>
     suspend fun getRequest(id: String): Result<WantedRequest>
+    /** Offers the current user has received on the given request. */
+    suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>>
+    /** Offers the current user has sent (across all requests). */
+    suspend fun getMyOffers(): Result<List<WantedOffer>>
     suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest>
     suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer>
     suspend fun getHostListings(): Result<List<HostListingSummary>>
@@ -57,11 +63,37 @@ class WantedRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getMyRequests(): Result<List<WantedRequest>> = withContext(dispatcher) {
+        runCatching {
+            api.getRequests(mine = true).all
+                .filter { !it.id.isNullOrEmpty() }
+                .map { it.toDomain() }
+        }
+    }
+
     override suspend fun getRequest(id: String): Result<WantedRequest> = withContext(dispatcher) {
         runCatching {
             val dto = api.getRequest(id).payload
                 ?: error("Request not found")
             dto.toDomain()
+        }
+    }
+
+    override suspend fun getOffersForRequest(
+        requestId: String,
+    ): Result<List<WantedOffer>> = withContext(dispatcher) {
+        runCatching {
+            api.getOffersForRequest(requestId).all
+                .filter { !it.id.isNullOrEmpty() }
+                .map { it.toDomain(fallbackRequestId = requestId) }
+        }
+    }
+
+    override suspend fun getMyOffers(): Result<List<WantedOffer>> = withContext(dispatcher) {
+        runCatching {
+            api.getOffers(mine = true).all
+                .filter { !it.id.isNullOrEmpty() }
+                .map { it.toDomain(fallbackRequestId = "") }
         }
     }
 

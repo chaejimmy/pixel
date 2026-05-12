@@ -337,7 +337,16 @@ class RequestsViewModelFilterTest {
     ) : WantedRepository {
         override suspend fun getRequests(): Result<List<WantedRequest>> = Result.success(items)
 
+        override suspend fun getMyRequests(): Result<List<WantedRequest>> =
+            error("unused in filter tests")
+
         override suspend fun getRequest(id: String): Result<WantedRequest> =
+            error("unused in filter tests")
+
+        override suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>> =
+            error("unused in filter tests")
+
+        override suspend fun getMyOffers(): Result<List<WantedOffer>> =
             error("unused in filter tests")
 
         override suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest> =

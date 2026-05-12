@@ -8,6 +8,7 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.model.OFFER_MESSAGE_MAX_LENGTH
 import com.shourov.apps.pacedream.feature.wanted.model.OfferFormState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
+import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,12 +29,14 @@ class RequestDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _result = MutableStateFlow<RequestResult>(RequestResult.Loading)
+    private val _offers = MutableStateFlow<List<WantedOffer>>(emptyList())
 
     val state: StateFlow<RequestDetailUiState> = combine(
         _result,
         authSession.currentUser,
-    ) { result, user ->
-        toUiState(result, user?.id)
+        _offers,
+    ) { result, user, offers ->
+        toUiState(result, user?.id, offers)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -73,10 +76,19 @@ class RequestDetailViewModel @Inject constructor(
     fun load(id: String) {
         if (requestId == id && _result.value is RequestResult.Content) return
         requestId = id
+        _offers.value = emptyList()
         viewModelScope.launch {
             _result.value = RequestResult.Loading
             repository.getRequest(id)
-                .onSuccess { _result.value = RequestResult.Content(it) }
+                .onSuccess { request ->
+                    _result.value = RequestResult.Content(request)
+                    // Only the author can see offers. Skipping the
+                    // fetch for non-authors saves a (likely-403) round
+                    // trip and keeps their UI clean.
+                    if (isOwnedByCurrentUser(request)) {
+                        loadOffersForOwner(id)
+                    }
+                }
                 .onFailure { e ->
                     Timber.e(e, "Failed to load request $id")
                     _result.value = RequestResult.Error(
@@ -160,6 +172,24 @@ class RequestDetailViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadOffersForOwner(id: String) {
+        repository.getOffersForRequest(id)
+            .onSuccess { _offers.value = it }
+            .onFailure { e ->
+                // Don't flip the whole screen to an error — the owner
+                // still sees the request body. The empty-offers state
+                // in OffersList communicates "no offers yet" if the
+                // list legitimately came back empty.
+                Timber.w(e, "Failed to load offers for request $id (owner view)")
+            }
+    }
+
+    private fun isOwnedByCurrentUser(request: WantedRequest): Boolean {
+        val me = authSession.currentUserId?.takeIf { it.isNotBlank() } ?: return false
+        val owner = request.authorId?.takeIf { it.isNotBlank() } ?: return false
+        return me == owner
+    }
+
     /**
      * Mirrors the mapping in `CreateRequestViewModel.friendlyError`:
      * raw backend messages are often stack traces, HTML, or vendor
@@ -182,6 +212,7 @@ class RequestDetailViewModel @Inject constructor(
     private fun toUiState(
         result: RequestResult,
         currentUserId: String?,
+        offers: List<WantedOffer>,
     ): RequestDetailUiState = when (result) {
         RequestResult.Loading -> RequestDetailUiState.Loading
         is RequestResult.Error -> RequestDetailUiState.Error(result.message)
@@ -193,6 +224,7 @@ class RequestDetailViewModel @Inject constructor(
                 request = result.request,
                 isOwner = owner,
                 isSignedIn = signedIn,
+                offers = if (owner) offers else emptyList(),
             )
         }
     }

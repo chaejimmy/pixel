@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,10 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pacedream.common.composables.theme.PaceDreamRadius
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,12 +44,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
+import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
@@ -58,6 +64,8 @@ fun RequestDetailScreen(
     onBack: () -> Unit,
     onRequireAuth: () -> Unit = {},
     onNavigateToAuthor: (String) -> Unit = {},
+    onMessageProvider: (offerId: String, providerName: String?) -> Unit = { _, _ -> },
+    onAcceptOffer: (offerId: String) -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
     onViewMyOffers: (() -> Unit)? = null,
 ) {
@@ -141,9 +149,13 @@ fun RequestDetailScreen(
                 }
                 is RequestDetailUiState.Content -> RequestDetailBody(
                     request = s.request,
+                    offers = s.offers,
+                    isOwner = s.isOwner,
                     onAuthorClick = s.request.authorId
                         ?.takeIf { it.isNotBlank() }
                         ?.let { id -> { onNavigateToAuthor(id) } },
+                    onMessageProvider = onMessageProvider,
+                    onAcceptOffer = onAcceptOffer,
                 )
             }
         }
@@ -184,7 +196,11 @@ fun RequestDetailScreen(
 @Composable
 private fun RequestDetailBody(
     request: WantedRequest,
+    offers: List<WantedOffer>,
+    isOwner: Boolean,
     onAuthorClick: (() -> Unit)? = null,
+    onMessageProvider: (offerId: String, providerName: String?) -> Unit,
+    onAcceptOffer: (offerId: String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -203,7 +219,7 @@ private fun RequestDetailBody(
                     .clip(RoundedCornerShape(PaceDreamRadius.MD)),
             )
         }
-        androidx.compose.foundation.layout.Row(
+        Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -238,6 +254,16 @@ private fun RequestDetailBody(
         RequestDateFormatter.format(request.dateTime, request.endDate)?.let {
             DetailRow(label = "When", value = it)
         }
+
+        if (isOwner) {
+            Spacer(Modifier.height(4.dp))
+            OffersList(
+                offers = offers,
+                onMessageProvider = onMessageProvider,
+                onAcceptOffer = onAcceptOffer,
+            )
+        }
+
         Spacer(Modifier.height(4.dp))
         Text(
             text = "Description",
@@ -253,6 +279,135 @@ private fun RequestDetailBody(
 }
 
 @Composable
+private fun OffersList(
+    offers: List<WantedOffer>,
+    onMessageProvider: (offerId: String, providerName: String?) -> Unit,
+    onAcceptOffer: (offerId: String) -> Unit,
+) {
+    Text(
+        text = if (offers.isEmpty()) "Offers" else "Offers (${offers.size})",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
+    if (offers.isEmpty()) {
+        Text(
+            text = "No offers yet — we'll notify you when providers respond.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        offers.forEach { offer ->
+            OfferRow(
+                offer = offer,
+                onMessageProvider = { onMessageProvider(offer.id, offer.authorName) },
+                onAccept = { onAcceptOffer(offer.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun OfferRow(
+    offer: WantedOffer,
+    onMessageProvider: () -> Unit,
+    onAccept: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ProviderAvatar(
+                    avatarUrl = offer.authorAvatarUrl,
+                    initial = offer.authorName?.firstOrNull()?.uppercaseChar()?.toString(),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = offer.authorName?.takeIf { it.isNotBlank() } ?: "Provider",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = formatBudget(offer.price, offer.currency),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                OfferStatusPill(status = offer.status)
+            }
+            if (offer.message.isNotBlank()) {
+                Text(
+                    text = offer.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedButton(
+                    onClick = onMessageProvider,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Message provider") }
+                Button(
+                    onClick = onAccept,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Accept") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProviderAvatar(avatarUrl: String?, initial: String?) {
+    if (!avatarUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = avatarUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = initial ?: "P",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
 private fun AuthorRow(
     name: String?,
     avatarUrl: String?,
@@ -263,7 +418,7 @@ private fun AuthorRow(
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
         .padding(vertical = 4.dp)
-    androidx.compose.foundation.layout.Row(
+    Row(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -306,7 +461,7 @@ private fun AuthorRow(
 
 @Composable
 private fun DetailRow(label: String, value: String) {
-    androidx.compose.foundation.layout.Row(
+    Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
