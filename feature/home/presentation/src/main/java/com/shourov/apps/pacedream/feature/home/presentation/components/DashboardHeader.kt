@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -166,7 +167,7 @@ fun DashboardHeader(
                                 Icon(
                                     painter = painterResource(R.drawable.ic_search),
                                     contentDescription = "Search",
-                                    tint = Color.White,
+                                    tint = OnBrandSurface,
                                 )
                             }
                         },

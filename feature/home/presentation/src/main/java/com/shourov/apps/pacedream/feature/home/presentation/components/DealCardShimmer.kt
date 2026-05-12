@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.VerticalSpacer
 import com.pacedream.common.composables.shimmerEffect
@@ -43,7 +44,7 @@ fun DealCardShimmer() {
         modifier = Modifier
             .width(280.dp)
             .padding(NormalPadding)
-            .background(Color.White, RoundedCornerShape(LargePadding))
+            .background(OnBrandSurface, RoundedCornerShape(LargePadding))
             .clip(RoundedCornerShape(LargePadding))
             .shimmerEffect(),
     ) {

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -400,7 +401,7 @@ private fun BrowseTypePill(
     modifier: Modifier = Modifier,
 ) {
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else PaceDreamTextSecondary,
+        targetValue = if (isSelected) OnBrandSurface else PaceDreamTextSecondary,
         animationSpec = tween(200),
         label = "pillText"
     )

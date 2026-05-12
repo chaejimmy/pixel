@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -121,14 +122,14 @@ fun EnhancedDashboardHeader(
                     .size(120.dp)
                     .offset(x = (-80).dp, y = (-40).dp)
                     .blur(20.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    .background(OnBrandSurface.copy(alpha = 0.15f), CircleShape)
             )
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .offset(x = 280.dp, y = 20.dp)
                     .blur(15.dp)
-                    .background(Color.White.copy(alpha = 0.10f), CircleShape)
+                    .background(OnBrandSurface.copy(alpha = 0.10f), CircleShape)
             )
 
             // Header content
@@ -156,20 +157,20 @@ fun EnhancedDashboardHeader(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(OnBrandSurface.copy(alpha = 0.2f)),
                         )
                     } else {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(OnBrandSurface.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.Person,
                                 contentDescription = "Profile",
-                                tint = Color.White,
+                                tint = OnBrandSurface,
                                 modifier = Modifier.size(24.dp),
                             )
                         }
@@ -182,13 +183,13 @@ fun EnhancedDashboardHeader(
                         Text(
                             text = daypartGreeting(),
                             style = PaceDreamTypography.Caption,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = OnBrandSurface.copy(alpha = 0.7f),
                         )
                         Text(
                             text = userName.ifBlank { "Guest" },
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = OnBrandSurface,
                             maxLines = 1,
                         )
                     }
@@ -199,12 +200,12 @@ fun EnhancedDashboardHeader(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.16f))
+                            .background(OnBrandSurface.copy(alpha = 0.16f))
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.Notifications,
                             contentDescription = "Notifications",
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -217,7 +218,7 @@ fun EnhancedDashboardHeader(
                     text = stringResource(R.string.feature_home_find_your_perfect_stay),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = OnBrandSurface.copy(alpha = 0.9f),
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -245,7 +246,7 @@ private fun StructuredSearchPill(
         modifier = Modifier
             .fillMaxWidth()
             .height(62.dp),
-        color = Color.White,
+        color = OnBrandSurface,
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         shadowElevation = 10.dp,
     ) {
@@ -292,7 +293,7 @@ private fun StructuredSearchPill(
                 Icon(
                     imageVector = PaceDreamIcons.Search,
                     contentDescription = "Search",
-                    tint = Color.White,
+                    tint = OnBrandSurface,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -366,7 +367,7 @@ fun CompactDashboardHeader(
             Text(
                 text = title,
                 style = PaceDreamTypography.Headline,
-                color = Color.White
+                color = OnBrandSurface
             )
 
             Row(
@@ -380,7 +381,7 @@ fun CompactDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.Search,
                         contentDescription = "Search",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -392,7 +393,7 @@ fun CompactDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.Notifications,
                         contentDescription = "Notifications",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -436,7 +437,7 @@ fun MinimalDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -446,13 +447,13 @@ fun MinimalDashboardHeader(
                 Text(
                     text = title,
                     style = PaceDreamTypography.Headline,
-                    color = Color.White
+                    color = OnBrandSurface
                 )
                 subtitle?.let {
                     Text(
                         text = it,
                         style = PaceDreamTypography.Subheadline,
-                        color = Color.White.copy(alpha = 0.85f)
+                        color = OnBrandSurface.copy(alpha = 0.85f)
                     )
                 }
             }
@@ -465,7 +466,7 @@ fun MinimalDashboardHeader(
                     actionIcon?.invoke() ?: Icon(
                         imageVector = PaceDreamIcons.MoreVert,
                         contentDescription = "More",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }

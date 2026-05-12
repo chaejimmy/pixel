@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,7 +114,7 @@ private fun TrendingDestinationCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                        colors = listOf(Color.Transparent, scrimOnImage(0.55f)),
                         startY = 0.4f * height.value,
                     )
                 )
@@ -129,7 +131,7 @@ private fun TrendingDestinationCard(
                 text = destination.title,
                 fontSize = if (isLarge) 18.sp else 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = OnBrandSurface,
                 maxLines = 1,
             )
             destination.propertyCount?.let { count ->
@@ -137,7 +139,7 @@ private fun TrendingDestinationCard(
                     text = "$count properties",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = OnBrandSurface.copy(alpha = 0.85f),
                 )
             }
         }

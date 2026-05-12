@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -99,7 +100,7 @@ private fun CategoryChip(
     onClick: () -> Unit,
 ) {
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else PaceDreamTextPrimary,
+        targetValue = if (isSelected) OnBrandSurface else PaceDreamTextPrimary,
         animationSpec = tween(200),
         label = "chipContent",
     )
@@ -149,7 +150,7 @@ private fun CategoryChip(
                         .size(28.dp)
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(
-                            if (isSelected) Color.White.copy(alpha = 0.2f)
+                            if (isSelected) OnBrandSurface.copy(alpha = 0.2f)
                             else data.accentColor.copy(alpha = 0.1f)
                         ),
                     contentAlignment = Alignment.Center,
@@ -157,7 +158,7 @@ private fun CategoryChip(
                     Icon(
                         imageVector = data.icon,
                         contentDescription = null,
-                        tint = if (isSelected) Color.White else data.accentColor,
+                        tint = if (isSelected) OnBrandSurface else data.accentColor,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -170,7 +171,7 @@ private fun CategoryChip(
                     Text(
                         text = data.description,
                         style = PaceDreamTypography.Caption2,
-                        color = if (isSelected) Color.White.copy(alpha = 0.8f)
+                        color = if (isSelected) OnBrandSurface.copy(alpha = 0.8f)
                         else PaceDreamTextSecondary,
                     )
                 }

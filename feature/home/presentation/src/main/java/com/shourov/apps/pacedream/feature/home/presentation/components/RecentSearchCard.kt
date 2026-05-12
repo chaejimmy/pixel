@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -64,7 +65,7 @@ fun RecentSearchCard(
     Row(
         modifier = modifier.fillMaxWidth()
             .clip(RoundedCornerShape(LargePadding))
-            .background(Color.White, RoundedCornerShape(LargePadding))
+            .background(OnBrandSurface, RoundedCornerShape(LargePadding))
             .border(BorderWidth, BorderColor, RoundedCornerShape(LargePadding))
             .clickable {
                 onViewAllClick()
@@ -80,7 +81,7 @@ fun RecentSearchCard(
             Image(
                 painter = painterResource(R.drawable.ic_location),
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(Color.White),
+                colorFilter = ColorFilter.tint(OnBrandSurface),
                 modifier = Modifier.size(30.dp).clip(
                     CircleShape,
                 ),
