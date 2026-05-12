@@ -19,6 +19,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import android.content.res.Configuration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -177,5 +179,25 @@ private fun CategoryChip(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "QuickChipsSection — light", showBackground = true)
+@Composable
+private fun QuickChipsSectionLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        QuickChipsSection()
+    }
+}
+
+@Preview(
+    name = "QuickChipsSection — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun QuickChipsSectionDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        QuickChipsSection()
     }
 }

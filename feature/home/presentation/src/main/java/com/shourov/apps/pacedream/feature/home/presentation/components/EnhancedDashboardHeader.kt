@@ -32,6 +32,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import android.content.res.Configuration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -483,5 +485,25 @@ private fun daypartGreeting(): String {
         in 11..16 -> "Good Afternoon,"
         in 17..21 -> "Good Evening,"
         else -> "Good Night,"
+    }
+}
+
+@Preview(name = "EnhancedDashboardHeader — light", showBackground = true)
+@Composable
+private fun EnhancedDashboardHeaderLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        EnhancedDashboardHeader(userName = "Ada")
+    }
+}
+
+@Preview(
+    name = "EnhancedDashboardHeader — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun EnhancedDashboardHeaderDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        EnhancedDashboardHeader(userName = "Ada")
     }
 }
