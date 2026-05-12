@@ -71,16 +71,25 @@ data class RequestDto(
     @SerializedName("imageUrl")
     val imageUrl: String? = null,
     val image: String? = null,
+    @SerializedName("authorId")
+    val authorId: String? = null,
+    /** Some feeds nest the author under `author: { _id, name, ... }`. */
+    val author: AuthorDto? = null,
+    /** Fallback id-only field used by older payloads. */
+    val userId: String? = null,
     @SerializedName("authorName")
     val authorName: String? = null,
     @SerializedName("authorAvatar")
     val authorAvatar: String? = null,
-    @SerializedName("authorId")
-    val authorId: String? = null,
-    @SerializedName("userId")
-    val userId: String? = null,
     @SerializedName("offerCount")
     val offerCount: Int? = null,
+)
+
+data class AuthorDto(
+    @SerializedName("_id")
+    val id: String? = null,
+    val name: String? = null,
+    val avatar: String? = null,
 )
 
 data class LocationDto(
@@ -102,6 +111,9 @@ fun RequestDto.toDomain(): WantedRequest {
         ?: locationString
         ?: city
         ?: ""
+    val resolvedAuthorId = authorId?.takeIf { it.isNotBlank() }
+        ?: author?.id?.takeIf { it.isNotBlank() }
+        ?: userId?.takeIf { it.isNotBlank() }
     return WantedRequest(
         id = id.orEmpty(),
         title = title.orEmpty(),
@@ -114,9 +126,9 @@ fun RequestDto.toDomain(): WantedRequest {
         dateTime = date ?: dateTime,
         endDate = endDate,
         imageUrl = coverImageUrl ?: imageUrl ?: image,
-        authorId = authorId ?: userId,
-        authorName = authorName,
-        authorAvatarUrl = authorAvatar,
+        authorId = resolvedAuthorId,
+        authorName = authorName ?: author?.name,
+        authorAvatarUrl = authorAvatar ?: author?.avatar,
         offerCount = offerCount ?: 0,
     )
 }

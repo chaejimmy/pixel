@@ -140,19 +140,47 @@ sealed interface MyOffersUiState {
     data class Content(val offers: List<WantedOffer>) : MyOffersUiState
 }
 
+enum class RequestSort(val key: String, val label: String) {
+    Newest("newest", "Newest"),
+    HighestBudget("highest_budget", "Highest budget"),
+    Nearest("nearest", "Nearest"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): RequestSort =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Newest
+    }
+}
+
+/**
+ * Client-side filter + sort applied on top of the full list returned by
+ * `GET /v1/requests`. When the backend grows query params for these, the
+ * fields here will move onto the wire — keep the names aligned.
+ */
+@Immutable
+data class FilterState(
+    val type: WantedType? = null,
+    val category: String? = null,
+    val sort: RequestSort = RequestSort.Newest,
+) {
+    val isActive: Boolean
+        get() = type != null || category != null || sort != RequestSort.Newest
+}
+
 sealed interface RequestDetailUiState {
     data object Loading : RequestDetailUiState
     data class Error(val message: String) : RequestDetailUiState
     data class Content(
         val request: WantedRequest,
+        /** True when the viewer is the request's author. */
+        val isOwner: Boolean = false,
+        val isSignedIn: Boolean = false,
         /**
-         * Offers visible to the current user. Empty when the viewer is not
-         * the request's author (providers should use "Make an Offer"
-         * instead) or when no offers have been received yet.
+         * Offers visible to the request's owner. Empty when the viewer
+         * isn't the owner (providers see the "Make an Offer" CTA) or
+         * when no offers have been received yet.
          */
         val offers: List<WantedOffer> = emptyList(),
-        /** True when the current user authored this request. */
-        val isAuthor: Boolean = false,
     ) : RequestDetailUiState
 }
 

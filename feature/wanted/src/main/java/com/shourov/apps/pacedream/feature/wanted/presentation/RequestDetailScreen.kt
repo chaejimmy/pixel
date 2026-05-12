@@ -61,9 +61,11 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFo
 fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
+    onRequireAuth: () -> Unit = {},
     onMessageProvider: (offerId: String, providerName: String?) -> Unit = { _, _ -> },
     onAcceptOffer: (offerId: String) -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
+    onViewMyOffers: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val offerState by viewModel.offer.collectAsStateWithLifecycle()
@@ -71,12 +73,7 @@ fun RequestDetailScreen(
 
     LaunchedEffect(requestId) { viewModel.load(requestId) }
 
-    LaunchedEffect(offerState.submitted) {
-        if (offerState.submitted) {
-            sheetVisible = false
-            viewModel.resetOfferSheet()
-        }
-    }
+    val requesterName = (state as? RequestDetailUiState.Content)?.request?.authorName
 
     Scaffold(
         topBar = {
@@ -93,24 +90,41 @@ fun RequestDetailScreen(
             )
         },
         bottomBar = {
-            val content = state as? RequestDetailUiState.Content
-            // Only providers see "Make an Offer"; the author already owns
-            // the request and instead sees the OffersList in the body.
-            if (content != null && !content.isAuthor) {
+            (state as? RequestDetailUiState.Content)?.let { content ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Button(
-                        onClick = {
-                            viewModel.resetOfferSheet()
-                            sheetVisible = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Make an Offer")
+                    if (content.isOwner) {
+                        OutlinedButton(
+                            onClick = { /* TODO: edit-request flow */ },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Edit request")
+                        }
+                    } else {
+                        // Once `submitted` flips true the bottom button locks
+                        // into a disabled "Offer sent" state so users can't
+                        // double-submit. Pre-submit we still need to send
+                        // signed-out users through the auth flow before
+                        // opening the sheet.
+                        val alreadySent = offerState.submitted
+                        Button(
+                            onClick = {
+                                if (!content.isSignedIn) {
+                                    onRequireAuth()
+                                } else {
+                                    viewModel.resetOfferSheet()
+                                    sheetVisible = true
+                                }
+                            },
+                            enabled = !alreadySent,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (alreadySent) "Offer sent" else "Make an Offer")
+                        }
                     }
                 }
             }
@@ -134,7 +148,7 @@ fun RequestDetailScreen(
                 is RequestDetailUiState.Content -> RequestDetailBody(
                     request = s.request,
                     offers = s.offers,
-                    isAuthor = s.isAuthor,
+                    isOwner = s.isOwner,
                     onMessageProvider = onMessageProvider,
                     onAcceptOffer = onAcceptOffer,
                 )
@@ -145,9 +159,12 @@ fun RequestDetailScreen(
     if (sheetVisible) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
+            // Keep `submitted = true` after dismiss so the bottom bar
+            // continues to show the disabled "Offer sent" state. Only
+            // discard a draft (unsubmitted) form.
             onDismissRequest = {
                 sheetVisible = false
-                viewModel.resetOfferSheet()
+                if (!offerState.submitted) viewModel.resetOfferSheet()
             },
             sheetState = sheetState,
         ) {
@@ -156,6 +173,14 @@ fun RequestDetailScreen(
                 onPriceChange = viewModel::onPriceChange,
                 onMessageChange = viewModel::onMessageChange,
                 onSubmit = viewModel::submitOffer,
+                onDone = { sheetVisible = false },
+                requesterName = requesterName,
+                onViewMyOffers = onViewMyOffers?.let { nav ->
+                    {
+                        sheetVisible = false
+                        nav()
+                    }
+                },
             )
         }
     }
@@ -165,7 +190,7 @@ fun RequestDetailScreen(
 private fun RequestDetailBody(
     request: WantedRequest,
     offers: List<WantedOffer>,
-    isAuthor: Boolean,
+    isOwner: Boolean,
     onMessageProvider: (offerId: String, providerName: String?) -> Unit,
     onAcceptOffer: (offerId: String) -> Unit,
 ) {
@@ -217,7 +242,7 @@ private fun RequestDetailBody(
             DetailRow(label = "When", value = it)
         }
 
-        if (isAuthor) {
+        if (isOwner) {
             Spacer(Modifier.height(4.dp))
             OffersList(
                 offers = offers,
