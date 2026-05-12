@@ -226,6 +226,7 @@ object ApiEndPoints {
     const val GET_REQUEST_OFFERS = "requests/{id}/offers"
     const val CREATE_REQUEST_OFFER = "requests/{id}/offers"
     const val GET_OFFERS = "offers"
+    const val GET_REQUEST_CATEGORIES = "requests/categories"
 
     // ── Legacy ────────────────────────────────────────────
     const val GET_ALREADY_BOOKED = "bookings/mine"

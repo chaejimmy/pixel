@@ -46,6 +46,40 @@ class CreateRequestViewModel @Inject constructor(
 
     init {
         Timber.d("post_request_opened source=unknown")
+        loadCategories()
+    }
+
+    /**
+     * Fetch the per-type category taxonomy from the backend on screen
+     * entry. Failures are silently swallowed — the UI state already carries
+     * the hardcoded [WantedCategoriesByType] fallback, so the dropdown
+     * stays usable on cold start and offline. Success overwrites the
+     * fallback in-place; the repository caches the result for the rest of
+     * the process so re-entering the screen is free.
+     */
+    private fun loadCategories() {
+        viewModelScope.launch {
+            repository.getCategories()
+                .onSuccess { remote ->
+                    Timber.d("post_request_categories_loaded types=${remote.keys.joinToString(",") { it.key }}")
+                    _state.update { current ->
+                        // Reconcile the in-flight form: if the user already
+                        // picked a category that no longer exists for their
+                        // type, fall back to the first server option.
+                        val options = remote[current.form.type].orEmpty()
+                        val pickedStillValid = options.any { it.key == current.form.category }
+                        val nextForm = if (pickedStillValid || options.isEmpty()) {
+                            current.form
+                        } else {
+                            current.form.copy(category = options.first().key)
+                        }
+                        current.copy(categoriesByType = remote, form = nextForm)
+                    }
+                }
+                .onFailure { e ->
+                    Timber.w(e, "post_request_categories_load_failed (falling back to local taxonomy)")
+                }
+        }
     }
 
     fun update(transform: (CreateRequestForm) -> CreateRequestForm) {
@@ -56,9 +90,10 @@ class CreateRequestViewModel @Inject constructor(
             // doesn't belong to its parent type.
             val typeChanged = nextForm.type != current.form.type
             val safeForm = if (typeChanged) {
-                val firstCategory = WantedCategoriesByType[nextForm.type]
+                val firstCategory = current.categoriesByType[nextForm.type]
                     ?.firstOrNull()
                     ?.key
+                    ?: WantedCategoriesByType[nextForm.type]?.firstOrNull()?.key
                     ?: "other"
                 nextForm.copy(category = firstCategory)
             } else nextForm

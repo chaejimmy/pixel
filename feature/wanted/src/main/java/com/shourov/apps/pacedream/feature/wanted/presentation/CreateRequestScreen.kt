@@ -81,7 +81,6 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
-import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.LocationPickerSheet
@@ -177,7 +176,7 @@ fun CreateRequestScreen(
 
                 SectionLabel("Category")
                 CategoryDropdown(
-                    type = state.form.type,
+                    options = state.categoriesByType[state.form.type].orEmpty(),
                     selectedKey = state.form.category,
                     onSelect = { opt -> viewModel.update { it.copy(category = opt.key) } },
                 )
@@ -487,11 +486,10 @@ private fun TypeTile(
 
 @Composable
 private fun CategoryDropdown(
-    type: WantedType,
+    options: List<WantedCategoryOption>,
     selectedKey: String,
     onSelect: (WantedCategoryOption) -> Unit,
 ) {
-    val options = WantedCategoriesByType[type].orEmpty()
     val selectedLabel = options.firstOrNull { it.key == selectedKey }?.label
         ?: options.firstOrNull()?.label
         ?: "Other"
