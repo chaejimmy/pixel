@@ -346,6 +346,10 @@ class RequestsViewModelFilterTest {
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("unused in filter tests")
 
+        override suspend fun getHostListings():
+            Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
+            Result.success(emptyList())
+
         override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
             error("unused in filter tests")
     }

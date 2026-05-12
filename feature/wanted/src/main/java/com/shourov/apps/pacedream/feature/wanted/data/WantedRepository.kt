@@ -1,9 +1,12 @@
 package com.shourov.apps.pacedream.feature.wanted.data
 
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.toDomain
 import com.shourov.apps.pacedream.feature.wanted.data.remote.WantedApiService
+import com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -21,6 +24,7 @@ interface WantedRepository {
     suspend fun getRequest(id: String): Result<WantedRequest>
     suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest>
     suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer>
+    suspend fun getHostListings(): Result<List<HostListingSummary>>
 
     /**
      * Per-type category taxonomy as advertised by the backend. Cached for
@@ -96,5 +100,78 @@ class WantedRepositoryImpl @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * GET /v1/host/listings is shared with the host dashboard, which may
+     * return any of:
+     *   - a raw array
+     *   - `{ data: [...] }` / `{ items: [...] }` / `{ results: [...] }`
+     *   - category-keyed `{ rooms: [...], rentableItems: [...], ... }`
+     * The composer only needs an id + title pair per published listing, so
+     * we walk the response and drop everything else. Anything without a
+     * usable id is filtered out.
+     */
+    override suspend fun getHostListings(): Result<List<HostListingSummary>> =
+        withContext(dispatcher) {
+            runCatching {
+                extractListingSummaries(api.getHostListings())
+            }
+        }
+
+    private fun extractListingSummaries(json: JsonElement): List<HostListingSummary> {
+        val out = mutableListOf<HostListingSummary>()
+        val seen = mutableSetOf<String>()
+
+        fun emit(obj: JsonObject) {
+            val id = obj.stringOrNull("_id")
+                ?: obj.stringOrNull("id")
+                ?: obj.stringOrNull("listingId")
+                ?: return
+            if (!seen.add(id)) return
+            val title = obj.stringOrNull("title")
+                ?: obj.stringOrNull("name")
+                ?: "Untitled listing"
+            out += HostListingSummary(id = id, title = title)
+        }
+
+        fun walk(element: JsonElement?) {
+            element ?: return
+            when {
+                element.isJsonArray -> element.asJsonArray.forEach { item ->
+                    if (item.isJsonObject) emit(item.asJsonObject)
+                }
+                element.isJsonObject -> {
+                    val obj = element.asJsonObject
+                    val wrapped = obj["data"] ?: obj["items"] ?: obj["results"]
+                        ?: obj["listings"]
+                    if (wrapped != null) {
+                        walk(wrapped)
+                        if (out.isNotEmpty()) return
+                    }
+                    // Category-keyed shape used by the host dashboard.
+                    for (key in CATEGORY_KEYS) {
+                        walk(obj[key])
+                    }
+                }
+            }
+        }
+
+        walk(json)
+        return out
+    }
+
+    private fun JsonObject.stringOrNull(key: String): String? {
+        val el = get(key) ?: return null
+        return if (el.isJsonPrimitive && el.asJsonPrimitive.isString)
+            el.asString.takeIf { it.isNotBlank() }
+        else null
+    }
+
+    private companion object {
+        private val CATEGORY_KEYS = listOf(
+            "rooms", "properties", "rentableItems",
+            "services", "attractions", "roommates",
+        )
     }
 }

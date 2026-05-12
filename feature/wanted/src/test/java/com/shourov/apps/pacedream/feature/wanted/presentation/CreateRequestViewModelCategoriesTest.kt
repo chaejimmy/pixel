@@ -168,6 +168,10 @@ class CreateRequestViewModelCategoriesTest {
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("unused")
 
+        override suspend fun getHostListings():
+            Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
+            Result.success(emptyList())
+
         override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
             categoriesResult.await()
     }

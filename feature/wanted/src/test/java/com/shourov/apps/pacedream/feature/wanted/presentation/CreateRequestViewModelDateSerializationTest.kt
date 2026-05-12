@@ -195,6 +195,10 @@ class CreateRequestViewModelDateSerializationTest {
             body: CreateOfferBody,
         ): Result<WantedOffer> = error("not exercised by serialization tests")
 
+        override suspend fun getHostListings():
+            Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
+            Result.success(emptyList())
+
         override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
             Result.failure(IllegalStateException("not exercised by serialization tests"))
     }
