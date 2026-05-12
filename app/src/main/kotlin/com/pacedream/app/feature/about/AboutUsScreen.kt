@@ -1,5 +1,6 @@
 package com.pacedream.app.feature.about
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -236,10 +237,16 @@ private fun AboutLinkItem(
     title: String,
     onClick: () -> Unit
 ) {
+    // Whole row is the affordance — previously only the "Open" TextButton
+    // accepted taps, leaving most of the row visually clickable but inert
+    // and below the 48dp accessibility minimum.  defaultMinSize keeps the
+    // row at touch-target height even when the icon is short.
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 14.dp),
+            .defaultMinSize(minHeight = 48.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -255,8 +262,11 @@ private fun AboutLinkItem(
             color = PaceDreamColors.TextPrimary,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = onClick) {
-            Text("Open", color = PaceDreamColors.Primary)
-        }
+        Icon(
+            imageVector = PaceDreamIcons.ChevronRight,
+            contentDescription = null,
+            tint = PaceDreamColors.TextTertiary,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
