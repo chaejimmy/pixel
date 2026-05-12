@@ -78,6 +78,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
@@ -182,6 +183,14 @@ fun CreateRequestScreen(
                     onValueChange = { v -> viewModel.update { it.copy(title = v) } },
                     placeholder = { Text("e.g. Need a covered parking spot in SF") },
                     singleLine = true,
+                    isError = state.fieldErrors.titleError != null,
+                    supportingText = {
+                        FieldSupportingText(
+                            error = state.fieldErrors.titleError,
+                            current = state.form.title.length,
+                            max = CreateRequestUiState.TITLE_MAX_LENGTH,
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Next,
@@ -200,6 +209,14 @@ fun CreateRequestScreen(
                     },
                     minLines = 3,
                     maxLines = 6,
+                    isError = state.fieldErrors.descriptionError != null,
+                    supportingText = {
+                        FieldSupportingText(
+                            error = state.fieldErrors.descriptionError,
+                            current = state.form.description.length,
+                            max = CreateRequestUiState.DESCRIPTION_MAX_LENGTH,
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                     ),
@@ -259,6 +276,16 @@ fun CreateRequestScreen(
                     placeholder = { Text("Leave blank for negotiable") },
                     prefix = { Text("$") },
                     singleLine = true,
+                    isError = state.fieldErrors.budgetError != null,
+                    supportingText = {
+                        state.fieldErrors.budgetError?.let { err ->
+                            Text(
+                                text = err,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Error,
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = pdTextFieldColors(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -283,7 +310,10 @@ fun CreateRequestScreen(
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
             Button(
                 onClick = viewModel::submit,
-                enabled = !state.submitting && !state.uploading,
+                enabled = !state.submitting &&
+                    !state.uploading &&
+                    state.fieldErrors.isEmpty() &&
+                    state.requiredFieldsPresent,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary,
@@ -664,6 +694,28 @@ private fun SectionLabel(text: String) {
         color = PaceDreamColors.TextSecondary,
         fontWeight = FontWeight.SemiBold,
     )
+}
+
+/**
+ * Renders the per-field error if present, otherwise a soft "{n}/{max}"
+ * counter. Splitting into one composable keeps the call sites tidy and
+ * guarantees we never show both pieces of text at once.
+ */
+@Composable
+private fun FieldSupportingText(error: String?, current: Int, max: Int) {
+    if (error != null) {
+        Text(
+            text = error,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.Error,
+        )
+    } else {
+        Text(
+            text = "$current/$max",
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+        )
+    }
 }
 
 @Composable
