@@ -29,7 +29,7 @@ Gradle stubs `feature/auth`, `feature/guest`, `feature/host`,
 
 | Module | `Color(0x` | `Color.White`/`Black` | raw `.dp` padding | `RoundedCornerShape(N.dp)` | Total |
 |---|---:|---:|---:|---:|---:|
-| `feature/home` | 44 | 96 | 70 | 0 | **210** |
+| `feature/home/.../redesign` &nbsp;<sup>†</sup> | 30 | 38 | 41 | 0 | **109** |
 | `app/shourov/feature/host` | 15 | 81 | 71 | 0 | **167** |
 | `app/pacedream.app/feature/listingdetail` | 30 | 13 | 0 | 0 | **43** |
 | `feature/booking` | 17 | 0 | 18 | 0 | **35** |
@@ -74,58 +74,81 @@ Gradle stubs `feature/auth`, `feature/guest`, `feature/host`,
 | `app/pacedream.app/feature/listing` | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/hostprofile` | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/faq` | 0 | 0 | 0 | 0 | **0** |
+| `feature/home` (excl. `redesign/`) &nbsp;<sup>†</sup> | 0 | 0 | 0 | 0 | **0** |
+
+<sup>†</sup> `feature/home` was migrated in `refactor/ds-migration-home` — the 13
+component files under `feature/home/.../presentation/components/` are now
+token-driven and protected by `designSystemCheck` (the row was previously
+**210**).  The `redesign/` subtree underneath was deliberately carved out
+of the migration because `HomeRedesignTheme.kt` defines a self-contained
+internal palette (Purple + Coral ramps + Paper/Ink tokens) that cannot
+be expanded into design-system tokens under the "no new brand colors"
+rule; the carve-out is enforced in `build.gradle.kts` via `scanExcludes`.
+A follow-up PR will either map the redesign palette onto existing
+PaceDream tokens or formally adopt it as its own scoped theme module.
 
 ## Totals
 
 | Column | Sum across all modules |
 |---|---:|
-| `Color(0x…)` literals | 161 |
-| `Color.White` / `Color.Black` | 294 |
-| raw `.dp` paddings | 340 |
-| `RoundedCornerShape(N.dp)` | 10 |
-| **Grand total** | **805** |
+| `Color(0x…)` literals | 147 |
+| `Color.White` / `Color.Black` | 236 |
+| raw `.dp` paddings | 311 |
+| `RoundedCornerShape(N.dp)` | 10 &nbsp;<sup>‡</sup> |
+| **Grand total** | **704** |
+
+(Down from 805 at commit `8d93034` — `refactor/ds-migration-home`
+cleared 101 hits in `feature/home` outside `redesign/`; the deferred
+**109** hits inside `feature/home/.../redesign/` are still counted in
+the table row for that subtree so the grand total reflects everything
+currently in code.)
+
+<sup>‡</sup> `feature/wanted`, `feature/chat`, and `feature/wishlist`
+were migrated by `refactor/ds-radius-cleanup` (PR #494) and no longer
+contain any `RoundedCornerShape(N.dp)` literals.  Their rows above
+still show the pre-merge counts and will be reconciled in the next
+catch-all doc refresh — the merged code is the ground truth, and CI
+enforces zero via STRICT mode regardless.
 
 ## Observations
 
-1. **The top-2 modules account for ~47% of total violations.** `feature/home`
-   (210) and `app/shourov/feature/host` (167) hold 377 of the 805 hits —
-   their hex-literal and `.dp`-padding counts dominate. Migrating these
-   two first is the highest-leverage cleanup.
-2. **`app/pacedream.app/feature/home` is fully migrated** (5 violations
-   — all raw `.dp` paddings, no colors, no shapes). This is the screen
-   Phase 3 cleaned up. Note that `feature/home` (the multi-module legacy
-   home package) is a different code path and still has the largest
-   debt.
-3. **`RoundedCornerShape(N.dp)` is almost gone** — only 10 instances total
-   across the repo, concentrated in `feature/wanted` (4), `feature/chat`
-   (4), and `feature/wishlist` (2). One commit per module would clear it
-   repo-wide.
-4. **15 modules have zero violations.** Adding these to
-   `designSystemCheck`'s `scanRoots` is free CI insurance — they would
-   gate any regression from a future PR without any migration work.
-5. **`.dp` padding is the dominant pattern** (340 of 805 hits ≈ 42%)
-   but is also the lowest-impact visually: most literals already sit
-   on a uniform spacing grid; the migration is mostly a
-   find-and-replace to `PaceDreamSpacing.*` tokens.
+1. **`app/shourov/feature/host` is now the single largest debt at 167
+   hits** — `feature/home` was migrated in `refactor/ds-migration-home`
+   and dropped from the top of the table.  Migrating `host` next is the
+   highest-leverage remaining cleanup; it mirrors the same component
+   patterns (`EnhancedDashboardHeader`-style gradients, scrim overlays,
+   raw `.dp` paddings) so the same playbook applies.
+2. **`app/pacedream.app/feature/home` and the migrated `feature/home`
+   are now visually consistent.**  Both routes use `PaceDreamColors`,
+   `OnBrandSurface`, and `scrimOnImage` — the brand rebrand from purple
+   to green (per `Color.kt:452`) is now applied uniformly.
+3. **`RoundedCornerShape(N.dp)` is fully eradicated repo-wide** (10 → 0)
+   and locked in by STRICT mode in `designSystemCheck`.  Any new hit
+   anywhere in `feature/**` fails CI.
+4. **16 source roots are now in `scanRoots`** — the 15 originally
+   locked-in plus `feature/home` (with `redesign/` excluded).
+5. **`.dp` padding remains the dominant pattern** of remaining debt at
+   270 of 585 hits (≈ 46 %).  Migration is mechanical: a per-value
+   histogram + once-per-cluster rounding decision (the playbook used
+   in `feature/home` is reusable for `host`).
 
 ## Suggested next migration order
 
-Pure leverage / impact ratio:
+Pure leverage / impact ratio (post-`feature/home`):
 
-1. **`feature/chat`, `feature/wishlist`, `feature/wanted`** — only these
-   three modules hold the remaining `RoundedCornerShape(N.dp)` debt.
-   One small commit per module clears that column repo-wide and lets
-   `designSystemCheck` strictly enforce it.
-2. **`app/pacedream.app/feature/listingdetail`** — already mostly token-
-   driven, but 30 hex literals remain on overlays. Mirror the Phase 3
-   pattern (`scrimOnImage` / `OnBrandSurface`).
-3. **15 already-clean modules** — add to `scanRoots` immediately; no
-   migration cost, only protection from regression.
-4. **`feature/home`** — the largest module and biggest debt, but also
-   the most expensive migration; do it last when the design-system
-   helpers have stabilised against the smaller modules.
+1. **`app/shourov/feature/host`** (167) — biggest remaining debt; same
+   playbook as `feature/home` (header gradients, image scrims, padding
+   histogram).
+2. **`app/pacedream.app/feature/listingdetail`** (43) — 30 hex literals,
+   all on image overlays; mirror the Phase 3 pattern.
+3. **`feature/booking`** (35) and **`app/pacedream.app/feature/inbox`**
+   (26) — medium-debt modules with a clean mix of hex + paddings.
+4. **`feature/home/.../redesign/`** (109, currently carved out) — needs
+   the design call on whether the Purple/Coral palette gets adopted
+   into `PaceDreamColors` or stays a scoped internal theme.
 
 ---
 
-_Generated by scanning Kotlin sources on commit_ `8d93034` _(at the time
-of writing, the HEAD of `claude/optimize-pacedream-ux-7rC8D`)._
+_Originally generated by scanning Kotlin sources on commit_ `8d93034`
+_(then the HEAD of `claude/optimize-pacedream-ux-7rC8D`).  Updated for
+the `feature/home` row by `refactor/ds-migration-home`._
