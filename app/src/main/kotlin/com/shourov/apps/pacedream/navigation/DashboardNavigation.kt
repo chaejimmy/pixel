@@ -736,6 +736,8 @@ fun NavGraphBuilder.DashboardNavigation(
                             // "My Requests" list — where users can track
                             // the requests they've posted and see offers.
                             composable("requests") {
+                                val requestsIsHostMode by hostModeManager.isHostMode
+                                    .collectAsStateWithLifecycle()
                                 com.shourov.apps.pacedream.feature.wanted.presentation.RequestsScreen(
                                     onRequestClick = { id ->
                                         navController.navigate("requests/$id")
@@ -745,6 +747,10 @@ fun NavGraphBuilder.DashboardNavigation(
                                             "post_request?source=requests_list_fab"
                                         )
                                     },
+                                    onNotifyMeClick = {
+                                        navController.navigate("settings_notifications")
+                                    },
+                                    isHostMode = requestsIsHostMode,
                                 )
                             }
 
@@ -763,6 +769,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     requestId = id,
                                     onBack = { navController.popBackStack() },
                                     onRequireAuth = { showAuthSheetForOffer = true },
+                                    onNavigateToAuthor = { authorId ->
+                                        navController.navigate("host/$authorId")
+                                    },
                                 )
                                 if (showAuthSheetForOffer) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(

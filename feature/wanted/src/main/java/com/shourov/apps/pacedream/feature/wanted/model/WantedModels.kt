@@ -150,14 +150,34 @@ sealed interface RequestDetailUiState {
     ) : RequestDetailUiState
 }
 
+/**
+ * Place selected by the user from autocomplete (or current-location reverse
+ * geocoding). `lat`/`lng` are nullable to support device-Geocoder fallback
+ * results that don't always carry coordinates.
+ */
+@Immutable
+data class SelectedPlace(
+    val city: String,
+    val region: String,
+    val country: String,
+    val lat: Double?,
+    val lng: Double?,
+) {
+    /** "City, Region, Country" for the read-only summary field. */
+    val displayLine: String
+        get() = listOf(city, region, country)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString(", ")
+}
+
 data class CreateRequestForm(
     val type: WantedType = WantedType.Space,
     val category: String = "parking",
     val title: String = "",
     val description: String = "",
-    val locationCity: String = "",
-    val locationState: String = "",
-    val locationCountry: String = "",
+    /** Structured location chosen via Places autocomplete or current location. */
+    val location: SelectedPlace? = null,
     /** Epoch millis at UTC midnight for the start of the requested window. */
     val startDate: Long? = null,
     /** Epoch millis at UTC midnight for the end of the requested window. */
@@ -166,8 +186,18 @@ data class CreateRequestForm(
     val imageUrl: String? = null,
 )
 
+data class FieldErrors(
+    val titleError: String? = null,
+    val descriptionError: String? = null,
+    val budgetError: String? = null,
+) {
+    fun isEmpty(): Boolean =
+        titleError == null && descriptionError == null && budgetError == null
+}
+
 data class CreateRequestUiState(
     val form: CreateRequestForm = CreateRequestForm(),
+    val fieldErrors: FieldErrors = FieldErrors(),
     val submitting: Boolean = false,
     val uploading: Boolean = false,
     val error: String? = null,
@@ -179,7 +209,24 @@ data class CreateRequestUiState(
      * `GET /v1/requests/categories` resolves.
      */
     val categoriesByType: Map<WantedType, List<WantedCategoryOption>> = WantedCategoriesByType,
-)
+) {
+    /**
+     * Required fields are tracked separately from [fieldErrors] so that the
+     * submit button can stay disabled for an empty form without showing a
+     * red border under every field the user hasn't reached yet.
+     */
+    val requiredFieldsPresent: Boolean
+        get() = form.title.trim().length >= TITLE_MIN_LENGTH &&
+            form.description.trim().length >= DESCRIPTION_MIN_LENGTH &&
+            form.category.isNotBlank()
+
+    companion object {
+        const val TITLE_MIN_LENGTH = 3
+        const val TITLE_MAX_LENGTH = 200
+        const val DESCRIPTION_MIN_LENGTH = 10
+        const val DESCRIPTION_MAX_LENGTH = 2000
+    }
+}
 
 data class OfferFormState(
     val price: String = "",

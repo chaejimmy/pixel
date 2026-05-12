@@ -88,10 +88,10 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
-import com.pacedream.app.core.location.LocationService
-import com.pacedream.app.core.location.LocationServiceEntryPoint
-import com.pacedream.app.core.location.PlacePrediction
-import com.pacedream.app.core.location.PlacesAutocompleteService
+import com.shourov.apps.pacedream.core.location.LocationService
+import com.shourov.apps.pacedream.core.location.LocationServiceEntryPoint
+import com.shourov.apps.pacedream.core.location.PlacePrediction
+import com.shourov.apps.pacedream.core.location.PlacesAutocompleteService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import androidx.compose.ui.ExperimentalComposeUiApi

@@ -97,16 +97,19 @@ data class LocationDto(
     val city: String? = null,
     val state: String? = null,
     val country: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
-fun LocationDto.displayLine(): String =
-    listOfNotNull(city, state, country)
+/** "City, State" — the cardable label, with country omitted. */
+fun LocationDto.cityRegionLine(): String =
+    listOfNotNull(city, state)
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .joinToString(", ")
 
 fun RequestDto.toDomain(): WantedRequest {
-    val resolvedLocation = location?.displayLine()
+    val resolvedLocation = location?.cityRegionLine()
         ?.takeIf { it.isNotBlank() }
         ?: locationString
         ?: city

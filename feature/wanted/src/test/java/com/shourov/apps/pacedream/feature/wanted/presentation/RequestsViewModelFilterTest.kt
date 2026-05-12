@@ -249,6 +249,34 @@ class RequestsViewModelFilterTest {
     }
 
     @Test
+    fun `setHostMode flips the role flag observed by the empty-state UI`() = runTest(dispatcher) {
+        // Default is guest mode; toggling pushes the new mode through the
+        // StateFlow consumed by RequestsScreen to pick its empty-state copy.
+        val viewModel = newViewModel(seed)
+        advanceUntilIdle()
+        assertFalse(viewModel.isHostMode.value)
+
+        viewModel.setHostMode(true)
+
+        assertTrue(viewModel.isHostMode.value)
+
+        viewModel.setHostMode(false)
+        assertFalse(viewModel.isHostMode.value)
+    }
+
+    @Test
+    fun `SavedStateHandle restores host mode on rotation`() = runTest(dispatcher) {
+        // Host mode is held on the ViewModel so the role-aware empty state
+        // survives a configuration change without bouncing back to guest.
+        val savedState = SavedStateHandle(mapOf("is_host_mode" to true))
+
+        val viewModel = newViewModel(seed, savedStateHandle = savedState)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.isHostMode.value)
+    }
+
+    @Test
     fun `cold start with no SavedStateHandle falls back to the on-disk store`() = runTest(dispatcher) {
         val store = FakeFiltersStore().apply {
             seedInitial(
