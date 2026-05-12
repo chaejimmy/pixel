@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -68,11 +69,11 @@ fun DestinationCard(
                 Icon(
                     painter = painterResource(R.drawable.ic_location),
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = OnBrandSurface,
                     modifier = Modifier.size(LargePadding),
                 )
                 HorizontalSpacer(4)
-                SmallTitleText(text = title, color = Color.White)
+                SmallTitleText(text = title, color = OnBrandSurface)
             }
         }
     }

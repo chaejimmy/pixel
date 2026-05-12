@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -105,12 +106,12 @@ fun DealsCard(
                             Icon(
                                 imageVector = PaceDreamIcons.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = OnBrandSurface,
                                 modifier = Modifier.size(PaceDreamIconSize.XS)
                             )
                             Text(
                                 text = firstPrice.discounts?.firstOrNull() ?: "DEAL",
-                                color = Color.White,
+                                color = OnBrandSurface,
                                 fontWeight = FontWeight.Bold,
                                 style = PaceDreamTypography.Caption2,
                             )
@@ -206,12 +207,12 @@ fun LastMinuteDealCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocalFireDepartment,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
                         Text(
                             text = stringResource(R.string.feature_home_off, discountPercent),
-                            color = Color.White,
+                            color = OnBrandSurface,
                             fontWeight = FontWeight.Bold,
                             style = PaceDreamTypography.Caption2,
                         )
@@ -228,7 +229,7 @@ fun LastMinuteDealCard(
                     ) {
                         Text(
                             text = stringResource(R.string.feature_home_spots_left, spotsLeft),
-                            color = Color.White,
+                            color = OnBrandSurface,
                             fontWeight = FontWeight.Bold,
                             style = PaceDreamTypography.Caption2,
                         )

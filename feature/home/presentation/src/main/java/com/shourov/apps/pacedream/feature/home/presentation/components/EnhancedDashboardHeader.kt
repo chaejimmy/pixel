@@ -31,6 +31,9 @@ import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import android.content.res.Configuration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -88,8 +91,8 @@ fun EnhancedDashboardHeader(
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF4F46E5),
-                                Color(0xFF7B4DFF),
+                                PaceDreamColors.Primary,
+                                PaceDreamColors.Accent,
                             )
                         )
                     )
@@ -112,7 +115,7 @@ fun EnhancedDashboardHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
-                    .background(Color(0xFF4F46E5).copy(alpha = 0.4f))
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.4f))
             )
 
             // Decorative blurred circles (matching iOS decorativeElements)
@@ -121,14 +124,14 @@ fun EnhancedDashboardHeader(
                     .size(120.dp)
                     .offset(x = (-80).dp, y = (-40).dp)
                     .blur(20.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                    .background(OnBrandSurface.copy(alpha = 0.15f), CircleShape)
             )
             Box(
                 modifier = Modifier
                     .size(80.dp)
                     .offset(x = 280.dp, y = 20.dp)
                     .blur(15.dp)
-                    .background(Color.White.copy(alpha = 0.10f), CircleShape)
+                    .background(OnBrandSurface.copy(alpha = 0.10f), CircleShape)
             )
 
             // Header content
@@ -136,10 +139,10 @@ fun EnhancedDashboardHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        top = 52.dp,
-                        start = 20.dp,
-                        end = 20.dp,
-                        bottom = 20.dp,
+                        top = PaceDreamSpacing.XXL,
+                        start = PaceDreamSpacing.LG,
+                        end = PaceDreamSpacing.LG,
+                        bottom = PaceDreamSpacing.LG,
                     ),
             ) {
                 // Top row: Profile + Notification
@@ -156,20 +159,20 @@ fun EnhancedDashboardHeader(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(OnBrandSurface.copy(alpha = 0.2f)),
                         )
                     } else {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
+                                .background(OnBrandSurface.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = PaceDreamIcons.Person,
                                 contentDescription = "Profile",
-                                tint = Color.White,
+                                tint = OnBrandSurface,
                                 modifier = Modifier.size(24.dp),
                             )
                         }
@@ -182,13 +185,13 @@ fun EnhancedDashboardHeader(
                         Text(
                             text = daypartGreeting(),
                             style = PaceDreamTypography.Caption,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = OnBrandSurface.copy(alpha = 0.7f),
                         )
                         Text(
                             text = userName.ifBlank { "Guest" },
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = OnBrandSurface,
                             maxLines = 1,
                         )
                     }
@@ -199,12 +202,12 @@ fun EnhancedDashboardHeader(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.16f))
+                            .background(OnBrandSurface.copy(alpha = 0.16f))
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.Notifications,
                             contentDescription = "Notifications",
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -217,7 +220,7 @@ fun EnhancedDashboardHeader(
                     text = stringResource(R.string.feature_home_find_your_perfect_stay),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = OnBrandSurface.copy(alpha = 0.9f),
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -245,14 +248,14 @@ private fun StructuredSearchPill(
         modifier = Modifier
             .fillMaxWidth()
             .height(62.dp),
-        color = Color.White,
+        color = OnBrandSurface,
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         shadowElevation = 10.dp,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 6.dp),
+                .padding(start = PaceDreamSpacing.SM, end = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SearchSegment(
@@ -277,14 +280,14 @@ private fun StructuredSearchPill(
             IconButton(
                 onClick = onFilterClick,
                 modifier = Modifier
-                    .padding(start = 4.dp)
+                    .padding(start = PaceDreamSpacing.XS)
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFF4F46E5),
-                                Color(0xFF7B4DFF),
+                                PaceDreamColors.Primary,
+                                PaceDreamColors.Accent,
                             )
                         )
                     ),
@@ -292,7 +295,7 @@ private fun StructuredSearchPill(
                 Icon(
                     imageVector = PaceDreamIcons.Search,
                     contentDescription = "Search",
-                    tint = Color.White,
+                    tint = OnBrandSurface,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -307,21 +310,21 @@ private fun SearchSegment(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 12.dp),
+        modifier = modifier.padding(horizontal = PaceDreamSpacing.SM2),
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = label,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF111827),
+            color = PaceDreamColors.TextPrimary,
             maxLines = 1,
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
             fontSize = 12.sp,
-            color = Color(0xFF6B7280),
+            color = PaceDreamColors.TextSecondary,
             maxLines = 1,
         )
     }
@@ -333,7 +336,7 @@ private fun SegmentDivider() {
         modifier = Modifier
             .height(28.dp)
             .width(1.dp)
-            .background(Color(0xFFE5E7EB))
+            .background(PaceDreamColors.Gray100)
     )
 }
 
@@ -355,7 +358,7 @@ fun CompactDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = 56.dp,
+                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,
@@ -366,7 +369,7 @@ fun CompactDashboardHeader(
             Text(
                 text = title,
                 style = PaceDreamTypography.Headline,
-                color = Color.White
+                color = OnBrandSurface
             )
 
             Row(
@@ -380,7 +383,7 @@ fun CompactDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.Search,
                         contentDescription = "Search",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -392,7 +395,7 @@ fun CompactDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.Notifications,
                         contentDescription = "Notifications",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -421,7 +424,7 @@ fun MinimalDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = 56.dp,
+                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,
@@ -436,7 +439,7 @@ fun MinimalDashboardHeader(
                     Icon(
                         imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -446,13 +449,13 @@ fun MinimalDashboardHeader(
                 Text(
                     text = title,
                     style = PaceDreamTypography.Headline,
-                    color = Color.White
+                    color = OnBrandSurface
                 )
                 subtitle?.let {
                     Text(
                         text = it,
                         style = PaceDreamTypography.Subheadline,
-                        color = Color.White.copy(alpha = 0.85f)
+                        color = OnBrandSurface.copy(alpha = 0.85f)
                     )
                 }
             }
@@ -465,7 +468,7 @@ fun MinimalDashboardHeader(
                     actionIcon?.invoke() ?: Icon(
                         imageVector = PaceDreamIcons.MoreVert,
                         contentDescription = "More",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.MD)
                     )
                 }
@@ -482,5 +485,25 @@ private fun daypartGreeting(): String {
         in 11..16 -> "Good Afternoon,"
         in 17..21 -> "Good Evening,"
         else -> "Good Night,"
+    }
+}
+
+@Preview(name = "EnhancedDashboardHeader — light", showBackground = true)
+@Composable
+private fun EnhancedDashboardHeaderLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        EnhancedDashboardHeader(userName = "Ada")
+    }
+}
+
+@Preview(
+    name = "EnhancedDashboardHeader — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun EnhancedDashboardHeaderDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        EnhancedDashboardHeader(userName = "Ada")
     }
 }

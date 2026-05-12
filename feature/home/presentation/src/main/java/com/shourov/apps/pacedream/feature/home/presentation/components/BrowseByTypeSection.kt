@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -54,19 +55,19 @@ enum class HomeBrowseType(
         displayTitle = "Spaces",
         subtitle = "Book flexible places nearby",
         icon = Icons.Default.Business,
-        gradientColors = listOf(Color(0xFF5527D7), Color(0xFF7C5CE7)),
+        gradientColors = listOf(PaceDreamColors.Primary, PaceDreamColors.Primary.copy(alpha = 0.7f)),
     ),
     ITEMS(
         displayTitle = "Items",
         subtitle = "Borrow useful things on demand",
         icon = Icons.Default.Inventory2,
-        gradientColors = listOf(Color(0xFF3B82F6), Color(0xFF60A5FA)),
+        gradientColors = listOf(PaceDreamColors.Info, PaceDreamColors.Info.copy(alpha = 0.7f)),
     ),
     SERVICES(
         displayTitle = "Services",
         subtitle = "Find help for everyday needs",
         icon = Icons.Default.CleaningServices,
-        gradientColors = listOf(Color(0xFF10B981), Color(0xFF34D399)),
+        gradientColors = listOf(PaceDreamColors.Success, PaceDreamColors.Success.copy(alpha = 0.7f)),
     );
 
     val subcategories: List<BrowseSubcategory>
@@ -130,11 +131,11 @@ fun BrowseByTypeSection(
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = PaceDreamSpacing.LG)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.XL))
                 .background(PaceDreamGray100)
-                .padding(3.dp),
+                .padding(PaceDreamSpacing.XS),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             HomeBrowseType.entries.forEach { type ->
@@ -151,7 +152,7 @@ fun BrowseByTypeSection(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = PaceDreamSpacing.LG),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             selectedType.subcategories.forEach { sub ->
@@ -183,7 +184,7 @@ fun BrowseByTypeSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = PaceDreamSpacing.LG),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -202,7 +203,7 @@ fun BrowseByTypeSection(
                                     }
                                 )
                             },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -226,7 +227,7 @@ fun BrowseByTypeSection(
 
                 // Listing cards — unified card width and structure
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     if (isLoading) {
@@ -400,7 +401,7 @@ private fun BrowseTypePill(
     modifier: Modifier = Modifier,
 ) {
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else PaceDreamTextSecondary,
+        targetValue = if (isSelected) OnBrandSurface else PaceDreamTextSecondary,
         animationSpec = tween(200),
         label = "pillText"
     )
@@ -417,7 +418,7 @@ private fun BrowseTypePill(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 10.dp),
+            .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -458,7 +459,7 @@ private fun SubcategoryChip(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,14 +65,14 @@ fun AmenityChip(
             Icon(
                 imageVector = icon,
                 contentDescription = amenity,
-                tint = if (isSelected) Color.White else PaceDreamColors.TextSecondary,
+                tint = if (isSelected) OnBrandSurface else PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(PaceDreamIconSize.SM)
             )
             
             Text(
                 text = amenity,
                 style = PaceDreamTypography.Caption,
-                color = if (isSelected) Color.White else PaceDreamColors.TextSecondary,
+                color = if (isSelected) OnBrandSurface else PaceDreamColors.TextSecondary,
                 fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
             )
         }
@@ -186,7 +187,7 @@ fun HostCard(
                                 Text(
                                     text = "Superhost",
                                     style = PaceDreamTypography.Caption,
-                                    color = Color.White,
+                                    color = OnBrandSurface,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(
                                         horizontal = PaceDreamSpacing.SM,
@@ -216,7 +217,7 @@ fun HostCard(
                     Icon(
                         imageVector = PaceDreamIcons.Message,
                         contentDescription = "Contact host",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
                     )
                 }
@@ -411,32 +412,32 @@ fun AmenityFilterChip(
             Icon(
                 imageVector = icon,
                 contentDescription = amenity,
-                tint = if (isSelected) Color.White else PaceDreamColors.TextSecondary,
+                tint = if (isSelected) OnBrandSurface else PaceDreamColors.TextSecondary,
                 modifier = Modifier.size(PaceDreamIconSize.SM)
             )
             
             Text(
                 text = amenity,
                 style = PaceDreamTypography.Callout,
-                color = if (isSelected) Color.White else PaceDreamColors.TextPrimary,
+                color = if (isSelected) OnBrandSurface else PaceDreamColors.TextPrimary,
                 fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
             )
             
             count?.let {
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) Color.White else PaceDreamColors.Primary
+                        containerColor = if (isSelected) OnBrandSurface else PaceDreamColors.Primary
                     ),
                     shape = RoundedCornerShape(PaceDreamRadius.XS)
                 ) {
                     Text(
                         text = it.toString(),
                         style = PaceDreamTypography.Caption,
-                        color = if (isSelected) PaceDreamColors.Primary else Color.White,
+                        color = if (isSelected) PaceDreamColors.Primary else OnBrandSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(
                             horizontal = PaceDreamSpacing.XS,
-                            vertical = 2.dp
+                            vertical = PaceDreamSpacing.XXS
                         )
                     )
                 }

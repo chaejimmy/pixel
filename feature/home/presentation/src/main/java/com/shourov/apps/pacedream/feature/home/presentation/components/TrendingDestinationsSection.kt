@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,7 +57,7 @@ fun TrendingDestinationsSection(
         // 2-column grid
         val displayDestinations = destinations.take(6)
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             for (i in displayDestinations.indices step 2) {
@@ -112,7 +114,7 @@ private fun TrendingDestinationCard(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+                        colors = listOf(Color.Transparent, scrimOnImage(0.55f)),
                         startY = 0.4f * height.value,
                     )
                 )
@@ -122,14 +124,14 @@ private fun TrendingDestinationCard(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp),
+                .padding(PaceDreamSpacing.SM2),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
                 text = destination.title,
                 fontSize = if (isLarge) 18.sp else 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = OnBrandSurface,
                 maxLines = 1,
             )
             destination.propertyCount?.let { count ->
@@ -137,7 +139,7 @@ private fun TrendingDestinationCard(
                     text = "$count properties",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = OnBrandSurface.copy(alpha = 0.85f),
                 )
             }
         }

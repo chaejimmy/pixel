@@ -67,6 +67,12 @@ tasks.register("designSystemCheck") {
     // scope — flipping them on without migration would block every PR.
     val scanRoots = listOf(
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/home"),
+        // Legacy multi-module home — migrated in refactor/ds-migration-home.
+        // The redesign/ subtree is carved out via `scanExcludes` below
+        // pending the HomeRedesignTheme.kt palette decision (30 hex literals
+        // form a self-contained internal palette that should not be expanded
+        // into design-system tokens per "no new brand colors" rule).
+        rootProject.file("feature/home"),
         // Zero-violation modules per DESIGN_SYSTEM_COVERAGE.md — locked in
         // as CI insurance so a future PR cannot regress them.
         rootProject.file("feature/search"),
@@ -81,6 +87,13 @@ tasks.register("designSystemCheck") {
         // TODO: add `app/src/main/kotlin/com/pacedream/app/feature/<next>` after
         // each feature's design-system migration lands.
     ).filter { it.exists() }
+
+    // Subtrees inside scanRoots that haven't been migrated yet.  The
+    // allowlist pass skips files matching any of these patterns; the
+    // strict radius pass still covers them so radius regressions are
+    // caught everywhere.  Currently the only carve-out is the redesign/
+    // subtree of feature/home — see the comment on scanRoots above.
+    val scanExcludes = listOf("**/redesign/**")
 
     // STRICT corner-radius enforcement.  Phase B cleared the
     // RoundedCornerShape(N.dp) column to 0 across every feature/** module
@@ -131,17 +144,21 @@ tasks.register("designSystemCheck") {
     val radiusRule = rules.single { it.id == "RoundedCornerShape(N.dp)" }
 
     inputs.files(
-        (scanRoots + strictRadiusRoots)
-            .map { project.fileTree(it).matching { include("**/*.kt") } }
+        scanRoots.map { project.fileTree(it).matching { include("**/*.kt"); exclude(scanExcludes) } } +
+            strictRadiusRoots.map { project.fileTree(it).matching { include("**/*.kt") } }
     )
     outputs.upToDateWhen { true } // Task is pure / idempotent.
 
     doLast {
         val violations = mutableListOf<String>()
 
-        // Allowlist pass — all 5 rules over the migrated source roots.
+        // Allowlist pass — all 5 rules over the migrated source roots,
+        // skipping any subtrees explicitly carved out via scanExcludes.
         scanRoots.forEach { root ->
-            project.fileTree(root).matching { include("**/*.kt") }.forEach { file ->
+            project.fileTree(root).matching {
+                include("**/*.kt")
+                exclude(scanExcludes)
+            }.forEach { file ->
                 // Skip auto-generated previews if any happen to live in feature
                 // dirs; the @Preview itself is unlikely to introduce these
                 // literals because previews call into the same Composables.
@@ -159,9 +176,14 @@ tasks.register("designSystemCheck") {
         // Strict pass — radius rule only, across every feature/** source tree.
         // Skip files already covered by scanRoots so duplicate hits are not
         // reported twice when a module is both on the allowlist and inside a
-        // strict-root directory.
+        // strict-root directory.  scanExcludes deliberately do NOT apply
+        // here — RoundedCornerShape(N.dp) regressions are blocked repo-wide
+        // including inside any carved-out subtree.
         val coveredFiles = scanRoots.flatMap { root ->
-            project.fileTree(root).matching { include("**/*.kt") }.files
+            project.fileTree(root).matching {
+                include("**/*.kt")
+                exclude(scanExcludes)
+            }.files
         }.toSet()
         strictRadiusRoots.forEach { root ->
             project.fileTree(root).matching { include("**/*.kt") }.forEach { file ->

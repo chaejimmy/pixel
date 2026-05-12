@@ -18,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import android.content.res.Configuration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,21 +47,21 @@ val marketplaceCategories = listOf(
         key = "spaces",
         title = "Spaces",
         icon = Icons.Default.Business,
-        accentColor = Color(0xFF5527D7),
+        accentColor = PaceDreamColors.Primary,
         description = "Parking, rooms, pods & more",
     ),
     CategoryChipData(
         key = "items",
         title = "Items",
         icon = Icons.Default.Inventory2,
-        accentColor = Color(0xFF3B82F6),
+        accentColor = PaceDreamColors.Info,
         description = "Cameras, gear, tools & tech",
     ),
     CategoryChipData(
         key = "services",
         title = "Services",
         icon = Icons.Default.CleaningServices,
-        accentColor = Color(0xFF10B981),
+        accentColor = PaceDreamColors.Success,
         description = "Cleaning, moving, fitness & more",
     ),
 )
@@ -74,7 +77,7 @@ fun QuickChipsSection(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             marketplaceCategories.forEach { chip ->
@@ -99,7 +102,7 @@ private fun CategoryChip(
     onClick: () -> Unit,
 ) {
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else PaceDreamTextPrimary,
+        targetValue = if (isSelected) OnBrandSurface else PaceDreamTextPrimary,
         animationSpec = tween(200),
         label = "chipContent",
     )
@@ -139,7 +142,7 @@ private fun CategoryChip(
                 )
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -149,7 +152,7 @@ private fun CategoryChip(
                         .size(28.dp)
                         .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(
-                            if (isSelected) Color.White.copy(alpha = 0.2f)
+                            if (isSelected) OnBrandSurface.copy(alpha = 0.2f)
                             else data.accentColor.copy(alpha = 0.1f)
                         ),
                     contentAlignment = Alignment.Center,
@@ -157,7 +160,7 @@ private fun CategoryChip(
                     Icon(
                         imageVector = data.icon,
                         contentDescription = null,
-                        tint = if (isSelected) Color.White else data.accentColor,
+                        tint = if (isSelected) OnBrandSurface else data.accentColor,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -170,11 +173,31 @@ private fun CategoryChip(
                     Text(
                         text = data.description,
                         style = PaceDreamTypography.Caption2,
-                        color = if (isSelected) Color.White.copy(alpha = 0.8f)
+                        color = if (isSelected) OnBrandSurface.copy(alpha = 0.8f)
                         else PaceDreamTextSecondary,
                     )
                 }
             }
         }
+    }
+}
+
+@Preview(name = "QuickChipsSection — light", showBackground = true)
+@Composable
+private fun QuickChipsSectionLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        QuickChipsSection()
+    }
+}
+
+@Preview(
+    name = "QuickChipsSection — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun QuickChipsSectionDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        QuickChipsSection()
     }
 }

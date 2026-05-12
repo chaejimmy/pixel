@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,7 @@ fun CategoryCard(
                 Column(
                     modifier = Modifier.padding(
                         vertical = ExtraLargePadding,
-                        horizontal = 40.dp,
+                        horizontal = PaceDreamSpacing.XL,
                     ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -73,7 +74,7 @@ fun CategoryCard(
                         modifier = Modifier.size(40.dp),
                     )
                     VerticalSpacer(20)
-                    NormalTitleText(Modifier, title, Color.White)
+                    NormalTitleText(Modifier, title, OnBrandSurface)
                 }
             }
         }

@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -76,7 +78,7 @@ fun EnhancedDestinationCard(
                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
+                                scrimOnImage(0.7f)
                             )
                         )
                     )
@@ -92,7 +94,7 @@ fun EnhancedDestinationCard(
                 Text(
                     text = destination.title,
                     style = PaceDreamTypography.Title3,
-                    color = Color.White,
+                    color = OnBrandSurface,
                     fontWeight = FontWeight.Bold
                 )
                 
@@ -101,7 +103,7 @@ fun EnhancedDestinationCard(
                 Text(
                     text = "Explore properties",
                     style = PaceDreamTypography.Caption,
-                    color = Color.White.copy(alpha = 0.9f)
+                    color = OnBrandSurface.copy(alpha = 0.9f)
                 )
             }
         }
@@ -176,7 +178,7 @@ fun EnhancedPropertyCard(
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
                         .background(
-                            Color.White.copy(alpha = 0.9f),
+                            OnBrandSurface.copy(alpha = 0.9f),
                             CircleShape
                         )
                 ) {
@@ -199,7 +201,7 @@ fun EnhancedPropertyCard(
                     Text(
                         text = price,
                         style = PaceDreamTypography.Callout,
-                        color = Color.White,
+                        color = OnBrandSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(
                             horizontal = PaceDreamSpacing.SM,
@@ -480,13 +482,13 @@ fun PropertyImageCarousel(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(PaceDreamSpacing.SM),
-            colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.7f)),
+            colors = CardDefaults.cardColors(containerColor = scrimOnImage(0.7f)),
             shape = RoundedCornerShape(PaceDreamRadius.SM)
         ) {
             Text(
                 text = "${currentImageIndex + 1}/${images.size}",
                 style = PaceDreamTypography.Caption,
-                color = Color.White,
+                color = OnBrandSurface,
                 modifier = Modifier.padding(
                     horizontal = PaceDreamSpacing.SM,
                     vertical = PaceDreamSpacing.XS
@@ -506,14 +508,14 @@ fun PropertyImageCarousel(
                     onClick = { onImageClick((currentImageIndex - 1 + images.size) % images.size) },
                     modifier = Modifier
                         .background(
-                            Color.Black.copy(alpha = 0.5f),
+                            scrimOnImage(0.5f),
                             CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.ArrowBack,
                         contentDescription = "Previous image",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
                     )
                 }
@@ -522,14 +524,14 @@ fun PropertyImageCarousel(
                     onClick = { onImageClick((currentImageIndex + 1) % images.size) },
                     modifier = Modifier
                         .background(
-                            Color.Black.copy(alpha = 0.5f),
+                            scrimOnImage(0.5f),
                             CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.ArrowForward,
                         contentDescription = "Next image",
-                        tint = Color.White,
+                        tint = OnBrandSurface,
                         modifier = Modifier.size(PaceDreamIconSize.SM)
                     )
                 }

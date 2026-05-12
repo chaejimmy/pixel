@@ -273,7 +273,7 @@ private fun FeaturedListingsSection(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = PaceDreamSpacing.MD),
         ) {
             // Section header with helper text
             SectionHeader(
@@ -290,7 +290,7 @@ private fun FeaturedListingsSection(
                 SectionWarningBanner(
                     message = featured.error,
                     onRetry = featured.onRetry,
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -306,7 +306,7 @@ private fun FeaturedListingsSection(
             val useWideCards = itemCount in 1..2
 
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 if (featured.isLoading) {
@@ -395,7 +395,7 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 20.dp),
+        modifier = modifier.padding(horizontal = PaceDreamSpacing.LG),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Row(
@@ -413,7 +413,7 @@ fun SectionHeader(
             if (onViewAllClick != null) {
                 TextButton(
                     onClick = onViewAllClick,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
