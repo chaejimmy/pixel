@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +36,7 @@ fun RequestTag(
         color = MaterialTheme.colorScheme.onPrimary,
         fontWeight = FontWeight.SemiBold,
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
@@ -51,7 +52,7 @@ fun RequestCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
         ),
