@@ -550,7 +550,11 @@ fun NavGraphBuilder.DashboardNavigation(
                                         )
                                     },
                                     onMyRequestsClick = {
-                                        navController.navigate("requests")
+                                        // "My requests" from the profile
+                                        // menu — drop the user on the
+                                        // Mine tab so it matches the link
+                                        // copy.
+                                        navController.navigate("requests?tab=mine")
                                     },
                                     onAboutClick = {
                                         navController.navigate("about")
@@ -714,7 +718,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 com.shourov.apps.pacedream.feature.wanted.presentation.PostRequestSuccessScreen(
                                     requestId = id,
                                     onViewMyRequests = {
-                                        navController.navigate("requests") {
+                                        // Land on the Mine tab — that's
+                                        // where the new request actually
+                                        // lives. Without ?tab=mine the
+                                        // user would see the public
+                                        // Browse feed and feel lost.
+                                        navController.navigate("requests?tab=mine") {
                                             popUpTo("post_request_success/{requestId}") {
                                                 inclusive = true
                                             }
@@ -733,9 +742,25 @@ fun NavGraphBuilder.DashboardNavigation(
                                 )
                             }
 
-                            // "My Requests" list — where users can track
-                            // the requests they've posted and see offers.
-                            composable("requests") {
+                            // Requests screen — Browse / Mine tabs.
+                            // ?tab=mine lands the user on their own posts
+                            // (or, in host mode, their submitted offers).
+                            composable(
+                                route = "requests?tab={tab}",
+                                arguments = listOf(
+                                    navArgument("tab") {
+                                        type = NavType.StringType
+                                        nullable = true
+                                        defaultValue = null
+                                    },
+                                ),
+                            ) { backStackEntry ->
+                                val tabKey = backStackEntry.arguments?.getString("tab")
+                                val initialTab = tabKey?.let {
+                                    com.shourov.apps.pacedream.feature.wanted.model.RequestsTab.fromKey(it)
+                                }
+                                val requestsIsHostMode by hostModeManager.isHostMode
+                                    .collectAsStateWithLifecycle()
                                 com.shourov.apps.pacedream.feature.wanted.presentation.RequestsScreen(
                                     onRequestClick = { id ->
                                         navController.navigate("requests/$id")
@@ -745,6 +770,8 @@ fun NavGraphBuilder.DashboardNavigation(
                                             "post_request?source=requests_list_fab"
                                         )
                                     },
+                                    isHostMode = requestsIsHostMode,
+                                    initialTab = initialTab,
                                 )
                             }
 

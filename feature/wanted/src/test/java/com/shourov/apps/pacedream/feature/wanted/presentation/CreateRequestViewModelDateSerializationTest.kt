@@ -167,7 +167,16 @@ class CreateRequestViewModelDateSerializationTest {
         override suspend fun getRequests(): Result<List<WantedRequest>> =
             error("not exercised by serialization tests")
 
+        override suspend fun getMyRequests(): Result<List<WantedRequest>> =
+            error("not exercised by serialization tests")
+
         override suspend fun getRequest(id: String): Result<WantedRequest> =
+            error("not exercised by serialization tests")
+
+        override suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>> =
+            error("not exercised by serialization tests")
+
+        override suspend fun getMyOffers(): Result<List<WantedOffer>> =
             error("not exercised by serialization tests")
 
         override suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest> {

@@ -20,6 +20,7 @@ data class WantedRequest(
     val dateTime: String?,
     val endDate: String? = null,
     val imageUrl: String?,
+    val authorId: String? = null,
     val authorName: String? = null,
     val authorAvatarUrl: String? = null,
     val offerCount: Int = 0,
@@ -33,8 +34,29 @@ data class WantedOffer(
     val currency: String = "USD",
     val message: String,
     val authorName: String? = null,
+    val authorAvatarUrl: String? = null,
     val createdAt: String? = null,
+    val status: OfferStatus = OfferStatus.Pending,
+    /** Snapshot of the parent request's title, when the backend embeds it. */
+    val requestTitle: String? = null,
 )
+
+/**
+ * Lifecycle of a [WantedOffer]. Mirrors the web backend's `status` field
+ * on `/v1/offers`. Unknown values fall back to [Pending] so a future
+ * status doesn't crash the screen.
+ */
+enum class OfferStatus(val key: String, val label: String) {
+    Pending("pending", "Pending"),
+    Accepted("accepted", "Accepted"),
+    Declined("declined", "Declined"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): OfferStatus =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Pending
+    }
+}
 
 // ============================================================================
 // Web-parity taxonomy
@@ -112,10 +134,42 @@ sealed interface RequestsListUiState {
     data class Content(val requests: List<WantedRequest>) : RequestsListUiState
 }
 
+sealed interface MyOffersUiState {
+    data object Loading : MyOffersUiState
+    data class Error(val message: String) : MyOffersUiState
+    data class Content(val offers: List<WantedOffer>) : MyOffersUiState
+}
+
 sealed interface RequestDetailUiState {
     data object Loading : RequestDetailUiState
     data class Error(val message: String) : RequestDetailUiState
-    data class Content(val request: WantedRequest) : RequestDetailUiState
+    data class Content(
+        val request: WantedRequest,
+        /**
+         * Offers visible to the current user. Empty when the viewer is not
+         * the request's author (providers should use "Make an Offer"
+         * instead) or when no offers have been received yet.
+         */
+        val offers: List<WantedOffer> = emptyList(),
+        /** True when the current user authored this request. */
+        val isAuthor: Boolean = false,
+    ) : RequestDetailUiState
+}
+
+/**
+ * Which slot of the requests screen tabs is selected. Persisted via
+ * `SavedStateHandle` so a process restart restores the user's place
+ * (Browse vs Mine), per the spec's acceptance criteria.
+ */
+enum class RequestsTab(val key: String) {
+    Browse("browse"),
+    Mine("mine"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): RequestsTab =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Browse
+    }
 }
 
 data class CreateRequestForm(

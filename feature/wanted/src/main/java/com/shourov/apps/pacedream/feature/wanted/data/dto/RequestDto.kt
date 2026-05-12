@@ -75,6 +75,10 @@ data class RequestDto(
     val authorName: String? = null,
     @SerializedName("authorAvatar")
     val authorAvatar: String? = null,
+    @SerializedName("authorId")
+    val authorId: String? = null,
+    @SerializedName("userId")
+    val userId: String? = null,
     @SerializedName("offerCount")
     val offerCount: Int? = null,
 )
@@ -110,6 +114,7 @@ fun RequestDto.toDomain(): WantedRequest {
         dateTime = date ?: dateTime,
         endDate = endDate,
         imageUrl = coverImageUrl ?: imageUrl ?: image,
+        authorId = authorId ?: userId,
         authorName = authorName,
         authorAvatarUrl = authorAvatar,
         offerCount = offerCount ?: 0,

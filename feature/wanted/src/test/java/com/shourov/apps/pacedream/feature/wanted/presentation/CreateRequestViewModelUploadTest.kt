@@ -157,7 +157,16 @@ class CreateRequestViewModelUploadTest {
         override suspend fun getRequests(): Result<List<WantedRequest>> =
             error("repository must not be hit from upload tests")
 
+        override suspend fun getMyRequests(): Result<List<WantedRequest>> =
+            error("repository must not be hit from upload tests")
+
         override suspend fun getRequest(id: String): Result<WantedRequest> =
+            error("repository must not be hit from upload tests")
+
+        override suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>> =
+            error("repository must not be hit from upload tests")
+
+        override suspend fun getMyOffers(): Result<List<WantedOffer>> =
             error("repository must not be hit from upload tests")
 
         override suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest> =
@@ -171,7 +180,16 @@ class CreateRequestViewModelUploadTest {
         override suspend fun getRequests(): Result<List<WantedRequest>> =
             error("submit must not reach the repository while uploading")
 
+        override suspend fun getMyRequests(): Result<List<WantedRequest>> =
+            error("submit must not reach the repository while uploading")
+
         override suspend fun getRequest(id: String): Result<WantedRequest> =
+            error("submit must not reach the repository while uploading")
+
+        override suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>> =
+            error("submit must not reach the repository while uploading")
+
+        override suspend fun getMyOffers(): Result<List<WantedOffer>> =
             error("submit must not reach the repository while uploading")
 
         override suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest> =
