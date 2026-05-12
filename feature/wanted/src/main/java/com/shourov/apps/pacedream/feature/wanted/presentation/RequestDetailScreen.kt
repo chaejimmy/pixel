@@ -52,6 +52,7 @@ fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
     viewModel: RequestDetailViewModel = hiltViewModel(),
+    onViewMyOffers: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val offerState by viewModel.offer.collectAsStateWithLifecycle()
@@ -59,12 +60,7 @@ fun RequestDetailScreen(
 
     LaunchedEffect(requestId) { viewModel.load(requestId) }
 
-    LaunchedEffect(offerState.submitted) {
-        if (offerState.submitted) {
-            sheetVisible = false
-            viewModel.resetOfferSheet()
-        }
-    }
+    val requesterName = (state as? RequestDetailUiState.Content)?.request?.authorName
 
     Scaffold(
         topBar = {
@@ -88,14 +84,16 @@ fun RequestDetailScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
+                    val alreadySent = offerState.submitted
                     Button(
                         onClick = {
                             viewModel.resetOfferSheet()
                             sheetVisible = true
                         },
+                        enabled = !alreadySent,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Make an Offer")
+                        Text(if (alreadySent) "Offer sent" else "Make an Offer")
                     }
                 }
             }
@@ -124,9 +122,12 @@ fun RequestDetailScreen(
     if (sheetVisible) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
+            // Keep `submitted = true` after dismiss so the bottom bar
+            // continues to show the disabled "Offer sent" state. Only
+            // discard a draft (unsubmitted) form.
             onDismissRequest = {
                 sheetVisible = false
-                viewModel.resetOfferSheet()
+                if (!offerState.submitted) viewModel.resetOfferSheet()
             },
             sheetState = sheetState,
         ) {
@@ -135,6 +136,14 @@ fun RequestDetailScreen(
                 onPriceChange = viewModel::onPriceChange,
                 onMessageChange = viewModel::onMessageChange,
                 onSubmit = viewModel::submitOffer,
+                onDone = { sheetVisible = false },
+                requesterName = requesterName,
+                onViewMyOffers = onViewMyOffers?.let { nav ->
+                    {
+                        sheetVisible = false
+                        nav()
+                    }
+                },
             )
         }
     }
