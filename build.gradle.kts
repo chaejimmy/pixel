@@ -67,8 +67,33 @@ tasks.register("designSystemCheck") {
     // scope — flipping them on without migration would block every PR.
     val scanRoots = listOf(
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/home"),
+        // Zero-violation modules per DESIGN_SYSTEM_COVERAGE.md — locked in
+        // as CI insurance so a future PR cannot regress them.
+        rootProject.file("feature/search"),
+        rootProject.file("feature/notifications"),
+        rootProject.file("feature/notification"),
+        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/payment"),
+        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/destinations"),
+        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/bookingdetail"),
+        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/listing"),
+        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/hostprofile"),
+        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/faq"),
         // TODO: add `app/src/main/kotlin/com/pacedream/app/feature/<next>` after
         // each feature's design-system migration lands.
+    ).filter { it.exists() }
+
+    // STRICT corner-radius enforcement.  Phase B cleared the
+    // RoundedCornerShape(N.dp) column to 0 across every feature/** module
+    // (feature/wanted, feature/chat, feature/wishlist were the last three).
+    // To prevent regression, the radius rule alone scans every feature
+    // source root — not just the migration allowlist above — so a stray
+    // `RoundedCornerShape(N.dp)` anywhere in feature code fails CI.  The
+    // other four rules stay scoped to scanRoots because their columns are
+    // not yet zero across all modules.
+    val strictRadiusRoots = listOf(
+        rootProject.file("feature"),
+        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature"),
+        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature"),
     ).filter { it.exists() }
 
     // Each rule pairs a regex with the suggested replacement so the failure
@@ -103,11 +128,18 @@ tasks.register("designSystemCheck") {
         ),
     )
 
-    inputs.files(scanRoots.map { project.fileTree(it).matching { include("**/*.kt") } })
+    val radiusRule = rules.single { it.id == "RoundedCornerShape(N.dp)" }
+
+    inputs.files(
+        (scanRoots + strictRadiusRoots)
+            .map { project.fileTree(it).matching { include("**/*.kt") } }
+    )
     outputs.upToDateWhen { true } // Task is pure / idempotent.
 
     doLast {
         val violations = mutableListOf<String>()
+
+        // Allowlist pass — all 5 rules over the migrated source roots.
         scanRoots.forEach { root ->
             project.fileTree(root).matching { include("**/*.kt") }.forEach { file ->
                 // Skip auto-generated previews if any happen to live in feature
@@ -123,6 +155,26 @@ tasks.register("designSystemCheck") {
                 }
             }
         }
+
+        // Strict pass — radius rule only, across every feature/** source tree.
+        // Skip files already covered by scanRoots so duplicate hits are not
+        // reported twice when a module is both on the allowlist and inside a
+        // strict-root directory.
+        val coveredFiles = scanRoots.flatMap { root ->
+            project.fileTree(root).matching { include("**/*.kt") }.files
+        }.toSet()
+        strictRadiusRoots.forEach { root ->
+            project.fileTree(root).matching { include("**/*.kt") }.forEach { file ->
+                if (file in coveredFiles) return@forEach
+                file.readLines().forEachIndexed { idx, line ->
+                    if (radiusRule.pattern.containsMatchIn(line)) {
+                        val rel = file.relativeTo(rootDir).path
+                        violations += "$rel:${idx + 1}  [${radiusRule.id} — STRICT]  →  ${radiusRule.fix}\n    $line"
+                    }
+                }
+            }
+        }
+
         if (violations.isNotEmpty()) {
             val msg = buildString {
                 appendLine("designSystemCheck found ${violations.size} banned literal(s) in feature code:")
@@ -134,7 +186,10 @@ tasks.register("designSystemCheck") {
             }
             throw GradleException(msg)
         }
-        logger.lifecycle("designSystemCheck: ✓ scanned ${scanRoots.size} root(s); zero violations.")
+        logger.lifecycle(
+            "designSystemCheck: ✓ scanned ${scanRoots.size} allowlisted root(s) " +
+                "+ ${strictRadiusRoots.size} strict-radius root(s); zero violations."
+        )
     }
 }
 
