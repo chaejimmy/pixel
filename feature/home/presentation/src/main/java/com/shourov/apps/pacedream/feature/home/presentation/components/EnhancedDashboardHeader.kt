@@ -358,7 +358,7 @@ fun CompactDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
+                    top = PaceDreamSpacing.XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,
@@ -424,7 +424,7 @@ fun MinimalDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
+                    top = PaceDreamSpacing.XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,
