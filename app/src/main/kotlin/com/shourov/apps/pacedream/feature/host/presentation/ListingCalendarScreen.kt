@@ -606,7 +606,7 @@ private fun TimeSlotRow(
     HorizontalDivider(
         color = PaceDreamColors.Border.copy(alpha = 0.5f),
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL[60]=XXXL + 4.dp + PaceDreamSpacing.SM)
+        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL + 4.dp + PaceDreamSpacing.SM)
     )
 }
 
