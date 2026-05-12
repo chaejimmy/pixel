@@ -73,7 +73,7 @@ fun PayoutSetupBanner(
             onClick = onSetup,
             colors = ButtonDefaults.buttonColors(
                 containerColor = PaceDreamColors.Warning,
-                contentColor = androidx.compose.ui.graphics.Color.White,
+                contentColor = androidx.compose.ui.graphics.OnBrandSurface,
             ),
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(

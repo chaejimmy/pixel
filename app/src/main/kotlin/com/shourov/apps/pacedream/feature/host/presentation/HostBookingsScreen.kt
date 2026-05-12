@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -222,11 +223,11 @@ private fun HostBookingCard(
                         Icon(
                             imageVector = PaceDreamIcons.Check,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(PaceDreamIconSize.XS)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                        Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
+                        Text("Accept", color = OnBrandSurface, fontWeight = FontWeight.SemiBold, style = PaceDreamTypography.Caption)
                     }
                     OutlinedButton(
                         onClick = onDeclineClick,

@@ -272,7 +272,7 @@ private fun HostIdentityCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {

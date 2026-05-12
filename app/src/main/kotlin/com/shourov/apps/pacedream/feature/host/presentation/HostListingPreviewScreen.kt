@@ -127,7 +127,7 @@ fun HostListingPreviewScreen(
                 val listing = uiState.listing ?: return@Scaffold
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = PaceDreamSpacing.XL)
                 ) {
                     // Hero image
                     if (listing.images.isNotEmpty()) {
@@ -149,22 +149,22 @@ fun HostListingPreviewScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                                    .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
                                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                    .background(Color(0xFFFFA500).copy(alpha = 0.10f))
+                                    .background(PaceDreamColors.Warning.copy(alpha = 0.10f))
                                     .border(
                                         1.dp,
-                                        Color(0xFFFFA500).copy(alpha = 0.25f),
+                                        PaceDreamColors.Warning.copy(alpha = 0.25f),
                                         RoundedCornerShape(PaceDreamRadius.MD)
                                     )
-                                    .padding(14.dp),
+                                    .padding(PaceDreamSpacing.MD),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Icon(
                                     PaceDreamIcons.Schedule,
                                     contentDescription = null,
-                                    tint = Color(0xFFFFA500),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Column {
@@ -187,7 +187,7 @@ fun HostListingPreviewScreen(
                     // Title + status
                     item {
                         Column(
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
                         ) {
                             Text(
                                 listing.title.ifBlank { "Untitled listing" },
@@ -211,7 +211,7 @@ fun HostListingPreviewScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(PaceDreamRadius.Round))
                                         .background(PaceDreamColors.HostAccent.copy(alpha = 0.12f))
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.XS)
                                 ) {
                                     Text(
                                         deliveryLabel,
@@ -268,7 +268,7 @@ fun HostListingPreviewScreen(
                                             else -> Color.Gray.copy(alpha = 0.15f)
                                         }
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM)
                             ) {
                                 Text(
                                     listing.displayStatus,
@@ -288,7 +288,7 @@ fun HostListingPreviewScreen(
                     if (listing.description.isNotBlank()) {
                         item {
                             Column(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM)
                             ) {
                                 Text(
                                     "Description",
@@ -310,7 +310,7 @@ fun HostListingPreviewScreen(
                     if (listing.images.size > 1) {
                         item {
                             Column(
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM)
                             ) {
                                 Text(
                                     "Photos (${listing.images.size})",
@@ -339,7 +339,7 @@ fun HostListingPreviewScreen(
                     item {
                         Text(
                             "Listing ID: $listingId",
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM),
                             style = PaceDreamTypography.Caption,
                             color = PaceDreamColors.TextTertiary
                         )

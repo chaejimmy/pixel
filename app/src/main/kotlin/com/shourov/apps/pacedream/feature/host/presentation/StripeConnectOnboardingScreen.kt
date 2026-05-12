@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -136,7 +137,7 @@ fun StripeConnectOnboardingScreen(
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = OnBrandSurface,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -152,7 +153,7 @@ fun StripeConnectOnboardingScreen(
                         Text(
                             text = "Set Up Stripe Connect",
                             style = PaceDreamTypography.Button,
-                            color = Color.White
+                            color = OnBrandSurface
                         )
                     }
                 } else if (account.status == ConnectAccountStatus.PENDING || account.status == ConnectAccountStatus.UNDER_REVIEW) {
@@ -177,7 +178,7 @@ fun StripeConnectOnboardingScreen(
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = OnBrandSurface,
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp
                             )
@@ -193,7 +194,7 @@ fun StripeConnectOnboardingScreen(
                         Text(
                             text = "Complete Onboarding",
                             style = PaceDreamTypography.Button,
-                            color = Color.White
+                            color = OnBrandSurface
                         )
                     }
                 } else if (account.status == ConnectAccountStatus.ENABLED) {
@@ -224,7 +225,7 @@ fun StripeConnectOnboardingScreen(
                         Text(
                             text = "Open Stripe Dashboard",
                             style = PaceDreamTypography.Button,
-                            color = Color.White
+                            color = OnBrandSurface
                         )
                     }
                 }

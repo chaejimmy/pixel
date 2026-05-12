@@ -73,6 +73,9 @@ tasks.register("designSystemCheck") {
         // form a self-contained internal palette that should not be expanded
         // into design-system tokens per "no new brand colors" rule).
         rootProject.file("feature/home"),
+        // Legacy host module — migrated in refactor/ds-migration-host.
+        // No subtree carve-outs needed here (host has no redesign/).
+        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/host"),
         // Zero-violation modules per DESIGN_SYSTEM_COVERAGE.md — locked in
         // as CI insurance so a future PR cannot regress them.
         rootProject.file("feature/search"),

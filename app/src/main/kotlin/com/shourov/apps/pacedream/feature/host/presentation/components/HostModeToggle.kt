@@ -10,9 +10,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.res.Configuration
 import com.pacedream.common.composables.theme.*
 
 @Composable
@@ -43,7 +46,7 @@ fun HostModeToggle(
                 Icon(
                     imageVector = if (isHostMode) PaceDreamIcons.Home else PaceDreamIcons.Person,
                     contentDescription = if (isHostMode) "Host Mode" else "Guest Mode",
-                    tint = if (isHostMode) Color.White else PaceDreamColors.TextSecondary,
+                    tint = if (isHostMode) OnBrandSurface else PaceDreamColors.TextSecondary,
                     modifier = Modifier.size(24.dp)
                 )
                 
@@ -53,14 +56,14 @@ fun HostModeToggle(
                     Text(
                         text = if (isHostMode) "Host Mode" else "Guest Mode",
                         style = PaceDreamTypography.Headline,
-                        color = if (isHostMode) Color.White else PaceDreamColors.TextPrimary,
+                        color = if (isHostMode) OnBrandSurface else PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     
                     Text(
                         text = if (isHostMode) "Manage your properties" else "Book amazing stays",
                         style = PaceDreamTypography.Caption,
-                        color = if (isHostMode) Color.White.copy(alpha = 0.8f) else PaceDreamColors.TextSecondary
+                        color = if (isHostMode) OnBrandSurface.copy(alpha = 0.8f) else PaceDreamColors.TextSecondary
                     )
                 }
             }
@@ -69,8 +72,8 @@ fun HostModeToggle(
                 checked = isHostMode,
                 onCheckedChange = onToggle,
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color.White.copy(alpha = 0.3f),
+                    checkedThumbColor = OnBrandSurface,
+                    checkedTrackColor = OnBrandSurface.copy(alpha = 0.3f),
                     uncheckedThumbColor = PaceDreamColors.TextSecondary,
                     uncheckedTrackColor = PaceDreamColors.Border
                 )
@@ -101,7 +104,7 @@ fun HostModeIndicator(
                 Icon(
                     imageVector = PaceDreamIcons.Home,
                     contentDescription = "Host Mode",
-                    tint = Color.White,
+                    tint = OnBrandSurface,
                     modifier = Modifier.size(12.dp)
                 )
                 
@@ -110,7 +113,7 @@ fun HostModeIndicator(
                 Text(
                     text = "HOST",
                     style = PaceDreamTypography.Caption.copy(fontSize = 10.sp),
-                    color = Color.White,
+                    color = OnBrandSurface,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -219,5 +222,45 @@ fun HostModeBanner(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "HostModeToggle host=on — light", showBackground = true)
+@Composable
+private fun HostModeToggleHostLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        HostModeToggle(isHostMode = true, onToggle = {})
+    }
+}
+
+@Preview(
+    name = "HostModeToggle host=on — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun HostModeToggleHostDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        HostModeToggle(isHostMode = true, onToggle = {})
+    }
+}
+
+@Preview(name = "HostModeToggle host=off — light", showBackground = true)
+@Composable
+private fun HostModeToggleGuestLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        HostModeToggle(isHostMode = false, onToggle = {})
+    }
+}
+
+@Preview(
+    name = "HostModeToggle host=off — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun HostModeToggleGuestDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        HostModeToggle(isHostMode = false, onToggle = {})
     }
 }

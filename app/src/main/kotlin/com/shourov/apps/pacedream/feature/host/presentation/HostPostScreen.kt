@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -108,7 +109,7 @@ private fun PostHeroHeader(userName: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
-            .padding(top = 12.dp)
+            .padding(top = PaceDreamSpacing.SM2)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .background(
                 Brush.linearGradient(
@@ -123,21 +124,21 @@ private fun PostHeroHeader(userName: String) {
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 20.dp)
+                .padding(horizontal = PaceDreamSpacing.LG)
+                .padding(bottom = PaceDreamSpacing.LG)
         ) {
             val firstName = userName.split(" ").firstOrNull()?.ifBlank { "Host" } ?: "Host"
             Text(
                 text = "Welcome back, $firstName!",
                 style = PaceDreamTypography.Title2.copy(fontSize = 24.sp),
-                color = Color.White,
+                color = OnBrandSurface,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Create amazing listings and grow your hosting business",
                 style = PaceDreamTypography.Callout,
-                color = Color.White.copy(alpha = 0.95f),
+                color = OnBrandSurface.copy(alpha = 0.95f),
                 fontWeight = FontWeight.Medium
             )
         }
@@ -195,7 +196,7 @@ private fun PostStatCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             Icon(
                 imageVector = icon,

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,7 +106,7 @@ fun HostListingsScreen(
                         Icon(
                             imageVector = PaceDreamIcons.Add,
                             contentDescription = "Add Listing",
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(PaceDreamIconSize.SM)
                         )
                     }
@@ -330,7 +331,7 @@ fun HostListingCard(
                     Text(
                         text = listing.displayStatus,
                         style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color.White,
+                        color = OnBrandSurface,
                         modifier = Modifier
                             .clip(RoundedCornerShape(PaceDreamRadius.Round))
                             .background(statusColor)

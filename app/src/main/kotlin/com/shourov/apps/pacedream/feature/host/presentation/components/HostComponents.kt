@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +50,7 @@ fun HostKpiChip(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             Icon(
                 imageVector = icon,
@@ -139,7 +140,7 @@ fun HostProfileRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -228,7 +229,7 @@ fun HostRowDivider() {
     HorizontalDivider(
         color = PaceDreamColors.Border,
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = 56.dp)
+        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL[60]=XXXL)
     )
 }
 
@@ -268,7 +269,7 @@ fun HostAlertBanner(
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS)
             .clip(RoundedCornerShape(PaceDreamRadius.MD))
             .background(color.copy(alpha = 0.10f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -364,19 +365,19 @@ fun HostCapsuleButton(
         modifier = modifier,
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         colors = ButtonDefaults.buttonColors(containerColor = containerColor),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = OnBrandSurface,
             modifier = Modifier.size(PaceDreamIconSize.SM)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = OnBrandSurface,
             style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
             fontWeight = FontWeight.Bold
         )
@@ -393,14 +394,14 @@ fun HostFullWidthButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = PaceDreamColors.HostAccent,
-    contentColor: Color = Color.White
+    contentColor: Color = OnBrandSurface
 ) {
     Button(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(containerColor = containerColor),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.MD)
     ) {
         Icon(
             imageVector = icon,
@@ -437,7 +438,7 @@ fun HostSwitchModeRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -476,7 +477,7 @@ fun HostSignOutRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = 14.dp),
+                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -553,7 +554,7 @@ fun HostPayoutBadge(
                 color.copy(alpha = 0.14f),
                 shape = RoundedCornerShape(PaceDreamRadius.Round)
             )
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM)
     )
 }
 
@@ -613,7 +614,7 @@ fun HostFilterChip(
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = PaceDreamColors.HostAccent,
-            selectedLabelColor = Color.White,
+            selectedLabelColor = OnBrandSurface,
             containerColor = PaceDreamColors.Card,
             labelColor = PaceDreamColors.TextPrimary
         ),
@@ -645,7 +646,7 @@ fun HostSegmentedControl(
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
             .background(PaceDreamColors.Surface, RoundedCornerShape(PaceDreamRadius.SM))
-            .padding(4.dp),
+            .padding(PaceDreamSpacing.XS),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         tabs.forEachIndexed { index, title ->
@@ -665,7 +666,7 @@ fun HostSegmentedControl(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp)
+                        .padding(vertical = PaceDreamSpacing.SM2)
                 )
             }
         }

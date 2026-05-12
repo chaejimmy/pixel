@@ -67,6 +67,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -852,9 +854,9 @@ private fun EditListingForm(
                         checked = uiState.shareLinkAfterBooking,
                         onCheckedChange = onShareLinkAfterBookingChange,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
+                            checkedThumbColor = OnBrandSurface,
                             checkedTrackColor = PaceDreamColors.HostAccent,
-                            uncheckedThumbColor = Color.White,
+                            uncheckedThumbColor = OnBrandSurface,
                             uncheckedTrackColor = PaceDreamColors.Gray300,
                         ),
                     )
@@ -991,13 +993,13 @@ private fun EditListingForm(
                                 .align(Alignment.TopEnd)
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.6f))
+                                .background(scrimOnImage(0.6f))
                                 .clickable { onRemoveImage(index) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 PaceDreamIcons.Close, contentDescription = "Remove",
-                                tint = Color.White, modifier = Modifier.size(12.dp),
+                                tint = OnBrandSurface, modifier = Modifier.size(12.dp),
                             )
                         }
                     }
@@ -1018,13 +1020,13 @@ private fun EditListingForm(
                                 .align(Alignment.TopEnd)
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.6f))
+                                .background(scrimOnImage(0.6f))
                                 .clickable { onRemovePendingUri(index) },
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 PaceDreamIcons.Close, contentDescription = "Remove",
-                                tint = Color.White, modifier = Modifier.size(12.dp),
+                                tint = OnBrandSurface, modifier = Modifier.size(12.dp),
                             )
                         }
                     }
@@ -1066,8 +1068,8 @@ private fun EditListingForm(
                 Switch(
                     checked = uiState.isAvailable, onCheckedChange = onAvailabilityChange,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White, checkedTrackColor = PaceDreamColors.Success,
-                        uncheckedThumbColor = Color.White, uncheckedTrackColor = PaceDreamColors.Gray300,
+                        checkedThumbColor = OnBrandSurface, checkedTrackColor = PaceDreamColors.Success,
+                        uncheckedThumbColor = OnBrandSurface, uncheckedTrackColor = PaceDreamColors.Gray300,
                     ),
                 )
             }
@@ -1124,7 +1126,7 @@ private fun EditListingForm(
             elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         ) {
             if (busy) {
-                CircularProgressIndicator(Modifier.size(20.dp), Color.White, strokeWidth = 2.dp)
+                CircularProgressIndicator(Modifier.size(20.dp), OnBrandSurface, strokeWidth = 2.dp)
                 Spacer(Modifier.width(PaceDreamSpacing.SM))
             }
             val label = when {
@@ -1285,7 +1287,7 @@ private fun EditPricingUnitSelector(selectedUnit: PricingUnit, onUnitSelected: (
             val sel = selectedUnit == unit
             Box(
                 Modifier.weight(1f).clip(RoundedCornerShape(PaceDreamRadius.SM))
-                    .background(if (sel) Color.White else Color.Transparent)
+                    .background(if (sel) OnBrandSurface else Color.Transparent)
                     .clickable { onUnitSelected(unit) }.padding(vertical = PaceDreamSpacing.SM),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1347,7 +1349,7 @@ private fun EditAmenitiesChips(selected: List<String>, onToggle: (String) -> Uni
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PaceDreamColors.HostAccent,
-                    selectedLabelColor = Color.White, selectedLeadingIconColor = Color.White,
+                    selectedLabelColor = OnBrandSurface, selectedLeadingIconColor = OnBrandSurface,
                     containerColor = PaceDreamColors.Card, labelColor = PaceDreamColors.TextPrimary,
                 ),
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
@@ -1387,7 +1389,7 @@ private fun OnlinePlatformChips(
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PaceDreamColors.HostAccent,
-                    selectedLabelColor = Color.White, selectedLeadingIconColor = Color.White,
+                    selectedLabelColor = OnBrandSurface, selectedLeadingIconColor = OnBrandSurface,
                     containerColor = PaceDreamColors.Card, labelColor = PaceDreamColors.TextPrimary,
                 ),
                 shape = RoundedCornerShape(PaceDreamRadius.Round),
