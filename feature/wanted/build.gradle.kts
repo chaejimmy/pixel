@@ -14,6 +14,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.ui)
     implementation(projects.core.designsystem)
+    implementation(projects.core.upload)
     implementation(projects.common)
 
     implementation(libs.androidx.activity.compose)
@@ -24,4 +25,6 @@ dependencies {
     implementation(libs.timber)
 
     testImplementation(libs.junit.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 }

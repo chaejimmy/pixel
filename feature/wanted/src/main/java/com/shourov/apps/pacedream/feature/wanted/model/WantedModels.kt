@@ -128,6 +128,7 @@ data class CreateRequestForm(
 data class CreateRequestUiState(
     val form: CreateRequestForm = CreateRequestForm(),
     val submitting: Boolean = false,
+    val uploading: Boolean = false,
     val error: String? = null,
     val createdId: String? = null,
 )
