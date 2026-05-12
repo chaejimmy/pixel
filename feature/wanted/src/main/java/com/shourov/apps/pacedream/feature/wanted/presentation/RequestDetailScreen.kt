@@ -45,6 +45,7 @@ import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
+import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 
 @Composable
 fun RequestDetailScreen(
@@ -185,7 +186,7 @@ private fun RequestDetailBody(request: WantedRequest) {
         if (request.location.isNotBlank()) {
             DetailRow(label = "Location", value = request.location)
         }
-        request.dateTime?.takeIf { it.isNotBlank() }?.let {
+        RequestDateFormatter.format(request.dateTime, request.endDate)?.let {
             DetailRow(label = "When", value = it)
         }
         Spacer(Modifier.height(4.dp))

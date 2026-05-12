@@ -62,6 +62,8 @@ data class RequestDto(
     val budget: Double? = null,
     val currency: String? = null,
     val date: String? = null,
+    @SerializedName("endDate")
+    val endDate: String? = null,
     @SerializedName("dateTime")
     val dateTime: String? = null,
     @SerializedName("coverImageUrl")
@@ -106,6 +108,7 @@ fun RequestDto.toDomain(): WantedRequest {
         budget = budget,
         budgetCurrency = currency ?: "USD",
         dateTime = date ?: dateTime,
+        endDate = endDate,
         imageUrl = coverImageUrl ?: imageUrl ?: image,
         authorName = authorName,
         authorAvatarUrl = authorAvatar,
@@ -130,6 +133,7 @@ data class CreateRequestBody(
     val description: String,
     val location: LocationDto? = null,
     val date: String? = null,
+    val endDate: String? = null,
     val budget: Double? = null,
     val coverImageUrl: String? = null,
     val imageSource: String? = null,

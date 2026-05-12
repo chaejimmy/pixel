@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Instant
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 /**
@@ -137,13 +139,17 @@ class CreateRequestViewModel @Inject constructor(
             !it.city.isNullOrBlank() || !it.state.isNullOrBlank() || !it.country.isNullOrBlank()
         }
 
+        val isoStart = form.startDate?.toIsoUtcDate()
+        val isoEnd = form.endDate?.toIsoUtcDate()?.takeIf { it != isoStart }
+
         val body = CreateRequestBody(
             type = form.type.key,
             category = form.category,
             title = form.title.trim(),
             description = form.description.trim(),
             location = location,
-            date = form.date.takeIf { it.isNotBlank() },
+            date = isoStart,
+            endDate = isoEnd,
             budget = budgetValue,
             coverImageUrl = form.imageUrl,
             imageSource = if (form.imageUrl != null) "uploaded" else null,
@@ -172,6 +178,13 @@ class CreateRequestViewModel @Inject constructor(
                 }
         }
     }
+
+    /**
+     * Convert an epoch-millis value (assumed UTC midnight, as produced by
+     * `DateRangePicker`) to its `yyyy-MM-dd` ISO-8601 representation.
+     */
+    private fun Long.toIsoUtcDate(): String =
+        Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
     private fun validate(form: CreateRequestForm): String? {
         val title = form.title.trim()
