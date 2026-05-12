@@ -1,6 +1,6 @@
 plugins {
     id("pacedream.android.feature")
-    alias(libs.plugins.compose)
+    id("pacedream.android.library.compose")
 }
 
 android {

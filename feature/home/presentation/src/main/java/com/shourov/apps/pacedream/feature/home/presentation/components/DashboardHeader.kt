@@ -58,6 +58,7 @@ import com.pacedream.common.composables.theme.LargerText
 import com.pacedream.common.composables.theme.MediumPadding
 import com.pacedream.common.composables.theme.MediumText
 import com.pacedream.common.composables.theme.NotificationsBgColor
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.WhiteTextColor
 import coil.compose.AsyncImage
 import com.shourov.apps.pacedream.feature.home.presentation.R
