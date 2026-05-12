@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,6 +52,7 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFo
 fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
+    onRequireAuth: () -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -81,21 +83,34 @@ fun RequestDetailScreen(
             )
         },
         bottomBar = {
-            (state as? RequestDetailUiState.Content)?.let {
+            (state as? RequestDetailUiState.Content)?.let { content ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Button(
-                        onClick = {
-                            viewModel.resetOfferSheet()
-                            sheetVisible = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Make an Offer")
+                    if (content.isOwner) {
+                        OutlinedButton(
+                            onClick = { /* TODO: edit-request flow */ },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Edit request")
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                if (!content.isSignedIn) {
+                                    onRequireAuth()
+                                } else {
+                                    viewModel.resetOfferSheet()
+                                    sheetVisible = true
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Make an Offer")
+                        }
                     }
                 }
             }
