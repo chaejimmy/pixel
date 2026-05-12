@@ -5,6 +5,7 @@ import com.shourov.apps.pacedream.core.upload.ImageUploader
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
+import com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import kotlinx.coroutines.CompletableDeferred
@@ -165,6 +166,9 @@ class CreateRequestViewModelUploadTest {
 
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("repository must not be hit from upload tests")
+
+        override suspend fun getHostListings(): Result<List<HostListingSummary>> =
+            Result.success(emptyList())
     }
 
     private object ExplodingRepository : WantedRepository {
@@ -179,6 +183,9 @@ class CreateRequestViewModelUploadTest {
 
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("submit must not reach the repository while uploading")
+
+        override suspend fun getHostListings(): Result<List<HostListingSummary>> =
+            Result.success(emptyList())
     }
 
 }

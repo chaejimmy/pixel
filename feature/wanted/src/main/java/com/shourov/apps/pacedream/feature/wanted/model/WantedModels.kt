@@ -221,9 +221,47 @@ data class CreateRequestUiState(
     }
 }
 
+/**
+ * Lightweight summary used by the offer composer's "link a listing"
+ * picker — full host-listing payloads carry pricing/calendar/etc. that
+ * aren't needed for selection.
+ */
+@Immutable
+data class HostListingSummary(
+    val id: String,
+    val title: String,
+)
+
+/**
+ * Selectable expiry windows shown as chips on the offer composer. The
+ * `hours` value is what hits the wire as `expiresInHours`.
+ */
+enum class OfferExpiry(val hours: Int, val label: String) {
+    OneDay(24, "24h"),
+    TwoDays(48, "48h"),
+    OneWeek(24 * 7, "7d"),
+    ;
+
+    companion object {
+        fun fromHours(hours: Int): OfferExpiry =
+            entries.firstOrNull { it.hours == hours } ?: TwoDays
+    }
+}
+
+const val OFFER_MESSAGE_MAX_LENGTH = 500
+
 data class OfferFormState(
     val price: String = "",
     val message: String = "",
+    val expiresInHours: Int = OfferExpiry.TwoDays.hours,
+    val linkedListingId: String? = null,
+    /**
+     * Populated for hosts who have at least one published listing.
+     * Stays empty for guests and for hosts with no listings — the
+     * composer hides the entire link-a-listing row in that case so
+     * users never see an empty picker.
+     */
+    val hostListings: List<HostListingSummary> = emptyList(),
     val submitting: Boolean = false,
     val error: String? = null,
     val submitted: Boolean = false,

@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.wanted.data.remote
 
+import com.google.gson.JsonElement
 import com.shourov.apps.pacedream.core.network.ApiEndPoints
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
@@ -27,4 +28,13 @@ interface WantedApiService {
         @Path("id") requestId: String,
         @Body body: CreateOfferBody,
     ): OfferEnvelope
+
+    /**
+     * Returns the authenticated host's listings. The response shape varies
+     * (raw array, `{data: […]}`, or category-keyed `{rooms, rentableItems,
+     * …}`), so the body is decoded as a raw [JsonElement] and the repository
+     * extracts only the (id, title) summaries the offer composer needs.
+     */
+    @GET(ApiEndPoints.HOST_GET_LISTINGS)
+    suspend fun getHostListings(): JsonElement
 }
