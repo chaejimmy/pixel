@@ -7,6 +7,10 @@ plugins {
 
 android {
     namespace = "com.shourov.apps.pacedream.feature.wanted"
+
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
