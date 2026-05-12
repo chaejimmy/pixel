@@ -226,5 +226,24 @@ internal data class StartResult(val session: SupportSession, val messages: List<
 internal data class SendMessageResult(val message: SupportMessage?, val session: SupportSession?)
 internal data class MessagesResult(val messages: List<SupportMessage>, val session: SupportSession?)
 
+// ============================================================================
+// Repository result wrappers (domain layer)
+// ============================================================================
+
+data class StartSessionResult(
+    val session: SupportSession,
+    val messages: List<SupportMessage>,
+)
+
+data class SendMessageResultDomain(
+    val message: SupportMessage?,
+    val session: SupportSession?,
+)
+
+data class MessagesResultDomain(
+    val messages: List<SupportMessage>,
+    val session: SupportSession?,
+)
+
 private val JsonElement.jsonObjectOrNull: JsonObject?
     get() = this as? JsonObject
