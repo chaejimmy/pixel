@@ -12,6 +12,7 @@ local.properties
 
 # Local secrets (never commit)
 secrets.properties
+keystore.properties
 
 # Gradle
 .gradle/

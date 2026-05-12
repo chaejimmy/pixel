@@ -7,12 +7,48 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Pin certificates for the PaceDream API domain -->
+    <!--
+        Certificate pinning for the PaceDream API + frontend domains.
+
+        SPKI hashes pin the *intermediate CA* (not the leaf) so rotation
+        happens on a years cadence rather than every 60–90 days. Two pins
+        are required by Android (one primary + one backup); the backup is
+        currently a placeholder that must be replaced with the real SPKI
+        hash of the configured backup intermediate before the pins are
+        rotated server-side.
+
+        The `expiration` attribute is the platform's built-in fail-open
+        safety net: when the date passes the pin-set is ignored and the
+        system trust store is used instead, so a forgotten rotation
+        degrades to "no pinning" rather than "no network". See
+        CERT_PINNING_PLAN.md for the rotation procedure.
+    -->
     <domain-config>
-        <domain includeSubdomains="true">pacedream.com</domain>
+        <domain includeSubdomains="true">api.pacedream.com</domain>
         <domain includeSubdomains="true">www.pacedream.com</domain>
+        <domain includeSubdomains="true">pacedream.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
+        <pin-set expiration="2027-05-01">
+            <!-- TODO(launch): replace with real SHA-256 SPKI of active intermediate -->
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <!-- TODO(launch): replace with real SHA-256 SPKI of backup intermediate -->
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
     </domain-config>
+
+    <!--
+        Debug-only overrides: trust user-installed CAs so engineers can
+        proxy through Charles / mitmproxy on debug builds. Automatically
+        ignored on release builds because <debug-overrides> only applies
+        when android:debuggable="true" — i.e. the BuildConfig.DEBUG gate
+        is enforced by the platform, not by us.
+    -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
 </network-security-config>

@@ -21,6 +21,18 @@ listOf("secrets.defaults.properties", "secrets.properties").forEach { name ->
     rootProject.file(name).takeIf { it.exists() }?.inputStream()?.use { secretsProps.load(it) }
 }
 
+// ── Keystore loading ─────────────────────────────────────────────────
+// Dedicated keystore.properties (gitignored) is the canonical source for the
+// four signing values; secrets.properties is honored as a fallback so older
+// CI configs keep working. The actual property keys are identical in both
+// files (RELEASE_KEYSTORE_FILE / _PASSWORD / RELEASE_KEY_ALIAS / _PASSWORD).
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }
+        ?.inputStream()?.use { load(it) }
+}
+fun signingValue(key: String): String =
+    keystoreProps.getProperty(key, "").ifBlank { secretsProps.getProperty(key, "") }
+
 // ── Release-build secrets guard ─────────────────────────────────────
 // Refuses to ship a release APK/AAB built with development placeholders.
 // We hook into the task graph (not configuration) so debug/CI inspection
@@ -127,17 +139,18 @@ android {
     }
 
     signingConfigs {
-        // Release signing – loaded from secrets.properties or CI environment.
-        // When the keystore properties are absent the config is still created but
-        // with safe defaults so that the build file parses without error; the
+        // Release signing – loaded from keystore.properties first, then
+        // secrets.properties as a fallback, then CI gradle properties (-P).
+        // When none of those provide a keystore the config is still created
+        // but with safe defaults so the build file parses without error; the
         // release buildType falls back to the debug signing config in that case.
         create("release") {
-            val ksFile = secretsProps.getProperty("RELEASE_KEYSTORE_FILE", "")
+            val ksFile = signingValue("RELEASE_KEYSTORE_FILE")
             if (ksFile.isNotBlank()) {
                 storeFile = rootProject.file(ksFile)
-                storePassword = secretsProps.getProperty("RELEASE_KEYSTORE_PASSWORD", "")
-                keyAlias = secretsProps.getProperty("RELEASE_KEY_ALIAS", "")
-                keyPassword = secretsProps.getProperty("RELEASE_KEY_PASSWORD", "")
+                storePassword = signingValue("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("RELEASE_KEY_ALIAS")
+                keyPassword = signingValue("RELEASE_KEY_PASSWORD")
             }
         }
     }

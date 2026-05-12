@@ -7,9 +7,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.work.Configuration
 import coil.ImageLoader
 import coil.ImageLoaderFactory
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
-import coil.request.CachePolicy
 import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
@@ -52,6 +49,12 @@ class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Pr
 
     @Inject
     lateinit var fcmTokenRegistrar: FcmTokenRegistrar
+
+    // Hilt-provided singleton — see ImageLoaderModule. newImageLoader() below
+    // delegates to this so Coil's implicit lookup and @Inject ImageLoader
+    // share the same 250 MB disk / 25%-RAM cache instance.
+    @Inject
+    lateinit var imageLoader: ImageLoader
 
     override fun onCreate() {
         super.onCreate()
@@ -165,22 +168,5 @@ class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Pr
             .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.INFO)
             .build()
 
-    override fun newImageLoader(): ImageLoader {
-        return ImageLoader.Builder(this)
-            .crossfade(200)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .memoryCache {
-                MemoryCache.Builder(this)
-                    .maxSizePercent(0.20)
-                    .build()
-            }
-            .diskCache {
-                DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(50L * 1024 * 1024) // 50 MB
-                    .build()
-            }
-            .build()
-    }
+    override fun newImageLoader(): ImageLoader = imageLoader
 }

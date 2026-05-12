@@ -84,6 +84,34 @@ For CI, pass `-PstripePublishableKey=…` / `-Pauth0ClientId=…` as Gradle prop
 instead of writing the file. `local.properties` is **not** read for these — only
 for `sdk.dir`.
 
+### 3. Release signing — `keystore.properties`
+
+Production-signed builds read the release keystore from a dedicated
+`keystore.properties` file at the repo root. It is gitignored; copy the
+template:
+
+```bash
+cp keystore.properties.template keystore.properties
+```
+
+The four required keys are:
+
+| Key | Purpose |
+|---|---|
+| `RELEASE_KEYSTORE_FILE` | Path to the `.jks` file (relative to the repo root). |
+| `RELEASE_KEYSTORE_PASSWORD` | Password protecting the keystore file. |
+| `RELEASE_KEY_ALIAS` | Alias of the signing key inside the keystore. |
+| `RELEASE_KEY_PASSWORD` | Password protecting the key entry. |
+
+`app/build.gradle.kts` resolves these from `keystore.properties` first and
+falls back to the same keys in `secrets.properties` for older CI configs.
+If neither file provides a `RELEASE_KEYSTORE_FILE`, release builds silently
+fall through to the debug signing config so contributors can still produce
+a runnable APK without a Play Store key — Play uploads must use a real key.
+
+For CI, prefer keeping the keystore in encrypted secrets and materialising
+both the `.jks` and `keystore.properties` on the build host.
+
 ## Auth0 Setup
 
 ### 1. Create Auth0 Application

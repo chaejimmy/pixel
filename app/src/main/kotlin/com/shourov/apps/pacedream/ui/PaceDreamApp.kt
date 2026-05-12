@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -133,6 +134,15 @@ fun PaceDreamApp(
 
         WifiSessionHost(
             modifier = Modifier.align(Alignment.TopCenter)
+        )
+
+        // Offline banner sits above all mode-specific content so it remains
+        // visible across host/guest mode and across tab switches. Dismisses
+        // itself when the ConnectivityObserver returns to Available.
+        OfflineBanner(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth(),
         )
     }
 }
