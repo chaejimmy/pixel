@@ -52,9 +52,10 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingScreen(
+    onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookingViewModel = hiltViewModel(),
-    onExploreListings: () -> Unit = {}
+    onExploreListings: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -71,7 +72,9 @@ fun BookingScreen(
         PaceDreamHeroHeader(
             title = "Bookings",
             subtitle = "Manage your reservations",
-            onNotificationClick = { /* Handle notification */ }
+            // Caller wires this to the same "notifications" route the
+            // Home bell uses (see DashboardNavigation L323).
+            onNotificationClick = onNotificationClick
         )
 
         // Booking count + Tab picker (like iOS)
