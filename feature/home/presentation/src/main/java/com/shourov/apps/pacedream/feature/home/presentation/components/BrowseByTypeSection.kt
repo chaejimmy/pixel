@@ -131,11 +131,11 @@ fun BrowseByTypeSection(
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = PaceDreamSpacing.LG)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.XL))
                 .background(PaceDreamGray100)
-                .padding(3.dp),
+                .padding(PaceDreamSpacing.XS),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             HomeBrowseType.entries.forEach { type ->
@@ -152,7 +152,7 @@ fun BrowseByTypeSection(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = PaceDreamSpacing.LG),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             selectedType.subcategories.forEach { sub ->
@@ -184,7 +184,7 @@ fun BrowseByTypeSection(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = PaceDreamSpacing.LG),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -203,7 +203,7 @@ fun BrowseByTypeSection(
                                     }
                                 )
                             },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -227,7 +227,7 @@ fun BrowseByTypeSection(
 
                 // Listing cards — unified card width and structure
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     if (isLoading) {
@@ -418,7 +418,7 @@ private fun BrowseTypePill(
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 10.dp),
+            .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -459,7 +459,7 @@ private fun SubcategoryChip(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

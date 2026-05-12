@@ -437,7 +437,7 @@ fun AmenityFilterChip(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(
                             horizontal = PaceDreamSpacing.XS,
-                            vertical = 2.dp
+                            vertical = PaceDreamSpacing.XXS
                         )
                     )
                 }

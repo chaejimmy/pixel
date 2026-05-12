@@ -137,10 +137,10 @@ fun EnhancedDashboardHeader(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        top = 52.dp,
-                        start = 20.dp,
-                        end = 20.dp,
-                        bottom = 20.dp,
+                        top = PaceDreamSpacing.XXL,
+                        start = PaceDreamSpacing.LG,
+                        end = PaceDreamSpacing.LG,
+                        bottom = PaceDreamSpacing.LG,
                     ),
             ) {
                 // Top row: Profile + Notification
@@ -253,7 +253,7 @@ private fun StructuredSearchPill(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 8.dp, end = 6.dp),
+                .padding(start = PaceDreamSpacing.SM, end = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SearchSegment(
@@ -278,7 +278,7 @@ private fun StructuredSearchPill(
             IconButton(
                 onClick = onFilterClick,
                 modifier = Modifier
-                    .padding(start = 4.dp)
+                    .padding(start = PaceDreamSpacing.XS)
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(
@@ -308,7 +308,7 @@ private fun SearchSegment(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 12.dp),
+        modifier = modifier.padding(horizontal = PaceDreamSpacing.SM2),
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
@@ -356,7 +356,7 @@ fun CompactDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = 56.dp,
+                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,
@@ -422,7 +422,7 @@ fun MinimalDashboardHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    top = 56.dp,
+                    top = PaceDreamSpacing.XXXL[60]=XXXL[70]=XXXL,
                     start = PaceDreamSpacing.MD,
                     end = PaceDreamSpacing.MD,
                     bottom = PaceDreamSpacing.SM,

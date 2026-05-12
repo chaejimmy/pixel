@@ -57,7 +57,7 @@ fun TrendingDestinationsSection(
         // 2-column grid
         val displayDestinations = destinations.take(6)
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             for (i in displayDestinations.indices step 2) {
@@ -124,7 +124,7 @@ private fun TrendingDestinationCard(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(12.dp),
+                .padding(PaceDreamSpacing.SM2),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(

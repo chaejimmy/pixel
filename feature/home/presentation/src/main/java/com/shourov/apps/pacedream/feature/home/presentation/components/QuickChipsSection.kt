@@ -75,7 +75,7 @@ fun QuickChipsSection(
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             marketplaceCategories.forEach { chip ->
@@ -140,7 +140,7 @@ private fun CategoryChip(
                 )
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

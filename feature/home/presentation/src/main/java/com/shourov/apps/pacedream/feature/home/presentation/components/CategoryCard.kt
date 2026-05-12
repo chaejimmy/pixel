@@ -63,7 +63,7 @@ fun CategoryCard(
                 Column(
                     modifier = Modifier.padding(
                         vertical = ExtraLargePadding,
-                        horizontal = 40.dp,
+                        horizontal = PaceDreamSpacing.XL,
                     ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,

@@ -85,7 +85,7 @@ fun DashboardHeader(
             Column(
                 modifier = Modifier
                     .fillMaxWidth().padding(
-                        top = 60.dp,
+                        top = PaceDreamSpacing.XXXL,
                         start = ExtraLargePadding,
                         end = ExtraLargePadding,
                         bottom = ExtraLargePadding,
