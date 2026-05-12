@@ -84,7 +84,7 @@ fun HostDashboardScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = PaceDreamSpacing.XL)
         ) {
             // ── Header ──
             item {
@@ -293,7 +293,6 @@ private fun SummaryCard(
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
         item {
             KpiChipCard(
@@ -354,7 +353,7 @@ private fun KpiChipCard(
         )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -440,7 +439,7 @@ private fun CompactActionButton(
         color = PaceDreamColors.HostAccent.copy(alpha = 0.10f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -478,7 +477,7 @@ private fun PayoutSetupPromptCard(
             .clip(RoundedCornerShape(PaceDreamRadius.MD))
             .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
             .clickable(onClick = onSetupClick)
-            .padding(14.dp),
+            .padding(PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -568,7 +567,7 @@ private fun NewHostWelcome(
             onClick = onCreateListing,
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Add,
@@ -666,7 +665,7 @@ private fun BookingRowCard(
         )
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             HostInitialsAvatar(name = guestName)
@@ -801,14 +800,14 @@ private fun PendingListingCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(PaceDreamSpacing.SM)
                 ) {
                     ListingStatusBadge(status = "Under Review")
                 }
             }
 
             // Details
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
                 Text(
                     text = listing.title.ifBlank { "Untitled listing" },
                     style = PaceDreamTypography.Subheadline,
@@ -982,7 +981,7 @@ private fun ListingMiniCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(PaceDreamSpacing.SM2)) {
                 Text(
                     text = title,
                     style = PaceDreamTypography.Subheadline,
@@ -1042,7 +1041,7 @@ private fun ListingStatusBadge(status: String) {
         color = fgColor,
         modifier = Modifier
             .background(bgColor, shape = RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
     )
 }
 
@@ -1106,7 +1105,7 @@ private fun ActivityEventRow(event: HostDashboardData.DashboardEvent) {
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(

@@ -109,7 +109,7 @@ private fun PostHeroHeader(userName: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.MD)
-            .padding(top = 12.dp)
+            .padding(top = PaceDreamSpacing.SM2)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .background(
                 Brush.linearGradient(
@@ -124,8 +124,8 @@ private fun PostHeroHeader(userName: String) {
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 20.dp)
+                .padding(horizontal = PaceDreamSpacing.LG)
+                .padding(bottom = PaceDreamSpacing.LG)
         ) {
             val firstName = userName.split(" ").firstOrNull()?.ifBlank { "Host" } ?: "Host"
             Text(
@@ -196,7 +196,7 @@ private fun PostStatCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             Icon(
                 imageVector = icon,

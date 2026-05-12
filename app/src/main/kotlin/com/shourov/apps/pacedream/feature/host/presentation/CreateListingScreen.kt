@@ -685,7 +685,7 @@ private fun DraftResumeBanner(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(PaceDreamSpacing.MD),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -733,7 +733,7 @@ private fun DraftResumeBanner(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = PaceDreamSpacing.SM2),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -4066,7 +4066,7 @@ private fun PublishSuccessScreen(
             style = PaceDreamTypography.Headline,
             color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 22.dp),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -4078,7 +4078,7 @@ private fun PublishSuccessScreen(
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .background(PaceDreamColors.Warning.copy(alpha = 0.10f))
                 .border(1.dp, PaceDreamColors.Warning.copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.LG))
-                .padding(16.dp),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -4913,7 +4913,7 @@ private fun WifiGuestPreviewCard(
                                 PaceDreamColors.Border.copy(alpha = 0.5f),
                                 RoundedCornerShape(PaceDreamRadius.MD),
                             )
-                            .padding(6.dp),
+                            .padding(PaceDreamSpacing.SM),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (autoQr) {

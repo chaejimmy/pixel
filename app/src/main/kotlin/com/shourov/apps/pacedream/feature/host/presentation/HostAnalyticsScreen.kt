@@ -180,7 +180,7 @@ private fun AnalyticsKpiCard(
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Box(
                 modifier = Modifier
                     .size(36.dp)

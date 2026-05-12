@@ -130,7 +130,7 @@ fun HostEarningsScreen(
                             enabled = availableBalance > 0,
                             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                             shape = RoundedCornerShape(PaceDreamRadius.Round),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+                            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                             modifier = Modifier.height(PaceDreamButtonHeight.SM)
                         ) {
                             Icon(
@@ -286,7 +286,7 @@ private fun SessionExpiredContent(onSignInClick: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
             shape = RoundedCornerShape(PaceDreamRadius.SM),
             modifier = Modifier.fillMaxWidth(0.6f),
-            contentPadding = PaddingValues(vertical = 14.dp)
+            contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
         ) {
             Text(
                 text = "Sign In",
@@ -355,7 +355,7 @@ private fun StripeNotConnectedContent(isBusy: Boolean, onConnectClick: () -> Uni
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                    contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
                 ) {
                     if (isBusy) {
                         CircularProgressIndicator(color = OnBrandSurface, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -406,7 +406,7 @@ private fun HowYouGetPaidCard() {
             )
 
             steps.forEachIndexed { index, (icon, title, subtitle) ->
-                Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
+                Row(modifier = Modifier.padding(vertical = PaceDreamSpacing.SM), verticalAlignment = Alignment.Top) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -423,7 +423,7 @@ private fun HowYouGetPaidCard() {
                     }
                 }
                 if (index < steps.lastIndex) {
-                    Box(modifier = Modifier.padding(start = 17.dp).width(2.dp).height(8.dp).background(PaceDreamColors.HostAccent.copy(alpha = 0.15f)))
+                    Box(modifier = Modifier.padding(start = PaceDreamSpacing.MD).width(2.dp).height(8.dp).background(PaceDreamColors.HostAccent.copy(alpha = 0.15f)))
                 }
             }
         }
@@ -483,7 +483,7 @@ private fun StripePendingContent(
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
                                     .background(PaceDreamColors.Warning.copy(alpha = 0.14f), RoundedCornerShape(PaceDreamRadius.Round))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
                             )
                         }
                     }
@@ -506,7 +506,7 @@ private fun StripePendingContent(
                         colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                         shape = RoundedCornerShape(PaceDreamRadius.MD),
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(vertical = 14.dp)
+                        contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
                     ) {
                         if (isBusy) {
                             CircularProgressIndicator(color = OnBrandSurface, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -530,7 +530,7 @@ private fun StripePendingContent(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(PaceDreamRadius.MD))
                         .background(PaceDreamColors.Error.copy(alpha = 0.08f))
-                        .padding(14.dp),
+                        .padding(PaceDreamSpacing.MD),
                     verticalAlignment = Alignment.Top
                 ) {
                     Icon(PaceDreamIcons.Warning, null, tint = PaceDreamColors.Error, modifier = Modifier.size(18.dp))
@@ -576,7 +576,7 @@ private fun StripePendingContent(
                             RequirementChecklistRow(item)
                             if (index < checklistItems.lastIndex) {
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(start = 44.dp),
+                                    modifier = Modifier.padding(start = PaceDreamSpacing.XXL),
                                     thickness = 0.5.dp,
                                     color = PaceDreamColors.Border.copy(alpha = 0.5f)
                                 )
@@ -594,7 +594,7 @@ private fun StripePendingContent(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
                     .background(PaceDreamColors.Warning.copy(alpha = 0.08f))
-                    .padding(14.dp),
+                    .padding(PaceDreamSpacing.MD),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(PaceDreamIcons.Info, null, tint = PaceDreamColors.Warning, modifier = Modifier.size(18.dp))
@@ -636,7 +636,7 @@ private fun RequirementChecklistRow(item: StripeRequirementMapper.ChecklistItem)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
+            .padding(vertical = PaceDreamSpacing.SM2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -790,7 +790,7 @@ private fun BalanceTabContent(
                                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                                 shape = RoundedCornerShape(PaceDreamRadius.Round),
                                 modifier = Modifier.fillMaxWidth(0.6f),
-                                contentPadding = PaddingValues(vertical = 12.dp)
+                                contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2)
                             ) {
                                 Icon(PaceDreamIcons.AttachMoney, null, modifier = Modifier.size(PaceDreamIconSize.SM), tint = OnBrandSurface)
                                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
@@ -881,7 +881,7 @@ private fun BalanceRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -919,7 +919,7 @@ private fun PayoutRulesCard(rules: DashboardPayoutRules) {
         elevation = CardDefaults.cardElevation(defaultElevation = PaceDreamElevation.XS),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(PaceDreamIcons.Info, null, tint = PaceDreamColors.TextSecondary, modifier = Modifier.size(PaceDreamIconSize.SM))
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -1006,7 +1006,7 @@ private fun TransactionRow(transaction: DashboardTransaction) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -1088,7 +1088,7 @@ private fun PayoutRow(payout: DashboardPayout) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(PaceDreamSpacing.MD),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -1153,7 +1153,7 @@ private fun StatusBadge(status: String, isTransaction: Boolean = false) {
         color = badgeColor,
         modifier = Modifier
             .background(badgeColor.copy(alpha = 0.14f), RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.XS)
     )
 }
 
@@ -1242,7 +1242,7 @@ private fun PayoutRequestBottomSheet(
                                 colors = ButtonDefaults.buttonColors(containerColor = if (isSelected) PaceDreamColors.HostAccent else PaceDreamColors.Surface),
                                 shape = RoundedCornerShape(PaceDreamRadius.SM),
                                 modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(vertical = 12.dp)
+                                contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2)
                             ) {
                                 Text("$$quickAmount", style = PaceDreamTypography.Subheadline, color = if (isSelected) OnBrandSurface else PaceDreamColors.HostAccent, fontWeight = FontWeight.SemiBold)
                             }

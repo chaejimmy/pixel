@@ -138,7 +138,7 @@ fun ListingCalendarScreen(
                             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
                             .clip(RoundedCornerShape(PaceDreamRadius.SM))
                             .background(PaceDreamColors.Card)
-                            .padding(horizontal = PaceDreamSpacing.MD, vertical = 10.dp),
+                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         SlotLegendDot(color = SlotGreen, label = "Available")
@@ -431,11 +431,11 @@ private fun CalendarDayCell(
 
     Column(
         modifier = modifier
-            .padding(2.dp)
+            .padding(PaceDreamSpacing.XXS)
             .clip(CircleShape)
             .clickable(onClick = onClick)
             .background(bgColor)
-            .padding(vertical = 6.dp),
+            .padding(vertical = PaceDreamSpacing.SM),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -489,7 +489,7 @@ private fun TimeSlotRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(bgColor)
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = 10.dp),
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Time range
@@ -560,7 +560,7 @@ private fun TimeSlotRow(
                 TextButton(
                     onClick = onBlockSlot,
                     enabled = !isMutating,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.XS),
                     colors = ButtonDefaults.textButtonColors(contentColor = SlotRed)
                 ) {
                     Text(
@@ -575,7 +575,7 @@ private fun TimeSlotRow(
                     TextButton(
                         onClick = { onUnblockSlot(slot.bookingId) },
                         enabled = !isMutating,
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.XS),
                         colors = ButtonDefaults.textButtonColors(contentColor = SlotGreen)
                     ) {
                         Text(
@@ -594,7 +594,7 @@ private fun TimeSlotRow(
                     tint = PaceDreamColors.TextTertiary,
                     modifier = Modifier
                         .size(18.dp)
-                        .padding(end = 4.dp)
+                        .padding(end = PaceDreamSpacing.XS)
                 )
             }
             TimeSlotStatus.HOLD -> {
@@ -606,7 +606,7 @@ private fun TimeSlotRow(
     HorizontalDivider(
         color = PaceDreamColors.Border.copy(alpha = 0.5f),
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = 56.dp + 4.dp + PaceDreamSpacing.SM)
+        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL[60]=XXXL + 4.dp + PaceDreamSpacing.SM)
     )
 }
 
@@ -624,7 +624,7 @@ private fun AddBlockedTimeCta(
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         border = ButtonDefaults.outlinedButtonBorder(enabled = true),
-        contentPadding = PaddingValues(vertical = 14.dp)
+        contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
     ) {
         Icon(
             imageVector = PaceDreamIcons.Add,
@@ -778,7 +778,7 @@ private fun BlockTimeBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.HostAccent),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                contentPadding = PaddingValues(vertical = PaceDreamSpacing.MD)
             ) {
                 if (isMutating) {
                     CircularProgressIndicator(
