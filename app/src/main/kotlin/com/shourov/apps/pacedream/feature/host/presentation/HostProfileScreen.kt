@@ -41,18 +41,18 @@ import com.shourov.apps.pacedream.feature.host.presentation.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HostProfileScreen(
+    onEditProfileClick: () -> Unit,
+    onEditPhotoClick: () -> Unit,
+    onListingsClick: () -> Unit,
+    onBookingsClick: () -> Unit,
+    onInboxClick: () -> Unit,
+    onEarningsClick: () -> Unit,
+    onAccountSettingsClick: () -> Unit,
+    onPersonalInfoClick: () -> Unit,
+    onPaymentPayoutClick: () -> Unit,
+    onSwitchToGuestMode: () -> Unit,
+    onLoggedOut: () -> Unit,
     viewModel: HostProfileViewModel = hiltViewModel(),
-    onEditProfileClick: () -> Unit = {},
-    onEditPhotoClick: () -> Unit = {},
-    onListingsClick: () -> Unit = {},
-    onBookingsClick: () -> Unit = {},
-    onInboxClick: () -> Unit = {},
-    onEarningsClick: () -> Unit = {},
-    onAccountSettingsClick: () -> Unit = {},
-    onPersonalInfoClick: () -> Unit = {},
-    onPaymentPayoutClick: () -> Unit = {},
-    onSwitchToGuestMode: () -> Unit = {},
-    onLoggedOut: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }

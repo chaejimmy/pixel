@@ -259,7 +259,7 @@ class SplitBookingViewModel @Inject constructor(
 @Composable
 fun SplitBookingScreen(
     splitId: String,
-    onBackClick: () -> Unit = {},
+    onBackClick: () -> Unit,
     viewModel: SplitBookingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -460,8 +460,8 @@ private fun MessageRow(message: SplitMessage) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SplitBookingListScreen(
-    onBackClick: () -> Unit = {},
-    onSplitClick: (String) -> Unit = {},
+    onBackClick: () -> Unit,
+    onSplitClick: (String) -> Unit,
     viewModel: SplitBookingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

@@ -109,7 +109,9 @@ fun PaceDreamApp(
                         PaceDreamTopAppBar(
                             title = appState.topBarTitle ?: stringResource(id = android.R.string.untitled),
                             navigationIcon = com.pacedream.common.icon.PaceDreamIcons.ArrowBack,
-                            navigationIconContentDescription = "Open navigation menu",
+                            // The navigation icon's onNavigationClick is popBackStack(),
+                            // so describe it as "Back" — not a drawer/menu opener.
+                            navigationIconContentDescription = "Back",
                             actionIcon = com.pacedream.common.icon.PaceDreamIcons.Search,
                             actionIconContentDescription = "Search",
                             onNavigationClick = {

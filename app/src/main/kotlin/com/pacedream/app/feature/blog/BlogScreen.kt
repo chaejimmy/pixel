@@ -221,8 +221,8 @@ class BlogViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlogListScreen(
-    onBackClick: () -> Unit = {},
-    onPostClick: (BlogPost) -> Unit = {},
+    onBackClick: () -> Unit,
+    onPostClick: (BlogPost) -> Unit,
     viewModel: BlogViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -404,7 +404,7 @@ private fun BlogPostCard(post: BlogPost, onClick: () -> Unit) {
 @Composable
 fun BlogDetailScreen(
     post: BlogPost,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit
 ) {
     Scaffold(
         topBar = {

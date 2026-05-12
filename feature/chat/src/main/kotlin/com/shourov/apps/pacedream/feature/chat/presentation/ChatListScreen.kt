@@ -44,10 +44,11 @@ import java.util.*
 
 @Composable
 fun ChatListScreen(
+    onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = hiltViewModel(),
     onChatClick: (String) -> Unit = {},
-    onStartConversation: () -> Unit = {}
+    onStartConversation: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
@@ -64,7 +65,9 @@ fun ChatListScreen(
         PaceDreamHeroHeader(
             title = "Messages",
             subtitle = "Chat with hosts and guests",
-            onNotificationClick = { /* Handle notification */ }
+            // Caller wires this to the same "notifications" route the
+            // Home bell uses (see DashboardNavigation L323).
+            onNotificationClick = onNotificationClick
         )
         
         when {

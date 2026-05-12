@@ -239,8 +239,10 @@ private fun TravelDestination.resolvedImage(): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationLandingScreen(
-    destinationId: String, onBackClick: () -> Unit = {},
-    onListingClick: (String) -> Unit = {}, onViewAllListings: () -> Unit = {},
+    destinationId: String,
+    onBackClick: () -> Unit,
+    onListingClick: (String) -> Unit,
+    onViewAllListings: () -> Unit,
     viewModel: DestinationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -340,7 +342,9 @@ fun DestinationLandingScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationListingsScreen(
-    destinationId: String, onBackClick: () -> Unit = {}, onListingClick: (String) -> Unit = {},
+    destinationId: String,
+    onBackClick: () -> Unit,
+    onListingClick: (String) -> Unit,
     onBrowseAll: () -> Unit = {},
     viewModel: DestinationViewModel = hiltViewModel()
 ) {
@@ -491,8 +495,8 @@ private fun ListingCardGrid(listing: DestinationListing, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DestinationsIndexScreen(
-    onBackClick: () -> Unit = {},
-    onDestinationClick: (String) -> Unit = {},
+    onBackClick: () -> Unit,
+    onDestinationClick: (String) -> Unit,
     viewModel: DestinationViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
