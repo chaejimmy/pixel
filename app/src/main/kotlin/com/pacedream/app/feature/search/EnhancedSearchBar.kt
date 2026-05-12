@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pacedream.app.core.location.PlacePrediction
+import com.shourov.apps.pacedream.core.location.PlacePrediction
 import com.pacedream.common.composables.components.DatePicker as CommonDatePicker
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors

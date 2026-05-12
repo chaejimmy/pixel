@@ -131,12 +131,20 @@ class CreateRequestViewModel @Inject constructor(
             ?.replace(",", "")
             ?.toDoubleOrNull()
 
-        val location = LocationDto(
-            city = form.locationCity.trim().ifBlank { null },
-            state = form.locationState.trim().ifBlank { null },
-            country = form.locationCountry.trim().ifBlank { null },
-        ).takeIf {
-            !it.city.isNullOrBlank() || !it.state.isNullOrBlank() || !it.country.isNullOrBlank()
+        // The autocomplete sheet either populates a [SelectedPlace] or leaves
+        // the field null. We don't fabricate a payload when nothing is picked —
+        // see acceptance criteria for the "empty state" behaviour.
+        val location = form.location?.let { place ->
+            LocationDto(
+                city = place.city.trim().ifBlank { null },
+                state = place.region.trim().ifBlank { null },
+                country = place.country.trim().ifBlank { null },
+                lat = place.lat,
+                lng = place.lng,
+            ).takeIf {
+                !it.city.isNullOrBlank() || !it.state.isNullOrBlank() ||
+                    !it.country.isNullOrBlank() || it.lat != null || it.lng != null
+            }
         }
 
         val isoStart = form.startDate?.toIsoUtcDate()

@@ -150,14 +150,34 @@ sealed interface RequestDetailUiState {
     ) : RequestDetailUiState
 }
 
+/**
+ * Place selected by the user from autocomplete (or current-location reverse
+ * geocoding). `lat`/`lng` are nullable to support device-Geocoder fallback
+ * results that don't always carry coordinates.
+ */
+@Immutable
+data class SelectedPlace(
+    val city: String,
+    val region: String,
+    val country: String,
+    val lat: Double?,
+    val lng: Double?,
+) {
+    /** "City, Region, Country" for the read-only summary field. */
+    val displayLine: String
+        get() = listOf(city, region, country)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString(", ")
+}
+
 data class CreateRequestForm(
     val type: WantedType = WantedType.Space,
     val category: String = "parking",
     val title: String = "",
     val description: String = "",
-    val locationCity: String = "",
-    val locationState: String = "",
-    val locationCountry: String = "",
+    /** Structured location chosen via Places autocomplete or current location. */
+    val location: SelectedPlace? = null,
     /** Epoch millis at UTC midnight for the start of the requested window. */
     val startDate: Long? = null,
     /** Epoch millis at UTC midnight for the end of the requested window. */
