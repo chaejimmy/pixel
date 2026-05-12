@@ -201,6 +201,10 @@ class CreateRequestViewModelDateSerializationTest {
             requestId: String,
             body: CreateOfferBody,
         ): Result<WantedOffer> = error("not exercised by serialization tests")
+
+        override suspend fun getHostListings():
+            Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
+            Result.success(emptyList())
     }
 
     private object NoopImageUploader : ImageUploader {

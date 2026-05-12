@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
+import com.shourov.apps.pacedream.feature.wanted.model.OFFER_MESSAGE_MAX_LENGTH
 import com.shourov.apps.pacedream.feature.wanted.model.OfferFormState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
@@ -46,6 +47,31 @@ class RequestDetailViewModel @Inject constructor(
     val offer: StateFlow<OfferFormState> = _offer.asStateFlow()
 
     private var requestId: String? = null
+    private var hostListingsLoaded: Boolean = false
+
+    init {
+        viewModelScope.launch {
+            // The "link a listing" picker is host-only. Load summaries lazily
+            // — once per ViewModel — when we learn the signed-in user is a
+            // host. Guests never trigger the fetch, so the row simply never
+            // appears for them.
+            authSession.currentUser.collect { user ->
+                if (user?.isHost == true && !hostListingsLoaded) {
+                    hostListingsLoaded = true
+                    repository.getHostListings()
+                        .onSuccess { listings ->
+                            _offer.update { it.copy(hostListings = listings) }
+                        }
+                        .onFailure { e ->
+                            // Non-fatal: the row simply stays hidden when we
+                            // can't load listings. We don't want a transient
+                            // network blip to block guests from making offers.
+                            Timber.w(e, "Failed to load host listings for offer composer")
+                        }
+                }
+            }
+        }
+    }
 
     fun load(id: String) {
         if (requestId == id && _result.value is RequestResult.Content) return
@@ -80,8 +106,26 @@ class RequestDetailViewModel @Inject constructor(
         _offer.update { it.copy(message = value, error = null) }
     }
 
+    fun onExpiryChange(hours: Int) {
+        _offer.update { it.copy(expiresInHours = hours, error = null) }
+    }
+
+    /**
+     * Pass `null` to clear the selection. Picking the same id twice also
+     * clears it so the chip behaves like a toggle.
+     */
+    fun onLinkedListingChange(listingId: String?) {
+        _offer.update { current ->
+            val next = if (current.linkedListingId == listingId) null else listingId
+            current.copy(linkedListingId = next, error = null)
+        }
+    }
+
     fun resetOfferSheet() {
-        _offer.value = OfferFormState()
+        // Preserve the host-listings cache so the picker doesn't flash
+        // empty when the user reopens the sheet.
+        val keepListings = _offer.value.hostListings
+        _offer.value = OfferFormState(hostListings = keepListings)
     }
 
     fun submitOffer() {
@@ -96,9 +140,21 @@ class RequestDetailViewModel @Inject constructor(
             _offer.update { it.copy(error = "Add a short message") }
             return
         }
+        if (current.message.length > OFFER_MESSAGE_MAX_LENGTH) {
+            _offer.update {
+                it.copy(error = "Message must be $OFFER_MESSAGE_MAX_LENGTH characters or fewer")
+            }
+            return
+        }
         viewModelScope.launch {
             _offer.update { it.copy(submitting = true, error = null) }
-            repository.createOffer(id, CreateOfferBody(price, current.message.trim()))
+            val body = CreateOfferBody(
+                price = price,
+                message = current.message.trim(),
+                expiresInHours = current.expiresInHours,
+                linkedListingId = current.linkedListingId?.takeIf { it.isNotBlank() },
+            )
+            repository.createOffer(id, body)
                 .onSuccess {
                     _offer.update {
                         it.copy(submitting = false, submitted = true)

@@ -3,6 +3,7 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +63,7 @@ fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
     onRequireAuth: () -> Unit = {},
+    onNavigateToAuthor: (String) -> Unit = {},
     onMessageProvider: (offerId: String, providerName: String?) -> Unit = { _, _ -> },
     onAcceptOffer: (offerId: String) -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
@@ -149,6 +151,9 @@ fun RequestDetailScreen(
                     request = s.request,
                     offers = s.offers,
                     isOwner = s.isOwner,
+                    onAuthorClick = s.request.authorId
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { id -> { onNavigateToAuthor(id) } },
                     onMessageProvider = onMessageProvider,
                     onAcceptOffer = onAcceptOffer,
                 )
@@ -181,6 +186,8 @@ fun RequestDetailScreen(
                         nav()
                     }
                 },
+                onExpiryChange = viewModel::onExpiryChange,
+                onLinkedListingChange = viewModel::onLinkedListingChange,
             )
         }
     }
@@ -191,6 +198,7 @@ private fun RequestDetailBody(
     request: WantedRequest,
     offers: List<WantedOffer>,
     isOwner: Boolean,
+    onAuthorClick: (() -> Unit)? = null,
     onMessageProvider: (offerId: String, providerName: String?) -> Unit,
     onAcceptOffer: (offerId: String) -> Unit,
 ) {
@@ -226,6 +234,11 @@ private fun RequestDetailBody(
             text = request.title.ifBlank { "Untitled request" },
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
+        )
+        AuthorRow(
+            name = request.authorName,
+            avatarUrl = request.authorAvatarUrl,
+            onClick = onAuthorClick,
         )
         request.budget?.let { budget ->
             Text(
@@ -391,6 +404,58 @@ private fun ProviderAvatar(avatarUrl: String?, initial: String?) {
                 fontWeight = FontWeight.SemiBold,
             )
         }
+    }
+}
+
+@Composable
+private fun AuthorRow(
+    name: String?,
+    avatarUrl: String?,
+    onClick: (() -> Unit)?,
+) {
+    val displayName = name?.takeIf { it.isNotBlank() } ?: "Member"
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(vertical = 4.dp)
+    Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val avatarModifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = CircleShape,
+            )
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = avatarModifier,
+            )
+        } else {
+            Box(
+                modifier = avatarModifier,
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = displayName.first().uppercaseChar().toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Text(
+            text = displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 

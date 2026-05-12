@@ -1,4 +1,4 @@
-package com.pacedream.app.core.location
+package com.shourov.apps.pacedream.core.location
 
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn

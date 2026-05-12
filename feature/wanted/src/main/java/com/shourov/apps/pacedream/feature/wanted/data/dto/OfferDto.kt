@@ -73,4 +73,15 @@ fun OfferDto.toDomain(fallbackRequestId: String): WantedOffer = WantedOffer(
 data class CreateOfferBody(
     val price: Double,
     val message: String,
+    /**
+     * Window after which the offer auto-expires server-side. Omitted
+     * when null so the backend can fall back to its own default for
+     * older clients that don't surface the chip.
+     */
+    val expiresInHours: Int? = null,
+    /**
+     * Optional id of one of the offerer's published listings — used by
+     * hosts to attach context (e.g. "here's the spot I'm offering").
+     */
+    val linkedListingId: String? = null,
 )

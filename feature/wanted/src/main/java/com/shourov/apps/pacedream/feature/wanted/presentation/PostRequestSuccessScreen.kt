@@ -34,6 +34,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.feature.wanted.BuildConfig
 
 /**
  * Confirmation screen shown after a request is successfully posted.
@@ -151,14 +152,15 @@ fun PostRequestSuccessScreen(
                 )
             }
 
-            // Show the request ID quietly at the bottom so testers / support
-            // can correlate, but in a font small enough not to dominate.
-            Spacer(Modifier.height(PaceDreamSpacing.MD))
-            Text(
-                text = "ID · ${requestId.take(8)}",
-                style = PaceDreamTypography.Caption,
-                color = PaceDreamColors.TextTertiary,
-            )
+            // QA / support correlation only — never shipped in release.
+            if (BuildConfig.DEBUG) {
+                Spacer(Modifier.height(PaceDreamSpacing.MD))
+                Text(
+                    text = "ID · ${requestId.take(8)}",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextTertiary,
+                )
+            }
         }
     }
 }

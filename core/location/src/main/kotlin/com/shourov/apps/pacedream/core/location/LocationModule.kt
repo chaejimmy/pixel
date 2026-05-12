@@ -1,4 +1,4 @@
-package com.pacedream.app.core.location
+package com.shourov.apps.pacedream.core.location
 
 import android.content.Context
 import dagger.Module
@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object LocationModule {
-    
+
     @Provides
     @Singleton
     fun provideLocationService(

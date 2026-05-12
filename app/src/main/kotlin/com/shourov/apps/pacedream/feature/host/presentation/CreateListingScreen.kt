@@ -117,8 +117,8 @@ import com.shourov.apps.pacedream.feature.host.data.OnlineSessionPayload
 import com.shourov.apps.pacedream.feature.host.data.SessionType
 import com.shourov.apps.pacedream.feature.host.data.WifiAccessDraft
 import com.shourov.apps.pacedream.feature.host.data.WifiAccessPayload
-import com.pacedream.app.core.location.LocationServiceEntryPoint
-import com.pacedream.app.core.location.PlacePrediction
+import com.shourov.apps.pacedream.core.location.LocationServiceEntryPoint
+import com.shourov.apps.pacedream.core.location.PlacePrediction
 import com.shourov.apps.pacedream.feature.host.presentation.components.DateField
 import com.shourov.apps.pacedream.feature.host.presentation.components.DiscardChangesDialog
 import com.shourov.apps.pacedream.feature.host.presentation.components.PayoutRequiredDialog
