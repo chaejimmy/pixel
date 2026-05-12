@@ -229,7 +229,7 @@ fun HostRowDivider() {
     HorizontalDivider(
         color = PaceDreamColors.Border,
         thickness = 0.5.dp,
-        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL[60]=XXXL)
+        modifier = Modifier.padding(start = PaceDreamSpacing.XXXL)
     )
 }
 

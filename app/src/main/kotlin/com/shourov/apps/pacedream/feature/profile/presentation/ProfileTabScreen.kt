@@ -145,12 +145,12 @@ fun ProfileTabScreen(
                                 title = "Requests",
                                 items = listOf(
                                     ProfileMenuItem(
-                                        label = "Post a Request",
+                                        title = "Post a Request",
                                         icon = PaceDreamIcons.AddCircle,
                                         onClick = onPostRequestClick,
                                     ),
                                     ProfileMenuItem(
-                                        label = "My Requests",
+                                        title = "My Requests",
                                         icon = PaceDreamIcons.Bookmarks,
                                         onClick = onMyRequestsClick,
                                     ),
