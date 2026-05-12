@@ -430,14 +430,14 @@ private fun WishlistCardSkeleton() {
                     modifier = Modifier
                         .fillMaxWidth(0.7f)
                         .height(14.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(Color.Gray.copy(alpha = 0.15f))
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.4f)
                         .height(12.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
                         .background(Color.Gray.copy(alpha = 0.10f))
                 )
             }
