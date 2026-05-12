@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.wanted.data.remote
 
 import com.shourov.apps.pacedream.core.network.ApiEndPoints
+import com.shourov.apps.pacedream.feature.wanted.data.dto.CategoriesResponse
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.OfferEnvelope
@@ -27,4 +28,7 @@ interface WantedApiService {
         @Path("id") requestId: String,
         @Body body: CreateOfferBody,
     ): OfferEnvelope
+
+    @GET(ApiEndPoints.GET_REQUEST_CATEGORIES)
+    suspend fun getCategories(): CategoriesResponse
 }

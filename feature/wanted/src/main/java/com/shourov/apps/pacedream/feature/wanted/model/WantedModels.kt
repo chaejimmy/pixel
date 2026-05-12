@@ -172,6 +172,13 @@ data class CreateRequestUiState(
     val uploading: Boolean = false,
     val error: String? = null,
     val createdId: String? = null,
+    /**
+     * Per-type category options shown in the dropdown. Defaults to the
+     * hardcoded [WantedCategoriesByType] so the form is never blank on
+     * first launch or while offline; replaced with server values when
+     * `GET /v1/requests/categories` resolves.
+     */
+    val categoriesByType: Map<WantedType, List<WantedCategoryOption>> = WantedCategoriesByType,
 )
 
 data class OfferFormState(

@@ -8,6 +8,7 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
+import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
@@ -315,6 +316,9 @@ class RequestsViewModelFilterTest {
             error("unused in filter tests")
 
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
+            error("unused in filter tests")
+
+        override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
             error("unused in filter tests")
     }
 
