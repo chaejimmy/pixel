@@ -97,10 +97,29 @@ class RequestDetailViewModel @Inject constructor(
                     _offer.update {
                         it.copy(
                             submitting = false,
-                            error = e.message ?: "Couldn't submit offer",
+                            error = friendlyError(e),
                         )
                     }
                 }
+        }
+    }
+
+    /**
+     * Mirrors the mapping in `CreateRequestViewModel.friendlyError`:
+     * raw backend messages are often stack traces, HTML, or vendor
+     * jargon that aren't actionable for users. Every known failure
+     * mode maps to a short, offer-specific string instead.
+     */
+    private fun friendlyError(e: Throwable): String {
+        val msg = e.message.orEmpty().lowercase()
+        return when {
+            msg.contains("401") || msg.contains("unauthor") ->
+                "Please sign in again to send your offer."
+            msg.contains("403") -> "We can't send this offer right now."
+            msg.contains("429") -> "You're sending offers a bit too quickly. Please wait a moment."
+            msg.contains("timeout") || msg.contains("unable to resolve") || msg.contains("network") ->
+                "You appear to be offline. Please check your connection."
+            else -> "Couldn't send your offer. Please try again."
         }
     }
 
