@@ -6,6 +6,8 @@ import com.shourov.apps.pacedream.core.network.api.TokenProvider
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import com.shourov.apps.pacedream.core.network.config.AppConfig
+import com.shourov.apps.pacedream.core.network.observer.AndroidConnectivityObserver
+import com.shourov.apps.pacedream.core.network.observer.ConnectivityObserver
 import com.shourov.apps.pacedream.core.network.remote.interceptor.TelemetryInterceptor
 import dagger.Module
 import dagger.Provides
@@ -55,6 +57,12 @@ object NetworkModule {
         // Avoid circular constructor deps; wire client after construction.
         setApiClient(apiClient)
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectivityObserver(
+        @ApplicationContext context: Context,
+    ): ConnectivityObserver = AndroidConnectivityObserver(context)
 }
 
 

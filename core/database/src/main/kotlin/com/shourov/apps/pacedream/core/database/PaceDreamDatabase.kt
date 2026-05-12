@@ -48,10 +48,11 @@ import com.shourov.apps.pacedream.core.database.migration.MIGRATION_1_2
     // v2: BookingEntity gained optional receipt breakdown columns
     // (subtotal / serviceFee / cleaningFee / taxAmount). An explicit
     // Migration(1, 2) preserves cached booking rows via ALTER TABLE
-    // ADD COLUMN. Other unhandled version jumps still fall back to
-    // destructive migration.
+    // ADD COLUMN. Future version jumps MUST add their own Migration —
+    // there is no destructive fallback, so a missing migration will
+    // throw at runtime instead of silently wiping user data.
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class PaceDreamDatabase : RoomDatabase() {
@@ -72,7 +73,6 @@ abstract class PaceDreamDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
                 .addMigrations(MIGRATION_1_2)
-                .fallbackToDestructiveMigration()
                 .build()
         }
     }

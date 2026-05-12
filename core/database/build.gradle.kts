@@ -8,6 +8,10 @@ plugins {
 android {
     namespace = "com.shourov.apps.pacedream.core.database"
 
+    defaultConfig {
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
     buildFeatures {
         buildConfig = true
     }
@@ -25,4 +29,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
+
+    // Migration test for PaceDreamDatabase (Phase A / P1-6).
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.androidx.test.ext)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.junit.junit)
 }

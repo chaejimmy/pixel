@@ -1,7 +1,12 @@
-# Certificate Pinning — Proposed Plan (NOT YET IMPLEMENTED)
+# Certificate Pinning — Plan & Status
 
-Status: **proposal only**. No production networking has been changed by this
-document. The audit flagged the absence of certificate pinning as a P1 issue
+Status: **scaffolded with placeholder pins** — `network_security_config.xml`
+ships a `<pin-set>` for `api.pacedream.com`, `www.pacedream.com`, and
+`pacedream.com`, but both `<pin digest="SHA-256">` entries are placeholders
+(see the `AAAA…` / `BBBB…` markers in the XML). Real SPKI hashes must be
+filled in before the next release that flips the `expiration` attribute to
+a date past the rollout. The audit flagged the absence of certificate
+pinning as a P1 issue
 (`network_security_config.xml` and `ApiClient.kt` rely solely on the system
 trust store). Pinning is high-leverage but **dangerous to ship without
 rotation infrastructure** — a misconfigured pin set bricks every installed
@@ -192,3 +197,42 @@ Before this proposal moves to implementation, please confirm:
 
 Once these are answered, the change set above is ~30 lines across two
 files and one days' staging soak before staged rollout.
+
+## Rotation policy (after real pins land)
+
+Once the placeholder pins are replaced with real intermediate SPKI hashes:
+
+1. **Calendar anchor.** The `expiration` attribute in
+   `network_security_config.xml` is the authoritative reminder. Set it 12
+   months out at every rotation. A calendar reminder must be filed against
+   the platform-engineering on-call rotation 60 days before the expiration
+   date. **Owner: platform engineering on-call.**
+2. **Quarterly drill.** Once per quarter, switch the live edge to the
+   backup-pinned intermediate, observe zero `SSLPeerUnverifiedException`
+   in Crashlytics for 30 minutes, then switch back. This validates the
+   backup pin is correct **before** an emergency forces the same switch.
+3. **Pin rotation procedure (annual or on compromise).**
+   1. Pre-load a new backup intermediate on the CDN.
+   2. Compute its SHA-256 SPKI hash and add a third `<pin>` to the
+      `<pin-set>`. This is a *strictly additive* change — old clients
+      still validate against the existing primary + backup pins.
+   3. Ship that change in a release.
+   4. After ≥ 95% adoption, perform the live switch: edge now serves the
+      new chain, old primary moves to backup, the previous backup is
+      retired.
+   5. In the next release, remove the retired pin and reset
+      `expiration` to today + 12 months.
+4. **Emergency rollback.** Server-side fix first (re-serve a chain
+   containing one of the still-pinned intermediates). Client-side hotfix
+   removing the broken pin is the slow path; the `expiration` fail-open
+   is the last resort.
+
+## Debug-mode bypass
+
+Debug builds intentionally bypass the pin-set via the
+`<debug-overrides>` block in `network_security_config.xml`, which the
+platform only applies when `android:debuggable="true"`. This keeps the
+Charles / mitmproxy workflow working for engineers without compromising
+release builds — `<debug-overrides>` is silently ignored on a signed
+APK regardless of build flags.
+
