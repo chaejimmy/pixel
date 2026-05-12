@@ -12,7 +12,13 @@ data class WantedRequest(
     val location: String,
     val budget: Double?,
     val budgetCurrency: String = "USD",
+    /**
+     * Start of the requested window. Newly created requests send ISO-8601
+     * (`yyyy-MM-dd`); legacy records may carry free-text strings like
+     * "Sat 10:00 AM" — both are rendered via [RequestDateFormatter].
+     */
     val dateTime: String?,
+    val endDate: String? = null,
     val imageUrl: String?,
     val authorName: String? = null,
     val authorAvatarUrl: String? = null,
@@ -120,7 +126,10 @@ data class CreateRequestForm(
     val locationCity: String = "",
     val locationState: String = "",
     val locationCountry: String = "",
-    val date: String = "",
+    /** Epoch millis at UTC midnight for the start of the requested window. */
+    val startDate: Long? = null,
+    /** Epoch millis at UTC midnight for the end of the requested window. */
+    val endDate: Long? = null,
     val budget: String = "",
     val imageUrl: String? = null,
 )

@@ -30,6 +30,9 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -41,9 +44,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +76,12 @@ import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * "Post a Request" form (web parity for `POST /v1/requests`).
@@ -223,14 +235,12 @@ fun CreateRequestScreen(
                 }
 
                 SectionLabel("When? (optional)")
-                OutlinedTextField(
-                    value = state.form.date,
-                    onValueChange = { v -> viewModel.update { it.copy(date = v) } },
-                    placeholder = { Text("e.g. 2026-07-01 or Sat 10:00 AM") },
-                    singleLine = true,
-                    colors = pdTextFieldColors(),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    modifier = Modifier.fillMaxWidth(),
+                DateRangeField(
+                    startDate = state.form.startDate,
+                    endDate = state.form.endDate,
+                    onChange = { start, end ->
+                        viewModel.update { it.copy(startDate = start, endDate = end) }
+                    },
                 )
 
                 SectionLabel("Budget (optional)")
@@ -427,6 +437,113 @@ private fun CategoryDropdown(
             }
         }
     }
+}
+
+// ============================================================================
+// Date range picker
+//
+// `startDate` / `endDate` are stored on the form as UTC-midnight epoch
+// millis so they round-trip through `rememberDateRangePickerState` without
+// timezone drift. Wire serialization happens in the ViewModel — this
+// composable only handles selection + display.
+// ============================================================================
+
+@Composable
+private fun DateRangeField(
+    startDate: Long?,
+    endDate: Long?,
+    onChange: (Long?, Long?) -> Unit,
+) {
+    var dialogOpen by remember { mutableStateOf(false) }
+    val locale = Locale.getDefault()
+    val label = remember(startDate, endDate, locale) {
+        formatDateRangeLabel(startDate, endDate, locale)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Surface)
+            .clickable { dialogOpen = true }
+            .padding(
+                horizontal = PaceDreamSpacing.SM2,
+                vertical = PaceDreamSpacing.SM2,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label ?: "Any date",
+            style = PaceDreamTypography.Body,
+            color = if (label == null) PaceDreamColors.TextSecondary
+            else PaceDreamColors.TextPrimary,
+            modifier = Modifier.weight(1f),
+        )
+        if (startDate != null) {
+            TextButton(
+                onClick = { onChange(null, null) },
+            ) {
+                Text("Clear", color = PaceDreamColors.Primary)
+            }
+        }
+    }
+
+    if (dialogOpen) {
+        val todayUtcMillis = remember {
+            LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        }
+        val pickerState = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = startDate,
+            initialSelectedEndDateMillis = endDate,
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    utcTimeMillis >= todayUtcMillis
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = { dialogOpen = false },
+            confirmButton = {
+                TextButton(
+                    enabled = pickerState.selectedStartDateMillis != null,
+                    onClick = {
+                        onChange(
+                            pickerState.selectedStartDateMillis,
+                            pickerState.selectedEndDateMillis,
+                        )
+                        dialogOpen = false
+                    },
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { dialogOpen = false }) { Text("Cancel") }
+            },
+            colors = DatePickerDefaults.colors(),
+        ) {
+            DateRangePicker(
+                state = pickerState,
+                showModeToggle = false,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+private fun formatDateRangeLabel(
+    startMillis: Long?,
+    endMillis: Long?,
+    locale: Locale,
+): String? {
+    if (startMillis == null) return null
+    val formatter = DateTimeFormatter
+        .ofLocalizedDate(FormatStyle.MEDIUM)
+        .withLocale(locale)
+    val startLabel = formatter.format(
+        Instant.ofEpochMilli(startMillis).atZone(ZoneOffset.UTC).toLocalDate()
+    )
+    val endLabel = endMillis?.takeIf { it != startMillis }?.let {
+        formatter.format(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())
+    }
+    return if (endLabel != null) "$startLabel — $endLabel" else startLabel
 }
 
 // ============================================================================

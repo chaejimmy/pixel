@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 
 @Composable
 fun RequestTag(
@@ -107,7 +108,7 @@ fun RequestCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    request.dateTime?.takeIf { it.isNotBlank() }?.let {
+                    RequestDateFormatter.format(request.dateTime, request.endDate)?.let {
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
