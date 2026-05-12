@@ -56,7 +56,6 @@ import com.pacedream.common.util.Consts.TECH_GEAR_TYPE
 import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
-import com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen
 import com.shourov.apps.pacedream.feature.home.presentation.EnhancedDashboardScreenWrapper
 import com.pacedream.app.feature.listingdetail.ListingDetailRoute
 import com.pacedream.app.feature.profile.EditProfileScreen
@@ -1144,10 +1143,6 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val confirmationUser by confirmationAuthGate.currentUser.collectAsStateWithLifecycle()
                                 ConfirmationScreen(
                                     bookingId = bookingId,
-                                    onBackClick = {
-                                        // Back from success goes home, never back to checkout
-                                        navigateToTab(navController, DashboardDestination.HOME.name)
-                                    },
                                     onViewBooking = {
                                         navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId") {
                                             popUpTo("booking_success/$bookingId") { inclusive = true }

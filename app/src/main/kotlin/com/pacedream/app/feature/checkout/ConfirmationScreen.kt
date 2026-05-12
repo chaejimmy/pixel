@@ -49,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 @Composable
 fun ConfirmationScreen(
     bookingId: String,
-    onBackClick: () -> Unit,
     onViewBooking: () -> Unit,
     onDone: () -> Unit,
     userEmail: String? = null,
@@ -64,7 +63,12 @@ fun ConfirmationScreen(
      */
     receiptEmailSent: Boolean? = null,
 ) {
-    // Prevent system back from navigating to checkout
+    // Both the system-back gesture and the close (X) button finalise
+    // the booking flow via onDone — neither pops back into the
+    // already-completed checkout.  Audit (M-01) called this out as
+    // ambiguous; centralising on onDone means the caller has a single
+    // contract: "the user is done viewing this confirmation, go where
+    // your post-success navigation lives" (today: tab back to Home).
     androidx.activity.compose.BackHandler { onDone() }
 
     Scaffold(
@@ -72,7 +76,7 @@ fun ConfirmationScreen(
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onDone) {
                         Icon(PaceDreamIcons.Close, contentDescription = "Close")
                     }
                 },
