@@ -12,8 +12,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.res.Configuration
 import com.pacedream.common.composables.theme.*
 
 @Composable
@@ -220,5 +222,45 @@ fun HostModeBanner(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "HostModeToggle host=on — light", showBackground = true)
+@Composable
+private fun HostModeToggleHostLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        HostModeToggle(isHostMode = true, onToggle = {})
+    }
+}
+
+@Preview(
+    name = "HostModeToggle host=on — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun HostModeToggleHostDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        HostModeToggle(isHostMode = true, onToggle = {})
+    }
+}
+
+@Preview(name = "HostModeToggle host=off — light", showBackground = true)
+@Composable
+private fun HostModeToggleGuestLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        HostModeToggle(isHostMode = false, onToggle = {})
+    }
+}
+
+@Preview(
+    name = "HostModeToggle host=off — dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true,
+)
+@Composable
+private fun HostModeToggleGuestDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        HostModeToggle(isHostMode = false, onToggle = {})
     }
 }
