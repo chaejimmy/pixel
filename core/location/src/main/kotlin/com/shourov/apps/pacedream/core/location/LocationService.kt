@@ -1,4 +1,4 @@
-package com.pacedream.app.core.location
+package com.shourov.apps.pacedream.core.location
 
 import android.Manifest
 import android.content.Context
@@ -41,7 +41,7 @@ class LocationService @Inject constructor(
             null
         }
     }
-    
+
     /**
      * Check if location permission is granted
      */
@@ -55,7 +55,7 @@ class LocationService @Inject constructor(
             Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
     }
-    
+
     /**
      * Get current location
      * Returns null if permission not granted or location unavailable
@@ -111,6 +111,45 @@ class LocationService @Inject constructor(
     }
 
     /**
+     * Reverse-geocode coordinates into a structured place suitable for
+     * "Use current location" flows. Returns the lat/lng we were given plus
+     * the best-effort city / state / country / formatted-address parsed
+     * from the device geocoder.
+     */
+    suspend fun getPlaceFromLocation(
+        latitude: Double,
+        longitude: Double,
+    ): ReverseGeocodedPlace? {
+        val geo = geocoder ?: return null
+        return try {
+            val addresses = geo.getFromLocation(latitude, longitude, 1)
+            val address = addresses?.firstOrNull() ?: return null
+            val city = address.locality ?: address.subAdminArea ?: ""
+            val state = address.adminArea ?: ""
+            val country = address.countryName ?: ""
+            val formatted = (0..address.maxAddressLineIndex)
+                .mapNotNull { address.getAddressLine(it) }
+                .joinToString(", ")
+                .ifBlank {
+                    listOf(city, state, country)
+                        .filter { it.isNotBlank() }
+                        .joinToString(", ")
+                }
+            ReverseGeocodedPlace(
+                lat = latitude,
+                lng = longitude,
+                city = city,
+                state = state,
+                country = country,
+                formattedAddress = formatted,
+            )
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to reverse geocode location")
+            null
+        }
+    }
+
+    /**
      * Get coordinates from address (forward geocoding)
      */
     suspend fun getLocationFromAddress(address: String): Pair<Double, Double>? {
@@ -127,3 +166,15 @@ class LocationService @Inject constructor(
         }
     }
 }
+
+/**
+ * Reverse-geocoded place returned by [LocationService.getPlaceFromLocation].
+ */
+data class ReverseGeocodedPlace(
+    val lat: Double,
+    val lng: Double,
+    val city: String,
+    val state: String,
+    val country: String,
+    val formattedAddress: String,
+)

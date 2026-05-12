@@ -1,4 +1,4 @@
-package com.pacedream.app.core.location
+package com.shourov.apps.pacedream.core.location
 
 import android.content.Context
 import com.shourov.apps.pacedream.core.network.BuildConfig

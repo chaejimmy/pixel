@@ -220,6 +220,7 @@ dependencies {
     implementation(projects.core.network)
     implementation(projects.core.model)
     implementation(projects.core.analytics)
+    implementation(projects.core.location)
     implementation(projects.common)
 //    implementation(projects.sync.work)
 

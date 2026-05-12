@@ -51,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,9 +80,11 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
+import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.LocationPickerSheet
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -106,6 +109,8 @@ fun CreateRequestScreen(
     viewModel: CreateRequestViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showLocationSheet by remember { mutableStateOf(false) }
+    val locationSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(state.createdId) {
         state.createdId?.let { onCreated(it) }
@@ -226,35 +231,11 @@ fun CreateRequestScreen(
                 )
 
                 SectionLabel("Where? (optional)")
-                OutlinedTextField(
-                    value = state.form.locationCity,
-                    onValueChange = { v -> viewModel.update { it.copy(locationCity = v) } },
-                    placeholder = { Text("City") },
-                    singleLine = true,
-                    colors = pdTextFieldColors(),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    modifier = Modifier.fillMaxWidth(),
+                LocationField(
+                    selected = state.form.location,
+                    onClick = { showLocationSheet = true },
+                    onClear = { viewModel.update { it.copy(location = null) } },
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                    OutlinedTextField(
-                        value = state.form.locationState,
-                        onValueChange = { v -> viewModel.update { it.copy(locationState = v) } },
-                        placeholder = { Text("State / Region") },
-                        singleLine = true,
-                        colors = pdTextFieldColors(),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedTextField(
-                        value = state.form.locationCountry,
-                        onValueChange = { v -> viewModel.update { it.copy(locationCountry = v) } },
-                        placeholder = { Text("Country") },
-                        singleLine = true,
-                        colors = pdTextFieldColors(),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        modifier = Modifier.weight(1f),
-                    )
-                }
 
                 SectionLabel("When? (optional)")
                 DateRangeField(
@@ -339,6 +320,64 @@ fun CreateRequestScreen(
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+            }
+        }
+    }
+
+    if (showLocationSheet) {
+        LocationPickerSheet(
+            sheetState = locationSheetState,
+            onDismiss = { showLocationSheet = false },
+            onPlaceSelected = { place ->
+                viewModel.update { it.copy(location = place) }
+                showLocationSheet = false
+            },
+        )
+    }
+}
+
+// ============================================================================
+// Location field — collapses three legacy text fields into a single tap target
+// that opens the autocomplete sheet. The read-only label shows "City, Region,
+// Country" so the user can verify the pick at a glance.
+// ============================================================================
+
+@Composable
+private fun LocationField(
+    selected: SelectedPlace?,
+    onClick: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Surface)
+            .clickable(onClick = onClick)
+            .padding(
+                horizontal = PaceDreamSpacing.SM2,
+                vertical = PaceDreamSpacing.SM2,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = PaceDreamIcons.LocationOn,
+            contentDescription = null,
+            tint = if (selected != null) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(PaceDreamSpacing.SM))
+        Text(
+            text = selected?.displayLine?.takeIf { it.isNotBlank() }
+                ?: "Add a location",
+            style = PaceDreamTypography.Body,
+            color = if (selected != null) PaceDreamColors.TextPrimary
+            else PaceDreamColors.TextSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected != null) {
+            TextButton(onClick = onClear) {
+                Text("Clear", color = PaceDreamColors.Primary)
             }
         }
     }

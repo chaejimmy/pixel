@@ -32,6 +32,7 @@ include(":core:model")
 include(":core:ui")
 include(":core:network")
 include(":core:upload")
+include(":core:location")
 
 //include(":lint")
 //include(":sync:work")

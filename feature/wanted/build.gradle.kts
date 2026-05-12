@@ -19,6 +19,7 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.designsystem)
     implementation(projects.core.upload)
+    implementation(projects.core.location)
     implementation(projects.common)
 
     implementation(libs.androidx.activity.compose)
