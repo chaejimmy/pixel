@@ -5,11 +5,13 @@ import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Thin HTTP facade for the customer support chat feature.
  *
- * Mirrors the web product at `/v1/support/chat/*`:
+ * Mirrors the web product under `/v1/support/chat/`:
  *  - POST /support/chat/start
  *  - POST /support/chat/message
  *  - GET  /support/chat/{sessionId}/messages
@@ -18,13 +20,9 @@ import kotlinx.serialization.json.Json
  * Realtime (Ably) parity is a separate, optional layer — the ViewModel polls
  * /messages while the screen is visible so the experience degrades gracefully
  * on devices where Ably is not wired up yet.
- *
- * Provided via [SupportChatModule] rather than an `@Inject constructor` to
- * sidestep a KSP2 + Hilt 2.58 + Kotlin 2.3 issue where Hilt's
- * `InjectProcessingStep` cannot resolve this type when injected into
- * `SupportChatViewModel` (despite both living in the same package).
  */
-class SupportChatRepository(
+@Singleton
+class SupportChatRepository @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val json: Json,

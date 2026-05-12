@@ -4,8 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.SessionManager
-import com.shourov.apps.pacedream.core.network.api.ApiClient
-import com.shourov.apps.pacedream.core.network.config.AppConfig
 import com.shourov.apps.pacedream.feature.help.HelpCenterAnalytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -15,7 +13,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
@@ -36,19 +33,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SupportChatViewModel @Inject constructor(
-    apiClient: ApiClient,
-    appConfig: AppConfig,
-    json: Json,
+    private val repository: SupportChatRepository,
     private val sessionManager: SessionManager,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
-
-    // Constructed locally instead of injected by Hilt: KSP2 + Hilt 2.58 +
-    // Kotlin 2.3 fails to resolve the `SupportChatRepository` symbol when
-    // it's requested as an `@Inject constructor` parameter or as a
-    // `@Provides` return type, aborting `:app:kspProdReleaseKotlin`.
-    private val repository: SupportChatRepository =
-        SupportChatRepository(apiClient, appConfig, json)
 
     /** Backend category seeded from the entry point. Defaults to "general". */
     private val initialCategory: SupportCategory =
