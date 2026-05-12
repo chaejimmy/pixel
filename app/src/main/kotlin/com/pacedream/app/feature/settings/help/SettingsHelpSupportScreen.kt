@@ -23,13 +23,21 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -43,6 +51,39 @@ fun SettingsHelpSupportScreen(
     onOpenFaq: () -> Unit
 ) {
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Launches the email composer for the support address.  On failure
+    // (no email client installed, restricted-profile device, etc.) shows
+    // a Snackbar with a "Copy" action that puts the address on the
+    // clipboard so the user can paste it into their preferred mail app.
+    val openSupportEmail: (subject: String?) -> Unit = { subject ->
+        val email = "support@pacedream.com"
+        val uri = if (subject != null) {
+            android.net.Uri.parse("mailto:${'$'}email?subject=${'$'}subject")
+        } else {
+            android.net.Uri.parse("mailto:${'$'}email")
+        }
+        val result = runCatching {
+            context.startActivity(
+                android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
+            )
+        }
+        if (result.isFailure) {
+            scope.launch {
+                val outcome = snackbarHostState.showSnackbar(
+                    message = "No email app available.",
+                    actionLabel = "Copy",
+                )
+                if (outcome == SnackbarResult.ActionPerformed) {
+                    clipboard.setText(AnnotatedString(email))
+                    snackbarHostState.showSnackbar("Copied $email")
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -66,6 +107,7 @@ fun SettingsHelpSupportScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background
     ) { padding ->
         Column(
@@ -123,17 +165,7 @@ fun SettingsHelpSupportScreen(
                         icon = PaceDreamIcons.Email,
                         title = "Email Support",
                         subtitle = "support@pacedream.com",
-                        onClick = {
-                            try {
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_SENDTO,
-                                    android.net.Uri.parse("mailto:support@pacedream.com")
-                                )
-                                context.startActivity(intent)
-                            } catch (_: Exception) {
-                                // No email client available
-                            }
-                        }
+                        onClick = { openSupportEmail(null) }
                     )
 
                     HorizontalDivider(
@@ -145,17 +177,7 @@ fun SettingsHelpSupportScreen(
                         icon = PaceDreamIcons.Report,
                         title = "Report an Issue",
                         subtitle = "Let us know about bugs or problems",
-                        onClick = {
-                            try {
-                                val intent = android.content.Intent(
-                                    android.content.Intent.ACTION_SENDTO,
-                                    android.net.Uri.parse("mailto:support@pacedream.com?subject=Bug%20Report")
-                                )
-                                context.startActivity(intent)
-                            } catch (_: Exception) {
-                                // No email client available
-                            }
-                        }
+                        onClick = { openSupportEmail("Bug%20Report") }
                     )
                 }
             }
