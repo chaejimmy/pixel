@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -423,7 +424,7 @@ private fun CalendarDayCell(
         else -> Color.Transparent
     }
     val textColor = when {
-        isSelected -> Color.White
+        isSelected -> OnBrandSurface
         isToday -> PaceDreamColors.HostAccent
         else -> PaceDreamColors.TextPrimary
     }
@@ -453,7 +454,7 @@ private fun CalendarDayCell(
                     .size(4.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isSelected) Color.White else PaceDreamColors.HostAccent
+                        if (isSelected) OnBrandSurface else PaceDreamColors.HostAccent
                     )
             )
         }
@@ -782,7 +783,7 @@ private fun BlockTimeBottomSheet(
                 if (isMutating) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = Color.White,
+                        color = OnBrandSurface,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -790,7 +791,7 @@ private fun BlockTimeBottomSheet(
                 Text(
                     text = if (isMutating) "Blocking…" else "Block Time",
                     style = PaceDreamTypography.Button,
-                    color = Color.White
+                    color = OnBrandSurface
                 )
             }
 

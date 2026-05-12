@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -572,14 +573,14 @@ private fun NewHostWelcome(
             Icon(
                 imageVector = PaceDreamIcons.Add,
                 contentDescription = null,
-                tint = Color.White,
+                tint = OnBrandSurface,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Create your first listing",
                 style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White
+                color = OnBrandSurface
             )
         }
 

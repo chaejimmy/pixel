@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -130,14 +131,14 @@ private fun PostHeroHeader(userName: String) {
             Text(
                 text = "Welcome back, $firstName!",
                 style = PaceDreamTypography.Title2.copy(fontSize = 24.sp),
-                color = Color.White,
+                color = OnBrandSurface,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Create amazing listings and grow your hosting business",
                 style = PaceDreamTypography.Callout,
-                color = Color.White.copy(alpha = 0.95f),
+                color = OnBrandSurface.copy(alpha = 0.95f),
                 fontWeight = FontWeight.Medium
             )
         }

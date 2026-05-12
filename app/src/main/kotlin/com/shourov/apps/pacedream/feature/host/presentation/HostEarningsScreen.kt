@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -135,14 +136,14 @@ fun HostEarningsScreen(
                             Icon(
                                 imageVector = PaceDreamIcons.AttachMoney,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = OnBrandSurface,
                                 modifier = Modifier.size(PaceDreamIconSize.SM)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                             Text(
                                 text = "Payout",
                                 style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
-                                color = Color.White,
+                                color = OnBrandSurface,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -290,7 +291,7 @@ private fun SessionExpiredContent(onSignInClick: () -> Unit) {
             Text(
                 text = "Sign In",
                 style = PaceDreamTypography.Subheadline,
-                color = Color.White,
+                color = OnBrandSurface,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -357,13 +358,13 @@ private fun StripeNotConnectedContent(isBusy: Boolean, onConnectClick: () -> Uni
                     contentPadding = PaddingValues(vertical = 16.dp)
                 ) {
                     if (isBusy) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(color = OnBrandSurface, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                     }
-                    Text("Set up payouts", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Set up payouts", style = PaceDreamTypography.Subheadline, color = OnBrandSurface, fontWeight = FontWeight.SemiBold)
                     if (!isBusy) {
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                        Icon(PaceDreamIcons.ArrowForward, null, tint = OnBrandSurface, modifier = Modifier.size(PaceDreamIconSize.SM))
                     }
                 }
 
@@ -508,13 +509,13 @@ private fun StripePendingContent(
                         contentPadding = PaddingValues(vertical = 14.dp)
                     ) {
                         if (isBusy) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = OnBrandSurface, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         }
-                        Text("Continue setup", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("Continue setup", style = PaceDreamTypography.Subheadline, color = OnBrandSurface, fontWeight = FontWeight.SemiBold)
                         if (!isBusy) {
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                            Icon(PaceDreamIcons.ArrowForward, null, tint = Color.White, modifier = Modifier.size(PaceDreamIconSize.SM))
+                            Icon(PaceDreamIcons.ArrowForward, null, tint = OnBrandSurface, modifier = Modifier.size(PaceDreamIconSize.SM))
                         }
                     }
                 }
@@ -791,9 +792,9 @@ private fun BalanceTabContent(
                                 modifier = Modifier.fillMaxWidth(0.6f),
                                 contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
-                                Icon(PaceDreamIcons.AttachMoney, null, modifier = Modifier.size(PaceDreamIconSize.SM), tint = Color.White)
+                                Icon(PaceDreamIcons.AttachMoney, null, modifier = Modifier.size(PaceDreamIconSize.SM), tint = OnBrandSurface)
                                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                                Text("Request Payout", style = PaceDreamTypography.Subheadline, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text("Request Payout", style = PaceDreamTypography.Subheadline, color = OnBrandSurface, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -1243,7 +1244,7 @@ private fun PayoutRequestBottomSheet(
                                 modifier = Modifier.weight(1f),
                                 contentPadding = PaddingValues(vertical = 12.dp)
                             ) {
-                                Text("$$quickAmount", style = PaceDreamTypography.Subheadline, color = if (isSelected) Color.White else PaceDreamColors.HostAccent, fontWeight = FontWeight.SemiBold)
+                                Text("$$quickAmount", style = PaceDreamTypography.Subheadline, color = if (isSelected) OnBrandSurface else PaceDreamColors.HostAccent, fontWeight = FontWeight.SemiBold)
                             }
                         } else {
                             Spacer(modifier = Modifier.weight(1f))
@@ -1277,7 +1278,7 @@ private fun PayoutRequestBottomSheet(
                     .fillMaxWidth()
                     .height(PaceDreamButtonHeight.LG)
             ) {
-                Text("Request Payout", style = PaceDreamTypography.Button, color = Color.White)
+                Text("Request Payout", style = PaceDreamTypography.Button, color = OnBrandSurface)
             }
         }
     }

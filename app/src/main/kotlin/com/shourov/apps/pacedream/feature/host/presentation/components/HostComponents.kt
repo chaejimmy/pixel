@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -370,13 +371,13 @@ fun HostCapsuleButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = OnBrandSurface,
             modifier = Modifier.size(PaceDreamIconSize.SM)
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = OnBrandSurface,
             style = PaceDreamTypography.Subheadline.copy(fontSize = 14.sp),
             fontWeight = FontWeight.Bold
         )
@@ -393,7 +394,7 @@ fun HostFullWidthButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color = PaceDreamColors.HostAccent,
-    contentColor: Color = Color.White
+    contentColor: Color = OnBrandSurface
 ) {
     Button(
         onClick = onClick,
@@ -613,7 +614,7 @@ fun HostFilterChip(
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = PaceDreamColors.HostAccent,
-            selectedLabelColor = Color.White,
+            selectedLabelColor = OnBrandSurface,
             containerColor = PaceDreamColors.Card,
             labelColor = PaceDreamColors.TextPrimary
         ),

@@ -86,6 +86,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -690,7 +692,7 @@ private fun DraftResumeBanner(
                 Icon(
                     PaceDreamIcons.History,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = OnBrandSurface,
                     modifier = Modifier.size(18.dp),
                 )
                 Column(modifier = Modifier.weight(1f)) {
@@ -698,20 +700,20 @@ private fun DraftResumeBanner(
                         "Continue your draft",
                         style = PaceDreamTypography.Callout,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
+                        color = OnBrandSurface,
                     )
                     Text(
                         draftTitle,
                         style = PaceDreamTypography.Caption,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.9f),
+                        color = OnBrandSurface.copy(alpha = 0.9f),
                         maxLines = 1,
                     )
                 }
                 Icon(
                     PaceDreamIcons.ChevronRight,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.85f),
+                    tint = OnBrandSurface.copy(alpha = 0.85f),
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -2117,13 +2119,13 @@ private fun CreateListingWizardScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f))
+                    .background(scrimOnImage(0.6f))
                     .clickable(enabled = false) { },
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(
-                        color = Color.White,
+                        color = OnBrandSurface,
                         modifier = Modifier.size(48.dp),
                         strokeWidth = 3.dp,
                     )
@@ -2131,14 +2133,14 @@ private fun CreateListingWizardScreen(
                     Text(
                         text = uploadProgressText.ifBlank { "Publishing\u2026" },
                         style = PaceDreamTypography.Headline,
-                        color = Color.White,
+                        color = OnBrandSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                     Text(
                         text = "If this takes too long, check your connection and try again.",
                         style = PaceDreamTypography.Caption,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = OnBrandSurface.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.XXXL),
                     )
@@ -2396,13 +2398,13 @@ private fun PhotosLocationPricingStep(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                        .background(Color.Black.copy(alpha = 0.35f)),
+                                        .background(scrimOnImage(0.35f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     CircularProgressIndicator(
                                         progress = { entry.progress.coerceIn(0f, 1f) },
                                         modifier = Modifier.size(28.dp),
-                                        color = Color.White,
+                                        color = OnBrandSurface,
                                         strokeWidth = 2.dp,
                                     )
                                 }
@@ -2412,7 +2414,7 @@ private fun PhotosLocationPricingStep(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                        .background(Color.Black.copy(alpha = 0.55f))
+                                        .background(scrimOnImage(0.55f))
                                         .clickable { onRetryUpload(uri) }
                                         .semantics {
                                             contentDescription = "Retry upload for photo ${index + 1}"
@@ -2422,7 +2424,7 @@ private fun PhotosLocationPricingStep(
                                     Text(
                                         text = "Retry",
                                         style = PaceDreamTypography.Caption,
-                                        color = Color.White,
+                                        color = OnBrandSurface,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                 }
@@ -2443,13 +2445,13 @@ private fun PhotosLocationPricingStep(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.6f)),
+                                    .background(scrimOnImage(0.6f)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     PaceDreamIcons.Close,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = OnBrandSurface,
                                     modifier = Modifier.size(14.dp),
                                 )
                             }
@@ -3176,7 +3178,7 @@ internal fun SessionTypePicker(
                         Icon(
                             PaceDreamIcons.Check,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = OnBrandSurface,
                             modifier = Modifier.size(14.dp),
                         )
                     }
@@ -3266,8 +3268,8 @@ private fun SingleChoiceChips(
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PaceDreamColors.HostAccent,
-                    selectedLabelColor = Color.White,
-                    selectedLeadingIconColor = Color.White,
+                    selectedLabelColor = OnBrandSurface,
+                    selectedLeadingIconColor = OnBrandSurface,
                     containerColor = PaceDreamColors.Card,
                     labelColor = PaceDreamColors.TextPrimary,
                 ),
@@ -3500,8 +3502,8 @@ private fun ScheduleAvailabilityStep(
                         } else null,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PaceDreamColors.HostAccent,
-                            selectedLabelColor = Color.White,
-                            selectedLeadingIconColor = Color.White,
+                            selectedLabelColor = OnBrandSurface,
+                            selectedLeadingIconColor = OnBrandSurface,
                             containerColor = PaceDreamColors.Card,
                             labelColor = PaceDreamColors.TextPrimary,
                         ),
@@ -3708,7 +3710,7 @@ private fun ScheduleAvailabilityStep(
                             text = label,
                             style = PaceDreamTypography.Caption,
                             fontWeight = FontWeight.Bold,
-                            color = if (isOn) Color.White else PaceDreamColors.TextPrimary,
+                            color = if (isOn) OnBrandSurface else PaceDreamColors.TextPrimary,
                         )
                     }
                 }
@@ -4270,7 +4272,7 @@ private fun WizardBottomBar(
                     if (isPublishing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = Color.White,
+                            color = OnBrandSurface,
                             strokeWidth = 2.dp,
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -4307,7 +4309,7 @@ private fun PricingUnitSelector(
             allowedUnits.forEach { unit ->
                 val isSelected = selectedUnit == unit
                 val bgColor by animateColorAsState(
-                    targetValue = if (isSelected) Color.White else Color.Transparent,
+                    targetValue = if (isSelected) OnBrandSurface else Color.Transparent,
                     animationSpec = tween(200),
                     label = "segmented_bg",
                 )
@@ -4370,8 +4372,8 @@ private fun AmenitiesGrid(
                 } else null,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PaceDreamColors.HostAccent,
-                    selectedLabelColor = Color.White,
-                    selectedLeadingIconColor = Color.White,
+                    selectedLabelColor = OnBrandSurface,
+                    selectedLeadingIconColor = OnBrandSurface,
                     containerColor = PaceDreamColors.Card,
                     labelColor = PaceDreamColors.TextPrimary,
                 ),
@@ -4821,8 +4823,8 @@ private fun WifiAccessStep(
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = PaceDreamColors.HostAccent,
-                            selectedLabelColor = Color.White,
-                            selectedLeadingIconColor = Color.White,
+                            selectedLabelColor = OnBrandSurface,
+                            selectedLeadingIconColor = OnBrandSurface,
                             containerColor = PaceDreamColors.Card,
                             labelColor = PaceDreamColors.TextPrimary,
                         ),
@@ -4905,7 +4907,7 @@ private fun WifiGuestPreviewCard(
                         modifier = Modifier
                             .size(88.dp)
                             .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                            .background(Color.White)
+                            .background(OnBrandSurface)
                             .border(
                                 1.dp,
                                 PaceDreamColors.Border.copy(alpha = 0.5f),
