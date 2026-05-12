@@ -763,6 +763,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                     requestId = id,
                                     onBack = { navController.popBackStack() },
                                     onRequireAuth = { showAuthSheetForOffer = true },
+                                    onNavigateToAuthor = { authorId ->
+                                        navController.navigate("host/$authorId")
+                                    },
                                 )
                                 if (showAuthSheetForOffer) {
                                     com.pacedream.app.ui.components.AuthFlowSheet(
