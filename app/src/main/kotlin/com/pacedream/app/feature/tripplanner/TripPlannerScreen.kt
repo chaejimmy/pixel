@@ -1,5 +1,6 @@
 package com.pacedream.app.feature.tripplanner
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -207,6 +211,14 @@ class TripPlannerViewModel @Inject constructor(
     }}
 
     fun consumeError() { _uiState.update { it.copy(error = null) } }
+
+    // Hoisted handler for TourCard taps.  Tour detail navigation is not
+    // yet wired (no detail screen in the current spec); the recorded
+    // intent unblocks the M-05 accessibility fix and gives a single
+    // place to plug navigation in once the screen exists.
+    fun openTour(tour: Tour) {
+        Timber.d("Tour selected: id=${'$'}{tour.id} title=${'$'}{tour.title}")
+    }
 }
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -266,7 +278,9 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
                         item { Text("Tours", style = PaceDreamTypography.Title2, fontWeight = FontWeight.Bold); Spacer(Modifier.height(PaceDreamSpacing.SM)) }
                         item {
                             LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                                items(uiState.tours, key = { it.id }) { TourCard(it) }
+                                items(uiState.tours, key = { it.id }) { tour ->
+                                    TourCard(tour, onClick = { viewModel.openTour(tour) })
+                                }
                             }
                             Spacer(Modifier.height(PaceDreamSpacing.LG))
                         }
@@ -427,8 +441,15 @@ private fun TripCard(trip: TripPlan, onDelete: () -> Unit) {
 }
 
 @Composable
-private fun TourCard(tour: Tour) {
-    Card(Modifier.width(220.dp), shape = RoundedCornerShape(PaceDreamRadius.MD), colors = CardDefaults.cardColors(containerColor = PaceDreamColors.CardBackground)) {
+private fun TourCard(tour: Tour, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(220.dp)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button },
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.CardBackground),
+    ) {
         Column {
             AsyncImage(model = tour.imageUrl, contentDescription = tour.title,
                 modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD)),
