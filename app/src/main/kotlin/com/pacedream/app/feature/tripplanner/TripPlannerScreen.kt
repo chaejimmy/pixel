@@ -204,7 +204,7 @@ class TripPlannerViewModel @Inject constructor(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TripPlannerScreen(onBackClick: () -> Unit = {}, viewModel: TripPlannerViewModel = hiltViewModel()) {
+fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {

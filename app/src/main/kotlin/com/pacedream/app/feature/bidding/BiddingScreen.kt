@@ -213,7 +213,7 @@ class BiddingViewModel @Inject constructor(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BiddingScreen(
-    onBackClick: () -> Unit = {},
+    onBackClick: () -> Unit,
     viewModel: BiddingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
