@@ -6,8 +6,10 @@ import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary
+import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -169,6 +171,11 @@ class CreateRequestViewModelUploadTest {
 
         override suspend fun getHostListings(): Result<List<HostListingSummary>> =
             Result.success(emptyList())
+
+        // Failure keeps the VM on the hardcoded WantedCategoriesByType
+        // fallback — the upload tests don't care about the dropdown.
+        override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
+            Result.failure(IllegalStateException("not exercised by upload tests"))
     }
 
     private object ExplodingRepository : WantedRepository {
@@ -186,6 +193,9 @@ class CreateRequestViewModelUploadTest {
 
         override suspend fun getHostListings(): Result<List<HostListingSummary>> =
             Result.success(emptyList())
+
+        override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
+            Result.failure(IllegalStateException("not exercised by upload tests"))
     }
 
 }

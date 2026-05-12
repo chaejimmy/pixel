@@ -5,8 +5,10 @@ import com.shourov.apps.pacedream.core.upload.ImageUploader
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
+import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -196,6 +198,9 @@ class CreateRequestViewModelDateSerializationTest {
         override suspend fun getHostListings():
             Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
             Result.success(emptyList())
+
+        override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
+            Result.failure(IllegalStateException("not exercised by serialization tests"))
     }
 
     private object NoopImageUploader : ImageUploader {
