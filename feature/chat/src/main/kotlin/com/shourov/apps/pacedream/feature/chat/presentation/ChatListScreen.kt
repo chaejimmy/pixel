@@ -37,6 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamUserAvatar
 import com.pacedream.common.composables.theme.PaceDreamDesignSystem
+import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.shourov.apps.pacedream.model.MessageModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -229,14 +230,14 @@ private fun ChatRowSkeleton() {
                 modifier = Modifier
                     .fillMaxWidth(0.55f)
                     .height(14.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
                     .background(Color.Gray.copy(alpha = 0.15f))
             )
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
                     .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
                     .background(Color.Gray.copy(alpha = 0.10f))
             )
         }
@@ -244,7 +245,7 @@ private fun ChatRowSkeleton() {
             modifier = Modifier
                 .width(36.dp)
                 .height(10.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
                 .background(Color.Gray.copy(alpha = 0.10f))
         )
     }
@@ -286,7 +287,7 @@ private fun ChatListEmptyState(
                     containerColor = PaceDreamDesignSystem.PaceDreamColors.Primary,
                     contentColor = PaceDreamDesignSystem.PaceDreamColors.OnPrimary
                 ),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
                 contentPadding = PaddingValues(
                     horizontal = PaceDreamDesignSystem.PaceDreamSpacing.LG,
                     vertical = PaceDreamDesignSystem.PaceDreamSpacing.SM
