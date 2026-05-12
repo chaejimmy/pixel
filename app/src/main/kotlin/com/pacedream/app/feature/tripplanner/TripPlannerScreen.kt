@@ -193,11 +193,20 @@ class TripPlannerViewModel @Inject constructor(
 
     fun deleteTrip(id: String) { viewModelScope.launch {
         try {
-            when (repository.deleteTrip(id)) { is ApiResult.Success -> loadTrips(); is ApiResult.Failure -> {} }
+            when (val result = repository.deleteTrip(id)) {
+                is ApiResult.Success -> loadTrips()
+                is ApiResult.Failure -> {
+                    Timber.w("Trip delete failed: ${'$'}{result.error}")
+                    _uiState.update { it.copy(error = "Couldn't delete that trip. Please try again.") }
+                }
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to delete trip")
+            _uiState.update { it.copy(error = "Couldn't delete that trip. Please try again.") }
         }
     }}
+
+    fun consumeError() { _uiState.update { it.copy(error = null) } }
 }
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -206,6 +215,20 @@ class TripPlannerViewModel @Inject constructor(
 @Composable
 fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var pendingDelete by remember { mutableStateOf<TripPlan?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Surface transient errors (e.g. failed deleteTrip) via the Snackbar.
+    // Persistent full-screen errors (e.g. empty initial load) still fall
+    // through to the Retry box below.
+    LaunchedEffect(uiState.error) {
+        val msg = uiState.error
+        if (msg != null && uiState.trips.isNotEmpty()) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.consumeError()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -215,6 +238,7 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = PaceDreamColors.Background)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background
     ) { padding ->
         PullToRefreshBox(isRefreshing = uiState.isRefreshing, onRefresh = { viewModel.refresh() }, modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -252,7 +276,7 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
                         item { Box(Modifier.fillMaxWidth().padding(vertical = 48.dp), contentAlignment = Alignment.Center) { Text("No trips planned yet", color = PaceDreamColors.TextSecondary) } }
                     } else {
                         items(uiState.trips, key = { it.id }) { trip ->
-                            TripCard(trip) { viewModel.deleteTrip(trip.id) }; Spacer(Modifier.height(PaceDreamSpacing.SM))
+                            TripCard(trip) { pendingDelete = trip }; Spacer(Modifier.height(PaceDreamSpacing.SM))
                         }
                     }
                     item { Spacer(Modifier.height(PaceDreamSpacing.XL)) }
@@ -262,6 +286,51 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
     }
     if (uiState.showCreateDialog) {
         CreateTripSheet(uiState.fromCity, uiState.toCity, onDismiss = { viewModel.toggleCreateDialog() }) { name, travelers -> viewModel.createTrip(name, travelers) }
+    }
+
+    // Destructive-action confirmation — same shape as the M-13
+    // HostListingsScreen pattern.  Trip deletes never fire without
+    // explicit user confirmation; if the underlying call fails, the
+    // Snackbar above surfaces the error rather than silently swallowing.
+    pendingDelete?.let { trip ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = {
+                Text(
+                    text = "Delete trip?",
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+            },
+            text = {
+                Text(
+                    text = "“${trip.name}” will be permanently removed " +
+                        "from your trip planner.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTrip(trip.id)
+                        pendingDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
+                }
+            },
+            containerColor = PaceDreamColors.Background,
+        )
     }
 }
 

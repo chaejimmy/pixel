@@ -25,6 +25,7 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -67,6 +69,8 @@ fun CollectionsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showCreateSheet by remember { mutableStateOf(false) }
+    // Captured collection awaiting confirmation; null when no dialog is up.
+    var pendingDelete by remember { mutableStateOf<UserCollection?>(null) }
 
     if (!viewModel.isAuthenticated()) {
         Box(
@@ -207,7 +211,7 @@ fun CollectionsScreen(
                         CollectionCard(
                             collection = collection,
                             onClick = { onCollectionClick(collection.id) },
-                            onDelete = { viewModel.deleteCollection(collection.id) }
+                            onDelete = { pendingDelete = collection }
                         )
                     }
                 }
@@ -231,6 +235,50 @@ fun CollectionsScreen(
             )
             Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
         }
+    }
+
+    // Destructive-action confirmation — mirrors the M-13 HostListingsScreen
+    // pattern.  Tapping the trash icon stages a pendingDelete; the dialog
+    // only fires the viewModel call on explicit Delete confirmation.
+    pendingDelete?.let { collection ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = {
+                Text(
+                    text = "Delete collection?",
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+            },
+            text = {
+                Text(
+                    text = "This will permanently remove “${collection.name}” " +
+                        "and all of its saved listings.",
+                    style = PaceDreamTypography.Body,
+                    color = PaceDreamColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCollection(collection.id)
+                        pendingDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
+                }
+            },
+            containerColor = PaceDreamColors.Background,
+        )
     }
 }
 
