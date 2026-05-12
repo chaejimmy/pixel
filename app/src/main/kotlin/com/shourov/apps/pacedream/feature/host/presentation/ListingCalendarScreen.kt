@@ -28,10 +28,14 @@ import com.shourov.apps.pacedream.feature.host.data.TimeSlotStatus
 import java.util.*
 
 // ── Slot State Colors ──────────────────────────────────────────
-private val SlotGreen = Color(0xFF34C759)
-private val SlotBlue = Color(0xFF007AFF)
-private val SlotRed = Color(0xFFFF3B30)
-private val SlotAmber = Color(0xFFFF9500)
+// Backed by design-system status tokens.  The Slot* names are kept as
+// local aliases because the file body uses them in dozens of branches —
+// renaming all callsites would balloon the diff for zero behavioural
+// gain.
+private val SlotGreen = PaceDreamColors.Success
+private val SlotBlue = PaceDreamColors.Info
+private val SlotRed = PaceDreamColors.Error
+private val SlotAmber = PaceDreamColors.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

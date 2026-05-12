@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -72,8 +73,8 @@ fun HostEarningsScreen(
                 .setUrlBarHidingEnabled(true)
                 .setDefaultColorSchemeParams(
                     CustomTabColorSchemeParams.Builder()
-                        .setToolbarColor(0xFF5527D7.toInt())
-                        .setNavigationBarColor(0xFF5527D7.toInt())
+                        .setToolbarColor(PaceDreamColors.Primary.toArgb())
+                        .setNavigationBarColor(PaceDreamColors.Primary.toArgb())
                         .build()
                 )
                 .build()

@@ -620,7 +620,7 @@ private fun CreateListingEntryScreen(
                 title = "Items",
                 subtitle = "List an item people can rent or reserve",
                 icon = PaceDreamIcons.DirectionsBike,
-                tint = Color(0xFF2196F3),
+                tint = PaceDreamColors.Info,
                 onClick = { onResourceKindSelected(ResourceKind.ITEMS) },
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -628,7 +628,7 @@ private fun CreateListingEntryScreen(
                 title = "Services",
                 subtitle = "List a service people can book",
                 icon = PaceDreamIcons.Build,
-                tint = Color(0xFF4CAF50),
+                tint = PaceDreamColors.Success,
                 onClick = { onResourceKindSelected(ResourceKind.SERVICES) },
             )
         }
@@ -677,7 +677,7 @@ private fun DraftResumeBanner(
                 bottomStart = 0.dp,
                 bottomEnd = 0.dp,
             ),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA500)),
+            colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Warning),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         ) {
             Row(
@@ -4074,8 +4074,8 @@ private fun PublishSuccessScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
-                .background(Color(0xFFFFA500).copy(alpha = 0.10f))
-                .border(1.dp, Color(0xFFFFA500).copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.LG))
+                .background(PaceDreamColors.Warning.copy(alpha = 0.10f))
+                .border(1.dp, PaceDreamColors.Warning.copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.LG))
                 .padding(16.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -4083,7 +4083,7 @@ private fun PublishSuccessScreen(
             Icon(
                 PaceDreamIcons.Schedule,
                 contentDescription = null,
-                tint = Color(0xFFFFA500),
+                tint = PaceDreamColors.Warning,
                 modifier = Modifier.size(20.dp),
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

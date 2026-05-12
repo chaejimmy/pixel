@@ -151,10 +151,10 @@ fun HostListingPreviewScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 20.dp, vertical = 12.dp)
                                     .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                                    .background(Color(0xFFFFA500).copy(alpha = 0.10f))
+                                    .background(PaceDreamColors.Warning.copy(alpha = 0.10f))
                                     .border(
                                         1.dp,
-                                        Color(0xFFFFA500).copy(alpha = 0.25f),
+                                        PaceDreamColors.Warning.copy(alpha = 0.25f),
                                         RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .padding(14.dp),
@@ -164,7 +164,7 @@ fun HostListingPreviewScreen(
                                 Icon(
                                     PaceDreamIcons.Schedule,
                                     contentDescription = null,
-                                    tint = Color(0xFFFFA500),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Column {
