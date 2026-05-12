@@ -112,6 +112,33 @@ sealed interface RequestsListUiState {
     data class Content(val requests: List<WantedRequest>) : RequestsListUiState
 }
 
+enum class RequestSort(val key: String, val label: String) {
+    Newest("newest", "Newest"),
+    HighestBudget("highest_budget", "Highest budget"),
+    Nearest("nearest", "Nearest"),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): RequestSort =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Newest
+    }
+}
+
+/**
+ * Client-side filter + sort applied on top of the full list returned by
+ * `GET /v1/requests`. When the backend grows query params for these, the
+ * fields here will move onto the wire — keep the names aligned.
+ */
+@Immutable
+data class FilterState(
+    val type: WantedType? = null,
+    val category: String? = null,
+    val sort: RequestSort = RequestSort.Newest,
+) {
+    val isActive: Boolean
+        get() = type != null || category != null || sort != RequestSort.Newest
+}
+
 sealed interface RequestDetailUiState {
     data object Loading : RequestDetailUiState
     data class Error(val message: String) : RequestDetailUiState
