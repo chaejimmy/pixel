@@ -17,8 +17,7 @@ import com.shourov.apps.pacedream.feature.home.presentation.NavigationEvent
 /**
  * Hilt-wired entry point for the redesigned home.
  *
- * Mirrors [com.shourov.apps.pacedream.feature.home.presentation.DashboardScreen] /
- * `EnhancedDashboardScreenWrapper` but renders the new marketplace home.
+ * Mirrors `EnhancedDashboardScreenWrapper` but renders the new marketplace home.
  *
  * Navigation is pushed up to the caller via callbacks — the caller decides
  * how to handle property clicks, search, notifications, the host CTA, and

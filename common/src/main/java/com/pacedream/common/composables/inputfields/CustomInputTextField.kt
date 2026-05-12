@@ -34,9 +34,6 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -87,7 +84,11 @@ fun CustomInputTextField(
     shape: Shape = RoundedCornerShape(PaceDreamRadius.MD),
     hasError: Boolean = false,
 ) {
-    var text by remember { mutableStateOf(value) }
+    // M-10 fix: render directly from `value` rather than a remembered
+    // copy.  The previous `var text by remember { mutableStateOf(value) }`
+    // captured only the initial value, so any external state change
+    // (e.g. ViewModel restoring a draft) was ignored after the first
+    // composition.  Now the field is fully controlled by the caller.
     val color by animateColorAsState(
         targetValue = if (hasError) {
             PaceDreamColors.Error
@@ -98,11 +99,8 @@ fun CustomInputTextField(
     )
     TextField(
         modifier = modifier,
-        value = text,
-        onValueChange = {
-            text = it
-            onValueChange(text)
-        },
+        value = value,
+        onValueChange = onValueChange,
         label = if (!label.isNullOrBlank()) { { Text(text = label) } } else null,
         leadingIcon = leadingIcon,
         singleLine = true,
@@ -117,10 +115,7 @@ fun CustomInputTextField(
                 enter = scaleIn(),
                 exit = scaleOut(),
             ) {
-                IconButton(onClick = {
-                    text = ""
-                    onValueChange("")
-                }) {
+                IconButton(onClick = { onValueChange("") }) {
                     Icon(
                         imageVector = PaceDreamIcons.Cancel,
                         contentDescription = "clear text",

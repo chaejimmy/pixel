@@ -67,15 +67,17 @@ fun CustomPasswordField(
         ),
     shape: Shape = MaterialTheme.shapes.medium,
     ){
+    // showPassword is true local UI state — kept remembered.
+    // M-11 fix: render directly from `value` rather than a remembered copy.
+    // The previous `var text by remember { mutableStateOf(value) }` captured
+    // only the initial value, so any external state change (e.g. clearing
+    // the password after a failed login) was lost after the first
+    // composition.  The field is now fully controlled by the caller.
     var showPassword by remember { mutableStateOf(false) }
-    var text by remember { mutableStateOf(value) }
     TextField(
         modifier = modifier,
-        value = text,
-        onValueChange = {
-            text = it
-            onValueChange(text)
-        },
+        value = value,
+        onValueChange = onValueChange,
         label = { Text(text = label) },
         leadingIcon = leadingIcon,
         singleLine = true,
@@ -87,7 +89,7 @@ fun CustomPasswordField(
         trailingIcon = {
             IconButton(
                 onClick = { showPassword = !showPassword },
-                enabled = text.isNotEmpty(),
+                enabled = value.isNotEmpty(),
                 modifier = Modifier.size(
                     ButtonDefaults.IconSize,
                 ).clip(CircleShape)
