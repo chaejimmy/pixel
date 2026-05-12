@@ -186,13 +186,40 @@ data class CreateRequestForm(
     val imageUrl: String? = null,
 )
 
+data class FieldErrors(
+    val titleError: String? = null,
+    val descriptionError: String? = null,
+    val budgetError: String? = null,
+) {
+    fun isEmpty(): Boolean =
+        titleError == null && descriptionError == null && budgetError == null
+}
+
 data class CreateRequestUiState(
     val form: CreateRequestForm = CreateRequestForm(),
+    val fieldErrors: FieldErrors = FieldErrors(),
     val submitting: Boolean = false,
     val uploading: Boolean = false,
     val error: String? = null,
     val createdId: String? = null,
-)
+) {
+    /**
+     * Required fields are tracked separately from [fieldErrors] so that the
+     * submit button can stay disabled for an empty form without showing a
+     * red border under every field the user hasn't reached yet.
+     */
+    val requiredFieldsPresent: Boolean
+        get() = form.title.trim().length >= TITLE_MIN_LENGTH &&
+            form.description.trim().length >= DESCRIPTION_MIN_LENGTH &&
+            form.category.isNotBlank()
+
+    companion object {
+        const val TITLE_MIN_LENGTH = 3
+        const val TITLE_MAX_LENGTH = 200
+        const val DESCRIPTION_MIN_LENGTH = 10
+        const val DESCRIPTION_MAX_LENGTH = 2000
+    }
+}
 
 data class OfferFormState(
     val price: String = "",

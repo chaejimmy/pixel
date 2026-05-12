@@ -7,6 +7,10 @@ plugins {
 
 android {
     namespace = "com.shourov.apps.pacedream.feature.wanted"
+
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -28,4 +32,6 @@ dependencies {
     testImplementation(libs.junit.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test)
+    debugImplementation(libs.androidx.compose.ui.testManifest)
 }

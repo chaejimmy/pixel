@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -61,10 +62,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,6 +79,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
@@ -182,6 +188,14 @@ fun CreateRequestScreen(
                     onValueChange = { v -> viewModel.update { it.copy(title = v) } },
                     placeholder = { Text("e.g. Need a covered parking spot in SF") },
                     singleLine = true,
+                    isError = state.fieldErrors.titleError != null,
+                    supportingText = {
+                        FieldSupportingText(
+                            error = state.fieldErrors.titleError,
+                            current = state.form.title.length,
+                            max = CreateRequestUiState.TITLE_MAX_LENGTH,
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Next,
@@ -200,6 +214,14 @@ fun CreateRequestScreen(
                     },
                     minLines = 3,
                     maxLines = 6,
+                    isError = state.fieldErrors.descriptionError != null,
+                    supportingText = {
+                        FieldSupportingText(
+                            error = state.fieldErrors.descriptionError,
+                            current = state.form.description.length,
+                            max = CreateRequestUiState.DESCRIPTION_MAX_LENGTH,
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Sentences,
                     ),
@@ -235,6 +257,16 @@ fun CreateRequestScreen(
                     placeholder = { Text("Leave blank for negotiable") },
                     prefix = { Text("$") },
                     singleLine = true,
+                    isError = state.fieldErrors.budgetError != null,
+                    supportingText = {
+                        state.fieldErrors.budgetError?.let { err ->
+                            Text(
+                                text = err,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Error,
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = pdTextFieldColors(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -259,7 +291,10 @@ fun CreateRequestScreen(
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
             Button(
                 onClick = viewModel::submit,
-                enabled = !state.submitting && !state.uploading,
+                enabled = !state.submitting &&
+                    !state.uploading &&
+                    state.fieldErrors.isEmpty() &&
+                    state.requiredFieldsPresent,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary,
@@ -358,64 +393,90 @@ private fun TypePicker(
     onSelect: (WantedType) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-        WantedType.entries.forEach { type ->
-            val isSelected = selected == type
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                    .clickable { onSelect(type) }
-                    .background(
-                        if (isSelected) PaceDreamColors.Primary.copy(alpha = 0.10f)
-                        else PaceDreamColors.Surface
-                    )
-                    .padding(PaceDreamSpacing.SM2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(
-                            color = if (isSelected) PaceDreamColors.Primary.copy(alpha = 0.20f)
-                            else PaceDreamColors.TextSecondary.copy(alpha = 0.15f),
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = when (type) {
-                            WantedType.Space -> PaceDreamIcons.Home
-                            WantedType.Item -> PaceDreamIcons.Bookmark
-                            WantedType.Service -> PaceDreamIcons.Help
-                        },
-                        contentDescription = null,
-                        tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-                Spacer(Modifier.width(PaceDreamSpacing.SM2))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = type.label,
-                        style = PaceDreamTypography.Headline,
-                        color = PaceDreamColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = type.subtitle,
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        imageVector = PaceDreamIcons.CheckCircle,
-                        contentDescription = "Selected",
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            WantedType.entries.forEach { type ->
+                TypeTile(
+                    type = type,
+                    selected = selected == type,
+                    onClick = { onSelect(type) },
+                    modifier = Modifier.weight(1f),
+                )
             }
+        }
+        Text(
+            text = selected.subtitle,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+        )
+    }
+}
+
+@Composable
+private fun TypeTile(
+    type: WantedType,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(PaceDreamRadius.MD)
+    val borderModifier = if (selected) {
+        Modifier.border(1.5.dp, PaceDreamColors.Primary, shape)
+    } else {
+        Modifier
+    }
+    Box(
+        modifier = modifier
+            .height(72.dp)
+            .clip(shape)
+            .background(
+                if (selected) PaceDreamColors.Primary.copy(alpha = 0.10f)
+                else PaceDreamColors.Surface
+            )
+            .then(borderModifier)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .semantics { contentDescription = type.label }
+            .padding(PaceDreamSpacing.XS),
+    ) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
+        ) {
+            Icon(
+                imageVector = when (type) {
+                    WantedType.Space -> PaceDreamIcons.Home
+                    WantedType.Item -> PaceDreamIcons.Bookmark
+                    WantedType.Service -> PaceDreamIcons.Help
+                },
+                contentDescription = null,
+                tint = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                modifier = Modifier.size(24.dp),
+            )
+            Text(
+                text = type.label,
+                style = PaceDreamTypography.Headline,
+                color = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (selected) {
+            Icon(
+                imageVector = PaceDreamIcons.CheckCircle,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(12.dp),
+            )
         }
     }
 }
@@ -674,22 +735,44 @@ private fun SectionLabel(text: String) {
     )
 }
 
+/**
+ * Renders the per-field error if present, otherwise a soft "{n}/{max}"
+ * counter. Splitting into one composable keeps the call sites tidy and
+ * guarantees we never show both pieces of text at once.
+ */
+@Composable
+private fun FieldSupportingText(error: String?, current: Int, max: Int) {
+    if (error != null) {
+        Text(
+            text = error,
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.Error,
+        )
+    } else {
+        Text(
+            text = "$current/$max",
+            style = PaceDreamTypography.Caption,
+            color = PaceDreamColors.TextSecondary,
+        )
+    }
+}
+
 @Composable
 private fun InlineErrorBanner(message: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                PaceDreamColors.Warning.copy(alpha = 0.12f),
+                PaceDreamColors.Error.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
             )
             .padding(PaceDreamSpacing.SM2),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
-            imageVector = PaceDreamIcons.Warning,
+            imageVector = PaceDreamIcons.Error,
             contentDescription = null,
-            tint = PaceDreamColors.Warning,
+            tint = PaceDreamColors.Error,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(PaceDreamSpacing.SM))

@@ -9,6 +9,7 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.LocationDto
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestForm
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
+import com.shourov.apps.pacedream.feature.wanted.model.FieldErrors
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,7 +62,11 @@ class CreateRequestViewModel @Inject constructor(
                     ?: "other"
                 nextForm.copy(category = firstCategory)
             } else nextForm
-            current.copy(form = safeForm, error = null)
+            current.copy(
+                form = safeForm,
+                fieldErrors = computeFieldErrors(safeForm),
+                error = null,
+            )
         }
     }
 
@@ -120,12 +125,13 @@ class CreateRequestViewModel @Inject constructor(
     }
 
     fun submit() {
-        val form = _state.value.form
-        if (_state.value.uploading) return
-        validate(form)?.let { err ->
-            _state.update { it.copy(error = err) }
-            return
-        }
+        val current = _state.value
+        val form = current.form
+        if (current.uploading) return
+        // The submit button is gated on live validity in the UI, so reaching
+        // this point with errors implies a programmatic call — bail rather
+        // than POST an invalid request.
+        if (!current.fieldErrors.isEmpty() || !current.requiredFieldsPresent) return
 
         val budgetValue = form.budget.takeIf { it.isNotBlank() }
             ?.replace(",", "")
@@ -194,21 +200,41 @@ class CreateRequestViewModel @Inject constructor(
     private fun Long.toIsoUtcDate(): String =
         Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate().toString()
 
-    private fun validate(form: CreateRequestForm): String? {
+    /**
+     * Field-level validation that runs on every keystroke. Errors here are
+     * for content the user actually typed — empty required fields are
+     * tracked separately via [CreateRequestUiState.requiredFieldsPresent] so
+     * we don't shout "too short" at a field the user hasn't reached yet.
+     */
+    private fun computeFieldErrors(form: CreateRequestForm): FieldErrors {
         val title = form.title.trim()
-        if (title.length < 3) return "Add a short title (at least 3 characters)."
-        if (title.length > 200) return "Title is too long (max 200 characters)."
-        val description = form.description.trim()
-        if (description.length < 10) return "Tell us a bit more — at least 10 characters."
-        if (description.length > 2000) return "Description is too long (max 2000 characters)."
-        if (form.category.isBlank()) return "Pick a category."
-        val budgetText = form.budget.trim()
-        if (budgetText.isNotEmpty()) {
-            val parsed = budgetText.replace(",", "").toDoubleOrNull()
-            if (parsed == null) return "Enter a valid budget, or leave it blank if negotiable."
-            if (parsed < 0) return "Budget can't be negative."
+        val titleError = when {
+            title.length > CreateRequestUiState.TITLE_MAX_LENGTH ->
+                "Title is too long (${CreateRequestUiState.TITLE_MAX_LENGTH} max)"
+            else -> null
         }
-        return null
+        val description = form.description.trim()
+        val descriptionError = when {
+            description.length > CreateRequestUiState.DESCRIPTION_MAX_LENGTH ->
+                "Description is too long (${CreateRequestUiState.DESCRIPTION_MAX_LENGTH} max)"
+            else -> null
+        }
+        val budgetText = form.budget.trim()
+        val budgetError = if (budgetText.isEmpty()) {
+            null
+        } else {
+            val parsed = budgetText.replace(",", "").toDoubleOrNull()
+            when {
+                parsed == null -> "Enter a valid budget, or leave it blank if negotiable."
+                parsed < 0 -> "Budget can't be negative."
+                else -> null
+            }
+        }
+        return FieldErrors(
+            titleError = titleError,
+            descriptionError = descriptionError,
+            budgetError = budgetError,
+        )
     }
 
     /**

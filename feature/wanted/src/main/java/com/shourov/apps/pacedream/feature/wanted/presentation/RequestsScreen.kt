@@ -36,9 +36,11 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,11 +63,20 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.components.Request
 fun RequestsScreen(
     onRequestClick: (String) -> Unit,
     onCreateClick: () -> Unit,
+    onNotifyMeClick: () -> Unit,
+    isHostMode: Boolean,
     viewModel: RequestsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
+    val viewModelHostMode by viewModel.isHostMode.collectAsStateWithLifecycle()
+
+    // Mirror the app-level mode into the ViewModel whenever it changes so the
+    // role-aware empty state survives configuration changes via SavedStateHandle.
+    LaunchedEffect(isHostMode) {
+        viewModel.setHostMode(isHostMode)
+    }
 
     Scaffold(
         topBar = {
@@ -99,9 +110,12 @@ fun RequestsScreen(
                 RequestsContent(
                     state = state,
                     filter = filter,
+                    isHostMode = viewModelHostMode,
                     onRequestClick = onRequestClick,
                     onRetry = { viewModel.load() },
                     onClearFilters = viewModel::clearFilters,
+                    onCreateClick = onCreateClick,
+                    onNotifyMeClick = onNotifyMeClick,
                 )
             }
         }
@@ -324,9 +338,12 @@ private fun ActiveFilterChip(label: String, onClear: () -> Unit) {
 private fun RequestsContent(
     state: RequestsListUiState,
     filter: FilterState,
+    isHostMode: Boolean,
     onRequestClick: (String) -> Unit,
     onRetry: () -> Unit,
     onClearFilters: () -> Unit,
+    onCreateClick: () -> Unit,
+    onNotifyMeClick: () -> Unit,
 ) {
     when (state) {
         RequestsListUiState.Loading -> CenteredBox {
@@ -341,11 +358,10 @@ private fun RequestsContent(
                     if (filter.isActive) {
                         EmptyFilteredState(onClearFilters = onClearFilters)
                     } else {
-                        Text(
-                            text = "No requests yet — be the first to post one.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
+                        RoleAwareEmptyState(
+                            isHostMode = isHostMode,
+                            onCreateClick = onCreateClick,
+                            onNotifyMeClick = onNotifyMeClick,
                         )
                     }
                 }
@@ -368,6 +384,58 @@ private fun RequestsContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RoleAwareEmptyState(
+    isHostMode: Boolean,
+    onCreateClick: () -> Unit,
+    onNotifyMeClick: () -> Unit,
+) {
+    if (isHostMode) {
+        EmptyState(
+            title = "No open requests",
+            body = "We'll let you know when new requests match your listings.",
+            ctaLabel = "Notify me",
+            onCtaClick = onNotifyMeClick,
+        )
+    } else {
+        EmptyState(
+            title = "No requests yet",
+            body = "Be the first — tell providers what you need.",
+            ctaLabel = "Post a request",
+            onCtaClick = onCreateClick,
+        )
+    }
+}
+
+@Composable
+private fun EmptyState(
+    title: String,
+    body: String,
+    ctaLabel: String,
+    onCtaClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        TextButton(onClick = onCtaClick) {
+            Text(ctaLabel)
         }
     }
 }

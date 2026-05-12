@@ -38,8 +38,22 @@ class RequestsViewModel @Inject constructor(
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing.asStateFlow()
 
+    // Provided by the host (PaceDreamAppState / HostModeManager) and pushed in
+    // from RequestsScreen — kept on the ViewModel so survey/empty-state copy
+    // and any future role-conditional behavior stay in one place.
+    private val _isHostMode = MutableStateFlow(
+        savedStateHandle.get<Boolean>(KEY_HOST_MODE) ?: false
+    )
+    val isHostMode: StateFlow<Boolean> = _isHostMode.asStateFlow()
+
     init {
         load()
+    }
+
+    fun setHostMode(enabled: Boolean) {
+        if (_isHostMode.value == enabled) return
+        _isHostMode.value = enabled
+        savedStateHandle[KEY_HOST_MODE] = enabled
     }
 
     fun refresh() {
@@ -132,6 +146,7 @@ class RequestsViewModel @Inject constructor(
         const val KEY_TYPE = "filter_type"
         const val KEY_CATEGORY = "filter_category"
         const val KEY_SORT = "filter_sort"
+        const val KEY_HOST_MODE = "is_host_mode"
 
         fun filterAndSort(
             source: List<WantedRequest>,
