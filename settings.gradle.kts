@@ -31,6 +31,7 @@ include(":core:designsystem")
 include(":core:model")
 include(":core:ui")
 include(":core:network")
+include(":core:upload")
 
 //include(":lint")
 //include(":sync:work")

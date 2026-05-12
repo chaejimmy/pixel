@@ -96,8 +96,10 @@ fun CreateRequestScreen(
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
-        val value = uri?.toString()
-        viewModel.update { it.copy(imageUrl = value) }
+        // The picker returns a local content:// URI that's only valid on
+        // this device. We hand it to the ViewModel which uploads the
+        // bytes to object storage and persists the returned public URL.
+        uri?.let(viewModel::uploadCoverImage)
     }
 
     Scaffold(
@@ -251,8 +253,9 @@ fun CreateRequestScreen(
                 SectionLabel("Cover image (optional)")
                 ImagePickerRow(
                     imageUri = state.form.imageUrl,
+                    uploading = state.uploading,
                     onPick = { imagePicker.launch("image/*") },
-                    onClear = { viewModel.update { it.copy(imageUrl = null) } },
+                    onClear = viewModel::clearCoverImage,
                 )
 
                 state.error?.let { msg ->
@@ -265,7 +268,7 @@ fun CreateRequestScreen(
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
             Button(
                 onClick = viewModel::submit,
-                enabled = !state.submitting,
+                enabled = !state.submitting && !state.uploading,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary,
@@ -433,6 +436,7 @@ private fun CategoryDropdown(
 @Composable
 private fun ImagePickerRow(
     imageUri: String?,
+    uploading: Boolean,
     onPick: () -> Unit,
     onClear: () -> Unit,
 ) {
@@ -449,29 +453,46 @@ private fun ImagePickerRow(
                 .background(PaceDreamColors.Surface),
             contentAlignment = Alignment.Center,
         ) {
-            if (imageUri != null) {
-                AsyncImage(
-                    model = imageUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.Image,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary,
-                )
+            when {
+                uploading -> {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                imageUri != null -> {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                else -> {
+                    Icon(
+                        imageVector = Icons.Filled.Image,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                    )
+                }
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
             OutlinedButton(
                 onClick = onPick,
+                enabled = !uploading,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
             ) {
-                Text(if (imageUri == null) "Add image" else "Replace")
+                Text(
+                    when {
+                        uploading -> "Uploading…"
+                        imageUri == null -> "Add image"
+                        else -> "Replace"
+                    }
+                )
             }
-            if (imageUri != null) {
+            if (imageUri != null && !uploading) {
                 OutlinedButton(
                     onClick = onClear,
                     shape = RoundedCornerShape(PaceDreamRadius.MD),

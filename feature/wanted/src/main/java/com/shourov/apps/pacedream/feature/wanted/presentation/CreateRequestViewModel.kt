@@ -1,7 +1,9 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shourov.apps.pacedream.core.upload.ImageUploader
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.LocationDto
@@ -33,6 +35,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CreateRequestViewModel @Inject constructor(
     private val repository: WantedRepository,
+    private val imageUploader: ImageUploader,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CreateRequestUiState())
@@ -68,8 +71,55 @@ class CreateRequestViewModel @Inject constructor(
         update { it.copy(type = type) }
     }
 
+    /**
+     * Upload the picked image to object storage and stash the returned
+     * public URL on the form. The picker hands us a `content://` URI that
+     * is only meaningful on this device — POSTing it as `coverImageUrl`
+     * would leave every other client rendering a broken image.
+     */
+    fun uploadCoverImage(uri: Uri) {
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    uploading = true,
+                    error = null,
+                    form = it.form.copy(imageUrl = null),
+                )
+            }
+            imageUploader.uploadImage(uri)
+                .onSuccess { publicUrl ->
+                    Timber.d("post_request_cover_uploaded url=$publicUrl")
+                    _state.update {
+                        it.copy(
+                            uploading = false,
+                            form = it.form.copy(imageUrl = publicUrl),
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    Timber.w(e, "post_request_cover_upload_failed")
+                    _state.update {
+                        it.copy(
+                            uploading = false,
+                            error = "Couldn't upload image — try again or post without one.",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun clearCoverImage() {
+        _state.update {
+            it.copy(
+                uploading = false,
+                form = it.form.copy(imageUrl = null),
+            )
+        }
+    }
+
     fun submit() {
         val form = _state.value.form
+        if (_state.value.uploading) return
         validate(form)?.let { err ->
             _state.update { it.copy(error = err) }
             return
