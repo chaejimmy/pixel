@@ -2,6 +2,8 @@
 
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import androidx.compose.material.icons.Icons
@@ -53,6 +57,7 @@ fun RequestDetailScreen(
     requestId: String,
     onBack: () -> Unit,
     onRequireAuth: () -> Unit = {},
+    onNavigateToAuthor: (String) -> Unit = {},
     viewModel: RequestDetailViewModel = hiltViewModel(),
     onViewMyOffers: (() -> Unit)? = null,
 ) {
@@ -134,7 +139,12 @@ fun RequestDetailScreen(
                         textAlign = TextAlign.Center,
                     )
                 }
-                is RequestDetailUiState.Content -> RequestDetailBody(s.request)
+                is RequestDetailUiState.Content -> RequestDetailBody(
+                    request = s.request,
+                    onAuthorClick = s.request.authorId
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { id -> { onNavigateToAuthor(id) } },
+                )
             }
         }
     }
@@ -170,7 +180,10 @@ fun RequestDetailScreen(
 }
 
 @Composable
-private fun RequestDetailBody(request: WantedRequest) {
+private fun RequestDetailBody(
+    request: WantedRequest,
+    onAuthorClick: (() -> Unit)? = null,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -204,6 +217,11 @@ private fun RequestDetailBody(request: WantedRequest) {
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
+        AuthorRow(
+            name = request.authorName,
+            avatarUrl = request.authorAvatarUrl,
+            onClick = onAuthorClick,
+        )
         request.budget?.let { budget ->
             Text(
                 text = "Budget: ${formatBudget(budget, request.budgetCurrency)}",
@@ -227,6 +245,58 @@ private fun RequestDetailBody(request: WantedRequest) {
         Text(
             text = request.description.ifBlank { "No description provided." },
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
+private fun AuthorRow(
+    name: String?,
+    avatarUrl: String?,
+    onClick: (() -> Unit)?,
+) {
+    val displayName = name?.takeIf { it.isNotBlank() } ?: "Member"
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .padding(vertical = 4.dp)
+    androidx.compose.foundation.layout.Row(
+        modifier = rowModifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        val avatarModifier = Modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = CircleShape,
+            )
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = avatarModifier,
+            )
+        } else {
+            Box(
+                modifier = avatarModifier,
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = displayName.first().uppercaseChar().toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        Text(
+            text = displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
