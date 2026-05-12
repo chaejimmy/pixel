@@ -164,6 +164,8 @@ fun RequestDetailScreen(
                         nav()
                     }
                 },
+                onExpiryChange = viewModel::onExpiryChange,
+                onLinkedListingChange = viewModel::onLinkedListingChange,
             )
         }
     }
