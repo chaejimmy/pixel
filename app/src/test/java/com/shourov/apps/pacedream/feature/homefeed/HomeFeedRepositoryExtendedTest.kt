@@ -339,13 +339,15 @@ class HomeFeedRepositoryExtendedTest {
 
     @Test
     fun `HomeSectionKey has correct properties`() {
-        assertEquals("Spaces", HomeSectionKey.SPACES.displayTitle)
-        assertEquals("SHARE", HomeSectionKey.SPACES.shareType)
+        // Customer-facing labels follow the new Stays / Gear / Help taxonomy;
+        // backend shareType values stay aligned with the existing API buckets.
+        assertEquals("Stays", HomeSectionKey.SPACES.displayTitle)
+        assertEquals("USE", HomeSectionKey.SPACES.shareType)
 
-        assertEquals("Items", HomeSectionKey.ITEMS.displayTitle)
+        assertEquals("Gear", HomeSectionKey.ITEMS.displayTitle)
         assertEquals("BORROW", HomeSectionKey.ITEMS.shareType)
 
-        assertEquals("Services", HomeSectionKey.SERVICES.displayTitle)
+        assertEquals("Help", HomeSectionKey.SERVICES.displayTitle)
         assertEquals("SHARE", HomeSectionKey.SERVICES.shareType)
     }
 
@@ -356,6 +358,9 @@ class HomeFeedRepositoryExtendedTest {
         assertTrue(state.sections.all { it.isLoading })
         assertTrue(state.sections.all { it.items.isEmpty() })
         assertNull(state.globalErrorMessage)
-        assertEquals("Find your perfect stay", state.headerTitle)
+        assertTrue(
+            "header should mention the new lifestyle framing",
+            state.headerTitle.contains("Use what you need", ignoreCase = true)
+        )
     }
 }

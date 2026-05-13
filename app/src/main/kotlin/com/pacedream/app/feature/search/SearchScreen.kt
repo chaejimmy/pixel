@@ -153,7 +153,7 @@ fun SearchScreen(
                 onValueChange = { viewModel.onQueryChanged(it) },
                 placeholder = {
                     Text(
-                        "Search spaces, items, and services...",
+                        "Search stays, gear, spaces, or help",
                         style = PaceDreamTypography.Callout.copy(
                             fontFamily = paceDreamFontFamily
                         ),
@@ -819,7 +819,7 @@ private fun SearchEmptyState() {
             }
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
             Text(
-                "Search for spaces, items, and services",
+                "Search stays, gear, spaces, or help",
                 style = PaceDreamTypography.Title3.copy(
                     fontFamily = paceDreamDisplayFontFamily,
                     fontWeight = FontWeight.SemiBold
@@ -829,7 +829,7 @@ private fun SearchEmptyState() {
             )
             Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
             Text(
-                "Find spaces, items, and services near you",
+                "Find stays, gear, spaces, and local help nearby.",
                 style = PaceDreamTypography.Subheadline.copy(
                     fontFamily = paceDreamFontFamily
                 ),

@@ -58,8 +58,8 @@ fun HomeHero(
     modifier: Modifier = Modifier,
 ) {
     val whatPlaceholder = when (type) {
-        PrimaryType.SPACES -> "Parking, meeting room, gym, storage…"
-        PrimaryType.ITEMS -> "Camera, bike, drone, tools…"
+        PrimaryType.SPACES -> "Short stays, meeting rooms, desks…"
+        PrimaryType.ITEMS -> "Cameras, bikes, drones, tools…"
         PrimaryType.SERVICES -> "Cleaning, tutoring, lessons, repair…"
     }
     val whatSuggestions = HomeRedesignData.WhatSuggestions
@@ -144,16 +144,16 @@ fun HomeHero(
 
             Spacer(Modifier.height(22.dp))
             Text(
-                "Spaces, items, services —\nall in one place.",
+                "Use what you need,\nonly for the time you need it.",
                 color = Color.White,
-                fontSize = 30.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-1).sp,
+                letterSpacing = (-0.8).sp,
                 lineHeight = 32.sp,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Rent by the hour, day, or split the cost with others.",
+                "Find stays, gear, spaces, and local help nearby.",
                 color = Color.White.copy(alpha = 0.86f),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
@@ -341,9 +341,9 @@ private fun WhatSuggestionsRow(
 @Composable
 fun StickyCompactSearch(type: PrimaryType, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val subtitle = when (type) {
-        PrimaryType.SPACES -> "Spaces · Brooklyn"
-        PrimaryType.ITEMS -> "Items · Near you"
-        PrimaryType.SERVICES -> "Services · Brooklyn"
+        PrimaryType.SPACES -> "Stays · Brooklyn"
+        PrimaryType.ITEMS -> "Gear · Near you"
+        PrimaryType.SERVICES -> "Help · Brooklyn"
     }
     Row(
         modifier = modifier

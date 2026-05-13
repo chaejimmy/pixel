@@ -61,7 +61,7 @@ fun HomeRedesignRoute(
                     // section is a free-form string; best-effort map to a PrimaryType.
                     val primary = when (event.section.lowercase()) {
                         "items", "gear", "rented_gear" -> PrimaryType.ITEMS
-                        "services" -> PrimaryType.SERVICES
+                        "services", "help" -> PrimaryType.SERVICES
                         else -> PrimaryType.SPACES
                     }
                     onSeeAll(primary)

@@ -13,10 +13,21 @@ data class HomeCard(
     val shareCategory: String? = null,
 )
 
+/**
+ * Primary home sections. Display names are the **new** Stays / Gear / Help
+ * taxonomy — the enum identifiers stay stable so backend mapping, navigation
+ * routes and persisted state survive the rename.
+ *
+ * `shareType` is the backend filter (`USE` | `BORROW` | `SHARE`) the section
+ * pulls from. Backend buckets haven't changed; only the customer-facing labels.
+ */
 enum class HomeSectionKey(val displayTitle: String, val shareType: String?) {
-    SPACES("Spaces", "USE"),
-    ITEMS("Items", "BORROW"),
-    SERVICES("Services", "USE"),
+    /** Lodging-style listings — labelled "Stays". Backed by shareType=USE. */
+    SPACES("Stays", "USE"),
+    /** Rentable physical items — labelled "Gear". Backed by shareType=BORROW. */
+    ITEMS("Gear", "BORROW"),
+    /** Local services & helpers — labelled "Help". Backed by shareType=SHARE. */
+    SERVICES("Help", "SHARE"),
 }
 
 data class HomeSection(
@@ -28,8 +39,8 @@ data class HomeSection(
 
 data class HomeFeedState(
     val isRefreshing: Boolean = false,
-    val headerTitle: String = "Discover",
-    val headerSubtitle: String = "Find spaces, items, and services — only for the time you need.",
+    val headerTitle: String = "Use what you need,\nonly for the time you need it.",
+    val headerSubtitle: String = "Find stays, gear, spaces, and local help nearby.",
     val sections: List<HomeSection> = listOf(
         HomeSection(HomeSectionKey.SPACES, emptyList(), isLoading = true),
         HomeSection(HomeSectionKey.ITEMS, emptyList(), isLoading = true),
@@ -37,4 +48,3 @@ data class HomeFeedState(
     ),
     val globalErrorMessage: String? = null
 )
-

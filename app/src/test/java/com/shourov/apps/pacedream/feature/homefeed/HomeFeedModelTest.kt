@@ -87,17 +87,20 @@ class HomeFeedModelTest {
     }
 
     @Test
-    fun `HomeSectionKey SPACES shareType is SHARE`() {
-        assertEquals("SHARE", HomeSectionKey.SPACES.shareType)
+    fun `HomeSectionKey SPACES is labelled Stays and backed by USE`() {
+        assertEquals("Stays", HomeSectionKey.SPACES.displayTitle)
+        assertEquals("USE", HomeSectionKey.SPACES.shareType)
     }
 
     @Test
-    fun `HomeSectionKey ITEMS shareType is BORROW`() {
+    fun `HomeSectionKey ITEMS is labelled Gear and backed by BORROW`() {
+        assertEquals("Gear", HomeSectionKey.ITEMS.displayTitle)
         assertEquals("BORROW", HomeSectionKey.ITEMS.shareType)
     }
 
     @Test
-    fun `HomeSectionKey SERVICES shareType is SHARE`() {
+    fun `HomeSectionKey SERVICES is labelled Help and backed by SHARE`() {
+        assertEquals("Help", HomeSectionKey.SERVICES.displayTitle)
         assertEquals("SHARE", HomeSectionKey.SERVICES.shareType)
     }
 }

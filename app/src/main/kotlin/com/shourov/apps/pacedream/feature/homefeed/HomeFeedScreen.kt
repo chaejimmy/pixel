@@ -33,10 +33,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,7 +65,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.components.InlineErrorBanner
-import com.pacedream.common.composables.components.PaceDreamSectionHeader
 import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.PaceDreamAnimationDuration
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
@@ -84,6 +82,18 @@ import com.shourov.apps.pacedream.ui.ConnectivityViewModel
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import kotlinx.coroutines.launch
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Brand accents — purple, kept local to the home so we don't have to flip the
+// global `PaceDreamColors.Primary` (iOS-aligned green) for this redesign.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val BrandPurple = Color(0xFF5527D7)
+private val BrandPurpleSoft = Color(0xFFF5F1FB)
+private val BrandPurpleEdge = Color(0xFFE2D8F5)
+private val InkPrimary = Color(0xFF1A1522)
+private val InkMuted = Color(0xFF5B5568)
+private val PaperBg = Color(0xFFF7F6F3)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,11 +113,7 @@ fun HomeFeedScreen(
     val state by viewModel.filteredState.collectAsStateWithLifecycle()
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
-    val selectedCategoryFilter by viewModel.selectedCategory.collectAsStateWithLifecycle()
     val connectionState by connectivityViewModel.state.collectAsStateWithLifecycle()
-    // The global OfflineBanner in PaceDreamApp already tells the user they're
-    // offline — skip the redundant per-section error and swap the empty state
-    // for a connection-aware message.
     val isOffline = connectionState != ConnectionState.Available
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -136,6 +142,29 @@ fun HomeFeedScreen(
         }
     }
 
+    val spacesSection = state.sections.firstOrNull { it.key == HomeSectionKey.SPACES }
+    val gearSection = state.sections.firstOrNull { it.key == HomeSectionKey.ITEMS }
+    val helpSection = state.sections.firstOrNull { it.key == HomeSectionKey.SERVICES }
+
+    // The Stays section pulls lodging-ish items; Flexible Spaces pulls the rest.
+    // Both feed from the same backend bucket (shareType=USE) — we partition
+    // client-side by subcategory keywords so the home reads like a marketplace,
+    // not a single dense "Spaces" rail.
+    val staysItems = remember(spacesSection?.items) {
+        spacesSection?.items?.filter(::isStayLike).orEmpty()
+    }
+    val flexSpaceItems = remember(spacesSection?.items) {
+        spacesSection?.items?.filterNot(::isStayLike).orEmpty()
+    }
+    val popularItems = remember(spacesSection?.items, gearSection?.items) {
+        // Cross-type curated rail — pick highest-rated items across stays + gear.
+        val pool = (spacesSection?.items.orEmpty() + gearSection?.items.orEmpty())
+        pool
+            .filter { (it.rating ?: 0.0) > 0.0 }
+            .sortedByDescending { it.rating ?: 0.0 }
+            .take(8)
+    }
+
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -145,14 +174,15 @@ fun HomeFeedScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(PaceDreamColors.Background),
+                    .background(PaperBg),
                 contentPadding = PaddingValues(bottom = PaceDreamSpacing.XXXL)
             ) {
-                // iOS-style clean white header with "Discover" title and search bar
+                // 1. Hero — discovery header + search experience.
                 item(key = "discover_header", contentType = "header") {
                     DiscoverHeader(
+                        title = state.headerTitle,
+                        subtitle = state.headerSubtitle,
                         onSearchClick = onSearchClick,
-                        onFilterClick = onSearchClick,
                         onWhatClick = onWhatClick,
                         onWhereClick = onWhereClick,
                         onWhenClick = onWhenClick,
@@ -160,17 +190,17 @@ fun HomeFeedScreen(
                     )
                 }
 
-                // iOS-style horizontal category filter tabs with icons
-                item(key = "category_tabs", contentType = "filter") {
-                    CategoryFilterTabs(
-                        selectedCategory = selectedCategoryFilter,
-                        onCategorySelected = { viewModel.selectCategory(it) },
-                        modifier = Modifier.padding(top = 4.dp)
+                // 2. Main categories — Stays / Gear / Spaces / Help.
+                //    Replaces the dense restroom/nap-pod chip row that used to
+                //    sit here. Utility taxonomy moves deeper into search.
+                item(key = "main_categories", contentType = "main_categories") {
+                    MainCategoryRow(
+                        onCategoryClick = { category -> onSeeAll(category.section) }
                     )
                 }
 
                 state.globalErrorMessage?.let { globalErr ->
-                    item {
+                    item(key = "global_error") {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                         InlineErrorBanner(
                             message = globalErr,
@@ -181,70 +211,106 @@ fun HomeFeedScreen(
                     }
                 }
 
-                state.sections.forEach { section ->
-                    item(key = "section_header_${section.key.name}") {
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-                        PaceDreamSectionHeader(
-                            title = section.key.displayTitle,
-                            onViewAllClick = { onSeeAll(section.key) },
-                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-                        )
-                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-                        section.errorMessage
-                            ?.takeIf { !section.isLoading && !isOffline }
-                            ?.let { err ->
-                                InlineErrorBanner(
-                                    message = err,
-                                    onAction = { viewModel.refresh() },
-                                    actionText = "Retry",
-                                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-                                )
-                                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                            }
-
-                        AnimatedContent(
-                            targetState = SectionContentState(
-                                isLoading = section.isLoading,
-                                isEmpty = section.items.isEmpty(),
-                            ),
-                            transitionSpec = {
-                                fadeIn(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) togetherWith fadeOut(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut))
-                            },
-                            label = "section_content"
-                        ) { contentState ->
-                            when {
-                                contentState.isLoading -> SkeletonRow()
-                                contentState.isEmpty -> EmptyInline(
-                                    message = when {
-                                        isOffline ->
-                                            "You're offline. Connect to see ${section.key.displayTitle.lowercase()}."
-                                        section.key == HomeSectionKey.SERVICES ->
-                                            "No services available yet. Be the first to offer a service."
-                                        else ->
-                                            "Nothing here yet. Pull to refresh to try again."
-                                    },
-                                    onRefresh = { viewModel.refresh() }
-                                )
-                                else -> if (section.key == HomeSectionKey.SERVICES) {
-                                    ServicesGrid(
-                                        section.items,
-                                        onListingClick,
-                                        favoriteIds = favoriteIds,
-                                        onFavorite = { onFavorite(it.id) }
-                                    )
-                                } else {
-                                    CardsRow(
-                                        section.items,
-                                        onListingClick,
-                                        favoriteIds = favoriteIds,
-                                        onFavorite = { onFavorite(it.id) }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                // 3. Popular nearby — curated cross-type rail.
+                if (popularItems.isNotEmpty() || spacesSection?.isLoading == true) {
+                    railSection(
+                        sectionKey = "popular_nearby",
+                        title = "Popular nearby",
+                        subtitle = "Loved by guests this week",
+                        items = popularItems,
+                        isLoading = spacesSection?.isLoading == true,
+                        favoriteIds = favoriteIds,
+                        onListingClick = onListingClick,
+                        onFavorite = ::onFavorite,
+                        onSeeAll = { onSeeAll(HomeSectionKey.SPACES) },
+                        isOffline = isOffline,
+                        emptyMessage = "Nothing trending right now — pull to refresh.",
+                        onRefresh = { viewModel.refresh() }
+                    )
                 }
+
+                // 4. Flexible spaces — hourly/daily utility rooms.
+                railSection(
+                    sectionKey = "flex_spaces",
+                    title = "Flexible spaces",
+                    subtitle = "Meeting rooms, desks, parking — by the hour",
+                    items = flexSpaceItems,
+                    isLoading = spacesSection?.isLoading == true,
+                    sectionError = spacesSection?.errorMessage?.takeIf { !isOffline },
+                    favoriteIds = favoriteIds,
+                    onListingClick = onListingClick,
+                    onFavorite = ::onFavorite,
+                    onSeeAll = { onSeeAll(HomeSectionKey.SPACES) },
+                    isOffline = isOffline,
+                    emptyMessage = "No flexible spaces nearby yet. Try a wider search.",
+                    onRefresh = { viewModel.refresh() }
+                )
+
+                // 5. Weekend stays — lodging-style rail.
+                railSection(
+                    sectionKey = "weekend_stays",
+                    title = "Weekend stays",
+                    subtitle = "Short stays, cabins and lofts near you",
+                    items = staysItems,
+                    isLoading = spacesSection?.isLoading == true,
+                    sectionError = spacesSection?.errorMessage?.takeIf { !isOffline && staysItems.isEmpty() },
+                    favoriteIds = favoriteIds,
+                    onListingClick = onListingClick,
+                    onFavorite = ::onFavorite,
+                    onSeeAll = { onSeeAll(HomeSectionKey.SPACES) },
+                    isOffline = isOffline,
+                    emptyMessage = "No weekend stays nearby yet.",
+                    onRefresh = { viewModel.refresh() }
+                )
+
+                // 6. Gear nearby — physical items to borrow.
+                railSection(
+                    sectionKey = "gear_nearby",
+                    title = "Gear nearby",
+                    subtitle = "Cameras, bikes, tools — pick up today",
+                    items = gearSection?.items.orEmpty(),
+                    isLoading = gearSection?.isLoading == true,
+                    sectionError = gearSection?.errorMessage?.takeIf { !isOffline },
+                    favoriteIds = favoriteIds,
+                    onListingClick = onListingClick,
+                    onFavorite = ::onFavorite,
+                    onSeeAll = { onSeeAll(HomeSectionKey.ITEMS) },
+                    isOffline = isOffline,
+                    emptyMessage = "No gear listed nearby yet.",
+                    onRefresh = { viewModel.refresh() }
+                )
+
+                // 7. Local help — services rail.
+                railSection(
+                    sectionKey = "local_help",
+                    title = "Local help",
+                    subtitle = "Trusted helpers for what you need today",
+                    items = helpSection?.items.orEmpty(),
+                    isLoading = helpSection?.isLoading == true,
+                    sectionError = helpSection?.errorMessage?.takeIf { !isOffline },
+                    favoriteIds = favoriteIds,
+                    onListingClick = onListingClick,
+                    onFavorite = ::onFavorite,
+                    onSeeAll = { onSeeAll(HomeSectionKey.SERVICES) },
+                    isOffline = isOffline,
+                    emptyMessage = "No helpers listed yet. Be the first to offer help.",
+                    onRefresh = { viewModel.refresh() }
+                )
+
+                // 8. Request card — softer marketplace prompt.
+                item(key = "request_card", contentType = "request") {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                    RequestCard(onClick = onSearchClick)
+                }
+
+                // 9. Host CTA — calmer earn-with-what-you-have promo.
+                item(key = "host_cta", contentType = "host_cta") {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                    HostCtaCard(onClick = onSearchClick)
+                }
+
+                // Spacer to clear the bottom nav comfortably.
+                item { Spacer(modifier = Modifier.height(PaceDreamSpacing.XXL)) }
             }
 
             SnackbarHost(
@@ -257,138 +323,183 @@ fun HomeFeedScreen(
     }
 }
 
-private data class SectionContentState(
-    val isLoading: Boolean,
-    val isEmpty: Boolean,
-)
-
 // ─────────────────────────────────────────────────────────────────────────────
-// iOS-style Discover Header with clean white background
-// Matches iOS HomeView header pattern: Greeting + Search Bar
+// Hero — premium discovery header with airy gradient surface and structured
+// search pill. Keeps the iOS three-segment shape (What / Where / When) so the
+// downstream pickers don't change, but the new copy and softer surface read as
+// "flexible local access", not a utility inventory list.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun DiscoverHeader(
+    title: String,
+    subtitle: String,
     onSearchClick: () -> Unit,
-    onFilterClick: () -> Unit,
     onWhatClick: () -> Unit = onSearchClick,
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {}
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PaceDreamColors.Background)
-            .statusBarsPadding()
-            .padding(start = PaceDreamSpacing.LG, end = PaceDreamSpacing.LG, top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.MD)
+            .background(
+                Brush.verticalGradient(
+                    0f to PaperBg,
+                    0.55f to BrandPurpleSoft,
+                    1f to PaperBg
+                )
+            )
     ) {
-        // Greeting row matching iOS layout
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Discover",
-                    style = PaceDreamTypography.LargeTitle.copy(
-                        fontFamily = paceDreamDisplayFontFamily,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = PaceDreamColors.TextPrimary
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Find spaces, items, and services — only for the time you need.",
-                    style = PaceDreamTypography.Subheadline.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500
-                )
-            }
-            Surface(
-                modifier = Modifier
-                    .size(PaceDreamButtonHeight.MD)
-                    .clickable(onClick = onNotificationClick),
-                shape = CircleShape,
-                color = PaceDreamColors.Gray50
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Notifications,
-                        contentDescription = "Notifications",
-                        tint = PaceDreamColors.TextPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Structured search pill: three tappable segments
-        // (What / Where / When) — matches the web search structure.
-        // Guests are handled later in the booking flow.  Tapping the
-        // trailing primary circle opens the full search.
-        Surface(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(
-                    elevation = 6.dp,
-                    shape = RoundedCornerShape(PaceDreamRadius.LG),
-                    ambientColor = Color.Black.copy(alpha = 0.06f),
-                    spotColor = Color.Black.copy(alpha = 0.08f)
-                ),
-            shape = RoundedCornerShape(PaceDreamRadius.LG),
-            color = Color.White,
-            tonalElevation = 0.dp
+                .statusBarsPadding()
+                .padding(
+                    start = PaceDreamSpacing.LG,
+                    end = PaceDreamSpacing.LG,
+                    top = PaceDreamSpacing.MD,
+                    bottom = PaceDreamSpacing.LG
+                )
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Short visible hint keeps three segments readable on small
-                // screens; full placeholder ("Search spaces, items, or
-                // services") lives inside the What text field.
-                SearchSegment(
-                    label = "What",
-                    value = "Spaces · items · services",
-                    onClick = onWhatClick,
-                    modifier = Modifier.weight(1.3f)
-                )
-                SegmentDivider()
-                SearchSegment(
-                    label = "Where",
-                    value = "Anywhere",
-                    onClick = onWhereClick,
-                    modifier = Modifier.weight(1f)
-                )
-                SegmentDivider()
-                SearchSegment(
-                    label = "When",
-                    value = "Any time",
-                    onClick = onWhenClick,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Spacer(modifier = Modifier.width(4.dp))
-
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                            .background(BrandPurple),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "P",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Text(
+                        text = "PaceDream",
+                        style = PaceDreamTypography.Headline.copy(
+                            fontFamily = paceDreamDisplayFontFamily,
+                            letterSpacing = (-0.2).sp
+                        ),
+                        color = InkPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Surface(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .clickable(onClick = onFilterClick),
+                        .size(PaceDreamButtonHeight.MD)
+                        .clickable(onClick = onNotificationClick),
                     shape = CircleShape,
-                    color = PaceDreamColors.Primary
+                    color = Color.White,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = PaceDreamIcons.Search,
-                            contentDescription = "Search",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            imageVector = PaceDreamIcons.Notifications,
+                            contentDescription = "Notifications",
+                            tint = InkPrimary,
+                            modifier = Modifier.size(20.dp)
                         )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            Text(
+                text = title,
+                style = PaceDreamTypography.LargeTitle.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontSize = 30.sp,
+                    lineHeight = 36.sp,
+                    letterSpacing = (-0.8).sp
+                ),
+                color = InkPrimary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = subtitle,
+                style = PaceDreamTypography.Body.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                ),
+                color = InkMuted
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            // Premium search pill — Material 3 surface with soft shadow.
+            // Tappable three-segment structure preserved so existing pickers
+            // (what / where / when) stay wired up.
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        ambientColor = BrandPurple.copy(alpha = 0.08f),
+                        spotColor = BrandPurple.copy(alpha = 0.10f)
+                    ),
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                color = Color.White,
+                tonalElevation = 0.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SearchSegment(
+                        label = "What",
+                        value = "Stays · gear · spaces · help",
+                        onClick = onWhatClick,
+                        modifier = Modifier.weight(1.4f)
+                    )
+                    SegmentDivider()
+                    SearchSegment(
+                        label = "Where",
+                        value = "Anywhere",
+                        onClick = onWhereClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SegmentDivider()
+                    SearchSegment(
+                        label = "When",
+                        value = "Any time",
+                        onClick = onWhenClick,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Surface(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onSearchClick),
+                        shape = CircleShape,
+                        color = BrandPurple
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = PaceDreamIcons.Search,
+                                contentDescription = "Search stays, gear, spaces, or help",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -396,10 +507,6 @@ private fun DiscoverHeader(
     }
 }
 
-/**
- * Airbnb-style two-line segment inside the hero search pill.  Each
- * segment is an independent click target routed to its own picker.
- */
 @Composable
 private fun SearchSegment(
     label: String,
@@ -415,15 +522,15 @@ private fun SearchSegment(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         Text(
             text = label,
             style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
             fontWeight = FontWeight.SemiBold,
-            color = PaceDreamColors.TextPrimary,
+            color = InkPrimary,
             maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(1.dp))
         Text(
@@ -432,9 +539,9 @@ private fun SearchSegment(
                 fontFamily = paceDreamFontFamily,
                 fontSize = 12.sp
             ),
-            color = PaceDreamColors.Gray500,
+            color = InkMuted,
             maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -445,146 +552,244 @@ private fun SegmentDivider() {
         modifier = Modifier
             .height(28.dp)
             .width(1.dp)
-            .background(PaceDreamColors.Gray200)
+            .background(BrandPurpleEdge)
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// iOS-style Category Filter Tabs (horizontal scrollable row with icons)
-// Matches iOS category filter pattern from HomeScreen
+// Main category row — Stays / Gear / Spaces / Help.
+// Replaces the previous restroom/nap-pod utility chip row that used to sit
+// here. Utility taxonomy moves into search filters; the home stays high level.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class MainCategory(
+    val label: String,
+    val tagline: String,
+    val icon: ImageVector,
+    val section: HomeSectionKey,
+)
+
+private val MAIN_CATEGORIES = listOf(
+    MainCategory("Stays", "Short stays nearby", PaceDreamIcons.HotelOutlined, HomeSectionKey.SPACES),
+    MainCategory("Gear", "Cameras, bikes, tools", PaceDreamIcons.ShoppingBag, HomeSectionKey.ITEMS),
+    MainCategory("Spaces", "Rooms, desks, parking", PaceDreamIcons.MeetingRoomOutlined, HomeSectionKey.SPACES),
+    MainCategory("Help", "Trusted local helpers", PaceDreamIcons.HelpOutline, HomeSectionKey.SERVICES),
+)
+
+@Composable
+private fun MainCategoryRow(
+    onCategoryClick: (MainCategory) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(top = PaceDreamSpacing.SM)) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            items(MAIN_CATEGORIES) { category ->
+                MainCategoryTile(category = category, onClick = { onCategoryClick(category) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainCategoryTile(
+    category: MainCategory,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .width(150.dp)
+            .height(96.dp)
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+        shadowElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                    .background(BrandPurpleSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = null,
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column {
+                Text(
+                    text = category.label,
+                    style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                    color = InkPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = category.tagline,
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = InkMuted,
+                    fontSize = 11.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section header + rail wrapper. Replaces the old PaceDreamSectionHeader and
+// keeps the title/subtitle/See-all rhythm consistent across the home.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun CategoryFilterTabs(
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
+private fun SectionHeader(
+    title: String,
+    subtitle: String? = null,
+    onSeeAll: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val categories = remember {
-        listOf(
-            Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
-            Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
-            Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
-            Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-            Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
-            Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
-            Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
-            Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
-            Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage)
-        )
-    }
-
-    Column(modifier = modifier) {
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(categories) { (name, outlinedIcon, filledIcon) ->
-                val isSelected = selectedCategory == name
-                CategoryTab(
-                    name = name,
-                    icon = if (isSelected) filledIcon else outlinedIcon,
-                    isSelected = isSelected,
-                    onClick = { onCategorySelected(name) }
-                )
-            }
-        }
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = PaceDreamColors.Gray100
-        )
-    }
-}
-
-@Composable
-private fun CategoryTab(
-    name: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = PaceDreamTypography.Title3.copy(
+                    fontFamily = paceDreamDisplayFontFamily,
+                    fontSize = 20.sp,
+                    letterSpacing = (-0.4).sp
+                ),
+                color = InkPrimary,
+                fontWeight = FontWeight.Bold
             )
-            .padding(horizontal = 10.dp, vertical = 12.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = name,
-            tint = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray400,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = name,
-            style = PaceDreamTypography.Caption2.copy(
-                fontFamily = paceDreamFontFamily,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-            ),
-            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.Gray500,
-            maxLines = 1
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-            modifier = Modifier
-                .width(32.dp)
-                .height(2.5.dp)
-                .background(
-                    color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                    shape = RoundedCornerShape(PaceDreamRadius.XS)
+            if (subtitle != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = InkMuted,
+                    fontSize = 12.5.sp
                 )
-        )
+            }
+        }
+        if (onSeeAll != null) {
+            Text(
+                text = "See all",
+                style = PaceDreamTypography.Callout.copy(fontFamily = paceDreamFontFamily),
+                color = BrandPurple,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clickable(onClick = onSeeAll)
+                    .padding(start = 8.dp, top = 2.dp)
+            )
+        }
     }
 }
 
-@Composable
-private fun ServicesGrid(
+private fun androidx.compose.foundation.lazy.LazyListScope.railSection(
+    sectionKey: String,
+    title: String,
+    subtitle: String,
     items: List<HomeCard>,
-    onClick: (String) -> Unit,
+    isLoading: Boolean,
+    sectionError: String? = null,
     favoriteIds: Set<String>,
-    onFavorite: (HomeCard) -> Unit
+    onListingClick: (String) -> Unit,
+    onFavorite: (String) -> Unit,
+    onSeeAll: () -> Unit,
+    isOffline: Boolean,
+    emptyMessage: String,
+    onRefresh: () -> Unit
 ) {
-    val chunkedItems = items.chunked(2)
-    Column(
-        modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG),
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
-    ) {
-        chunkedItems.forEach { rowItems ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                rowItems.forEach { item ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        ListingCard(
-                            item = item,
-                            onClick = { onClick(item.id) },
-                            isFavorited = favoriteIds.contains(item.id),
-                            onFavorite = { onFavorite(item) },
-                            modifier = Modifier.fillMaxWidth().height(280.dp)
-                        )
-                    }
-                }
-                // Fill empty space if odd number
-                if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+    item(key = "${sectionKey}_header") {
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+        SectionHeader(title = title, subtitle = subtitle, onSeeAll = onSeeAll)
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+    }
+
+    sectionError?.let {
+        item(key = "${sectionKey}_error") {
+            InlineErrorBanner(
+                message = it,
+                onAction = onRefresh,
+                actionText = "Retry",
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+            )
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+        }
+    }
+
+    item(key = "${sectionKey}_body") {
+        AnimatedContent(
+            targetState = SectionContentState(
+                isLoading = isLoading,
+                isEmpty = items.isEmpty()
+            ),
+            transitionSpec = {
+                fadeIn(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) togetherWith
+                    fadeOut(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut))
+            },
+            label = "section_content_$sectionKey"
+        ) { contentState ->
+            when {
+                contentState.isLoading -> SkeletonRow()
+                contentState.isEmpty -> EmptyInline(
+                    message = if (isOffline) "You're offline. Connect to see more here." else emptyMessage,
+                    onRefresh = onRefresh
+                )
+                else -> CardsRow(
+                    items = items,
+                    onListingClick = { onListingClick(it) },
+                    favoriteIds = favoriteIds,
+                    onFavorite = onFavorite
+                )
             }
         }
     }
 }
+
+private data class SectionContentState(
+    val isLoading: Boolean,
+    val isEmpty: Boolean,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Listing card — image-first, premium hierarchy.
+//   1. imagery (4:3-ish)
+//   2. title  (semibold, 1 line)
+//   3. price  (bold, prominent)
+//   4. trust  (rating)
+//   5. location (dim caption)
+// Removes the floating price-pill that used to sit on top of the photo, and
+// drops the extra heavy gradient overlay — cleaner, less busy, more Airbnb /
+// Hipcamp-feeling.
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun CardsRow(
     items: List<HomeCard>,
-    onClick: (String) -> Unit,
+    onListingClick: (String) -> Unit,
     favoriteIds: Set<String>,
-    onFavorite: (HomeCard) -> Unit
+    onFavorite: (String) -> Unit
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
@@ -593,9 +798,9 @@ private fun CardsRow(
         items(items, key = { it.id }) { item ->
             ListingCard(
                 item = item,
-                onClick = { onClick(item.id) },
+                onClick = { onListingClick(item.id) },
                 isFavorited = favoriteIds.contains(item.id),
-                onFavorite = { onFavorite(item) }
+                onFavorite = { onFavorite(item.id) }
             )
         }
     }
@@ -607,7 +812,8 @@ private fun ListingCard(
     isFavorited: Boolean,
     onClick: () -> Unit,
     onFavorite: () -> Unit,
-    modifier: Modifier = Modifier.width(280.dp).height(320.dp)
+    modifier: Modifier = Modifier
+        .width(260.dp)
 ) {
     Card(
         onClick = {
@@ -624,21 +830,22 @@ private fun ListingCard(
             onClick()
         },
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(PaceDreamRadius.LG)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl?.takeIf { it.isNotBlank() })
                         .crossfade(200)
-                        .size(coil.size.Size(560, 360))
+                        .size(coil.size.Size(560, 400))
                         .build(),
                     contentDescription = item.title.ifBlank { "Listing" },
                     contentScale = ContentScale.Crop,
@@ -648,13 +855,13 @@ private fun ListingCard(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(PaceDreamColors.Border.copy(alpha = 0.25f)),
+                            .background(BrandPurpleSoft),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = PaceDreamIcons.Search,
                             contentDescription = null,
-                            tint = PaceDreamColors.TextSecondary
+                            tint = BrandPurple
                         )
                     }
                 }
@@ -663,99 +870,98 @@ private fun ListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .clip(RoundedCornerShape(PaceDreamRadius.MD))
-                        .background(Color.Black.copy(alpha = 0.25f))
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.22f))
                 ) {
                     AnimatedContent(
                         targetState = isFavorited,
                         transitionSpec = {
-                            (fadeIn(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) + scaleIn(initialScale = 0.85f, animationSpec = tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut))) togetherWith
-                                (fadeOut(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) + scaleOut(targetScale = 0.9f, animationSpec = tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)))
+                            (fadeIn(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) +
+                                scaleIn(initialScale = 0.85f, animationSpec = tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut))) togetherWith
+                                (fadeOut(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) +
+                                    scaleOut(targetScale = 0.9f, animationSpec = tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)))
                         },
                         label = "favorite_toggle"
                     ) { favored ->
                         Icon(
                             imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
-                            tint = if (favored) PaceDreamColors.Error else Color.White
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f))
-                            )
-                        )
-                )
-                item.priceText?.takeIf { it.isNotBlank() }?.let { price ->
-                    Card(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(PaceDreamSpacing.SM),
-                        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Primary),
-                        shape = RoundedCornerShape(PaceDreamRadius.SM)
-                    ) {
-                        Text(
-                            text = price,
-                            style = PaceDreamTypography.Callout,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(
-                                horizontal = PaceDreamSpacing.SM,
-                                vertical = PaceDreamSpacing.XS
-                            )
+                            tint = if (favored) PaceDreamColors.Error else Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
 
-            Column(
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(PaceDreamSpacing.MD)
+                    .padding(horizontal = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = item.title.ifBlank { "Listing" },
-                    style = PaceDreamTypography.Headline,
-                    color = PaceDreamColors.TextPrimary,
+                    style = PaceDreamTypography.Callout.copy(fontFamily = paceDreamFontFamily),
+                    color = InkPrimary,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    fontSize = 14.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = PaceDreamSpacing.SM)
                 )
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                item.location?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = it,
-                        style = PaceDreamTypography.Caption,
-                        color = PaceDreamColors.TextSecondary,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 item.rating?.takeIf { it > 0.0 }?.let { r ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = PaceDreamIcons.Star,
                             contentDescription = null,
                             tint = PaceDreamColors.StarRating,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
-                        Spacer(modifier = Modifier.width(2.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = String.format("%.1f", r),
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                            fontWeight = FontWeight.SemiBold
+                            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                            color = InkPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            item.location?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = InkMuted,
+                    fontSize = 12.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+            }
+
+            item.priceText?.takeIf { it.isNotBlank() }?.let { price ->
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Text(
+                    text = price,
+                    style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                    color = InkPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.5.sp,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
         }
     }
 }
@@ -767,38 +973,31 @@ private fun SkeletonRow() {
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
         items(6) { _ ->
-            Card(
-                modifier = Modifier
-                    .width(280.dp)
-                    .height(320.dp),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card)
-            ) {
-                Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(PaceDreamRadius.LG))
-                            .background(PaceDreamColors.Border.copy(alpha = 0.3f))
-                            .shimmerEffect()
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .height(16.dp)
-                            .background(PaceDreamColors.Border.copy(alpha = 0.3f), RoundedCornerShape(PaceDreamRadius.SM))
-                            .shimmerEffect()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.45f)
-                            .height(12.dp)
-                            .background(PaceDreamColors.Border.copy(alpha = 0.2f), RoundedCornerShape(PaceDreamRadius.SM))
-                            .shimmerEffect()
-                    )
-                }
+            Column(modifier = Modifier.width(260.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                        .background(BrandPurpleEdge.copy(alpha = 0.6f))
+                        .shimmerEffect()
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(14.dp)
+                        .background(BrandPurpleEdge, RoundedCornerShape(PaceDreamRadius.SM))
+                        .shimmerEffect()
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.45f)
+                        .height(12.dp)
+                        .background(BrandPurpleEdge.copy(alpha = 0.7f), RoundedCornerShape(PaceDreamRadius.SM))
+                        .shimmerEffect()
+                )
             }
         }
     }
@@ -815,9 +1014,10 @@ private fun EmptyInline(
             .fillMaxWidth()
             .padding(horizontal = PaceDreamSpacing.LG)
             .then(modifier),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Surface),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(PaceDreamRadius.MD)
+        shape = RoundedCornerShape(PaceDreamRadius.MD),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge)
     ) {
         Row(
             modifier = Modifier
@@ -826,16 +1026,21 @@ private fun EmptyInline(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            Icon(PaceDreamIcons.Search, contentDescription = null, tint = PaceDreamColors.TextSecondary)
+            Icon(
+                imageVector = PaceDreamIcons.Search,
+                contentDescription = null,
+                tint = BrandPurple
+            )
             Text(
-                message,
-                style = PaceDreamTypography.Body,
-                color = PaceDreamColors.TextSecondary,
+                text = message,
+                style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+                color = InkMuted,
                 modifier = Modifier.weight(1f)
             )
             OutlinedButton(
                 onClick = onRefresh,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = PaceDreamColors.Primary)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandPurple),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurple.copy(alpha = 0.5f))
             ) {
                 Text("Refresh")
             }
@@ -843,3 +1048,154 @@ private fun EmptyInline(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Request card — surfaces the "can't find it? post a request" flow as a soft
+// marketplace prompt, not an aggressive CTA.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun RequestCard(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.LG),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(BrandPurpleSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Send,
+                    contentDescription = null,
+                    tint = BrandPurple,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Can't find what you need?",
+                    style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                    color = InkPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Post a request and local hosts can help.",
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = InkMuted,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Icon(
+                imageVector = PaceDreamIcons.ChevronRight,
+                contentDescription = null,
+                tint = InkMuted,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Host CTA — softer "earn from unused spaces and gear" promo. Calmer than
+// the previous bottom-of-screen onboarding banners, with a clear secondary
+// CTA hierarchy (purple-tinted card, dark button, no gradient noise).
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HostCtaCard(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = BrandPurpleSoft,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(PaceDreamSpacing.LG),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Earn from unused spaces and gear",
+                    style = PaceDreamTypography.Title3.copy(
+                        fontFamily = paceDreamDisplayFontFamily,
+                        fontSize = 17.sp,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = InkPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "List a stay, rent out gear, or offer your help — on your terms.",
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = InkMuted,
+                    fontSize = 12.5.sp,
+                    lineHeight = 18.sp
+                )
+            }
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+            Surface(
+                modifier = Modifier.clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                color = InkPrimary
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Start hosting",
+                        color = Color.White,
+                        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.5.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Heuristic split of the Spaces backend bucket into lodging-like ("Stays")
+ * vs hourly utility ("Flexible spaces") on the client. Both rails feed from
+ * shareType=USE; we just present them as two visually distinct sections so
+ * the home doesn't read as one dense utility catalogue.
+ */
+private val STAY_SUBCATEGORY_KEYWORDS = listOf(
+    "apartment", "loft", "cabin", "villa", "hotel", "short_stay", "stay", "house", "studio", "suite", "bnb"
+)
+
+private fun isStayLike(card: HomeCard): Boolean {
+    val sub = card.subCategory?.lowercase().orEmpty()
+    val title = card.title.lowercase()
+    return STAY_SUBCATEGORY_KEYWORDS.any { sub.contains(it) || title.contains(it) }
+}
