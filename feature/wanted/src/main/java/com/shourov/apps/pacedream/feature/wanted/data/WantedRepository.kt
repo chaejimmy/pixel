@@ -2,6 +2,8 @@ package com.shourov.apps.pacedream.feature.wanted.data
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.shourov.apps.pacedream.core.common.network.Dispatcher
+import com.shourov.apps.pacedream.core.common.network.PaceDreamDispatchers
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.toDomain
@@ -12,7 +14,6 @@ import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -45,7 +46,7 @@ interface WantedRepository {
 @Singleton
 class WantedRepositoryImpl @Inject constructor(
     private val api: WantedApiService,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    @Dispatcher(PaceDreamDispatchers.IO) private val dispatcher: CoroutineDispatcher,
 ) : WantedRepository {
 
     // Session-scoped cache. The taxonomy is small (~tens of strings) and
