@@ -124,7 +124,7 @@ fun BrowseByTypeSection(
         // Section header — uses the shared SectionHeader component
         SectionHeader(
             title = "Explore by Category",
-            subtitle = "Browse spaces, items, and services near you",
+            subtitle = "Browse stays, gear, spaces, and local help nearby",
             helperText = "Available today",
         )
 

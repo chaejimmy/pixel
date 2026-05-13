@@ -195,8 +195,8 @@ fun HomeRedesignScreen(
             // Cross-type rails — always surface the other two primary types
             if (type != PrimaryType.ITEMS) {
                 crossSection(
-                    title = "Items to rent nearby",
-                    subtitle = "Gear for your next project",
+                    title = "Gear nearby",
+                    subtitle = "Cameras, bikes, tools — pick up today",
                     rowItems = itemsListings,
                     favoriteIds = favoriteIds,
                     onSeeAll = { onSeeAll(PrimaryType.ITEMS) },
@@ -206,8 +206,8 @@ fun HomeRedesignScreen(
             }
             if (type != PrimaryType.SERVICES && servicesListings.isNotEmpty()) {
                 crossSection(
-                    title = "Services you might need",
-                    subtitle = "Vetted local providers",
+                    title = "Local help",
+                    subtitle = "Trusted helpers for what you need today",
                     rowItems = servicesListings,
                     favoriteIds = favoriteIds,
                     onSeeAll = { onSeeAll(PrimaryType.SERVICES) },
@@ -217,8 +217,8 @@ fun HomeRedesignScreen(
             }
             if (type != PrimaryType.SPACES) {
                 crossSection(
-                    title = "Spaces to book near you",
-                    subtitle = "Meeting rooms, study nooks, stays",
+                    title = "Stays & spaces nearby",
+                    subtitle = "Short stays, meeting rooms, study nooks",
                     rowItems = spacesListings,
                     favoriteIds = favoriteIds,
                     onSeeAll = { onSeeAll(PrimaryType.SPACES) },
@@ -334,7 +334,7 @@ private fun HostCtaCard(onClick: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                "Earn with what you have",
+                "Earn from unused spaces and gear",
                 color = HomeRedesignTheme.Ink,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
@@ -342,7 +342,7 @@ private fun HostCtaCard(onClick: () -> Unit) {
             )
             Spacer(Modifier.height(3.dp))
             Text(
-                "List a space, rent out gear, or offer your skills — your terms.",
+                "List a stay, rent out gear, or offer your help — on your terms.",
                 color = HomeRedesignTheme.InkDim,
                 fontSize = 12.5.sp,
                 lineHeight = 18.sp,
@@ -357,7 +357,7 @@ private fun HostCtaCard(onClick: () -> Unit) {
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Start listing", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+            Text("Start hosting", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(4.dp))
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward,
@@ -404,9 +404,9 @@ private fun LazyListScope.crossSection(
 }
 
 private fun primaryTitle(type: PrimaryType, access: String?): String = when (type) {
-    PrimaryType.SPACES -> if (access == "split") "Active splits you can join" else "Available near you"
-    PrimaryType.ITEMS -> "Ready to rent today"
-    PrimaryType.SERVICES -> "Top providers near you"
+    PrimaryType.SPACES -> if (access == "split") "Active splits you can join" else "Stays available nearby"
+    PrimaryType.ITEMS -> "Gear ready to rent today"
+    PrimaryType.SERVICES -> "Trusted local helpers"
 }
 
 private fun primarySubtitle(type: PrimaryType, access: String?): String = when (type) {

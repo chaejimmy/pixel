@@ -135,8 +135,22 @@ class HomeFeedViewModel @Inject constructor(
             return false
         }
 
-        /** Map UI category chip names to backend subCategory keywords (iOS parity). */
+        /**
+         * Map UI category labels to backend subCategory keywords.
+         *
+         * Top-level home categories ("Stays", "Gear", "Spaces", "Help") are now
+         * surfaced as broad lifestyle tiles. The legacy utility chips
+         * (restroom / nap_pod / parking / …) survive as deeper filters reachable
+         * from search and from the dedicated section screens — keeping them here
+         * means deep-links and existing routes don't break.
+         */
         private val CATEGORY_TO_KEYWORD = mapOf(
+            // New top-level taxonomy
+            "Stays" to "stay",
+            "Gear" to "gear",
+            "Spaces" to "space",
+            "Help" to "help",
+            // Utility chips (legacy, reachable from deeper search flows)
             "Restroom" to "restroom",
             "Nap Pod" to "nap_pod",
             "Meeting Room" to "meeting_room",

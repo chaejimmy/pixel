@@ -28,15 +28,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 /**
  * Home Redesign V1 — data model
  *
- * Primary taxonomy: Spaces / Items / Services.
- * Access patterns (hourly, daily, split, instant, delivery, etc.) are
+ * Primary taxonomy (customer-facing): Stays / Gear / Help.
+ *
+ * Enum identifiers stay stable (SPACES / ITEMS / SERVICES) so backend wiring,
+ * persisted UI state, and analytics keys don't break. The hero, tabs, and
+ * sticky search show the new lifestyle labels.
+ *
+ * Access patterns (hourly, daily, split, instant, delivery, etc.) remain
  * secondary filter chips and inline badges on listing cards.
  */
 
 enum class PrimaryType(val id: String, val label: String, val subtitle: String) {
-    SPACES("spaces", "Spaces", "rooms & stays"),
-    ITEMS("items", "Items", "gear & kit"),
-    SERVICES("services", "Services", "help & skills"),
+    SPACES("spaces", "Stays", "short stays & rooms"),
+    ITEMS("items", "Gear", "cameras, bikes, tools"),
+    SERVICES("services", "Help", "trusted local helpers"),
 }
 
 @Immutable
@@ -72,18 +77,20 @@ data class Listing(
 
 object HomeRedesignData {
 
+    /**
+     * Top-level Stays categories surfaced on the home — lifestyle-first.
+     * Utility taxonomy (restroom, nap pod, parking, storage) lives deeper
+     * in search filters, not on the homepage, so the marketplace doesn't
+     * read like an inventory list.
+     */
     val SpaceCategories = listOf(
         CategoryOption("all",       "All",          Icons.Outlined.Apps),
+        CategoryOption("short",     "Short stay",   Icons.Outlined.NightsStay),
+        CategoryOption("apartment", "Apartment",    Icons.Outlined.Apartment),
+        CategoryOption("luxury",    "Luxury",       Icons.Outlined.Hotel),
         CategoryOption("meeting",   "Meeting room", Icons.Outlined.MeetingRoom),
         CategoryOption("desk",      "Desk",         Icons.Outlined.Work),
         CategoryOption("study",     "Study room",   Icons.Outlined.School),
-        CategoryOption("nap",       "Nap pod",      Icons.Outlined.Bed),
-        CategoryOption("apartment", "Apartment",    Icons.Outlined.Apartment),
-        CategoryOption("short",     "Short stay",   Icons.Outlined.NightsStay),
-        CategoryOption("luxury",    "Luxury",       Icons.Outlined.Hotel),
-        CategoryOption("parking",   "Parking",      Icons.Outlined.LocalParking),
-        CategoryOption("storage",   "Storage",      Icons.Outlined.Storage),
-        CategoryOption("restroom",  "Restroom",     Icons.Outlined.Wc),
     )
 
     val ItemCategories = listOf(
@@ -114,16 +121,17 @@ object HomeRedesignData {
 
     /**
      * Quick-tap suggestions surfaced under the home search card to hint at
-     * the breadth of the PaceDream marketplace — spaces, items, and services.
+     * the breadth of the PaceDream marketplace — stays, gear, spaces, help.
+     * Keep these lifestyle-first; utility categories live in deeper filters.
      */
     val WhatSuggestions: List<String> = listOf(
-        "Parking",
+        "Short stay",
         "Meeting room",
-        "Gym",
-        "Storage",
-        "Restroom",
+        "Camera",
+        "Bike",
+        "Cleaning",
+        "Tutoring",
         "Workspace",
-        "Lessons",
     )
 
     val AccessChips: Map<PrimaryType, List<AccessChip>> = mapOf(
