@@ -79,6 +79,8 @@ import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
+import com.shourov.apps.pacedream.core.network.observer.ConnectionState
+import com.shourov.apps.pacedream.ui.ConnectivityViewModel
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import kotlinx.coroutines.launch
@@ -95,12 +97,18 @@ fun HomeFeedScreen(
     onWhenClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: HomeFeedViewModel = hiltViewModel()
+    viewModel: HomeFeedViewModel = hiltViewModel(),
+    connectivityViewModel: ConnectivityViewModel = hiltViewModel(),
 ) {
     val state by viewModel.filteredState.collectAsStateWithLifecycle()
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val selectedCategoryFilter by viewModel.selectedCategory.collectAsStateWithLifecycle()
+    val connectionState by connectivityViewModel.state.collectAsStateWithLifecycle()
+    // The global OfflineBanner in PaceDreamApp already tells the user they're
+    // offline — skip the redundant per-section error and swap the empty state
+    // for a connection-aware message.
+    val isOffline = connectionState != ConnectionState.Available
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -183,15 +191,17 @@ fun HomeFeedScreen(
                         )
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
-                        section.errorMessage?.takeIf { !section.isLoading }?.let { err ->
-                            InlineErrorBanner(
-                                message = err,
-                                onAction = { viewModel.refresh() },
-                                actionText = "Retry",
-                                modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
-                            )
-                            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                        }
+                        section.errorMessage
+                            ?.takeIf { !section.isLoading && !isOffline }
+                            ?.let { err ->
+                                InlineErrorBanner(
+                                    message = err,
+                                    onAction = { viewModel.refresh() },
+                                    actionText = "Retry",
+                                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.LG)
+                                )
+                                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                            }
 
                         AnimatedContent(
                             targetState = SectionContentState(
@@ -206,10 +216,14 @@ fun HomeFeedScreen(
                             when {
                                 contentState.isLoading -> SkeletonRow()
                                 contentState.isEmpty -> EmptyInline(
-                                    message = if (section.key == HomeSectionKey.SERVICES)
-                                        "No services available yet. Be the first to offer a service."
-                                    else
-                                        "Nothing here yet. Pull to refresh to try again.",
+                                    message = when {
+                                        isOffline ->
+                                            "You're offline. Connect to see ${section.key.displayTitle.lowercase()}."
+                                        section.key == HomeSectionKey.SERVICES ->
+                                            "No services available yet. Be the first to offer a service."
+                                        else ->
+                                            "Nothing here yet. Pull to refresh to try again."
+                                    },
                                     onRefresh = { viewModel.refresh() }
                                 )
                                 else -> if (section.key == HomeSectionKey.SERVICES) {
