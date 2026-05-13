@@ -88,7 +88,9 @@ class AndroidConnectivityObserver @Inject constructor(
             }
 
             override fun onLost(network: Network) {
-                trySend(ConnectionState.Unavailable)
+                // Don't assume offline: another network (e.g. cellular) may still
+                // be active when Wi-Fi drops. Re-derive from ConnectivityManager.
+                trySend(currentState())
             }
 
             override fun onLosing(network: Network, maxMsToLive: Int) {
