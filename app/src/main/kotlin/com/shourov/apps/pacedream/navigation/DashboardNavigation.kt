@@ -324,19 +324,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onNotificationClick = {
                                             navController.navigate("notifications")
                                         },
+                                        // "Can't find what you need? Post a request" CTA — opens the
+                                        // wanted/post-request flow tagged with the home source so
+                                        // analytics can attribute conversions to the home rail.
+                                        onPostRequestClick = {
+                                            navController.navigate(
+                                                "post_request?source=home_cta"
+                                            )
+                                        },
+                                        // "Earn from unused spaces" / "Start hosting" CTA — opens
+                                        // the host create-listing flow directly. Previously this
+                                        // (incorrectly) re-used onSearchClick and opened Explore.
                                         onStartHostingClick = {
-                                            // create_listing already flips host mode on successful
-                                            // creation; we don't flip preemptively so a user who
-                                            // backs out of the flow stays in guest mode.
                                             navController.navigate("create_listing") {
                                                 launchSingleTop = true
                                             }
                                         },
-                                        onPostRequestClick = {
-                                            navController.navigate(
-                                                "post_request?source=home_request_card"
-                                            )
-                                        }
                                     )
 
                                     if (showAuthSheet) {

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
@@ -133,44 +134,64 @@ fun BookingTabScreen(
             }
 
             is BookingTabUiState.RequiresAuth -> {
-                Column(
+                // Brand-styled sign-in prompt — purple-tinted travel icon in
+                // a soft circle, tighter rhythm, full-width primary CTA. Was
+                // a grey lock floating in dead space at the top of the screen.
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = PaceDreamSpacing.LG),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXXL))
-                    Icon(
-                        imageVector = PaceDreamIcons.Lock,
-                        contentDescription = null,
-                        tint = PaceDreamColors.TextTertiary,
-                        modifier = Modifier.size(PaceDreamIconSize.XXL)
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                    Text(
-                        text = "Sign in to view bookings",
-                        style = PaceDreamTypography.Title3,
-                        color = PaceDreamColors.TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                    Text(
-                        text = "Your bookings will appear here once you sign in",
-                        style = PaceDreamTypography.Body,
-                        color = PaceDreamColors.TextSecondary,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-                    Button(
-                        onClick = onShowAuthSheet,
-                        colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                        shape = RoundedCornerShape(PaceDreamRadius.MD),
-                        modifier = Modifier.height(PaceDreamButtonHeight.LG),
-                        contentPadding = PaddingValues(
-                            horizontal = PaceDreamSpacing.XL,
-                            vertical = PaceDreamSpacing.SM2
-                        )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("Sign In", style = PaceDreamTypography.Button, maxLines = 1)
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(PaceDreamColors.Primary.copy(alpha = 0.10f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CalendarToday,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+                        Text(
+                            text = "Track your trips",
+                            style = PaceDreamTypography.Title2,
+                            color = PaceDreamColors.TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                        Text(
+                            text = "Sign in to see upcoming bookings, past stays, and refunds in one place.",
+                            style = PaceDreamTypography.Subheadline,
+                            color = PaceDreamColors.TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(0.85f),
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                        Button(
+                            onClick = onShowAuthSheet,
+                            colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
+                            shape = RoundedCornerShape(PaceDreamRadius.MD),
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .height(PaceDreamButtonHeight.LG),
+                        ) {
+                            Text(
+                                "Sign in / Create account",
+                                style = PaceDreamTypography.Subheadline,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                            )
+                        }
                     }
                 }
             }

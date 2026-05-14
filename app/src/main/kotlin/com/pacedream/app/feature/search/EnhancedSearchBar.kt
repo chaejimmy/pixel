@@ -53,7 +53,7 @@ fun EnhancedSearchBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(PaceDreamRadius.XXL),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = PaceDreamColors.Card,
         shadowElevation = 0.dp,
         tonalElevation = 1.dp
@@ -64,9 +64,11 @@ fun EnhancedSearchBar(
                 .border(
                     width = PaceDreamGlass.BorderWidth,
                     color = PaceDreamColors.GlassBorder,
-                    shape = RoundedCornerShape(PaceDreamRadius.XXL)
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
-                .padding(PaceDreamSpacing.MD)
+                // Compact padding so the search card doesn't push listings
+                // below the fold on smaller devices.
+                .padding(PaceDreamSpacing.SM2)
         ) {
             // Segmented tab control
             SegmentedTabRow(
@@ -75,7 +77,7 @@ fun EnhancedSearchBar(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
             // WHAT field
             ModernSearchField(
@@ -87,7 +89,7 @@ fun EnhancedSearchBar(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             // WHERE field with location button
             ModernSearchField(
@@ -167,7 +169,7 @@ fun EnhancedSearchBar(
                 }
             }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             // DATES field
             ModernSearchField(
@@ -181,18 +183,19 @@ fun EnhancedSearchBar(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-            // Search button with gradient
+            // Search button — opens results in Explore. Routes ONLY to Search,
+            // never to host/post-request CTAs.
             Button(
                 onClick = onSearchClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.LG),
+                    .height(PaceDreamButtonHeight.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
                 ),
-                shape = RoundedCornerShape(PaceDreamRadius.LG)
+                shape = RoundedCornerShape(PaceDreamRadius.MD)
             ) {
                 Icon(
                     imageVector = PaceDreamIcons.Search,
