@@ -297,7 +297,14 @@ fun ListingCard(
         }
 
         Spacer(Modifier.height(2.dp))
-        Text(item.area, color = HomeRedesignTheme.InkDim, fontSize = 12.5.sp, modifier = Modifier.padding(horizontal = 2.dp))
+        Text(
+            item.area,
+            color = HomeRedesignTheme.InkDim,
+            fontSize = 12.5.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
 
         if ("split" in item.badges && item.dates != null) {
             Spacer(Modifier.height(2.dp))
@@ -312,7 +319,13 @@ fun ListingCard(
                     modifier = Modifier.size(11.dp),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text(item.dates, color = HomeRedesignTheme.InkFaint, fontSize = 12.sp)
+                Text(
+                    item.dates,
+                    color = HomeRedesignTheme.InkFaint,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
 
@@ -347,6 +360,8 @@ fun ListingCard(
                     color = HomeRedesignTheme.Coral.c700,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

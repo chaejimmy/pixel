@@ -362,8 +362,8 @@ private fun DiscoverHeader(
                 .padding(
                     start = PaceDreamSpacing.LG,
                     end = PaceDreamSpacing.LG,
-                    top = PaceDreamSpacing.MD,
-                    bottom = PaceDreamSpacing.LG
+                    top = PaceDreamSpacing.SM,
+                    bottom = PaceDreamSpacing.MD
                 )
         ) {
             Row(
@@ -416,31 +416,33 @@ private fun DiscoverHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            // Hero copy kept tight so the first listing rail clears the fold
+            // on common Android screen sizes (5.5" / 360dp width and up).
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = title,
                 style = PaceDreamTypography.LargeTitle.copy(
                     fontFamily = paceDreamDisplayFontFamily,
-                    fontSize = 30.sp,
-                    lineHeight = 36.sp,
-                    letterSpacing = (-0.8).sp
+                    fontSize = 26.sp,
+                    lineHeight = 32.sp,
+                    letterSpacing = (-0.6).sp
                 ),
                 color = InkPrimary,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = subtitle,
                 style = PaceDreamTypography.Body.copy(
                     fontFamily = paceDreamFontFamily,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp
                 ),
                 color = InkMuted
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Premium search pill — Material 3 surface with soft shadow.
             // Tappable three-segment structure preserved so existing pickers

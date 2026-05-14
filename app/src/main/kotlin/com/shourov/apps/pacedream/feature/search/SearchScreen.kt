@@ -816,11 +816,18 @@ private fun FiltersRow(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Sort row
+        // Sort + Filters row. Compact vertical padding so the two chip rows
+        // (sort/filters + categories) together stay around ~80dp instead of
+        // the ~110dp they used to occupy.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                .padding(
+                    start = PaceDreamSpacing.MD,
+                    end = PaceDreamSpacing.MD,
+                    top = 2.dp,
+                    bottom = 2.dp,
+                ),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -925,8 +932,13 @@ private fun FiltersRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                    .padding(
+                        start = PaceDreamSpacing.MD,
+                        end = PaceDreamSpacing.MD,
+                        top = 2.dp,
+                        bottom = 4.dp,
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
             ) {
                 categories.forEach { cat ->
                     val isSelected = cat in selectedCategories
@@ -1532,14 +1544,16 @@ private fun SearchViewModeToggle(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            // Tighter vertical padding so List/Map toggle sits closer to the
+            // first result card instead of pushing inventory down.
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .background(PaceDreamColors.Gray100)
-                .padding(4.dp),
+                .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             SearchModeSegment(
@@ -1578,7 +1592,7 @@ private fun SearchModeSegment(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(40.dp),
+        modifier = modifier.height(36.dp),
         color = if (selected) PaceDreamColors.Card else Color.Transparent,
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         shadowElevation = if (selected) 1.dp else 0.dp,

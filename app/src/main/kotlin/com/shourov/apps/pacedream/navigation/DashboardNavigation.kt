@@ -155,7 +155,10 @@ fun NavGraphBuilder.DashboardNavigation(
                             text = com.shourov.apps.pacedream.R.string.bookings,
                     ),
                     BottomNavigationItem(
-                            icon = com.shourov.apps.pacedream.R.drawable.ic_notifications,
+                            // Messages tab uses a chat bubble, not the bell —
+                            // the bell reads as system notifications and was
+                            // confusing the inbox affordance.
+                            icon = com.shourov.apps.pacedream.R.drawable.ic_chat,
                             text = com.shourov.apps.pacedream.R.string.messages,
                             badgeCount = inboxUnread
                     ),
