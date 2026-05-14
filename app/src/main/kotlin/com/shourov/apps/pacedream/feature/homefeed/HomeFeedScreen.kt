@@ -853,6 +853,12 @@ private fun ListingCard(
                     // Explicit 4:3 ratio so home + skeleton + redesign cards
                     // all share the same media slot proportions.
                     .aspectRatio(4f / 3f)
+                    .shadow(
+                        elevation = 5.dp,
+                        shape = RoundedCornerShape(PaceDreamRadius.LG),
+                        ambientColor = Color.Black.copy(alpha = 0.05f),
+                        spotColor = Color.Black.copy(alpha = 0.06f)
+                    )
                     .clip(RoundedCornerShape(PaceDreamRadius.LG))
             ) {
                 AsyncImage(
@@ -884,9 +890,9 @@ private fun ListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(36.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.22f))
+                        .background(Color.Black.copy(alpha = 0.18f))
                 ) {
                     AnimatedContent(
                         targetState = isFavorited,
@@ -902,7 +908,7 @@ private fun ListingCard(
                             imageVector = if (favored) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                             contentDescription = if (favored) "Remove from favorites" else "Save to favorites",
                             tint = if (favored) PaceDreamColors.Error else Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                 }

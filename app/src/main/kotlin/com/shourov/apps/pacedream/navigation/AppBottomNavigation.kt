@@ -65,14 +65,14 @@ fun AppBottomNavigation(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
+                elevation = 6.dp,
                 shape = RoundedCornerShape(0.dp),
-                ambientColor = Color.Black.copy(alpha = 0.06f),
-                spotColor = Color.Black.copy(alpha = 0.04f)
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.03f)
             )
             .border(
                 width = 0.5.dp,
-                color = PaceDreamColors.Border.copy(alpha = 0.15f),
+                color = PaceDreamColors.Border.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(0.dp)
             ),
         containerColor = PaceDreamColors.Background.copy(alpha = PaceDreamGlass.ThickAlpha),
@@ -103,14 +103,14 @@ fun AppBottomNavigation(
                     ) {
                         Icon(
                             modifier = Modifier.size(
-                                if (isSelected) 24.dp else PaceDreamIconSize.MD
+                                if (isSelected) 23.dp else PaceDreamIconSize.MD
                             ),
                             painter = painterResource(id = bottomNavigationItem.icon),
                             contentDescription = stringResource(id = bottomNavigationItem.text),
                             tint = if (isSelected)
                                 PaceDreamColors.Primary
                             else
-                                PaceDreamColors.TextSecondary.copy(alpha = 0.7f)
+                                PaceDreamColors.TextSecondary.copy(alpha = 0.68f)
                         )
                     }
                 },
@@ -135,7 +135,7 @@ fun AppBottomNavigation(
                     selectedTextColor = PaceDreamColors.Primary,
                     unselectedIconColor = PaceDreamColors.TextSecondary,
                     unselectedTextColor = PaceDreamColors.TextSecondary,
-                    indicatorColor = PaceDreamColors.Primary.copy(alpha = 0.1f)
+                    indicatorColor = PaceDreamColors.Primary.copy(alpha = 0.08f)
                 )
             )
         }

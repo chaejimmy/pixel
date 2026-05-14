@@ -108,21 +108,22 @@ fun TypeTabs(
                     .clip(HomeRedesignTheme.PillShape)
                     .background(bg)
                     .clickable { onChange(tab) }
-                    .padding(vertical = 9.dp, horizontal = 6.dp),
+                    .padding(vertical = 8.dp, horizontal = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     tab.label,
                     color = ink,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.2).sp,
                 )
                 Text(
                     tab.subtitle,
-                    color = ink.copy(alpha = if (active) 0.7f else 0.6f),
-                    fontSize = 10.5.sp,
+                    color = ink.copy(alpha = if (active) 0.72f else 0.6f),
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
+                    letterSpacing = (-0.05).sp,
                 )
             }
         }
@@ -146,7 +147,8 @@ fun AccessChipsRow(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         chips.forEach { chip ->
             val active = chip.id == value
@@ -169,17 +171,20 @@ fun AccessChipsRow(
             }
             Box(
                 modifier = Modifier
+                    .height(30.dp)
                     .clip(HomeRedesignTheme.PillShape)
                     .background(bg)
                     .border(1.dp, border, HomeRedesignTheme.PillShape)
                     .clickable { onChange(if (active) null else chip.id) }
-                    .padding(horizontal = 11.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     chip.label,
                     color = ink,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.1).sp,
                 )
             }
         }
@@ -256,20 +261,26 @@ fun SectionHeader(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 title,
                 color = HomeRedesignTheme.Ink,
-                fontSize = 20.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.4).sp,
+                letterSpacing = (-0.45).sp,
+                lineHeight = 22.sp,
             )
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
-                Text(subtitle, color = HomeRedesignTheme.InkFaint, fontSize = 12.5.sp)
+                Text(
+                    subtitle,
+                    color = HomeRedesignTheme.InkFaint,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
             }
         }
         if (onSeeAll != null) {
@@ -280,15 +291,16 @@ fun SectionHeader(
                 Text(
                     "See all",
                     color = HomeRedesignTheme.Purple.c600,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.1).sp,
                 )
                 Spacer(Modifier.width(2.dp))
                 Icon(
                     Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = null,
                     tint = HomeRedesignTheme.Purple.c600,
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(13.dp),
                 )
             }
         }

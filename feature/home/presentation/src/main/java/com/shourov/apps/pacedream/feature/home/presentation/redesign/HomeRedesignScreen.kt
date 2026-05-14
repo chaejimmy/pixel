@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -150,13 +151,13 @@ fun HomeRedesignScreen(
             }
 
             item("primary-section-header") {
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(24.dp))
                 SectionHeader(
                     title = primaryTitle(type, access),
                     subtitle = primarySubtitle(type, access),
                     onSeeAll = { onSeeAll(type) },
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
             }
 
             item("primary-section-rail") {
@@ -188,7 +189,7 @@ fun HomeRedesignScreen(
             }
 
             item("trust-strip") {
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(24.dp))
                 TrustStripCard()
             }
 
@@ -228,7 +229,7 @@ fun HomeRedesignScreen(
             }
 
             item("host-cta") {
-                Spacer(Modifier.height(28.dp))
+                Spacer(Modifier.height(24.dp))
                 HostCtaCard(onClick = onHostClick)
             }
         }
@@ -281,15 +282,21 @@ private fun TrustStripCard() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = HomeRedesignTheme.CardShape,
+                ambientColor = Color.Black.copy(alpha = 0.03f),
+                spotColor = Color.Black.copy(alpha = 0.04f),
+            )
             .clip(HomeRedesignTheme.CardShape)
             .background(HomeRedesignTheme.PaperSurface)
             .border(1.dp, HomeRedesignTheme.Line, HomeRedesignTheme.CardShape)
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(44.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(HomeRedesignTheme.Purple.c50),
             contentAlignment = Alignment.Center,
@@ -298,23 +305,24 @@ private fun TrustStripCard() {
                 Icons.Outlined.Check,
                 contentDescription = null,
                 tint = HomeRedesignTheme.Purple.c600,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 "Every host & provider is ID-verified",
                 color = HomeRedesignTheme.Ink,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.2).sp,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 "Book with confidence — reviews are from real transactions.",
                 color = HomeRedesignTheme.InkDim,
-                fontSize = 12.5.sp,
-                lineHeight = 17.sp,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
             )
         }
     }
@@ -326,26 +334,33 @@ private fun HostCtaCard(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = HomeRedesignTheme.CardShape,
+                ambientColor = HomeRedesignTheme.Purple.c700.copy(alpha = 0.05f),
+                spotColor = HomeRedesignTheme.Purple.c700.copy(alpha = 0.06f),
+            )
             .clip(HomeRedesignTheme.CardShape)
             .background(HomeRedesignTheme.Purple.c50)
             .border(1.dp, HomeRedesignTheme.Purple.c100, HomeRedesignTheme.CardShape)
-            .padding(18.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 "Earn from unused spaces and gear",
                 color = HomeRedesignTheme.Ink,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,
+                lineHeight = 19.sp,
             )
             Spacer(Modifier.height(3.dp))
             Text(
                 "List a stay, rent out gear, or offer your help — on your terms.",
                 color = HomeRedesignTheme.InkDim,
-                fontSize = 12.5.sp,
-                lineHeight = 18.sp,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
             )
         }
         Spacer(Modifier.width(12.dp))
@@ -354,10 +369,10 @@ private fun HostCtaCard(onClick: () -> Unit) {
                 .clip(HomeRedesignTheme.PillShape)
                 .background(HomeRedesignTheme.Ink)
                 .clickable { onClick() }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Start hosting", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
+            Text("Start hosting", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.1).sp)
             Spacer(Modifier.width(4.dp))
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward,
@@ -380,14 +395,14 @@ private fun LazyListScope.crossSection(
     onFavoriteToggle: (String) -> Unit,
 ) {
     item("cross-$title-header") {
-        Spacer(Modifier.height(26.dp))
+        Spacer(Modifier.height(28.dp))
         SectionHeader(title = title, subtitle = subtitle, onSeeAll = onSeeAll)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
     }
     item("cross-$title-rail") {
         LazyRow(
             contentPadding = PaddingValues(horizontal = 18.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(rowItems, key = { _, it -> it.id }) { idx, item ->
                 ListingCard(
