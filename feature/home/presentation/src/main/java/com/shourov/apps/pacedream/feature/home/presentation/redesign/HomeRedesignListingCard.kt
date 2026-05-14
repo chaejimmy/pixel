@@ -73,7 +73,9 @@ fun ListingCard(
     onClick: () -> Unit = {},
 ) {
     val cardWidth = if (compact) 200.dp else 288.dp
-    val photoHeight = if (compact) 160.dp else 220.dp
+    // Fixed 4:3 aspect for the media slot — matches HomeFeed.ListingCard so
+    // every active marketplace card shares one image proportion.
+    val photoHeight = cardWidth * 3f / 4f
 
     var photoIdx by remember(item.id) { mutableIntStateOf(0) }
     var burst by remember(item.id) { mutableStateOf(false) }

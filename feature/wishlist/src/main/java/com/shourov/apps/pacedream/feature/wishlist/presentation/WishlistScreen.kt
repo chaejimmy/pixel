@@ -145,7 +145,8 @@ fun WishlistScreen(
                     onExplore = onExploreListings
                 )
                 is WishlistUiState.RequiresAuth -> RequiresAuthState(
-                    onSignIn = onShowAuthSheet
+                    onSignIn = onShowAuthSheet,
+                    onExplore = onExploreListings,
                 )
             }
         }
@@ -563,49 +564,16 @@ private fun ErrorState(
 
 @Composable
 private fun RequiresAuthState(
-    onSignIn: () -> Unit
+    onSignIn: () -> Unit,
+    onExplore: () -> Unit = {},
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(PaceDreamSpacing.LG),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL)
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(56.dp)
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            Text(
-                text = "Sign in to view favorites",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            Text(
-                text = "Save your favorite spaces and access them anywhere",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-
-            ProcessButton(
-                onClick = onSignIn,
-                text = "Sign In",
-                modifier = Modifier.fillMaxWidth(0.65f),
-            )
-        }
-    }
+    com.pacedream.common.composables.components.SignedOutEmptyState(
+        icon = PaceDreamIcons.FavoriteBorder,
+        title = "Save your favorite spaces",
+        subtitle = "Sign in to keep listings you love and find them again from any device.",
+        primaryCtaText = "Sign in",
+        onPrimaryCta = onSignIn,
+        secondaryCtaText = "Browse listings",
+        onSecondaryCta = onExplore,
+    )
 }

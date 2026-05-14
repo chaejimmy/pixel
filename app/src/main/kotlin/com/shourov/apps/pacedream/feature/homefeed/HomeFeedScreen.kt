@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -282,10 +283,12 @@ fun HomeFeedScreen(
                     onRefresh = { viewModel.refresh() }
                 )
 
-                // 7. Local help — services rail.
+                // 7. Help nearby — services rail. Rail name aligns with
+                //    the "Help" main category tile so the taxonomy reads as
+                //    one system, not two.
                 railSection(
                     sectionKey = "local_help",
-                    title = "Local help",
+                    title = "Help nearby",
                     subtitle = "Trusted helpers for what you need today",
                     items = helpSection?.items.orEmpty(),
                     isLoading = helpSection?.isLoading == true,
@@ -844,14 +847,16 @@ private fun ListingCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    // Explicit 4:3 ratio so home + skeleton + redesign cards
+                    // all share the same media slot proportions.
+                    .aspectRatio(4f / 3f)
                     .clip(RoundedCornerShape(PaceDreamRadius.LG))
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl?.takeIf { it.isNotBlank() })
                         .crossfade(200)
-                        .size(coil.size.Size(560, 400))
+                        .size(coil.size.Size(560, 420))
                         .build(),
                     contentDescription = item.title.ifBlank { "Listing" },
                     contentScale = ContentScale.Crop,
@@ -983,7 +988,9 @@ private fun SkeletonRow() {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        // Match the live ListingCard 4:3 ratio so the skeleton
+                        // doesn't jump when the real card resolves.
+                        .aspectRatio(4f / 3f)
                         .clip(RoundedCornerShape(PaceDreamRadius.LG))
                         .background(BrandPurpleEdge.copy(alpha = 0.6f))
                         .shimmerEffect()

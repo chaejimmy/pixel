@@ -615,64 +615,25 @@ private fun InboxEmptyState(modifier: Modifier = Modifier) {
 }
 
 /**
- * Auth-required state with sign-in prompt.
+ * Auth-required state — delegates to the shared signed-out scaffold so
+ * Inbox / Favorites / Profile all read as one cohesive marketplace, not
+ * three different lock-icon screens. Uses the chat-bubble icon (not a
+ * lock) since the sign-in affordance is the button.
  */
 @Composable
 private fun AuthRequiredState(
     onShowAuthSheet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.padding(horizontal = PaceDreamSpacing.XL),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(
-                    PaceDreamColors.Primary.copy(alpha = 0.08f),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = PaceDreamColors.Primary.copy(alpha = 0.6f)
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Text(
-            text = "Sign in to view messages",
-            style = PaceDreamTypography.Title3,
-            fontWeight = FontWeight.Bold,
-            color = PaceDreamColors.TextPrimary
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Message hosts, ask questions, and manage your bookings — all in one place.",
-            style = PaceDreamTypography.Body,
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Button(
-            onClick = onShowAuthSheet,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamColors.Primary
-            ),
-            shape = RoundedCornerShape(PaceDreamRadius.MD)
-        ) {
-            Text(
-                text = "Sign In",
-                style = PaceDreamTypography.Button,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
+    com.pacedream.common.composables.components.SignedOutEmptyState(
+        icon = PaceDreamIcons.Chat,
+        title = "Sign in to view messages",
+        subtitle = "Message hosts, ask questions, and manage your bookings — all in one place.",
+        primaryCtaText = "Sign in",
+        onPrimaryCta = onShowAuthSheet,
+        modifier = modifier,
+        applySystemInsets = false,
+    )
 }
 
 @Composable

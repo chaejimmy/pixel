@@ -215,61 +215,13 @@ fun ProfileTabScreen(
 private fun RequiresAuthState(
     onSignIn: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PaceDreamColors.Background)
-            .statusBarsPadding(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(PaceDreamSpacing.XL)
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary.copy(alpha = 0.5f),
-                modifier = Modifier.size(48.dp)
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-
-            Text(
-                text = "Sign in to view your profile",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            Text(
-                text = "Manage bookings, favorites, and account settings",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.75f)
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-
-            Button(
-                onClick = onSignIn,
-                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamRadius.Round),
-                modifier = Modifier.fillMaxWidth(0.7f),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-                Text(
-                    "Sign in / Create account",
-                    style = PaceDreamTypography.Subheadline,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
+    com.pacedream.common.composables.components.SignedOutEmptyState(
+        icon = PaceDreamIcons.Person,
+        title = "Sign in to your account",
+        subtitle = "Manage bookings, favorites, hosting, and account settings — all in one place.",
+        primaryCtaText = "Sign in or create account",
+        onPrimaryCta = onSignIn,
+    )
 }
 
 // ── Profile Header ────────────────────────────────────────────
