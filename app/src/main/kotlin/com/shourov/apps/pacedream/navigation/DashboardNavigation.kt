@@ -320,7 +320,23 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onShowAuthSheet = { showAuthSheet = true },
                                         onNotificationClick = {
                                             navController.navigate("notifications")
-                                        }
+                                        },
+                                        // "Can't find what you need? Post a request" CTA — opens the
+                                        // wanted/post-request flow tagged with the home source so
+                                        // analytics can attribute conversions to the home rail.
+                                        onPostRequestClick = {
+                                            navController.navigate(
+                                                "post_request?source=home_cta"
+                                            )
+                                        },
+                                        // "Earn from unused spaces" / "Start hosting" CTA — opens
+                                        // the host create-listing flow directly. Previously this
+                                        // (incorrectly) re-used onSearchClick and opened Explore.
+                                        onStartHostingClick = {
+                                            navController.navigate("create_listing") {
+                                                launchSingleTop = true
+                                            }
+                                        },
                                     )
 
                                     if (showAuthSheet) {
