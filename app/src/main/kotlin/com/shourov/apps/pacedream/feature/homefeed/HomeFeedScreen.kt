@@ -84,11 +84,11 @@ import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Brand accents — purple, kept local to the home so we don't have to flip the
-// global `PaceDreamColors.Primary` (iOS-aligned green) for this redesign.
+// Brand accents — derived from the global PaceDream brand (purple) so home,
+// bottom nav, buttons and CTAs all share the same primary color.
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val BrandPurple = Color(0xFF5527D7)
+private val BrandPurple = PaceDreamColors.Primary
 private val BrandPurpleSoft = Color(0xFFF5F1FB)
 private val BrandPurpleEdge = Color(0xFFE2D8F5)
 private val InkPrimary = Color(0xFF1A1522)
@@ -106,6 +106,8 @@ fun HomeFeedScreen(
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {},
+    onStartHostingClick: () -> Unit = {},
+    onPostRequestClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel(),
     connectivityViewModel: ConnectivityViewModel = hiltViewModel(),
@@ -297,16 +299,18 @@ fun HomeFeedScreen(
                     onRefresh = { viewModel.refresh() }
                 )
 
-                // 8. Request card — softer marketplace prompt.
+                // 8. Request card — softer marketplace prompt. Routes to the
+                //    Post Request flow, not search.
                 item(key = "request_card", contentType = "request") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-                    RequestCard(onClick = onSearchClick)
+                    RequestCard(onClick = onPostRequestClick)
                 }
 
-                // 9. Host CTA — calmer earn-with-what-you-have promo.
+                // 9. Host CTA — Start hosting routes to the host/create-listing
+                //    flow. Must NOT share the search callback.
                 item(key = "host_cta", contentType = "host_cta") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                    HostCtaCard(onClick = onSearchClick)
+                    HostCtaCard(onClick = onStartHostingClick)
                 }
 
                 // Spacer to clear the bottom nav comfortably.

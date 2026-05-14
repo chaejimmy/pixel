@@ -320,6 +320,19 @@ fun NavGraphBuilder.DashboardNavigation(
                                         onShowAuthSheet = { showAuthSheet = true },
                                         onNotificationClick = {
                                             navController.navigate("notifications")
+                                        },
+                                        onStartHostingClick = {
+                                            // create_listing already flips host mode on successful
+                                            // creation; we don't flip preemptively so a user who
+                                            // backs out of the flow stays in guest mode.
+                                            navController.navigate("create_listing") {
+                                                launchSingleTop = true
+                                            }
+                                        },
+                                        onPostRequestClick = {
+                                            navController.navigate(
+                                                "post_request?source=home_request_card"
+                                            )
                                         }
                                     )
 
