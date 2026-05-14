@@ -575,5 +575,8 @@ private fun RequiresAuthState(
         onPrimaryCta = onSignIn,
         secondaryCtaText = "Browse listings",
         onSecondaryCta = onExplore,
+        // WishlistScreen renders this state inside a Scaffold body whose
+        // .padding(padding) already consumes status + navigation bar insets.
+        applySystemInsets = false,
     )
 }
