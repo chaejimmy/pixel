@@ -145,7 +145,8 @@ fun WishlistScreen(
                     onExplore = onExploreListings
                 )
                 is WishlistUiState.RequiresAuth -> RequiresAuthState(
-                    onSignIn = onShowAuthSheet
+                    onSignIn = onShowAuthSheet,
+                    onExplore = onExploreListings,
                 )
             }
         }
@@ -563,62 +564,16 @@ private fun ErrorState(
 
 @Composable
 private fun RequiresAuthState(
-    onSignIn: () -> Unit
+    onSignIn: () -> Unit,
+    onExplore: () -> Unit = {},
 ) {
-    // Brand-styled sign-in prompt — purple-tinted heart in a soft circle,
-    // tight vertical rhythm, full-width primary CTA. Replaces the previous
-    // grey lock icon and oversized empty padding.
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = PaceDreamSpacing.LG),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(PaceDreamColors.Primary.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Favorite,
-                    contentDescription = null,
-                    tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            Text(
-                text = "Save your favorites",
-                style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-
-            Text(
-                text = "Sign in to keep places, gear, and helpers you love in one place.",
-                style = PaceDreamTypography.Subheadline,
-                color = PaceDreamColors.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.85f),
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-
-            ProcessButton(
-                onClick = onSignIn,
-                text = "Sign in / Create account",
-                modifier = Modifier.fillMaxWidth(0.85f),
-            )
-        }
-    }
+    com.pacedream.common.composables.components.SignedOutEmptyState(
+        icon = PaceDreamIcons.FavoriteBorder,
+        title = "Save your favorite spaces",
+        subtitle = "Sign in to keep listings you love and find them again from any device.",
+        primaryCtaText = "Sign in",
+        onPrimaryCta = onSignIn,
+        secondaryCtaText = "Browse listings",
+        onSecondaryCta = onExplore,
+    )
 }

@@ -73,7 +73,9 @@ fun ListingCard(
     onClick: () -> Unit = {},
 ) {
     val cardWidth = if (compact) 200.dp else 288.dp
-    val photoHeight = if (compact) 160.dp else 220.dp
+    // Fixed 4:3 aspect for the media slot — matches HomeFeed.ListingCard so
+    // every active marketplace card shares one image proportion.
+    val photoHeight = cardWidth * 3f / 4f
 
     var photoIdx by remember(item.id) { mutableIntStateOf(0) }
     var burst by remember(item.id) { mutableStateOf(false) }
@@ -297,7 +299,14 @@ fun ListingCard(
         }
 
         Spacer(Modifier.height(2.dp))
-        Text(item.area, color = HomeRedesignTheme.InkDim, fontSize = 12.5.sp, modifier = Modifier.padding(horizontal = 2.dp))
+        Text(
+            item.area,
+            color = HomeRedesignTheme.InkDim,
+            fontSize = 12.5.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
 
         if ("split" in item.badges && item.dates != null) {
             Spacer(Modifier.height(2.dp))
@@ -312,7 +321,13 @@ fun ListingCard(
                     modifier = Modifier.size(11.dp),
                 )
                 Spacer(Modifier.width(4.dp))
-                Text(item.dates, color = HomeRedesignTheme.InkFaint, fontSize = 12.sp)
+                Text(
+                    item.dates,
+                    color = HomeRedesignTheme.InkFaint,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
 
@@ -347,6 +362,8 @@ fun ListingCard(
                     color = HomeRedesignTheme.Coral.c700,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

@@ -1546,14 +1546,16 @@ private fun SearchViewModeToggle(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM),
+            // Tighter vertical padding so List/Map toggle sits closer to the
+            // first result card instead of pushing inventory down.
+            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .background(PaceDreamColors.Gray100)
-                .padding(4.dp),
+                .padding(3.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             SearchModeSegment(
@@ -1592,7 +1594,7 @@ private fun SearchModeSegment(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(40.dp),
+        modifier = modifier.height(36.dp),
         color = if (selected) PaceDreamColors.Card else Color.Transparent,
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         shadowElevation = if (selected) 1.dp else 0.dp,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -287,10 +288,12 @@ fun HomeFeedScreen(
                     onRefresh = { viewModel.refresh() }
                 )
 
-                // 7. Local help — services rail.
+                // 7. Help nearby — services rail. Rail name aligns with
+                //    the "Help" main category tile so the taxonomy reads as
+                //    one system, not two.
                 railSection(
                     sectionKey = "local_help",
-                    title = "Local help",
+                    title = "Help nearby",
                     subtitle = "Trusted helpers for what you need today",
                     items = helpSection?.items.orEmpty(),
                     isLoading = helpSection?.isLoading == true,
@@ -365,8 +368,8 @@ private fun DiscoverHeader(
                 .padding(
                     start = PaceDreamSpacing.LG,
                     end = PaceDreamSpacing.LG,
-                    top = PaceDreamSpacing.MD,
-                    bottom = PaceDreamSpacing.LG
+                    top = PaceDreamSpacing.SM,
+                    bottom = PaceDreamSpacing.MD
                 )
         ) {
             Row(
@@ -419,31 +422,33 @@ private fun DiscoverHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            // Hero copy kept tight so the first listing rail clears the fold
+            // on common Android screen sizes (5.5" / 360dp width and up).
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = title,
                 style = PaceDreamTypography.LargeTitle.copy(
                     fontFamily = paceDreamDisplayFontFamily,
-                    fontSize = 30.sp,
-                    lineHeight = 36.sp,
-                    letterSpacing = (-0.8).sp
+                    fontSize = 26.sp,
+                    lineHeight = 32.sp,
+                    letterSpacing = (-0.6).sp
                 ),
                 color = InkPrimary,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = subtitle,
                 style = PaceDreamTypography.Body.copy(
                     fontFamily = paceDreamFontFamily,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp
                 ),
                 color = InkMuted
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Premium search pill — Material 3 surface with soft shadow.
             // Tappable three-segment structure preserved so existing pickers
@@ -845,14 +850,16 @@ private fun ListingCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    // Explicit 4:3 ratio so home + skeleton + redesign cards
+                    // all share the same media slot proportions.
+                    .aspectRatio(4f / 3f)
                     .clip(RoundedCornerShape(PaceDreamRadius.LG))
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl?.takeIf { it.isNotBlank() })
                         .crossfade(200)
-                        .size(coil.size.Size(560, 400))
+                        .size(coil.size.Size(560, 420))
                         .build(),
                     contentDescription = item.title.ifBlank { "Listing" },
                     contentScale = ContentScale.Crop,
@@ -984,7 +991,9 @@ private fun SkeletonRow() {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
+                        // Match the live ListingCard 4:3 ratio so the skeleton
+                        // doesn't jump when the real card resolves.
+                        .aspectRatio(4f / 3f)
                         .clip(RoundedCornerShape(PaceDreamRadius.LG))
                         .background(BrandPurpleEdge.copy(alpha = 0.6f))
                         .shimmerEffect()
