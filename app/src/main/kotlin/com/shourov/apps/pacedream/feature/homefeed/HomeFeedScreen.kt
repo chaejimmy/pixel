@@ -84,11 +84,12 @@ import com.shourov.apps.pacedream.listing.ListingPreviewStore
 import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Brand accents — purple, kept local to the home so we don't have to flip the
-// global `PaceDreamColors.Primary` (iOS-aligned green) for this redesign.
+// Brand accents — track `PaceDreamColors.Primary` (PaceDream purple, #5527D7).
+// Local tints/edges are kept here so the hero canvas can layer soft tonal
+// surfaces without having to expose every variant on the global token.
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val BrandPurple = Color(0xFF5527D7)
+private val BrandPurple = PaceDreamColors.Primary // alias to global brand purple
 private val BrandPurpleSoft = Color(0xFFF5F1FB)
 private val BrandPurpleEdge = Color(0xFFE2D8F5)
 private val InkPrimary = Color(0xFF1A1522)
@@ -106,6 +107,12 @@ fun HomeFeedScreen(
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
     onNotificationClick: () -> Unit = {},
+    // The "Can't find what you need? Post a request" rail-end card routes
+    // to the wanted/post-request flow, not to Search.
+    onPostRequestClick: () -> Unit = {},
+    // The "Earn from unused spaces" promo and its "Start hosting" pill route
+    // to the host / create-listing flow, not to Search.
+    onStartHostingClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel(),
     connectivityViewModel: ConnectivityViewModel = hiltViewModel(),
@@ -297,16 +304,16 @@ fun HomeFeedScreen(
                     onRefresh = { viewModel.refresh() }
                 )
 
-                // 8. Request card — softer marketplace prompt.
+                // 8. Request card — routes to the Post a Request flow, not Search.
                 item(key = "request_card", contentType = "request") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
-                    RequestCard(onClick = onSearchClick)
+                    RequestCard(onClick = onPostRequestClick)
                 }
 
-                // 9. Host CTA — calmer earn-with-what-you-have promo.
+                // 9. Host CTA — routes to the host / create-listing flow, not Search.
                 item(key = "host_cta", contentType = "host_cta") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                    HostCtaCard(onClick = onSearchClick)
+                    HostCtaCard(onClick = onStartHostingClick)
                 }
 
                 // Spacer to clear the bottom nav comfortably.

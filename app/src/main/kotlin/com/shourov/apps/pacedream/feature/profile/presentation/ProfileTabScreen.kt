@@ -215,52 +215,63 @@ fun ProfileTabScreen(
 private fun RequiresAuthState(
     onSignIn: () -> Unit
 ) {
+    // Brand-styled sign-in prompt. Replaces the grey-lock + huge-padding
+    // layout with a purple-tinted avatar circle, tighter rhythm, and a
+    // full-width primary CTA so the screen no longer feels like dead space.
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(PaceDreamColors.Background)
-            .statusBarsPadding(),
+            .statusBarsPadding()
+            .padding(horizontal = PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(PaceDreamSpacing.XL)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary.copy(alpha = 0.5f),
-                modifier = Modifier.size(48.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Person,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             Text(
-                text = "Sign in to view your profile",
+                text = "Welcome to PaceDream",
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             Text(
-                text = "Manage bookings, favorites, and account settings",
+                text = "Sign in to manage bookings, favorites, and your hosting earnings.",
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.75f)
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
 
             Button(
                 onClick = onSignIn,
                 colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
-                shape = RoundedCornerShape(PaceDreamRadius.Round),
-                modifier = Modifier.fillMaxWidth(0.7f),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                modifier = Modifier.fillMaxWidth(0.85f),
+                contentPadding = PaddingValues(vertical = 14.dp)
             ) {
                 Text(
                     "Sign in / Create account",

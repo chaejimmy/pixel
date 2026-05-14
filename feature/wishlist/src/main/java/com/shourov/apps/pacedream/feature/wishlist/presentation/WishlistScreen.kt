@@ -565,46 +565,59 @@ private fun ErrorState(
 private fun RequiresAuthState(
     onSignIn: () -> Unit
 ) {
+    // Brand-styled sign-in prompt — purple-tinted heart in a soft circle,
+    // tight vertical rhythm, full-width primary CTA. Replaces the previous
+    // grey lock icon and oversized empty padding.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.LG),
+            .padding(horizontal = PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = PaceDreamSpacing.XL)
         ) {
-            Icon(
-                imageVector = PaceDreamIcons.Lock,
-                contentDescription = null,
-                tint = PaceDreamColors.TextSecondary,
-                modifier = Modifier.size(56.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(PaceDreamColors.Primary.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = PaceDreamIcons.Favorite,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             Text(
-                text = "Sign in to view favorites",
+                text = "Save your favorites",
                 style = PaceDreamTypography.Title2,
-                color = PaceDreamColors.TextPrimary
+                color = PaceDreamColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             Text(
-                text = "Save your favorite spaces and access them anywhere",
+                text = "Sign in to keep places, gear, and helpers you love in one place.",
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(0.85f),
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             ProcessButton(
                 onClick = onSignIn,
-                text = "Sign In",
-                modifier = Modifier.fillMaxWidth(0.65f),
+                text = "Sign in / Create account",
+                modifier = Modifier.fillMaxWidth(0.85f),
             )
         }
     }

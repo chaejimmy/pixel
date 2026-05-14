@@ -415,6 +415,15 @@ fun SearchScreen(
                     exit = shrinkVertically()
                 ) {
                     com.pacedream.app.feature.search.EnhancedSearchBar(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            // Tightened from SM/MD to XS so listing cards appear
+                            // sooner below the search card. Was double-padded
+                            // because the inner card also pads its content.
+                            .padding(
+                                horizontal = PaceDreamSpacing.SM2,
+                                vertical = PaceDreamSpacing.XS,
+                            ),
                         selectedTab = selectedTab,
                         onTabSelected = { tab ->
                             selectedTab = tab
@@ -502,9 +511,6 @@ fun SearchScreen(
                             )
                             viewModel.submitSearch()
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
                     )
                 }
 
@@ -816,11 +822,14 @@ private fun FiltersRow(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Sort row
+        // Sort + filter chip row — compact spacing keeps listings high on screen.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
+                .padding(
+                    horizontal = PaceDreamSpacing.SM2,
+                    vertical = PaceDreamSpacing.XXS,
+                ),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -918,15 +927,20 @@ private fun FiltersRow(
             }
         }
 
-        // Category filter chips - dynamic per mode (matching website)
+        // Category filter chips - dynamic per mode (matching website).
+        // Vertical padding is XXS so the chip strip hugs the sort row and
+        // listings appear sooner.
         val categories = CATEGORIES_BY_MODE[shareType] ?: emptyList()
         if (categories.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.XS),
-                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+                    .padding(
+                        horizontal = PaceDreamSpacing.SM2,
+                        vertical = PaceDreamSpacing.XXS,
+                    ),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
             ) {
                 categories.forEach { cat ->
                     val isSelected = cat in selectedCategories
