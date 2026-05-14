@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -104,6 +105,12 @@ fun ListingCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(photoHeight)
+                .shadow(
+                    elevation = 5.dp,
+                    shape = HomeRedesignTheme.CardShape,
+                    ambientColor = Color.Black.copy(alpha = 0.05f),
+                    spotColor = Color.Black.copy(alpha = 0.06f),
+                )
                 .clip(HomeRedesignTheme.CardShape)
                 .background(HomeRedesignTheme.LineSoft),
         ) {
@@ -220,10 +227,10 @@ fun ListingCard(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(10.dp)
-                    .size(34.dp)
+                    .size(32.dp)
                     .graphicsLayer { scaleX = heartScale; scaleY = heartScale }
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.25f))
+                    .background(Color.Black.copy(alpha = 0.18f))
                     .clickable { onLikeToggle(!liked) },
                 contentAlignment = Alignment.Center,
             ) {
@@ -232,14 +239,14 @@ fun ListingCard(
                         Icons.Rounded.Favorite,
                         contentDescription = "Unfavorite",
                         tint = HomeRedesignTheme.Coral.c500,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(17.dp),
                     )
                 } else {
                     Icon(
                         Icons.Outlined.FavoriteBorder,
                         contentDescription = "Favorite",
                         tint = Color.White,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(17.dp),
                     )
                 }
             }
@@ -264,14 +271,15 @@ fun ListingCard(
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 item.title,
                 modifier = Modifier.weight(1f).padding(end = 8.dp),
                 color = HomeRedesignTheme.Ink,
-                fontSize = 14.5.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.2).sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -286,14 +294,14 @@ fun ListingCard(
                 Text(
                     "%.2f".format(item.rating),
                     color = HomeRedesignTheme.Ink,
-                    fontSize = 12.5.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     "(${item.reviews})",
                     color = HomeRedesignTheme.InkFaint,
-                    fontSize = 11.5.sp,
+                    fontSize = 11.sp,
                 )
             }
         }
@@ -302,7 +310,7 @@ fun ListingCard(
         Text(
             item.area,
             color = HomeRedesignTheme.InkDim,
-            fontSize = 12.5.sp,
+            fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 2.dp),
@@ -350,11 +358,16 @@ fun ListingCard(
             Text(
                 "$${item.price}",
                 color = HomeRedesignTheme.Ink,
-                fontSize = 15.sp,
+                fontSize = 14.5.sp,
                 fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.2).sp,
             )
             Spacer(Modifier.width(3.dp))
-            Text("/ ${item.unit}", color = HomeRedesignTheme.InkDim, fontSize = 12.5.sp)
+            Text(
+                "/ ${item.unit}",
+                color = HomeRedesignTheme.InkDim,
+                fontSize = 12.sp,
+            )
             if (item.bookedToday != null) {
                 Spacer(Modifier.weight(1f))
                 Text(

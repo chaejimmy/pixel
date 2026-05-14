@@ -70,7 +70,7 @@ fun SignedOutEmptyState(
             // icon. The icon reflects the tab's own affordance.
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(64.dp)
                     .background(
                         color = PaceDreamColors.Primary.copy(alpha = 0.10f),
                         shape = CircleShape,
@@ -81,11 +81,11 @@ fun SignedOutEmptyState(
                     imageVector = icon,
                     contentDescription = null,
                     tint = PaceDreamColors.Primary,
-                    modifier = Modifier.size(34.dp),
+                    modifier = Modifier.size(30.dp),
                 )
             }
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             Text(
                 text = title,
@@ -95,14 +95,14 @@ fun SignedOutEmptyState(
                 textAlign = TextAlign.Center,
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             Text(
                 text = subtitle,
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.86f),
+                modifier = Modifier.fillMaxWidth(0.82f),
             )
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -114,11 +114,11 @@ fun SignedOutEmptyState(
                     contentColor = PaceDreamColors.OnPrimary,
                 ),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
-                modifier = Modifier.fillMaxWidth(0.72f),
+                modifier = Modifier.fillMaxWidth(0.74f),
             ) {
                 Text(
                     text = primaryCtaText,
-                    style = PaceDreamTypography.Button,
+                    style = PaceDreamTypography.Headline,
                     fontWeight = FontWeight.SemiBold,
                 )
             }

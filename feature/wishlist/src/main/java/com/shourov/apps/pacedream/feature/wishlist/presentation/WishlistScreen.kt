@@ -211,19 +211,26 @@ private fun FilterChipsRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         items(WishlistFilter.entries) { filter ->
+            val selected = filter == selectedFilter
             FilterChip(
-                selected = filter == selectedFilter,
+                selected = selected,
                 onClick = { onFilterSelected(filter) },
                 label = {
                     Text(
                         text = filter.displayName,
-                        style = PaceDreamTypography.Caption
+                        style = PaceDreamTypography.Caption.copy(
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                            fontSize = 12.sp,
+                            letterSpacing = (-0.1).sp,
+                        ),
                     )
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = PaceDreamColors.Primary,
-                    selectedLabelColor = Color.White
-                )
+                    selectedLabelColor = Color.White,
+                ),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
+                modifier = Modifier.height(32.dp),
             )
         }
     }

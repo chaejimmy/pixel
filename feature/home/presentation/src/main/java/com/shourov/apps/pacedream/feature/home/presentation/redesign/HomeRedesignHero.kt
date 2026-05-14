@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -142,21 +143,22 @@ fun HomeHero(
                 }
             }
 
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
             Text(
                 "Use what you need,\nonly for the time you need it.",
                 color = Color.White,
-                fontSize = 28.sp,
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.8).sp,
-                lineHeight = 32.sp,
+                letterSpacing = (-0.6).sp,
+                lineHeight = 30.sp,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
                 "Find stays, gear, spaces, and local help nearby.",
-                color = Color.White.copy(alpha = 0.86f),
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 13.5.sp,
+                lineHeight = 19.sp,
+                letterSpacing = (-0.1).sp,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -165,13 +167,13 @@ fun HomeHero(
             Spacer(Modifier.height(10.dp))
             AccessChipsRow(type = type, value = access, onChange = onAccessChange, onHero = true)
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
             SearchCard(whatPlaceholder = whatPlaceholder, onClick = onSearch)
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             WhatSuggestionsRow(suggestions = whatSuggestions, onSuggestionClick = { onSearch() })
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
             TrustRow(items = listOf("Verified hosts", "Free cancel 24h", "Secure payments"))
         }
     }
@@ -345,42 +347,53 @@ fun StickyCompactSearch(type: PrimaryType, onClick: () -> Unit, modifier: Modifi
         PrimaryType.ITEMS -> "Gear · Near you"
         PrimaryType.SERVICES -> "Help · Brooklyn"
     }
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .background(HomeRedesignTheme.PaperSurface)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .clip(HomeRedesignTheme.PillShape)
-            .background(HomeRedesignTheme.PaperBg)
-            .border(1.dp, HomeRedesignTheme.Line, HomeRedesignTheme.PillShape)
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
-        Icon(
-            Icons.Outlined.Search,
-            contentDescription = null,
-            tint = HomeRedesignTheme.Ink,
-            modifier = Modifier.size(16.dp),
-        )
-        Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f)) {
-            Text(subtitle, color = HomeRedesignTheme.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text("Any time", color = HomeRedesignTheme.InkFaint, fontSize = 11.5.sp)
-        }
-        Box(
-            Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(HomeRedesignTheme.Ink),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(
+                    elevation = 6.dp,
+                    shape = HomeRedesignTheme.PillShape,
+                    ambientColor = Color.Black.copy(alpha = 0.04f),
+                    spotColor = Color.Black.copy(alpha = 0.05f),
+                )
+                .clip(HomeRedesignTheme.PillShape)
+                .background(HomeRedesignTheme.PaperSurface)
+                .border(1.dp, HomeRedesignTheme.Line, HomeRedesignTheme.PillShape)
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                Icons.Outlined.Tune,
-                contentDescription = "Filters",
-                tint = HomeRedesignTheme.PaperSurface,
-                modifier = Modifier.size(14.dp),
+                Icons.Outlined.Search,
+                contentDescription = null,
+                tint = HomeRedesignTheme.Ink,
+                modifier = Modifier.size(16.dp),
             )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(subtitle, color = HomeRedesignTheme.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Any time", color = HomeRedesignTheme.InkFaint, fontSize = 11.5.sp)
+            }
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(HomeRedesignTheme.Ink),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Tune,
+                    contentDescription = "Filters",
+                    tint = HomeRedesignTheme.PaperSurface,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
     }
 }

@@ -128,9 +128,11 @@ fun SearchScreen(
                 Column {
                     Text(
                         "Explore",
-                        style = PaceDreamTypography.Title1.copy(
+                        style = PaceDreamTypography.Title2.copy(
                             fontFamily = paceDreamDisplayFontFamily,
-                            letterSpacing = (-0.5).sp
+                            letterSpacing = (-0.5).sp,
+                            fontSize = 24.sp,
+                            lineHeight = 28.sp
                         ),
                         color = PaceDreamColors.TextPrimary
                     )
@@ -202,13 +204,13 @@ fun SearchScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
             // Segmented tab control (iOS parity: capsule shape, icon + text, animated)
             val tabs = SearchTab.entries
             Surface(
                 modifier = Modifier.testTag(SearchTestTags.Tabs),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                shape = RoundedCornerShape(PaceDreamRadius.Round),
                 color = PaceDreamColors.Surface
             ) {
                 Row(
@@ -222,11 +224,11 @@ fun SearchScreen(
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                                .clip(RoundedCornerShape(PaceDreamRadius.Round))
                                 .clickable { viewModel.onTabChanged(tab) },
-                            shape = RoundedCornerShape(PaceDreamRadius.SM),
+                            shape = RoundedCornerShape(PaceDreamRadius.Round),
                             color = if (isSelected) PaceDreamColors.Primary else Color.Transparent,
-                            shadowElevation = if (isSelected) 1.dp else 0.dp
+                            shadowElevation = 0.dp
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -239,7 +241,7 @@ fun SearchScreen(
                                     tab.label,
                                     style = PaceDreamTypography.Footnote.copy(
                                         fontFamily = paceDreamFontFamily,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                                     ),
                                     color = if (isSelected) Color.White else PaceDreamColors.TextSecondary
                                 )
@@ -268,11 +270,12 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(categories) { category ->
+                val selected = uiState.selectedCategory == category
                 FilterChip(
-                    selected = uiState.selectedCategory == category,
+                    selected = selected,
                     onClick = {
                         viewModel.onCategoryChanged(
-                            if (uiState.selectedCategory == category) null else category
+                            if (selected) null else category
                         )
                     },
                     label = {
@@ -280,7 +283,9 @@ fun SearchScreen(
                             category,
                             style = PaceDreamTypography.Caption.copy(
                                 fontFamily = paceDreamFontFamily,
-                                fontWeight = if (uiState.selectedCategory == category) FontWeight.SemiBold else FontWeight.Normal
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                fontSize = 12.sp,
+                                letterSpacing = (-0.1).sp
                             )
                         )
                     },
@@ -293,12 +298,13 @@ fun SearchScreen(
                     shape = RoundedCornerShape(PaceDreamRadius.Round),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
-                        selected = uiState.selectedCategory == category,
+                        selected = selected,
                         borderColor = PaceDreamColors.BorderLight,
                         selectedBorderColor = Color.Transparent,
-                        borderWidth = 0.5.dp,
+                        borderWidth = 1.dp,
                         selectedBorderWidth = 0.dp
-                    )
+                    ),
+                    modifier = Modifier.height(32.dp)
                 )
             }
         }
