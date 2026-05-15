@@ -10,8 +10,10 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.LocationDto
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestForm
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.FieldErrors
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
+import com.shourov.apps.pacedream.feature.wanted.model.hasVerifiedSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -97,9 +99,17 @@ class CreateRequestViewModel @Inject constructor(
                     ?: "other"
                 nextForm.copy(category = firstCategory)
             } else nextForm
+            // Clear the post-submit location error as soon as the user
+            // makes a valid pick — keeping it visible would feel like a
+            // bug on the very next render.
+            val nextErrors = computeFieldErrors(safeForm)
+                .copy(
+                    locationError = current.fieldErrors.locationError
+                        ?.takeIf { !safeForm.location.hasVerifiedSelection },
+                )
             current.copy(
                 form = safeForm,
-                fieldErrors = computeFieldErrors(safeForm),
+                fieldErrors = nextErrors,
                 error = null,
             )
         }
@@ -163,6 +173,20 @@ class CreateRequestViewModel @Inject constructor(
         val current = _state.value
         val form = current.form
         if (current.uploading) return
+        // Location moved from "optional" to "required" to match the web
+        // moderation flow — a request without a verified place is impossible
+        // to review or surface on a map. Flip an inline error so the user
+        // sees *why* the disabled CTA is disabled rather than just bouncing.
+        if (!form.location.hasVerifiedSelection) {
+            _state.update {
+                it.copy(
+                    fieldErrors = it.fieldErrors.copy(
+                        locationError = "Add a location so we can publish your request.",
+                    ),
+                )
+            }
+            return
+        }
         // The submit button is gated on live validity in the UI, so reaching
         // this point with errors implies a programmatic call — bail rather
         // than POST an invalid request.
@@ -211,9 +235,28 @@ class CreateRequestViewModel @Inject constructor(
             _state.update { it.copy(submitting = true, error = null) }
             repository.createRequest(body)
                 .onSuccess { created ->
-                    Timber.d("post_request_submit_succeeded requestId=${created.id}")
+                    Timber.d(
+                        "post_request_submit_succeeded requestId=%s moderationStatus=%s",
+                        created.id,
+                        created.moderationStatus.key,
+                    )
+                    // Platform contract: every freshly-posted request enters
+                    // review. If a legacy backend strips the column the DTO
+                    // parser decodes it as Approved — we still surface review
+                    // copy because the platform-level contract is binding,
+                    // and the worst case is a one-render mismatch the server
+                    // reconciles on the next list refresh.
+                    val effectiveStatus = if (created.moderationStatus == ModerationStatus.Approved) {
+                        ModerationStatus.PendingReview
+                    } else {
+                        created.moderationStatus
+                    }
                     _state.update {
-                        it.copy(submitting = false, createdId = created.id)
+                        it.copy(
+                            submitting = false,
+                            createdId = created.id,
+                            createdModerationStatus = effectiveStatus,
+                        )
                     }
                 }
                 .onFailure { e ->

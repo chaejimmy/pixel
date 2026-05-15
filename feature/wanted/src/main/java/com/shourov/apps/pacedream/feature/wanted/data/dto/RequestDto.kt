@@ -1,6 +1,7 @@
 package com.shourov.apps.pacedream.feature.wanted.data.dto
 
 import com.google.gson.annotations.SerializedName
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 
 // ============================================================================
@@ -83,6 +84,24 @@ data class RequestDto(
     val authorAvatar: String? = null,
     @SerializedName("offerCount")
     val offerCount: Int? = null,
+    /**
+     * Moderation gate. The web platform writes this as `moderationStatus`
+     * for new payloads and `status` for legacy ones; we accept either so
+     * the migration window is non-blocking.
+     */
+    @SerializedName("moderationStatus")
+    val moderationStatus: String? = null,
+    /**
+     * Legacy/alternate moderation column. Only consulted when
+     * [moderationStatus] is missing — moderation values that overlap with
+     * lifecycle state ("open", "matched") fall through to "approved" via
+     * [ModerationStatus.fromKey].
+     */
+    val status: String? = null,
+    @SerializedName("moderationReason")
+    val moderationReason: String? = null,
+    @SerializedName("rejectionReason")
+    val rejectionReason: String? = null,
 )
 
 data class AuthorDto(
@@ -133,6 +152,10 @@ fun RequestDto.toDomain(): WantedRequest {
         authorName = authorName ?: author?.name,
         authorAvatarUrl = authorAvatar ?: author?.avatar,
         offerCount = offerCount ?: 0,
+        moderationStatus = ModerationStatus.fromKey(moderationStatus ?: status),
+        moderationReason = (moderationReason ?: rejectionReason)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() },
     )
 }
 

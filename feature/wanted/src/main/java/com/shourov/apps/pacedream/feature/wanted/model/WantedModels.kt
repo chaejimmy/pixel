@@ -24,7 +24,48 @@ data class WantedRequest(
     val authorName: String? = null,
     val authorAvatarUrl: String? = null,
     val offerCount: Int = 0,
+    /**
+     * Web-parity moderation gate. New requests come back from
+     * `POST /v1/requests` as [ModerationStatus.PendingReview]; the browse
+     * feed must only surface [ModerationStatus.Approved]. Legacy feeds
+     * that don't carry the field decode to [ModerationStatus.Approved]
+     * so historic data stays visible.
+     */
+    val moderationStatus: ModerationStatus = ModerationStatus.Approved,
+    /** Reviewer note shown when [moderationStatus] is [ModerationStatus.Rejected]. */
+    val moderationReason: String? = null,
 )
+
+/**
+ * Lifecycle of the moderation review applied to a [WantedRequest].
+ *
+ * Web parity: the platform marks a freshly-posted request as
+ * `pending_review`, surfaces it on the requester's own list only, and
+ * promotes it to `approved` once a moderator (or the auto-pipeline)
+ * clears it. Rejected requests stay invisible to the public feed and
+ * receive a reviewer note for the requester.
+ *
+ * Unknown / missing values from the server map to [Approved] so we
+ * never accidentally hide legacy records that pre-date the moderation
+ * column.
+ */
+enum class ModerationStatus(val key: String, val label: String) {
+    PendingReview("pending_review", "Pending review"),
+    Approved("approved", "Approved"),
+    Rejected("rejected", "Rejected"),
+    ;
+
+    /** True when the request can appear on the public browse feed. */
+    val isPublic: Boolean get() = this == Approved
+
+    companion object {
+        fun fromKey(key: String?): ModerationStatus {
+            if (key.isNullOrBlank()) return Approved
+            return entries.firstOrNull { it.key.equals(key, ignoreCase = true) }
+                ?: Approved
+        }
+    }
+}
 
 @Immutable
 data class WantedOffer(
@@ -219,7 +260,23 @@ data class SelectedPlace(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .joinToString(", ")
+
+    /**
+     * A pick is "verified" when we have either a labelled component (city
+     * is the cheapest sentinel) or a real coordinate pair. The browse feed
+     * filters on labelled locations, but the requester is still allowed to
+     * pin the request with coordinates only — the moderator will see them.
+     */
+    val hasVerifiedSelection: Boolean
+        get() = city.isNotBlank() ||
+            region.isNotBlank() ||
+            country.isNotBlank() ||
+            (lat != null && lng != null)
 }
+
+/** Null-safe alias of [SelectedPlace.hasVerifiedSelection] for nullable form state. */
+val SelectedPlace?.hasVerifiedSelection: Boolean
+    get() = this != null && this.hasVerifiedSelection
 
 data class CreateRequestForm(
     val type: WantedType = WantedType.Space,
@@ -240,9 +297,19 @@ data class FieldErrors(
     val titleError: String? = null,
     val descriptionError: String? = null,
     val budgetError: String? = null,
+    /**
+     * Populated only after the user attempts to submit without picking a
+     * structured location. We don't shout at the field on every keystroke
+     * because the user may not have reached it yet — the submit button
+     * stays disabled via [CreateRequestUiState.requiredFieldsPresent].
+     */
+    val locationError: String? = null,
 ) {
     fun isEmpty(): Boolean =
-        titleError == null && descriptionError == null && budgetError == null
+        titleError == null &&
+            descriptionError == null &&
+            budgetError == null &&
+            locationError == null
 }
 
 data class CreateRequestUiState(
@@ -252,6 +319,15 @@ data class CreateRequestUiState(
     val uploading: Boolean = false,
     val error: String? = null,
     val createdId: String? = null,
+    /**
+     * Moderation state echoed by the server on successful submit. New
+     * requests come back as [ModerationStatus.PendingReview] — we mirror
+     * that into the success screen so the requester sees "Submitted for
+     * review" rather than "Live now". Defaults to [ModerationStatus.PendingReview]
+     * so the success screen's review copy is the safe default if the
+     * server omits the field.
+     */
+    val createdModerationStatus: ModerationStatus = ModerationStatus.PendingReview,
     /**
      * Per-type category options shown in the dropdown. Defaults to the
      * hardcoded [WantedCategoriesByType] so the form is never blank on
@@ -264,11 +340,16 @@ data class CreateRequestUiState(
      * Required fields are tracked separately from [fieldErrors] so that the
      * submit button can stay disabled for an empty form without showing a
      * red border under every field the user hasn't reached yet.
+     *
+     * A picked location is treated as present when the autocomplete sheet
+     * gave us a labelled place (city) or — for the "Use current location"
+     * fallback that may skip the geocoder — at least a coordinate pair.
      */
     val requiredFieldsPresent: Boolean
         get() = form.title.trim().length >= TITLE_MIN_LENGTH &&
             form.description.trim().length >= DESCRIPTION_MIN_LENGTH &&
-            form.category.isNotBlank()
+            form.category.isNotBlank() &&
+            form.location.hasVerifiedSelection
 
     companion object {
         const val TITLE_MIN_LENGTH = 3

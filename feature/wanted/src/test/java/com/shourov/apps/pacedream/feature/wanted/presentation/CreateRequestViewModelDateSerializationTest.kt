@@ -5,6 +5,7 @@ import com.shourov.apps.pacedream.core.upload.ImageUploader
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
+import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -67,6 +68,7 @@ class CreateRequestViewModelDateSerializationTest {
                 title = "Need a covered parking spot in SF",
                 description = "Looking for a covered spot near downtown for the long weekend.",
                 category = "parking",
+                location = SAN_FRANCISCO,
                 startDate = utcMidnight(2026, 7, 4),
             )
         }
@@ -91,6 +93,7 @@ class CreateRequestViewModelDateSerializationTest {
                 title = "Need a covered parking spot in SF",
                 description = "Looking for a covered spot for the holiday weekend.",
                 category = "parking",
+                location = SAN_FRANCISCO,
                 startDate = utcMidnight(2026, 7, 4),
                 endDate = utcMidnight(2026, 7, 5),
             )
@@ -116,6 +119,7 @@ class CreateRequestViewModelDateSerializationTest {
                 title = "Need a covered parking spot in SF",
                 description = "Open to any date — let providers tell me what's available.",
                 category = "parking",
+                location = SAN_FRANCISCO,
                 startDate = null,
                 endDate = null,
             )
@@ -142,6 +146,7 @@ class CreateRequestViewModelDateSerializationTest {
                 title = "Need a covered parking spot in SF",
                 description = "Just for the Saturday — single-day need.",
                 category = "parking",
+                location = SAN_FRANCISCO,
                 startDate = day,
                 endDate = day,
             )
@@ -155,6 +160,14 @@ class CreateRequestViewModelDateSerializationTest {
     }
 
     // ── Test doubles ───────────────────────────────────────────────────────
+
+    private val SAN_FRANCISCO = SelectedPlace(
+        city = "San Francisco",
+        region = "California",
+        country = "United States",
+        lat = 37.7749,
+        lng = -122.4194,
+    )
 
     private fun utcMidnight(year: Int, month: Int, day: Int): Long =
         LocalDate.of(year, month, day)

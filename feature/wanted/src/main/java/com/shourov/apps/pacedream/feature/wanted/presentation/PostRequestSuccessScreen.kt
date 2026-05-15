@@ -35,14 +35,20 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.BuildConfig
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 
 /**
  * Confirmation screen shown after a request is successfully posted.
  *
  * Mirrors the web `/post-request/success?id={requestId}` page:
- *  - Big success checkmark + reassuring copy
- *  - Primary action: "View my requests" (where the user can track offers)
- *  - Secondary: "Post another" / "Back to home"
+ *  - Big success checkmark + moderation-aware reassuring copy
+ *  - Primary action: "Track my requests" (where the user can monitor
+ *    moderation + offers)
+ *  - Secondary: "Post another"
+ *
+ * The web platform queues every new request for review before it is
+ * publishable. The success screen surfaces that explicitly so the user
+ * doesn't expect immediate visibility on the public feed.
  *
  * Visual style follows PaceDreamDesignSystem tokens — no raw hex, no new
  * patterns.
@@ -53,13 +59,26 @@ fun PostRequestSuccessScreen(
     onViewMyRequests: () -> Unit,
     onPostAnother: () -> Unit,
     onClose: () -> Unit,
+    moderationStatus: ModerationStatus = ModerationStatus.PendingReview,
 ) {
+    val pendingReview = moderationStatus != ModerationStatus.Approved
+    val accentColor = if (pendingReview) PaceDreamColors.Warning else PaceDreamColors.Success
+    val icon = if (pendingReview) PaceDreamIcons.Info else PaceDreamIcons.CheckCircle
+    val title = if (pendingReview) "Submitted for review" else "Your request is live"
+    val body = if (pendingReview) {
+        "Thanks — a reviewer will publish your request shortly, usually within " +
+            "a few hours. We'll notify you the moment it's live and providers " +
+            "can start sending offers."
+    } else {
+        "Providers can now see your request and send offers. We'll let you " +
+            "know in your Inbox when an offer arrives."
+    }
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Request posted",
+                        text = if (pendingReview) "Submitted" else "Request posted",
                         style = PaceDreamTypography.Headline,
                     )
                 },
@@ -90,15 +109,15 @@ fun PostRequestSuccessScreen(
                 modifier = Modifier
                     .size(72.dp)
                     .background(
-                        color = PaceDreamColors.Success.copy(alpha = 0.15f),
+                        color = accentColor.copy(alpha = 0.15f),
                         shape = CircleShape,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = PaceDreamIcons.CheckCircle,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = PaceDreamColors.Success,
+                    tint = accentColor,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -106,7 +125,7 @@ fun PostRequestSuccessScreen(
             Spacer(Modifier.height(PaceDreamSpacing.MD))
 
             Text(
-                text = "Your request is live",
+                text = title,
                 style = PaceDreamTypography.Title2,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
@@ -115,8 +134,7 @@ fun PostRequestSuccessScreen(
             Spacer(Modifier.height(PaceDreamSpacing.SM))
 
             Text(
-                text = "Providers can now see your request and send offers. " +
-                    "We'll let you know in your Inbox when an offer arrives.",
+                text = body,
                 style = PaceDreamTypography.Body,
                 color = PaceDreamColors.TextSecondary,
             )

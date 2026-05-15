@@ -229,9 +229,10 @@ fun CreateRequestScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                SectionLabel("Where? (optional)")
+                SectionLabel("Where?")
                 LocationField(
                     selected = state.form.location,
+                    error = state.fieldErrors.locationError,
                     onClick = { showLocationSheet = true },
                     onClear = { viewModel.update { it.copy(location = null) } },
                 )
@@ -344,40 +345,61 @@ fun CreateRequestScreen(
 @Composable
 private fun LocationField(
     selected: SelectedPlace?,
+    error: String?,
     onClick: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(PaceDreamRadius.MD))
-            .background(PaceDreamColors.Surface)
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = PaceDreamSpacing.SM2,
-                vertical = PaceDreamSpacing.SM2,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = PaceDreamIcons.LocationOn,
-            contentDescription = null,
-            tint = if (selected != null) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(PaceDreamSpacing.SM))
-        Text(
-            text = selected?.displayLine?.takeIf { it.isNotBlank() }
-                ?: "Add a location",
-            style = PaceDreamTypography.Body,
-            color = if (selected != null) PaceDreamColors.TextPrimary
-            else PaceDreamColors.TextSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        if (selected != null) {
-            TextButton(onClick = onClear) {
-                Text("Clear", color = PaceDreamColors.Primary)
+    val shape = RoundedCornerShape(PaceDreamRadius.MD)
+    val borderModifier = if (error != null) {
+        Modifier.border(1.dp, PaceDreamColors.Error, shape)
+    } else {
+        Modifier
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(PaceDreamColors.Surface)
+                .then(borderModifier)
+                .clickable(onClick = onClick)
+                .padding(
+                    horizontal = PaceDreamSpacing.SM2,
+                    vertical = PaceDreamSpacing.SM2,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = PaceDreamIcons.LocationOn,
+                contentDescription = null,
+                tint = when {
+                    error != null -> PaceDreamColors.Error
+                    selected != null -> PaceDreamColors.Primary
+                    else -> PaceDreamColors.TextSecondary
+                },
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(PaceDreamSpacing.SM))
+            Text(
+                text = selected?.displayLine?.takeIf { it.isNotBlank() }
+                    ?: "Add a location",
+                style = PaceDreamTypography.Body,
+                color = if (selected != null) PaceDreamColors.TextPrimary
+                else PaceDreamColors.TextSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            if (selected != null) {
+                TextButton(onClick = onClear) {
+                    Text("Clear", color = PaceDreamColors.Primary)
+                }
             }
+        }
+        if (error != null) {
+            Text(
+                text = error,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.Error,
+            )
         }
     }
 }

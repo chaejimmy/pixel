@@ -153,6 +153,11 @@ class RequestsViewModel @Inject constructor(
             filter: FilterState,
         ): List<WantedRequest> {
             val filtered = source.asSequence()
+                // Client-side moderation gate: even if the API forgets to
+                // exclude pending / rejected entries, the public feed must
+                // never leak them. The Mine tab uses [MyRequestsViewModel]
+                // which intentionally bypasses this filter.
+                .filter { it.moderationStatus.isPublic }
                 .filter { request ->
                     filter.type?.let { request.type.equals(it.key, ignoreCase = true) } ?: true
                 }
