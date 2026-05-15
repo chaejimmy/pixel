@@ -159,7 +159,16 @@ class CreateRequestViewModelCategoriesTest {
         override suspend fun getRequests(): Result<List<WantedRequest>> =
             error("unused")
 
+        override suspend fun getMyRequests(): Result<List<WantedRequest>> =
+            error("unused")
+
         override suspend fun getRequest(id: String): Result<WantedRequest> =
+            error("unused")
+
+        override suspend fun getOffersForRequest(requestId: String): Result<List<WantedOffer>> =
+            error("unused")
+
+        override suspend fun getMyOffers(): Result<List<WantedOffer>> =
             error("unused")
 
         override suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest> =

@@ -6,6 +6,7 @@ import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
@@ -320,6 +321,7 @@ class RequestsViewModelFilterTest {
         type: String,
         category: String,
         budget: Double?,
+        moderationStatus: ModerationStatus = ModerationStatus.Approved,
     ): WantedRequest = WantedRequest(
         id = id,
         title = "$id title",
@@ -330,7 +332,46 @@ class RequestsViewModelFilterTest {
         budget = budget,
         dateTime = null,
         imageUrl = null,
+        moderationStatus = moderationStatus,
     )
+
+    @Test
+    fun `public browse hides pending and rejected entries`() = runTest(dispatcher) {
+        // Acceptance criteria: pending requests must not surface on the
+        // public feed. The browse view applies the moderation filter
+        // before any FilterState narrowing, so type/category selection
+        // can't accidentally re-introduce them either.
+        val mixed = seed + listOf(
+            request(
+                "pending-parking", "space", "parking", budget = 150.0,
+                moderationStatus = ModerationStatus.PendingReview,
+            ),
+            request(
+                "rejected-camera", "item", "camera", budget = 120.0,
+                moderationStatus = ModerationStatus.Rejected,
+            ),
+        )
+        val viewModel = newViewModel(mixed)
+        advanceUntilIdle()
+
+        val visible = (viewModel.state.value as RequestsListUiState.Content).requests
+        assertFalse(
+            "pending posts must not appear on the public feed",
+            visible.any { it.id == "pending-parking" },
+        )
+        assertFalse(
+            "rejected posts must not appear on the public feed",
+            visible.any { it.id == "rejected-camera" },
+        )
+
+        viewModel.setType(WantedType.Item)
+        viewModel.setCategory("camera")
+        val cameraOnly = (viewModel.state.value as RequestsListUiState.Content).requests
+        assertFalse(
+            "the rejected camera entry must not slip through a category filter",
+            cameraOnly.any { it.id == "rejected-camera" },
+        )
+    }
 
     private class FakeRepository(
         private val items: List<WantedRequest>,

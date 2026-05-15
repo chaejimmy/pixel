@@ -49,10 +49,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.ModerationBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
@@ -112,7 +115,15 @@ fun RequestDetailScreen(
                         // double-submit. Pre-submit we still need to send
                         // signed-out users through the auth flow before
                         // opening the sheet.
+                        //
+                        // A non-approved request shouldn't appear in the
+                        // public browse feed, but a stale deep link can land
+                        // a provider here. We disable the CTA in that case
+                        // so the offer endpoint never sees a moderation
+                        // mismatch.
                         val alreadySent = offerState.submitted
+                        val moderationBlocked =
+                            content.request.moderationStatus != ModerationStatus.Approved
                         Button(
                             onClick = {
                                 if (!content.isSignedIn) {
@@ -122,10 +133,15 @@ fun RequestDetailScreen(
                                     sheetVisible = true
                                 }
                             },
-                            enabled = !alreadySent,
+                            enabled = !alreadySent && !moderationBlocked,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(if (alreadySent) "Offer sent" else "Make an Offer")
+                            val label = when {
+                                moderationBlocked -> "Not yet available"
+                                alreadySent -> "Offer sent"
+                                else -> "Make an Offer"
+                            }
+                            Text(label)
                         }
                     }
                 }
@@ -228,6 +244,15 @@ private fun RequestDetailBody(
                 text = request.category,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (request.moderationStatus != ModerationStatus.Approved) {
+                ModerationBadge(status = request.moderationStatus)
+            }
+        }
+        if (isOwner && request.moderationStatus != ModerationStatus.Approved) {
+            ModerationBanner(
+                status = request.moderationStatus,
+                reason = request.moderationReason,
             )
         }
         Text(
@@ -487,4 +512,57 @@ private fun Centered(content: @Composable () -> Unit) {
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/**
+ * Owner-only inline notice surfaced when the request is gated by
+ * moderation. Pending review prints reassuring copy; rejected prints the
+ * reviewer note (or a generic explainer) and steers the user toward
+ * editing/reposting.
+ */
+@Composable
+private fun ModerationBanner(
+    status: ModerationStatus,
+    reason: String?,
+) {
+    val accent = when (status) {
+        ModerationStatus.PendingReview -> PaceDreamColors.Warning
+        ModerationStatus.Rejected -> PaceDreamColors.Error
+        ModerationStatus.Approved -> return
+    }
+    val title = when (status) {
+        ModerationStatus.PendingReview -> "Awaiting moderator review"
+        ModerationStatus.Rejected -> "This request needs changes"
+        ModerationStatus.Approved -> return
+    }
+    val body = when (status) {
+        ModerationStatus.PendingReview ->
+            "Only you can see this request right now. We'll publish it as " +
+                "soon as a moderator clears it — usually within a few hours."
+        ModerationStatus.Rejected -> reason
+            ?.takeIf { it.isNotBlank() }
+            ?: "A moderator declined this post. Update the details and " +
+                "submit again to try once more."
+        ModerationStatus.Approved -> return
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(accent.copy(alpha = 0.12f))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
 }

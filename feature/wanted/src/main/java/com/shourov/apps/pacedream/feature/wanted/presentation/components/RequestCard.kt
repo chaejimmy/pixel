@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 
@@ -39,6 +41,37 @@ fun RequestTag(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
+}
+
+/**
+ * Small pill that surfaces the moderation lifecycle of a [WantedRequest].
+ *
+ * Web parity: pending posts show an amber chip, rejected posts show a red
+ * chip with the reviewer reason in the detail view. Approved requests
+ * have no badge (the absence is the signal).
+ */
+@Composable
+fun ModerationBadge(
+    status: ModerationStatus,
+    modifier: Modifier = Modifier,
+) {
+    val (background, foreground, label) = when (status) {
+        ModerationStatus.PendingReview ->
+            Triple(PaceDreamColors.Warning, PaceDreamColors.OnWarning, "Pending review")
+        ModerationStatus.Rejected ->
+            Triple(PaceDreamColors.Error, PaceDreamColors.OnError, "Rejected")
+        ModerationStatus.Approved -> return
+    }
+    Text(
+        text = label.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = foreground,
+        fontWeight = FontWeight.SemiBold,
+        modifier = modifier
+            .clip(RoundedCornerShape(PaceDreamRadius.XS))
+            .background(background)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
@@ -75,6 +108,9 @@ fun RequestCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (request.moderationStatus != ModerationStatus.Approved) {
+                    ModerationBadge(status = request.moderationStatus)
+                }
             }
             Text(
                 text = request.title.ifBlank { "Untitled request" },
