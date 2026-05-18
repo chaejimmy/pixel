@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -225,6 +226,15 @@ fun BrowseByTypeSection(
                     }
                 }
 
+                // Cache the .take(6) slices so that the LazyRow's key
+                // function operates on a stable List instance across
+                // recompositions instead of a fresh allocation each time.
+                val browseRooms = remember(roomsState.rooms) { roomsState.rooms.take(6) }
+                val browseGears = remember(gearsState.rentedGears) { gearsState.rentedGears.take(6) }
+                val browseServices = remember(splitStaysState.splitStays) {
+                    splitStaysState.splitStays.take(6)
+                }
+
                 // Listing cards — unified card width and structure
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
@@ -237,7 +247,7 @@ fun BrowseByTypeSection(
                     } else {
                         when (selectedType) {
                             HomeBrowseType.SPACES -> {
-                                items(roomsState.rooms.take(6), key = { it.id }) { room ->
+                                items(browseRooms, key = { it.id }) { room ->
                                     UnifiedListingCard(
                                         title = room.title,
                                         subtitle = room.location.city,
@@ -250,7 +260,7 @@ fun BrowseByTypeSection(
                                 }
                             }
                             HomeBrowseType.ITEMS -> {
-                                items(gearsState.rentedGears.take(6), key = { it.id }) { gear ->
+                                items(browseGears, key = { it.id }) { gear ->
                                     UnifiedListingCard(
                                         title = gear.name,
                                         subtitle = gear.location,
@@ -262,10 +272,13 @@ fun BrowseByTypeSection(
                                 }
                             }
                             HomeBrowseType.SERVICES -> {
-                                items(
-                                    splitStaysState.splitStays.take(6),
-                                    key = { it._id ?: it.hashCode() }
-                                ) { stay ->
+                                // Stable key: fall back to the index when the
+                                // backend omits _id so we never use a
+                                // content-derived hashCode for identity.
+                                itemsIndexed(
+                                    browseServices,
+                                    key = { idx, stay -> stay._id ?: "browse-split-idx-$idx" }
+                                ) { _, stay ->
                                     val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
                                         when {
                                             unit.contains("hour") || unit == "hr" -> "hr"

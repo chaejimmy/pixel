@@ -161,6 +161,13 @@ android {
         }
         release {
             isMinifyEnabled = true
+            // Resource shrinking only runs when minification is on (it is).
+            // Resources referenced dynamically (e.g.
+            // `Resources.getIdentifier("google_maps_key", "string", …)` in
+            // core/location/PlacesAutocompleteService.kt) are explicitly
+            // preserved via app/src/main/res/raw/keep.xml so the shrinker
+            // does not strip them.
+            isShrinkResources = true
             applicationIdSuffix = PaceDreamBuildType.RELEASE.applicationIdSuffix
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

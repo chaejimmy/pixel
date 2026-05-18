@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.home.presentation.redesign
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,14 +40,28 @@ fun HomeRedesignRoute(
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
 
-    // Kick off parallel loads on first composition
+    // Kick off parallel loads on first composition, but skip the dispatch
+    // when the ViewModel already holds data from a previous visit.  Without
+    // this guard every pop-back from a detail screen triggered another full
+    // refetch of all three sections (spaces / items / split-stays).
+    //
+    // The "needs initial load" check is intentionally local — re-evaluated on
+    // every composition — so a manual sign-out that clears the VM state will
+    // still cause a reload on the next visit.
+    val needsInitialLoad = roomsState.rooms.isEmpty() &&
+        gearsState.rentedGears.isEmpty() &&
+        splitStaysState.splitStays.isEmpty() &&
+        !roomsState.loading && !gearsState.loading && !splitStaysState.loading &&
+        roomsState.error == null && gearsState.error == null && splitStaysState.error == null
     LaunchedEffect(Unit) {
-        viewModel.onEvent(
-            HomeScreenEvent.LoadAllSections(
-                roomType = Consts.ROOM_TYPE,
-                gearType = Consts.TECH_GEAR_TYPE,
-            ),
-        )
+        if (needsInitialLoad) {
+            viewModel.onEvent(
+                HomeScreenEvent.LoadAllSections(
+                    roomType = Consts.ROOM_TYPE,
+                    gearType = Consts.TECH_GEAR_TYPE,
+                ),
+            )
+        }
     }
 
     // Surface navigation events emitted by the ViewModel (e.g. "See all" taps
@@ -108,9 +123,14 @@ fun HomeRedesignScreenWrapper(
     onHostClick: () -> Unit = {},
     onSeeAll: (PrimaryType) -> Unit = {},
 ) {
-    val spacesListings = roomsState.rooms.map { it.toListing() }
-    val itemsListings = gearsState.rentedGears.map { it.toListing() }
-    val splitListings = splitStaysState.splitStays.map { it.toListing() }
+    // The domain → UI mapping previously ran on every recomposition, which
+    // — combined with the unstable home state classes (see
+    // compose_compiler_config.conf) — re-mapped three lists on each keystroke,
+    // scroll tick, etc.  Cache against the source lists so the mapping work
+    // is only paid when the upstream data actually changes.
+    val spacesListings = remember(roomsState.rooms) { roomsState.rooms.map { it.toListing() } }
+    val itemsListings = remember(gearsState.rentedGears) { gearsState.rentedGears.map { it.toListing() } }
+    val splitListings = remember(splitStaysState.splitStays) { splitStaysState.splitStays.map { it.toListing() } }
 
     HomeRedesignScreen(
         modifier = modifier,

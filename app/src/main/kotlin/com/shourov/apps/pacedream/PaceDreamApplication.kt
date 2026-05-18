@@ -17,6 +17,7 @@ import com.shourov.apps.pacedream.util.ProfileVerifierLogger
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -109,8 +110,24 @@ class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Pr
         // completed, causing the registration to be skipped for returning users.
         ProcessLifecycleOwner.get().lifecycleScope.launch(Dispatchers.IO) {
             try {
-                authSession.initialize()
-                sessionManager.initialize()
+                // Bound the bootstrap with a timeout so that a slow or stalled
+                // /account/me call cannot leave the UI sitting in AuthState.Unknown
+                // forever.  On timeout we fall through to AuthSession's cached
+                // user (or AuthState.Unauthenticated) instead of pinning the
+                // splash/loading state.  A background refresh from observers
+                // (e.g. authSession.currentUser.collect below) will reconcile
+                // when the network recovers.
+                val initialized = withTimeoutOrNull(AUTH_BOOTSTRAP_TIMEOUT_MS) {
+                    authSession.initialize()
+                    sessionManager.initialize()
+                    true
+                }
+                if (initialized == null) {
+                    Timber.w(
+                        "Auth bootstrap timed out after %d ms — continuing with cached/unauthenticated state",
+                        AUTH_BOOTSTRAP_TIMEOUT_MS,
+                    )
+                }
 
                 // Now that auth tokens are loaded from storage, register FCM token.
                 // OneSignal owns the FirebaseMessagingService (via manifest merger),
@@ -169,4 +186,16 @@ class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Pr
             .build()
 
     override fun newImageLoader(): ImageLoader = imageLoader
+
+    private companion object {
+        /**
+         * Upper bound on the cold-start auth bootstrap. Picked to be longer than
+         * a healthy /account/me round-trip on 3G (≈2-3 s) but short enough that
+         * a stalled network does not block the UI for the full OkHttp read
+         * timeout.  The bootstrap is fire-and-forget — the UI observes
+         * [AuthSession.authState] separately and will repaint when the network
+         * recovers.
+         */
+        const val AUTH_BOOTSTRAP_TIMEOUT_MS = 8_000L
+    }
 }

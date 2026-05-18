@@ -28,6 +28,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 import com.pacedream.common.util.UserFacingErrorMapper
@@ -69,44 +70,69 @@ class BookingViewModel @Inject constructor(
                 return@launch
             }
 
-            // Try API first, fall back to Room cache
-            when (val apiResult = bookingRepository.fetchMyBookings()) {
-                is Result.Success -> {
-                    val bookings = apiResult.data
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        allBookings = bookings,
-                        error = null
-                    )
-                    rebuildCategoryCaches(bookings)
-                }
-                is Result.Error -> {
-                    // Fall back to Room cache
-                    val userId = authSession.currentUser.value?.id.orEmpty()
-                    bookingRepository.getUserBookings(userId).collect { result ->
-                        when (result) {
+            // The whole load goes through one try/finally so that any path
+            // — including coroutine cancellation, a thrown repository
+            // exception, or a cache flow that emits only Result.Loading and
+            // then completes — clears the spinner.  Previously the cache
+            // fallback used .collect { } and the Loading branch could leave
+            // isLoading = true if the flow terminated without a terminal
+            // value (e.g. cache empty + collector closed).
+            try {
+                // Try API first, fall back to Room cache
+                when (val apiResult = bookingRepository.fetchMyBookings()) {
+                    is Result.Success -> {
+                        val bookings = apiResult.data
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            allBookings = bookings,
+                            error = null
+                        )
+                        rebuildCategoryCaches(bookings)
+                    }
+                    is Result.Error -> {
+                        // Fall back to Room cache: take the first non-Loading
+                        // emission so we never stay stuck on a cache flow that
+                        // emits Loading and then closes.
+                        val userId = authSession.currentUser.value?.id.orEmpty()
+                        val terminal = bookingRepository.getUserBookings(userId)
+                            .firstOrNull { it !is Result.Loading }
+                        when (terminal) {
                             is Result.Success -> {
                                 _uiState.value = _uiState.value.copy(
                                     isLoading = false,
-                                    allBookings = result.data,
+                                    allBookings = terminal.data,
                                     error = null
                                 )
-                                rebuildCategoryCaches(result.data)
+                                rebuildCategoryCaches(terminal.data)
                             }
                             is Result.Error -> {
-                                android.util.Log.e("BookingVM", "Failed to load bookings from cache", result.exception)
+                                android.util.Log.e("BookingVM", "Failed to load bookings from cache", terminal.exception)
                                 _uiState.value = _uiState.value.copy(
                                     isLoading = false,
-                                    error = UserFacingErrorMapper.forLoadBookings(result.exception)
+                                    error = UserFacingErrorMapper.forLoadBookings(terminal.exception)
                                 )
                             }
-                            is Result.Loading -> {
-                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            // null = flow completed without a terminal result
+                            // (e.g. cache empty), or only emitted Loading.
+                            // Surface the original API error so the UI can
+                            // render a retry instead of an empty stub.
+                            else -> {
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = UserFacingErrorMapper.forLoadBookings(apiResult.exception)
+                                )
                             }
                         }
                     }
+                    is Result.Loading -> { /* No-op */ }
                 }
-                is Result.Loading -> { /* No-op */ }
+            } finally {
+                // Belt-and-braces: regardless of which branch ran, the
+                // spinner must not survive past this coroutine.  Cancellation
+                // also lands here so navigation away clears the spinner.
+                if (_uiState.value.isLoading) {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
             }
         }
     }

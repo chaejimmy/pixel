@@ -75,7 +75,13 @@ fun DealsCard(
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .clickable { onClick() },
         ) {
-            Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                    .background(PaceDreamColors.Gray100),
+            ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(gallery.thumbnail)
@@ -83,10 +89,7 @@ fun DealsCard(
                         .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(PaceDreamRadius.LG)),
+                    modifier = Modifier.fillMaxSize(),
                 )
                 // Discount badge (for last-minute deals)
                 val priceList = roomModel.price
@@ -179,7 +182,13 @@ fun LastMinuteDealCard(
                 .clip(RoundedCornerShape(PaceDreamRadius.LG))
                 .clickable { onClick() },
         ) {
-            Box {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(PaceDreamRadius.LG))
+                    .background(PaceDreamColors.Gray100),
+            ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(gallery.thumbnail)
@@ -187,10 +196,7 @@ fun LastMinuteDealCard(
                         .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(PaceDreamRadius.LG)),
+                    modifier = Modifier.fillMaxSize(),
                 )
                 // Discount badge
                 Box(

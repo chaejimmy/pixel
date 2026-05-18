@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Resources referenced only at runtime via Resources.getIdentifier(...) cannot
+  be detected by the resource shrinker. List them here so a release build with
+  isShrinkResources = true does not strip them.
+
+  - @string/google_maps_key is looked up by name in
+    core/location/src/main/kotlin/com/shourov/apps/pacedream/core/location/PlacesAutocompleteService.kt
+    (context.resources.getIdentifier("google_maps_key", "string", …))
+    in addition to its manifest <meta-data> reference.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@string/google_maps_key" />

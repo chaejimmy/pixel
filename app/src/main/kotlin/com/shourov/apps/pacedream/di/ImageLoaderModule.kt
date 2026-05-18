@@ -32,6 +32,13 @@ object ImageLoaderModule {
             .crossfade(200)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
+            // Honor the CDN's Cache-Control / ETag.  Without this Coil defaults
+            // to ignoring server cache directives, which means the same image
+            // URL is re-validated on every cache miss even when the response
+            // headers say "fresh for 24 h".  Listing photos on the Pacedream
+            // CDN already serve sensible max-age values, so deferring to them
+            // cuts repeat bandwidth on warm caches without affecting cold load.
+            .respectCacheHeaders(true)
             .memoryCache {
                 MemoryCache.Builder(context)
                     .maxSizePercent(MEMORY_CACHE_PERCENT)

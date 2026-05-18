@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
@@ -305,6 +306,16 @@ private fun FeaturedListingsSection(
             // When only 1-2 items, use wider cards to avoid empty feeling
             val useWideCards = itemCount in 1..2
 
+            // Cache the .take(10) slices so the LazyRow keys are computed on
+            // the same List instance across recompositions.  Previously each
+            // recomposition allocated a new List, which forced the LazyRow
+            // to re-resolve every key.
+            val featuredRooms = remember(roomsState.rooms) { roomsState.rooms.take(10) }
+            val featuredGears = remember(gearsState.rentedGears) { gearsState.rentedGears.take(10) }
+            val featuredServices = remember(splitStaysState.splitStays) {
+                splitStaysState.splitStays.take(10)
+            }
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -315,7 +326,7 @@ private fun FeaturedListingsSection(
                     val wideModifier = if (useWideCards) Modifier.width(280.dp) else Modifier
                     when {
                         hasRooms -> items(
-                            roomsState.rooms.take(10),
+                            featuredRooms,
                             key = { it.id }
                         ) { room ->
                             PaceDreamPropertyCard(
@@ -332,7 +343,7 @@ private fun FeaturedListingsSection(
                             )
                         }
                         hasGears -> items(
-                            gearsState.rentedGears.take(10),
+                            featuredGears,
                             key = { it.id }
                         ) { gear ->
                             PaceDreamPropertyCard(
@@ -348,10 +359,15 @@ private fun FeaturedListingsSection(
                                 modifier = wideModifier,
                             )
                         }
-                        hasServices -> items(
-                            splitStaysState.splitStays.take(10),
-                            key = { it._id ?: it.hashCode() }
-                        ) { stay ->
+                        // Stable key fallback: when the backend returns a stay
+                        // without _id, fall back to its index in the source
+                        // list so the key never depends on content-derived
+                        // hashCode (which the audit flagged as a list-shuffle
+                        // risk on partial updates).
+                        hasServices -> itemsIndexed(
+                            featuredServices,
+                            key = { idx, stay -> stay._id ?: "split-idx-$idx" }
+                        ) { _, stay ->
                             val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
                                 when {
                                     unit.contains("hour") || unit == "hr" -> "hr"

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -128,26 +129,43 @@ class HomeViewModel @Inject constructor(
             // Clear any previous favorites error on retry
             _uiState.update { it.copy(favoritesError = null) }
 
-            // Try primary endpoint first (matches iOS), fallback to legacy
+            // Each endpoint is bounded by FAVORITES_ENDPOINT_TIMEOUT_MS so that
+            // a stalled primary cannot delay the fallback for the full OkHttp
+            // read-timeout, and a stalled fallback cannot keep the favorites
+            // banner empty.  Main home content is loaded by loadAllSections()
+            // on a separate coroutine and is never blocked on favorites.
             val primaryUrl = appConfig.buildApiUrl("wishlists")
-            val primary = apiClient.get(primaryUrl, includeAuth = true)
+            val primary: ApiResult<String>? = withTimeoutOrNull(FAVORITES_ENDPOINT_TIMEOUT_MS) {
+                apiClient.get(primaryUrl, includeAuth = true)
+            }
             if (primary is ApiResult.Success) {
                 val ids = parseFavoriteIds(primary.data)
                 if (ids.isNotEmpty()) {
                     _uiState.update { it.copy(favoriteListingIds = ids) }
                     return@launch
                 }
+            } else if (primary == null) {
+                Timber.w("Favorites primary endpoint timed out after %d ms", FAVORITES_ENDPOINT_TIMEOUT_MS)
             }
 
             // Fallback to legacy endpoint
             val fallbackUrl = appConfig.buildApiUrl("account", "wishlist")
-            when (val result = apiClient.get(fallbackUrl, includeAuth = true)) {
+            val fallback: ApiResult<String>? = withTimeoutOrNull(FAVORITES_ENDPOINT_TIMEOUT_MS) {
+                apiClient.get(fallbackUrl, includeAuth = true)
+            }
+            when (fallback) {
                 is ApiResult.Success -> {
-                    val ids = parseFavoriteIds(result.data)
+                    val ids = parseFavoriteIds(fallback.data)
                     _uiState.update { it.copy(favoriteListingIds = ids) }
                 }
                 is ApiResult.Failure -> {
-                    Timber.w("Failed to load favorites: ${result.error.message}")
+                    Timber.w("Failed to load favorites: ${fallback.error.message}")
+                    _uiState.update {
+                        it.copy(favoritesError = "Could not load your favorites. Pull to refresh to try again.")
+                    }
+                }
+                null -> {
+                    Timber.w("Favorites fallback endpoint timed out after %d ms", FAVORITES_ENDPOINT_TIMEOUT_MS)
                     _uiState.update {
                         it.copy(favoritesError = "Could not load your favorites. Pull to refresh to try again.")
                     }
@@ -212,6 +230,15 @@ class HomeViewModel @Inject constructor(
     }
     
     companion object {
+        /**
+         * Per-endpoint deadline for the favorites primary/fallback chain.
+         * Picked to be longer than a healthy round-trip but short enough
+         * that the worst-case wait stays ≤2 × this value even if both
+         * endpoints are stalled.  Previously the chain could block for the
+         * full OkHttp read-timeout twice (≈60 s).
+         */
+        private const val FAVORITES_ENDPOINT_TIMEOUT_MS = 5_000L
+
         /** shareCategory values that identify service listings (matches website). */
         private val SERVICE_SHARE_CATEGORIES = setOf(
             "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
