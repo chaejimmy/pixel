@@ -177,6 +177,15 @@ class CreateRequestViewModelCategoriesTest {
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("unused")
 
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("unused")
+
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
+            error("unused")
+
         override suspend fun getHostListings():
             Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =
             Result.success(emptyList())

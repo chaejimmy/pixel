@@ -53,13 +53,17 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.LifecycleBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.ModerationBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
+import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
+import java.time.LocalDate
 
 @Composable
 fun RequestDetailScreen(
@@ -102,13 +106,16 @@ fun RequestDetailScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
+                    val effectiveStatus = remember(content.request) {
+                        RequestExpiryResolver.effectiveStatus(content.request, LocalDate.now())
+                    }
                     if (content.isOwner) {
-                        OutlinedButton(
-                            onClick = { /* TODO: edit-request flow */ },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("Edit request")
-                        }
+                        OwnerActionsBar(
+                            status = effectiveStatus,
+                            onRenew = viewModel::renew,
+                            onMarkFulfilled = viewModel::markFulfilled,
+                            onCancel = viewModel::cancel,
+                        )
                     } else {
                         // Once `submitted` flips true the bottom button locks
                         // into a disabled "Offer sent" state so users can't
@@ -121,9 +128,15 @@ fun RequestDetailScreen(
                         // a provider here. We disable the CTA in that case
                         // so the offer endpoint never sees a moderation
                         // mismatch.
+                        //
+                        // Same defense for lifecycle: an Expired / Fulfilled /
+                        // Cancelled request cannot receive new offers. The
+                        // server enforces this, but the client also blocks
+                        // it so we never POST a doomed offer.
                         val alreadySent = offerState.submitted
                         val moderationBlocked =
                             content.request.moderationStatus != ModerationStatus.Approved
+                        val lifecycleBlocked = effectiveStatus != RequestStatus.Active
                         Button(
                             onClick = {
                                 if (!content.isSignedIn) {
@@ -133,11 +146,17 @@ fun RequestDetailScreen(
                                     sheetVisible = true
                                 }
                             },
-                            enabled = !alreadySent && !moderationBlocked,
+                            enabled = !alreadySent && !moderationBlocked && !lifecycleBlocked,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             val label = when {
                                 moderationBlocked -> "Not yet available"
+                                lifecycleBlocked -> when (effectiveStatus) {
+                                    RequestStatus.Expired -> "This request expired"
+                                    RequestStatus.Fulfilled -> "Request fulfilled"
+                                    RequestStatus.Cancelled -> "Request cancelled"
+                                    else -> "Not accepting offers"
+                                }
                                 alreadySent -> "Offer sent"
                                 else -> "Make an Offer"
                             }
@@ -235,6 +254,13 @@ private fun RequestDetailBody(
                     .clip(RoundedCornerShape(PaceDreamRadius.MD)),
             )
         }
+        val today = remember { LocalDate.now() }
+        val effectiveStatus = remember(request, today) {
+            RequestExpiryResolver.effectiveStatus(request, today)
+        }
+        val expiringSoon = remember(request, today) {
+            RequestExpiryResolver.isExpiringSoon(request, today)
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -248,6 +274,7 @@ private fun RequestDetailBody(
             if (request.moderationStatus != ModerationStatus.Approved) {
                 ModerationBadge(status = request.moderationStatus)
             }
+            LifecycleBadge(status = effectiveStatus, expiringSoon = expiringSoon)
         }
         if (isOwner && request.moderationStatus != ModerationStatus.Approved) {
             ModerationBanner(
@@ -276,8 +303,13 @@ private fun RequestDetailBody(
         if (request.location.isNotBlank()) {
             DetailRow(label = "Location", value = request.location)
         }
-        RequestDateFormatter.format(request.dateTime, request.endDate)?.let {
-            DetailRow(label = "When", value = it)
+        RequestDateFormatter.format(request.requestStartDate, request.requestEndDate)?.let {
+            DetailRow(label = "Request date", value = it)
+        }
+        if (effectiveStatus == RequestStatus.Active) {
+            RequestExpiryResolver.formattedExpiry(request)?.let { value ->
+                DetailRow(label = "Active until", value = value)
+            }
         }
 
         if (isOwner) {
@@ -512,6 +544,65 @@ private fun Centered(content: @Composable () -> Unit) {
             .padding(24.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
+}
+
+/**
+ * Owner CTA row at the bottom of the detail screen. The buttons exposed
+ * depend on the current lifecycle status:
+ *  - Active: Mark as Fulfilled (primary) + Cancel (outlined)
+ *  - Expired: Renew (primary) + Cancel (outlined)
+ *  - Fulfilled / Cancelled: a read-only label so the bar still occupies
+ *    the same space as on Active requests.
+ */
+@Composable
+private fun OwnerActionsBar(
+    status: RequestStatus,
+    onRenew: () -> Unit,
+    onMarkFulfilled: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    when (status) {
+        RequestStatus.Active -> Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+            ) { Text("Cancel Request") }
+            Button(
+                onClick = onMarkFulfilled,
+                modifier = Modifier.weight(1f),
+            ) { Text("Mark as Fulfilled") }
+        }
+        RequestStatus.Expired -> Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f),
+            ) { Text("Cancel Request") }
+            Button(
+                onClick = onRenew,
+                modifier = Modifier.weight(1f),
+            ) { Text("Renew Request") }
+        }
+        RequestStatus.Fulfilled -> Text(
+            text = "Marked as fulfilled.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        RequestStatus.Cancelled -> Text(
+            text = "This request was cancelled.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 /**

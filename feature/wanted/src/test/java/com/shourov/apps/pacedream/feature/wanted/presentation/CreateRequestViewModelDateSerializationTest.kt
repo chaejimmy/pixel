@@ -81,6 +81,59 @@ class CreateRequestViewModelDateSerializationTest {
     }
 
     @Test
+    fun `expiresAt defaults to the end of a picked range`() = runTest(dispatcher) {
+        // A future-dated request must not expire immediately — the body's
+        // expiresAt has to land at the end of the requested window (or
+        // beyond), never on creation day.
+        val repository = RecordingRepository()
+        val viewModel = CreateRequestViewModel(
+            repository = repository,
+            imageUploader = NoopImageUploader,
+        )
+
+        viewModel.update {
+            it.copy(
+                title = "Need a covered parking spot in SF",
+                description = "Need a covered spot for the long Independence Day weekend.",
+                category = "parking",
+                location = SAN_FRANCISCO,
+                startDate = utcMidnight(2026, 7, 4),
+                endDate = utcMidnight(2026, 7, 6),
+            )
+        }
+        viewModel.submit()
+        advanceUntilIdle()
+
+        val body = repository.captured ?: error("submit must call createRequest")
+        assertEquals("2026-07-06", body.expiresAt)
+    }
+
+    @Test
+    fun `expiresAt falls back to the start when no end is picked`() = runTest(dispatcher) {
+        val repository = RecordingRepository()
+        val viewModel = CreateRequestViewModel(
+            repository = repository,
+            imageUploader = NoopImageUploader,
+        )
+
+        viewModel.update {
+            it.copy(
+                title = "Need a covered parking spot in SF",
+                description = "Need a covered spot for one specific day.",
+                category = "parking",
+                location = SAN_FRANCISCO,
+                startDate = utcMidnight(2026, 7, 4),
+                endDate = null,
+            )
+        }
+        viewModel.submit()
+        advanceUntilIdle()
+
+        val body = repository.captured ?: error("submit must call createRequest")
+        assertEquals("2026-07-04", body.expiresAt)
+    }
+
+    @Test
     fun `picked range serializes both start and endDate as ISO`() = runTest(dispatcher) {
         val repository = RecordingRepository()
         val viewModel = CreateRequestViewModel(
@@ -205,8 +258,9 @@ class CreateRequestViewModelDateSerializationTest {
                     category = body.category,
                     location = "",
                     budget = body.budget,
-                    dateTime = body.date,
-                    endDate = body.endDate,
+                    requestStartDate = body.date,
+                    requestEndDate = body.endDate,
+                    expiresAt = body.expiresAt,
                     imageUrl = body.coverImageUrl,
                 )
             )
@@ -216,6 +270,15 @@ class CreateRequestViewModelDateSerializationTest {
             requestId: String,
             body: CreateOfferBody,
         ): Result<WantedOffer> = error("not exercised by serialization tests")
+
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("not exercised by serialization tests")
+
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
+            error("not exercised by serialization tests")
 
         override suspend fun getHostListings():
             Result<List<com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary>> =

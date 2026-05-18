@@ -178,6 +178,15 @@ class CreateRequestViewModelUploadTest {
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("repository must not be hit from upload tests")
 
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("repository must not be hit from upload tests")
+
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
+            error("repository must not be hit from upload tests")
+
         override suspend fun getHostListings(): Result<List<HostListingSummary>> =
             Result.success(emptyList())
 
@@ -207,6 +216,15 @@ class CreateRequestViewModelUploadTest {
             error("submit must not reach the repository while uploading")
 
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
+            error("submit must not reach the repository while uploading")
+
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("submit must not reach the repository while uploading")
+
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
             error("submit must not reach the repository while uploading")
 
         override suspend fun getHostListings(): Result<List<HostListingSummary>> =

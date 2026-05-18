@@ -6,9 +6,11 @@ import com.shourov.apps.pacedream.core.common.network.Dispatcher
 import com.shourov.apps.pacedream.core.common.network.PaceDreamDispatchers
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
+import com.shourov.apps.pacedream.feature.wanted.data.dto.UpdateRequestStatusBody
 import com.shourov.apps.pacedream.feature.wanted.data.dto.toDomain
 import com.shourov.apps.pacedream.feature.wanted.data.remote.WantedApiService
 import com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -31,6 +33,28 @@ interface WantedRepository {
     suspend fun getMyOffers(): Result<List<WantedOffer>>
     suspend fun createRequest(body: CreateRequestBody): Result<WantedRequest>
     suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer>
+    /**
+     * Transition the requester's own post to a new lifecycle state.
+     * Used by Cancel / Mark as Fulfilled. The server returns the updated
+     * record; the repository surfaces it so the ViewModel can swap it
+     * into the list without re-fetching the whole page.
+     */
+    suspend fun updateRequestStatus(
+        id: String,
+        status: RequestStatus,
+        expiresAt: String? = null,
+    ): Result<WantedRequest>
+
+    /**
+     * Bump an Expired (or about-to-expire) request back to Active by
+     * pushing [WantedRequest.expiresAt] forward to [newExpiry]. Convenience
+     * over [updateRequestStatus] so callers don't have to remember to set
+     * both fields.
+     */
+    suspend fun renewRequest(
+        id: String,
+        newExpiry: String?,
+    ): Result<WantedRequest>
     suspend fun getHostListings(): Result<List<HostListingSummary>>
 
     /**
@@ -117,6 +141,29 @@ class WantedRepositoryImpl @Inject constructor(
             dto.toDomain(fallbackRequestId = requestId)
         }
     }
+
+    override suspend fun updateRequestStatus(
+        id: String,
+        status: RequestStatus,
+        expiresAt: String?,
+    ): Result<WantedRequest> = withContext(dispatcher) {
+        runCatching {
+            val dto = api.updateRequestStatus(
+                id = id,
+                body = UpdateRequestStatusBody(status = status.key, expiresAt = expiresAt),
+            ).payload ?: error("Failed to update request status")
+            dto.toDomain()
+        }
+    }
+
+    override suspend fun renewRequest(
+        id: String,
+        newExpiry: String?,
+    ): Result<WantedRequest> = updateRequestStatus(
+        id = id,
+        status = RequestStatus.Active,
+        expiresAt = newExpiry,
+    )
 
     override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> {
         cachedCategories?.let { return Result.success(it) }
