@@ -99,6 +99,12 @@ private fun TrendingDestinationCard(
         modifier = modifier
             .height(height)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            // Stable placeholder color: rendered before the AsyncImage commits
+            // its first frame so the card never flashes empty / fully
+            // transparent on slow networks.  Coil's ConstraintsSizeResolver
+            // already sizes the bitmap to this Box's pixel size, so no
+            // explicit ImageRequest.size() is needed.
+            .background(PaceDreamGray100)
             .clickable(onClick = onClick),
     ) {
         AsyncImage(

@@ -140,6 +140,12 @@ fun EnhancedPropertyCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
+                    // Stable placeholder colour rendered behind AsyncImage so
+                    // the card never flashes empty on slow networks.  Coil
+                    // sizes the bitmap to the Box pixel dimensions via the
+                    // ConstraintsSizeResolver — no explicit ImageRequest.size().
+                    .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
+                    .background(PaceDreamColors.Gray100)
             ) {
                 // Property Image
                 if (!imageUrl.isNullOrBlank()) {
@@ -149,9 +155,7 @@ fun EnhancedPropertyCard(
                             .crossfade(200)
                             .build(),
                         contentDescription = propertyName,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG)),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -345,15 +349,22 @@ fun CompactPropertyCard(
         ) {
             // Image
             if (!imageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = propertyName,
+                // Box wraps AsyncImage with a stable placeholder colour so the
+                // 100 dp slot never collapses to transparent on slow networks.
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
-                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD)),
-                    contentScale = ContentScale.Crop
-                )
+                        .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
+                        .background(PaceDreamColors.Gray100)
+                ) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = propertyName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             } else {
                 Box(
                     modifier = Modifier
@@ -445,6 +456,11 @@ fun PropertyImageCarousel(
         modifier = modifier
             .fillMaxWidth()
             .height(200.dp)
+            // Carousel slot has a stable placeholder colour so swiping
+            // between photos never reveals a transparent gap before the
+            // next image decodes.
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            .background(PaceDreamColors.Gray100)
     ) {
         // Main Image
         val currentUrl = images.getOrNull(currentImageIndex)
@@ -455,9 +471,7 @@ fun PropertyImageCarousel(
                     .crossfade(200)
                     .build(),
                 contentDescription = "Property image",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(PaceDreamRadius.MD)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         } else {
