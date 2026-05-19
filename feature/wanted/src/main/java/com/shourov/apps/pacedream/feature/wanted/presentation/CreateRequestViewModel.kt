@@ -214,6 +214,15 @@ class CreateRequestViewModel @Inject constructor(
 
         val isoStart = form.startDate?.toIsoUtcDate()
         val isoEnd = form.endDate?.toIsoUtcDate()?.takeIf { it != isoStart }
+        // Auto-expiry defaults to the end of the requested window so a
+        // future-dated request stays Active until that day passes — never
+        // expiring the moment it's posted. An explicit [form.expiresAt]
+        // wins when the user has chosen a different cut-off (e.g. "open
+        // until offers come in"). When nothing is picked we omit the
+        // field, leaving the server to apply its default policy.
+        val isoExpires = form.expiresAt?.toIsoUtcDate()
+            ?: isoEnd
+            ?: isoStart
 
         val body = CreateRequestBody(
             type = form.type.key,
@@ -223,6 +232,7 @@ class CreateRequestViewModel @Inject constructor(
             location = location,
             date = isoStart,
             endDate = isoEnd,
+            expiresAt = isoExpires,
             budget = budgetValue,
             coverImageUrl = form.imageUrl,
             imageSource = if (form.imageUrl != null) "uploaded" else null,

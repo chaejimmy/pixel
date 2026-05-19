@@ -2,6 +2,7 @@ package com.shourov.apps.pacedream.feature.wanted.data.dto
 
 import com.google.gson.annotations.SerializedName
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 
 // ============================================================================
@@ -62,11 +63,37 @@ data class RequestDto(
     val city: String? = null,
     val budget: Double? = null,
     val currency: String? = null,
+    /** Canonical start of the requested window. */
+    @SerializedName("requestStartDate")
+    val requestStartDate: String? = null,
+    /** Canonical end of the requested window. */
+    @SerializedName("requestEndDate")
+    val requestEndDate: String? = null,
+    /**
+     * Legacy field names — newer payloads use [requestStartDate] /
+     * [requestEndDate], but historic responses may still ship `date` /
+     * `dateTime` for the start, so we accept both.
+     */
     val date: String? = null,
     @SerializedName("endDate")
     val endDate: String? = null,
     @SerializedName("dateTime")
     val dateTime: String? = null,
+    /**
+     * Auto-expiration timestamp (ISO-8601). Server-driven; null means "no
+     * auto-expiry" (the request stays Active until the requester closes it).
+     */
+    @SerializedName("expiresAt")
+    val expiresAt: String? = null,
+    /**
+     * Lifecycle column added alongside expiration. Accepts the legacy
+     * `requestStatus` name as well so the migration window doesn't break
+     * older clients that haven't been redeployed.
+     */
+    @SerializedName("requestStatus")
+    val requestStatus: String? = null,
+    @SerializedName("lifecycleStatus")
+    val lifecycleStatus: String? = null,
     @SerializedName("coverImageUrl")
     val coverImageUrl: String? = null,
     @SerializedName("imageUrl")
@@ -136,6 +163,17 @@ fun RequestDto.toDomain(): WantedRequest {
     val resolvedAuthorId = authorId?.takeIf { it.isNotBlank() }
         ?: author?.id?.takeIf { it.isNotBlank() }
         ?: userId?.takeIf { it.isNotBlank() }
+    val resolvedStart = requestStartDate ?: date ?: dateTime
+    val resolvedEnd = requestEndDate ?: endDate
+    // The legacy `status` column has been overloaded for several different
+    // meanings over time. We only honour it as a lifecycle value when it
+    // matches one of our known keys — otherwise it falls through to the
+    // default Active so old "open"/"matched" rows don't get hidden.
+    val resolvedStatus = RequestStatus.fromKey(
+        requestStatus
+            ?: lifecycleStatus
+            ?: status?.takeIf { it.matchesLifecycleKey() }
+    )
     return WantedRequest(
         id = id.orEmpty(),
         title = title.orEmpty(),
@@ -145,8 +183,9 @@ fun RequestDto.toDomain(): WantedRequest {
         location = resolvedLocation,
         budget = budget,
         budgetCurrency = currency ?: "USD",
-        dateTime = date ?: dateTime,
-        endDate = endDate,
+        requestStartDate = resolvedStart,
+        requestEndDate = resolvedEnd,
+        expiresAt = expiresAt,
         imageUrl = coverImageUrl ?: imageUrl ?: image,
         authorId = resolvedAuthorId,
         authorName = authorName ?: author?.name,
@@ -156,15 +195,19 @@ fun RequestDto.toDomain(): WantedRequest {
         moderationReason = (moderationReason ?: rejectionReason)
             ?.trim()
             ?.takeIf { it.isNotBlank() },
+        status = resolvedStatus,
     )
 }
+
+private fun String.matchesLifecycleKey(): Boolean =
+    RequestStatus.entries.any { it.key.equals(this, ignoreCase = true) }
 
 // ============================================================================
 // Create-request body
 //
 // Web parity: POST /v1/requests expects
 //   { type, category, title, description, location: {…}, date, budget,
-//     coverImageUrl, imageSource, tags }
+//     coverImageUrl, imageSource, tags, expiresAt }
 // `null` fields are dropped server-side; Gson serializes them as `null`,
 // which the backend tolerates.
 // ============================================================================
@@ -177,8 +220,32 @@ data class CreateRequestBody(
     val location: LocationDto? = null,
     val date: String? = null,
     val endDate: String? = null,
+    /**
+     * Optional explicit auto-expiry (`yyyy-MM-dd`). Omitted when the user
+     * doesn't pick a date range — the server falls back to its own default
+     * (currently 30 days after creation, but the client doesn't depend on
+     * that number).
+     */
+    val expiresAt: String? = null,
     val budget: Double? = null,
     val coverImageUrl: String? = null,
     val imageSource: String? = null,
     val tags: List<String>? = null,
+)
+
+// ============================================================================
+// Status update body
+//
+// PATCH /v1/requests/{id}/status accepts a single `status` field. Used by
+// the Mark as Fulfilled / Cancel / Renew actions.
+// ============================================================================
+
+data class UpdateRequestStatusBody(
+    val status: String,
+    /**
+     * Optional new expiration (used by the Renew action — omitted by
+     * Cancel/Fulfill). When the server receives this it rolls
+     * [WantedRequest.expiresAt] forward and flips status back to Active.
+     */
+    val expiresAt: String? = null,
 )

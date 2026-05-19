@@ -7,15 +7,19 @@ import com.shourov.apps.pacedream.feature.wanted.data.RequestsFiltersStore
 import com.shourov.apps.pacedream.feature.wanted.data.WantedRepository
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
+import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,6 +27,7 @@ class RequestsViewModel @Inject constructor(
     private val repository: WantedRepository,
     private val filtersStore: RequestsFiltersStore,
     private val savedStateHandle: SavedStateHandle,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
     // The unfiltered list from the API. We hold onto this so changing the
@@ -117,8 +122,9 @@ class RequestsViewModel @Inject constructor(
     }
 
     private fun applyFilter() {
+        val today = LocalDate.now(clock)
         _state.value = RequestsListUiState.Content(
-            filterAndSort(allRequests, _filter.value)
+            filterAndSort(allRequests, _filter.value, today)
         )
     }
 
@@ -151,6 +157,7 @@ class RequestsViewModel @Inject constructor(
         fun filterAndSort(
             source: List<WantedRequest>,
             filter: FilterState,
+            today: LocalDate,
         ): List<WantedRequest> {
             val filtered = source.asSequence()
                 // Client-side moderation gate: even if the API forgets to
@@ -158,6 +165,16 @@ class RequestsViewModel @Inject constructor(
                 // never leak them. The Mine tab uses [MyRequestsViewModel]
                 // which intentionally bypasses this filter.
                 .filter { it.moderationStatus.isPublic }
+                // Lifecycle gate: the public feed only shows requests that
+                // are still open for offers. Expired/Fulfilled/Cancelled
+                // posts are surfaced on the requester's own Mine tabs.
+                // The client also performs a time-based check so a stale
+                // Active record whose expiresAt has passed disappears
+                // immediately rather than after the next server sweep.
+                .filter { request ->
+                    request.status == RequestStatus.Active &&
+                        RequestExpiryResolver.effectiveStatus(request, today) == RequestStatus.Active
+                }
                 .filter { request ->
                     filter.type?.let { request.type.equals(it.key, ignoreCase = true) } ?: true
                 }

@@ -13,12 +13,21 @@ data class WantedRequest(
     val budget: Double?,
     val budgetCurrency: String = "USD",
     /**
-     * Start of the requested window. Newly created requests send ISO-8601
-     * (`yyyy-MM-dd`); legacy records may carry free-text strings like
-     * "Sat 10:00 AM" — both are rendered via [RequestDateFormatter].
+     * Start of the requested window (ISO-8601 `yyyy-MM-dd` for new payloads).
+     * Legacy records may carry free-text strings like "Sat 10:00 AM" — both
+     * are rendered via
+     * [com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter].
      */
-    val dateTime: String?,
-    val endDate: String? = null,
+    val requestStartDate: String? = null,
+    /** End of the requested window (ISO-8601 `yyyy-MM-dd`). */
+    val requestEndDate: String? = null,
+    /**
+     * Explicit expiration timestamp (ISO-8601). When the server omits this,
+     * the effective expiry is derived from [requestEndDate] (or
+     * [requestStartDate] if there is no range). A null expiry means the
+     * request never auto-expires — only the requester can close it.
+     */
+    val expiresAt: String? = null,
     val imageUrl: String?,
     val authorId: String? = null,
     val authorName: String? = null,
@@ -34,6 +43,14 @@ data class WantedRequest(
     val moderationStatus: ModerationStatus = ModerationStatus.Approved,
     /** Reviewer note shown when [moderationStatus] is [ModerationStatus.Rejected]. */
     val moderationReason: String? = null,
+    /**
+     * Lifecycle status. Defaults to [RequestStatus.Active] when the server
+     * omits the column so legacy payloads keep behaving like active
+     * requests. Time-based expiry is computed via
+     * [com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver]
+     * when [status] is [RequestStatus.Active] but [expiresAt] has passed.
+     */
+    val status: RequestStatus = RequestStatus.Active,
 )
 
 /**
@@ -63,6 +80,46 @@ enum class ModerationStatus(val key: String, val label: String) {
             if (key.isNullOrBlank()) return Approved
             return entries.firstOrNull { it.key.equals(key, ignoreCase = true) }
                 ?: Approved
+        }
+    }
+}
+
+/**
+ * Lifecycle of a request beyond moderation.
+ *
+ *  - [Active]: open for offers. The public feed only ever shows active
+ *    (and approved) requests.
+ *  - [Expired]: the window passed — auto-closed by the server based on
+ *    [WantedRequest.expiresAt], or computed client-side as a fallback.
+ *  - [Fulfilled]: the requester accepted an offer and confirmed the
+ *    request is satisfied.
+ *  - [Cancelled]: the requester closed the request before it expired.
+ *
+ * Unknown values from the server fall through to [Active] so legacy
+ * records that pre-date the column keep showing up on the feed.
+ */
+enum class RequestStatus(val key: String, val label: String) {
+    Active("active", "Active"),
+    Expired("expired", "Expired"),
+    Fulfilled("fulfilled", "Fulfilled"),
+    Cancelled("cancelled", "Cancelled"),
+    ;
+
+    /** True when the request is currently open for offers. */
+    val isOpenForOffers: Boolean get() = this == Active
+
+    /**
+     * Whether the request is "closed" (no longer surfaceable on the public
+     * feed). Both expired and explicitly-closed (fulfilled/cancelled) states
+     * count.
+     */
+    val isClosed: Boolean get() = this != Active
+
+    companion object {
+        fun fromKey(key: String?): RequestStatus {
+            if (key.isNullOrBlank()) return Active
+            return entries.firstOrNull { it.key.equals(key, ignoreCase = true) }
+                ?: Active
         }
     }
 }
@@ -242,6 +299,46 @@ enum class RequestsTab(val key: String) {
 }
 
 /**
+ * Inner tabs of the "Mine" screen — splits the user's posted requests by
+ * lifecycle so the expired/closed history doesn't clutter the active list
+ * but is still reachable.
+ */
+enum class MyRequestsTab(val key: String, val label: String, val status: RequestStatus) {
+    Active("active", "Active", RequestStatus.Active),
+    Expired("expired", "Expired", RequestStatus.Expired),
+    Fulfilled("fulfilled", "Fulfilled", RequestStatus.Fulfilled),
+    Cancelled("cancelled", "Cancelled", RequestStatus.Cancelled),
+    ;
+
+    companion object {
+        fun fromKey(key: String?): MyRequestsTab =
+            entries.firstOrNull { it.key.equals(key, ignoreCase = true) } ?: Active
+    }
+}
+
+/**
+ * Combined Mine-tab state: the full list of the requester's posts plus
+ * which inner tab they're viewing. The current request slice ([visible])
+ * is derived in the ViewModel so tab switches don't re-filter on the UI
+ * thread mid-recomposition.
+ */
+sealed interface MyRequestsUiState {
+    data object Loading : MyRequestsUiState
+    data class Error(val message: String) : MyRequestsUiState
+    data class Content(
+        val selectedTab: MyRequestsTab,
+        /** Per-tab visible slice. Empty list means "no requests in this tab". */
+        val visible: List<WantedRequest>,
+        /** Per-tab counts, used to badge the tab labels. */
+        val counts: Map<MyRequestsTab, Int>,
+        /** Per-request action in flight (for spinner / disabled state). */
+        val pendingActionId: String? = null,
+        /** Inline action error, displayed at the top of the screen. */
+        val actionError: String? = null,
+    ) : MyRequestsUiState
+}
+
+/**
  * Place selected by the user from autocomplete (or current-location reverse
  * geocoding). `lat`/`lng` are nullable to support device-Geocoder fallback
  * results that don't always carry coordinates.
@@ -289,6 +386,11 @@ data class CreateRequestForm(
     val startDate: Long? = null,
     /** Epoch millis at UTC midnight for the end of the requested window. */
     val endDate: Long? = null,
+    /**
+     * Explicit auto-expiry chosen by the user — null means "infer from the
+     * end of the requested window" (handled by the ViewModel on submit).
+     */
+    val expiresAt: Long? = null,
     val budget: String = "",
     val imageUrl: String? = null,
 )

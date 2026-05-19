@@ -8,6 +8,7 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateRequestBody
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
@@ -28,6 +29,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Covers the client-side filter + sort behavior of [RequestsViewModel].
@@ -297,14 +301,21 @@ class RequestsViewModelFilterTest {
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
+    private val fixedClock: Clock = Clock.fixed(
+        Instant.parse("2026-05-18T12:00:00Z"),
+        ZoneId.of("UTC"),
+    )
+
     private fun newViewModel(
         items: List<WantedRequest>,
         store: RequestsFiltersStore = FakeFiltersStore(),
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
+        clock: Clock = fixedClock,
     ): RequestsViewModel = RequestsViewModel(
         repository = FakeRepository(items),
         filtersStore = store,
         savedStateHandle = savedStateHandle,
+        clock = clock,
     )
 
     private val seed: List<WantedRequest> = listOf(
@@ -322,6 +333,8 @@ class RequestsViewModelFilterTest {
         category: String,
         budget: Double?,
         moderationStatus: ModerationStatus = ModerationStatus.Approved,
+        status: RequestStatus = RequestStatus.Active,
+        expiresAt: String? = null,
     ): WantedRequest = WantedRequest(
         id = id,
         title = "$id title",
@@ -330,10 +343,72 @@ class RequestsViewModelFilterTest {
         category = category,
         location = "Test",
         budget = budget,
-        dateTime = null,
+        requestStartDate = null,
+        expiresAt = expiresAt,
         imageUrl = null,
         moderationStatus = moderationStatus,
+        status = status,
     )
+
+    @Test
+    fun `public feed filters out expired and explicitly-closed requests`() = runTest(dispatcher) {
+        // Acceptance: the public feed must not surface expired requests.
+        // The lifecycle gate also drops Fulfilled / Cancelled records that
+        // wouldn't be useful to providers.
+        val mixed = seed + listOf(
+            request(
+                "expired-server", "space", "parking", budget = 250.0,
+                status = RequestStatus.Expired, expiresAt = "2026-04-01",
+            ),
+            // Active server-side but past its calendar expiry — must still
+            // disappear from the public feed.
+            request(
+                "stale-active", "service", "moving", budget = 50.0,
+                status = RequestStatus.Active, expiresAt = "2026-04-01",
+            ),
+            request(
+                "fulfilled-1", "space", "parking", budget = 60.0,
+                status = RequestStatus.Fulfilled,
+            ),
+            request(
+                "cancelled-1", "space", "parking", budget = 60.0,
+                status = RequestStatus.Cancelled,
+            ),
+        )
+        val viewModel = newViewModel(mixed)
+        advanceUntilIdle()
+
+        val visible = (viewModel.state.value as RequestsListUiState.Content).requests
+        listOf("expired-server", "stale-active", "fulfilled-1", "cancelled-1").forEach { id ->
+            assertFalse(
+                "the public feed must hide $id",
+                visible.any { it.id == id },
+            )
+        }
+        // The base seed is all-active so they should still all be there.
+        assertEquals(
+            seed.map { it.id }.toSet(),
+            visible.map { it.id }.toSet(),
+        )
+    }
+
+    @Test
+    fun `future-dated active requests stay on the public feed`() = runTest(dispatcher) {
+        // Acceptance: future-dated requests do not expire immediately —
+        // the public feed must keep them surfaced.
+        val futureRequest = request(
+            "future-event", "space", "short_stay", budget = 300.0,
+            status = RequestStatus.Active, expiresAt = "2026-12-25",
+        )
+        val viewModel = newViewModel(listOf(futureRequest))
+        advanceUntilIdle()
+
+        val visible = (viewModel.state.value as RequestsListUiState.Content).requests
+        assertTrue(
+            "future-dated active requests must stay on the public feed",
+            visible.any { it.id == "future-event" },
+        )
+    }
 
     @Test
     fun `public browse hides pending and rejected entries`() = runTest(dispatcher) {
@@ -394,6 +469,15 @@ class RequestsViewModelFilterTest {
             error("unused in filter tests")
 
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
+            error("unused in filter tests")
+
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("unused in filter tests")
+
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
             error("unused in filter tests")
 
         override suspend fun getHostListings():

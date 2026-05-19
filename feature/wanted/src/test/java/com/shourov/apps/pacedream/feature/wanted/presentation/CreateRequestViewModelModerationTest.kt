@@ -249,6 +249,13 @@ class CreateRequestViewModelModerationTest {
             error("unused")
         override suspend fun createOffer(requestId: String, body: CreateOfferBody): Result<WantedOffer> =
             error("unused")
+        override suspend fun updateRequestStatus(
+            id: String,
+            status: com.shourov.apps.pacedream.feature.wanted.model.RequestStatus,
+            expiresAt: String?,
+        ): Result<WantedRequest> = error("unused")
+        override suspend fun renewRequest(id: String, newExpiry: String?): Result<WantedRequest> =
+            error("unused")
         override suspend fun getHostListings(): Result<List<HostListingSummary>> =
             Result.success(emptyList())
         override suspend fun getCategories(): Result<Map<WantedType, List<WantedCategoryOption>>> =
@@ -265,8 +272,9 @@ class CreateRequestViewModelModerationTest {
                     category = body.category,
                     location = body.location?.city.orEmpty(),
                     budget = body.budget,
-                    dateTime = body.date,
-                    endDate = body.endDate,
+                    requestStartDate = body.date,
+                    requestEndDate = body.endDate,
+                    expiresAt = body.expiresAt,
                     imageUrl = body.coverImageUrl,
                     moderationStatus = responseModerationStatus,
                 ),

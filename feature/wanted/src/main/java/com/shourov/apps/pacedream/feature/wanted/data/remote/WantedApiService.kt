@@ -9,8 +9,10 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.OfferEnvelope
 import com.shourov.apps.pacedream.feature.wanted.data.dto.OffersResponse
 import com.shourov.apps.pacedream.feature.wanted.data.dto.RequestEnvelope
 import com.shourov.apps.pacedream.feature.wanted.data.dto.RequestsResponse
+import com.shourov.apps.pacedream.feature.wanted.data.dto.UpdateRequestStatusBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -43,6 +45,17 @@ interface WantedApiService {
 
     @POST(ApiEndPoints.CREATE_REQUEST)
     suspend fun createRequest(@Body body: CreateRequestBody): RequestEnvelope
+
+    /**
+     * Lifecycle transition for the requester's own posts — Renew / Mark
+     * Fulfilled / Cancel. The server echoes back the updated request so the
+     * client can swap it in without a refresh round-trip.
+     */
+    @PATCH(ApiEndPoints.UPDATE_REQUEST_STATUS)
+    suspend fun updateRequestStatus(
+        @Path("id") id: String,
+        @Body body: UpdateRequestStatusBody,
+    ): RequestEnvelope
 
     @POST(ApiEndPoints.CREATE_REQUEST_OFFER)
     suspend fun createOffer(

@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
+import java.time.Clock
 import javax.inject.Singleton
 
 @Module
@@ -34,4 +35,14 @@ object WantedNetworkModule {
     @Singleton
     fun provideWantedApiService(retrofit: Retrofit): WantedApiService =
         retrofit.create(WantedApiService::class.java)
+
+    /**
+     * Injectable [Clock] so ViewModels and expiry helpers can resolve "now"
+     * via DI rather than calling [java.time.LocalDate.now] directly. Tests
+     * override this by passing a fixed clock through the ViewModel
+     * constructor.
+     */
+    @Provides
+    @Singleton
+    fun provideClock(): Clock = Clock.systemDefaultZone()
 }

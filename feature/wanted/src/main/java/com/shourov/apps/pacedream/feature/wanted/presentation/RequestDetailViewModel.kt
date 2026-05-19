@@ -8,8 +8,10 @@ import com.shourov.apps.pacedream.feature.wanted.data.dto.CreateOfferBody
 import com.shourov.apps.pacedream.feature.wanted.model.OFFER_MESSAGE_MAX_LENGTH
 import com.shourov.apps.pacedream.feature.wanted.model.OfferFormState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
+import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
+import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,12 +22,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
 class RequestDetailViewModel @Inject constructor(
     private val repository: WantedRepository,
     private val authSession: AuthSession,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
     private val _result = MutableStateFlow<RequestResult>(RequestResult.Loading)
@@ -131,6 +136,23 @@ class RequestDetailViewModel @Inject constructor(
     fun submitOffer() {
         val id = requestId ?: return
         val current = _offer.value
+        // Guard against an offer being submitted on a request that has
+        // expired (or been closed) while the sheet was open. The CTA in
+        // [RequestDetailScreen] is disabled in this case, but a race
+        // between scrolling/refresh and submit is possible.
+        val loaded = _result.value as? RequestResult.Content
+        loaded?.let { content ->
+            val effective = RequestExpiryResolver.effectiveStatus(
+                content.request,
+                LocalDate.now(clock),
+            )
+            if (effective != RequestStatus.Active) {
+                _offer.update {
+                    it.copy(error = "This request is no longer accepting offers.")
+                }
+                return
+            }
+        }
         val price = current.price.toDoubleOrNull()
         if (price == null || price <= 0.0) {
             _offer.update { it.copy(error = "Enter a valid price") }
@@ -168,6 +190,42 @@ class RequestDetailViewModel @Inject constructor(
                             error = friendlyError(e),
                         )
                     }
+                }
+        }
+    }
+
+    /**
+     * Owner-only action: bump the request's auto-expiry forward and flip
+     * it back to Active. Mirrors the Mine-tab "Renew Request" affordance
+     * for cases where the requester is already on the detail screen.
+     */
+    fun renew(daysFromNow: Long = DEFAULT_RENEWAL_DAYS) = applyLifecycle { id ->
+        val newExpiry = LocalDate.now(clock).plusDays(daysFromNow).toString()
+        repository.renewRequest(id = id, newExpiry = newExpiry)
+    }
+
+    /** Owner-only action: mark this request as fulfilled. */
+    fun markFulfilled() = applyLifecycle { id ->
+        repository.updateRequestStatus(id, RequestStatus.Fulfilled)
+    }
+
+    /** Owner-only action: cancel this request. */
+    fun cancel() = applyLifecycle { id ->
+        repository.updateRequestStatus(id, RequestStatus.Cancelled)
+    }
+
+    private fun applyLifecycle(block: suspend (String) -> Result<WantedRequest>) {
+        val id = requestId ?: return
+        viewModelScope.launch {
+            block(id)
+                .onSuccess { updated -> _result.value = RequestResult.Content(updated) }
+                .onFailure { e ->
+                    Timber.e(e, "Lifecycle action failed for request $id")
+                    // The current request is still rendered; we just need
+                    // to surface a transient error. Re-using the offer
+                    // banner would be confusing on the owner view, so we
+                    // log here and rely on a refresh action from the user
+                    // if state diverged.
                 }
         }
     }
@@ -233,5 +291,10 @@ class RequestDetailViewModel @Inject constructor(
         data object Loading : RequestResult
         data class Error(val message: String) : RequestResult
         data class Content(val request: WantedRequest) : RequestResult
+    }
+
+    companion object {
+        /** Mirrors [MyRequestsViewModel.DEFAULT_RENEWAL_DAYS]. */
+        const val DEFAULT_RENEWAL_DAYS: Long = 30
     }
 }
