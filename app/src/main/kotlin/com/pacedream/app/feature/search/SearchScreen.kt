@@ -94,6 +94,13 @@ object SearchTestTags {
     const val ResultsList = "search_results_list"
 }
 
+// File-scope chip labels — invariant, so the LazyRow can iterate the same
+// List instance across recompositions instead of allocating a fresh list.
+private val SearchCategoryChips: List<String> = listOf(
+    "Studio", "Meeting Room", "Podcast Studio", "Photo Studio",
+    "Music Studio", "Event Space", "Camera", "Lighting", "Audio",
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SearchScreen(
@@ -258,10 +265,6 @@ fun SearchScreen(
         )
 
         // ── Category filter chips (iOS parity: pill style, toggle selection) ──
-        val categories = listOf(
-            "Studio", "Meeting Room", "Podcast Studio", "Photo Studio",
-            "Music Studio", "Event Space", "Camera", "Lighting", "Audio"
-        )
         LazyRow(
             contentPadding = PaddingValues(
                 horizontal = PaceDreamSpacing.MD,
@@ -269,7 +272,7 @@ fun SearchScreen(
             ),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            items(categories) { category ->
+            items(SearchCategoryChips, key = { it }) { category ->
                 val selected = uiState.selectedCategory == category
                 FilterChip(
                     selected = selected,
@@ -348,7 +351,7 @@ fun SearchScreen(
                     verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(uiState.results) { item ->
+                    items(uiState.results, key = { it.id }) { item ->
                         SearchResultCard(
                             item = item,
                             onClick = { onListingClick(item) }
@@ -506,8 +509,9 @@ private fun SearchResultCard(
                                 modifier = Modifier.size(10.dp)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
+                            val formattedRating = remember(rating) { String.format("%.1f", rating) }
                             Text(
-                                text = String.format("%.1f", rating),
+                                text = formattedRating,
                                 style = PaceDreamTypography.Caption2.copy(
                                     fontFamily = paceDreamFontFamily,
                                     fontWeight = FontWeight.Medium

@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,13 +99,20 @@ fun HomeRedesignScreen(
 
     val pullState = rememberPullRefreshState(refreshing = isRefreshing, onRefresh = onRefresh)
 
-    // Pick which rail data to show for the primary section
-    val primaryListings: List<Listing> = when (type) {
-        PrimaryType.SPACES ->
-            if (access == "split") splitListings
-            else spacesListings
-        PrimaryType.ITEMS -> itemsListings
-        PrimaryType.SERVICES -> servicesListings
+    // Pick which rail data to show for the primary section. Wrapped in
+    // remember so the selection only recomputes when an input list reference
+    // or the type/access selectors change — not on every recomposition driven
+    // by scroll state or pull-refresh ticks.
+    val primaryListings: List<Listing> = remember(
+        type, access, spacesListings, splitListings, itemsListings, servicesListings,
+    ) {
+        when (type) {
+            PrimaryType.SPACES ->
+                if (access == "split") splitListings
+                else spacesListings
+            PrimaryType.ITEMS -> itemsListings
+            PrimaryType.SERVICES -> servicesListings
+        }
     }
 
     Box(
@@ -115,7 +123,9 @@ fun HomeRedesignScreen(
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("home_redesign_list"),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             item("hero") {
@@ -261,6 +271,7 @@ private fun PrimaryRail(
     onFavoriteToggle: (String) -> Unit,
 ) {
     LazyRow(
+        modifier = Modifier.testTag("home_primary_rail"),
         contentPadding = PaddingValues(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {

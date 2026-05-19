@@ -314,18 +314,27 @@ private fun UnifiedBookingCard(
                     }
                 }
 
-                // Detail rows (like iOS)
+                // Detail rows (like iOS) — memoize the formatted date/guest
+                // strings so the SimpleDateFormat instances aren't rebuilt
+                // on every recomposition while the list animates or
+                // pull-refresh ticks.
+                val datesLabel = remember(booking.startDate, booking.endDate) {
+                    "${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}"
+                }
                 DetailRow(
                     icon = PaceDreamIcons.CalendarToday,
                     title = "Dates",
-                    value = "${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}"
+                    value = datesLabel
                 )
 
                 if (booking.guestCount > 0) {
+                    val guestsLabel = remember(booking.guestCount) {
+                        "${booking.guestCount} guest${if (booking.guestCount == 1) "" else "s"}"
+                    }
                     DetailRow(
                         icon = PaceDreamIcons.Group,
                         title = "Guests",
-                        value = "${booking.guestCount} guest${if (booking.guestCount == 1) "" else "s"}"
+                        value = guestsLabel
                     )
                 }
 
@@ -335,6 +344,9 @@ private fun UnifiedBookingCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
+                    val totalLabel = remember(booking.currency, booking.totalPrice) {
+                        "${booking.currency} ${String.format("%.2f", booking.totalPrice)}"
+                    }
                     Column {
                         Text(
                             text = "Total",
@@ -342,7 +354,7 @@ private fun UnifiedBookingCard(
                             color = PaceDreamColors.TextSecondary
                         )
                         Text(
-                            text = "${booking.currency} ${String.format("%.2f", booking.totalPrice)}",
+                            text = totalLabel,
                             style = PaceDreamTypography.Title3,
                             color = PaceDreamColors.TextPrimary,
                             fontWeight = FontWeight.Bold

@@ -465,12 +465,16 @@ private fun ThreadCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (thread.avatarUrl?.takeIf { it.isNotBlank() } != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
+                    val context = LocalContext.current
+                    val avatarRequest = remember(thread.avatarUrl, context) {
+                        ImageRequest.Builder(context)
                             .data(thread.avatarUrl)
                             .crossfade(200)
                             .size(coil.size.Size(96, 96))
-                            .build(),
+                            .build()
+                    }
+                    AsyncImage(
+                        model = avatarRequest,
                         contentDescription = thread.displayName,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()

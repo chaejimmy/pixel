@@ -78,6 +78,9 @@ fun ListingCard(
     // every active marketplace card shares one image proportion.
     val photoHeight = cardWidth * 3f / 4f
 
+    val hasSplitBadge = remember(item.badges) { "split" in item.badges }
+    val visibleBadges = remember(item.badges) { item.badges.take(2) }
+
     var photoIdx by remember(item.id) { mutableIntStateOf(0) }
     var burst by remember(item.id) { mutableStateOf(false) }
 
@@ -117,11 +120,18 @@ fun ListingCard(
             // Gallery page — real AsyncImage when we have a URL, otherwise a placeholder strip.
             val currentUrl = item.imageUrls.getOrNull(photoIdx)
             if (!currentUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
+                val context = LocalContext.current
+                // Build the ImageRequest only when the URL changes — otherwise
+                // every recomposition allocates a fresh builder + request, which
+                // makes Coil treat the slot as new and flicker on re-bind.
+                val imageRequest = remember(currentUrl, context) {
+                    ImageRequest.Builder(context)
                         .data(currentUrl)
                         .crossfade(200)
-                        .build(),
+                        .build()
+                }
+                AsyncImage(
+                    model = imageRequest,
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -291,8 +301,9 @@ fun ListingCard(
                     modifier = Modifier.size(12.dp),
                 )
                 Spacer(Modifier.width(3.dp))
+                val formattedRating = remember(item.rating) { "%.2f".format(item.rating) }
                 Text(
-                    "%.2f".format(item.rating),
+                    formattedRating,
                     color = HomeRedesignTheme.Ink,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -316,7 +327,7 @@ fun ListingCard(
             modifier = Modifier.padding(horizontal = 2.dp),
         )
 
-        if ("split" in item.badges && item.dates != null) {
+        if (hasSplitBadge && item.dates != null) {
             Spacer(Modifier.height(2.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -346,7 +357,7 @@ fun ListingCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.padding(horizontal = 2.dp),
             ) {
-                item.badges.take(2).forEach { AccessBadge(it) }
+                visibleBadges.forEach { AccessBadge(it) }
             }
         }
 

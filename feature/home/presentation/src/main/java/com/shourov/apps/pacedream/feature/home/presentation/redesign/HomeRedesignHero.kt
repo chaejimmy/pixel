@@ -65,17 +65,22 @@ fun HomeHero(
     }
     val whatSuggestions = HomeRedesignData.WhatSuggestions
 
+    // Theme colours are object constants — the gradient never changes, so
+    // build the Brush once instead of allocating a new instance every
+    // recomposition triggered by parent scroll/state.
+    val heroBrush = remember {
+        Brush.verticalGradient(
+            0f to HomeRedesignTheme.Purple.c800,
+            0.5f to HomeRedesignTheme.Purple.c700,
+            1f to HomeRedesignTheme.Purple.c600,
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(HomeRedesignTheme.HeroBottomShape)
-            .background(
-                Brush.verticalGradient(
-                    0f to HomeRedesignTheme.Purple.c800,
-                    0.5f to HomeRedesignTheme.Purple.c700,
-                    1f to HomeRedesignTheme.Purple.c600,
-                ),
-            ),
+            .background(heroBrush),
     ) {
         Column(
             modifier = Modifier
