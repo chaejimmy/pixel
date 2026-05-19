@@ -103,7 +103,7 @@ private fun ChatListContent(
         contentPadding = PaddingValues(PaceDreamDesignSystem.PaceDreamSpacing.MD),
         verticalArrangement = Arrangement.spacedBy(PaceDreamDesignSystem.PaceDreamSpacing.SM)
     ) {
-        items(chats) { chat ->
+        items(chats, key = { it.chatId }) { chat ->
             ChatItemCard(
                 chat = chat,
                 onClick = { onChatClick(chat.chatId) }

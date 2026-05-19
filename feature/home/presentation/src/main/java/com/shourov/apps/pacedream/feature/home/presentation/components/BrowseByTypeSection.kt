@@ -24,10 +24,12 @@ import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pacedream.common.composables.components.PaceDreamShimmerCard
 import com.pacedream.common.composables.theme.*
 import com.pacedream.common.icon.PaceDreamIcons
@@ -279,20 +281,16 @@ fun BrowseByTypeSection(
                                     browseServices,
                                     key = { idx, stay -> stay._id ?: "browse-split-idx-$idx" }
                                 ) { _, stay ->
-                                    val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
-                                        when {
-                                            unit.contains("hour") || unit == "hr" -> "hr"
-                                            unit.contains("day") -> "day"
-                                            unit.contains("week") -> "wk"
-                                            unit.contains("month") -> "mo"
-                                            unit == "once" || unit == "total" -> "total"
-                                            else -> unit
-                                        }
-                                    } ?: "hr"
+                                    // Memoize the formatted price per item to
+                                    // avoid re-running the when-chain on every
+                                    // recomposition triggered by sibling state.
+                                    val priceText = remember(stay.priceUnit, stay.price) {
+                                        "$${stay.price?.toInt() ?: "0"}/${normalizeSplitStayPriceUnit(stay.priceUnit)}"
+                                    }
                                     UnifiedListingCard(
                                         title = stay.name ?: "Service",
                                         subtitle = stay.location ?: stay.city ?: "Location",
-                                        price = "$${stay.price?.toInt() ?: "0"}/$priceUnit",
+                                        price = priceText,
                                         rating = stay.rating?.toDouble(),
                                         imageUrl = stay.images?.firstOrNull(),
                                         accentColor = selectedType.gradientColors.first(),
@@ -326,6 +324,15 @@ private fun UnifiedListingCard(
     accentColor: Color,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+    // Memoize the Coil request per URL so we don't reallocate the builder
+    // whenever a sibling card in the LazyRow recomposes.
+    val cardImageRequest = remember(imageUrl, context) {
+        ImageRequest.Builder(context)
+            .data(imageUrl)
+            .crossfade(200)
+            .build()
+    }
     Column(
         modifier = Modifier
             .width(156.dp)
@@ -342,7 +349,7 @@ private fun UnifiedListingCard(
                 .background(PaceDreamGray100),
         ) {
             AsyncImage(
-                model = imageUrl,
+                model = cardImageRequest,
                 contentDescription = title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -380,6 +387,7 @@ private fun UnifiedListingCard(
                     color = accentColor,
                 )
                 if (rating != null && rating > 0) {
+                    val formattedRating = remember(rating) { String.format("%.1f", rating) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -391,7 +399,7 @@ private fun UnifiedListingCard(
                             modifier = Modifier.size(10.dp),
                         )
                         Text(
-                            text = String.format("%.1f", rating),
+                            text = formattedRating,
                             style = PaceDreamTypography.Caption2,
                             color = PaceDreamTextSecondary,
                         )
@@ -419,15 +427,20 @@ private fun BrowseTypePill(
         label = "pillText"
     )
 
+    // Memoize both brush variants per type — the gradient colours are static
+    // per enum entry, so the only thing that flips is which one we hand to
+    // .background().  This avoids reallocating two Brushes on every tap and
+    // on every recomposition triggered by the row's animateColorAsState.
+    val selectedBrush = remember(type) { Brush.horizontalGradient(type.gradientColors) }
+    val unselectedBrush = remember { Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent)) }
+    val pillInteractionSource = remember { MutableInteractionSource() }
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
-            .background(
-                if (isSelected) Brush.horizontalGradient(type.gradientColors)
-                else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-            )
+            .background(if (isSelected) selectedBrush else unselectedBrush)
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = pillInteractionSource,
                 indication = null,
                 onClick = onClick
             )
@@ -463,13 +476,13 @@ private fun SubcategoryChip(
     accentColor: Color,
     onClick: () -> Unit,
 ) {
+    val chipBorderBrush = remember { Brush.horizontalGradient(listOf(PaceDreamGray200, PaceDreamGray200)) }
+    val chipBorder = ButtonDefaults.outlinedButtonBorder.copy(brush = chipBorderBrush)
     Surface(
         onClick = onClick,
         color = PaceDreamSurface,
         shape = RoundedCornerShape(PaceDreamRadius.XL),
-        border = ButtonDefaults.outlinedButtonBorder.copy(
-            brush = Brush.horizontalGradient(listOf(PaceDreamGray200, PaceDreamGray200))
-        ),
+        border = chipBorder,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),

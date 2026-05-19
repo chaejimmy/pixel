@@ -79,6 +79,28 @@ fun AmenityChip(
     }
 }
 
+// Lookup table is invariant — declared at file scope so it isn't reallocated
+// on every recomposition of AmenityList / FilterScreen.
+private val AmenityIcons: Map<String, ImageVector> = mapOf(
+    "WiFi" to PaceDreamIcons.Wifi,
+    "Parking" to PaceDreamIcons.LocalParking,
+    "Pool" to PaceDreamIcons.Pool,
+    "Gym" to PaceDreamIcons.FitnessCenter,
+    "Kitchen" to PaceDreamIcons.Kitchen,
+    "AC" to PaceDreamIcons.Air,
+    "TV" to PaceDreamIcons.Tv,
+    "Pet Friendly" to PaceDreamIcons.Pets,
+    "Balcony" to PaceDreamIcons.Balcony,
+    "Garden" to PaceDreamIcons.Yard,
+    "Security" to PaceDreamIcons.Security,
+    "Elevator" to PaceDreamIcons.Elevator,
+    "Laundry" to PaceDreamIcons.LocalLaundryService,
+    "Heating" to PaceDreamIcons.Thermostat,
+    "Breakfast" to PaceDreamIcons.Restaurant,
+)
+
+internal fun amenityIcon(name: String): ImageVector = AmenityIcons[name] ?: PaceDreamIcons.Star
+
 @Composable
 fun AmenityList(
     amenities: List<String>,
@@ -86,32 +108,14 @@ fun AmenityList(
     onAmenityClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val amenityIcons = mapOf(
-        "WiFi" to PaceDreamIcons.Wifi,
-        "Parking" to PaceDreamIcons.LocalParking,
-        "Pool" to PaceDreamIcons.Pool,
-        "Gym" to PaceDreamIcons.FitnessCenter,
-        "Kitchen" to PaceDreamIcons.Kitchen,
-        "AC" to PaceDreamIcons.Air,
-        "TV" to PaceDreamIcons.Tv,
-        "Pet Friendly" to PaceDreamIcons.Pets,
-        "Balcony" to PaceDreamIcons.Balcony,
-        "Garden" to PaceDreamIcons.Yard,
-        "Security" to PaceDreamIcons.Security,
-        "Elevator" to PaceDreamIcons.Elevator,
-        "Laundry" to PaceDreamIcons.LocalLaundryService,
-        "Heating" to PaceDreamIcons.Thermostat,
-        "Breakfast" to PaceDreamIcons.Restaurant
-    )
-    
     LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
     ) {
-        items(amenities) { amenity ->
+        items(amenities, key = { it }) { amenity ->
             AmenityChip(
                 amenity = amenity,
-                icon = amenityIcons[amenity] ?: PaceDreamIcons.Star,
+                icon = amenityIcon(amenity),
                 isSelected = selectedAmenities.contains(amenity),
                 onClick = { onAmenityClick(amenity) }
             )

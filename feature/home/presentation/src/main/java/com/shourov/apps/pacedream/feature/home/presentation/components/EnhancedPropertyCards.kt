@@ -24,9 +24,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
@@ -70,18 +72,20 @@ fun EnhancedDestinationCard(
                 contentScale = ContentScale.Crop
             )
             
-            // Gradient Overlay
+            // Gradient Overlay — memoized; the colors are constants so the
+            // brush only needs to be allocated once per card instance.
+            val destinationScrim = remember {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        scrimOnImage(0.7f)
+                    )
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                scrimOnImage(0.7f)
-                            )
-                        )
-                    )
+                    .background(brush = destinationScrim)
             )
             
             // Content
@@ -149,11 +153,15 @@ fun EnhancedPropertyCard(
             ) {
                 // Property Image
                 if (!imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
+                    val context = LocalContext.current
+                    val propertyImageRequest = remember(imageUrl, context) {
+                        ImageRequest.Builder(context)
                             .data(imageUrl)
                             .crossfade(200)
-                            .build(),
+                            .build()
+                    }
+                    AsyncImage(
+                        model = propertyImageRequest,
                         contentDescription = propertyName,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -271,8 +279,9 @@ fun EnhancedPropertyCard(
 
                     Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
 
+                    val formattedRating = remember(rating) { String.format("%.1f", rating) }
                     Text(
-                        text = String.format("%.1f", rating),
+                        text = formattedRating,
                         style = PaceDreamTypography.Callout,
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.Medium
@@ -465,11 +474,15 @@ fun PropertyImageCarousel(
         // Main Image
         val currentUrl = images.getOrNull(currentImageIndex)
         if (!currentUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+            val context = LocalContext.current
+            val carouselImageRequest = remember(currentUrl, context) {
+                ImageRequest.Builder(context)
                     .data(currentUrl)
                     .crossfade(200)
-                    .build(),
+                    .build()
+            }
+            AsyncImage(
+                model = carouselImageRequest,
                 contentDescription = "Property image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

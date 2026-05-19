@@ -81,7 +81,7 @@ fun RecentSearchesScreen(
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                 }
                 
-                items(recentSearches) { search ->
+                items(recentSearches, key = { it }) { search ->
                     RecentSearchItem(
                         location = search,
                         onClick = { onSearchClick(search) },

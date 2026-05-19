@@ -164,7 +164,13 @@ fun EnhancedDashboardContent(
         item {
             Spacer(modifier = Modifier.height(20.dp))
 
-            val destinations = buildTrendingDestinations(roomsState, gearsState)
+            // The destinations list is derived by iterating rooms + gears and
+            // running a per-city count.  Wrap in remember so we only redo the
+            // O(N * M) work when the source lists actually change instead of
+            // on every parent recomposition.
+            val destinations = remember(roomsState.rooms, gearsState.rentedGears) {
+                buildTrendingDestinations(roomsState, gearsState)
+            }
             if (destinations.isNotEmpty()) {
                 TrendingDestinationsSection(
                     destinations = destinations,
@@ -368,21 +374,18 @@ private fun FeaturedListingsSection(
                             featuredServices,
                             key = { idx, stay -> stay._id ?: "split-idx-$idx" }
                         ) { _, stay ->
-                            val priceUnit = stay.priceUnit?.lowercase()?.let { unit ->
-                                when {
-                                    unit.contains("hour") || unit == "hr" -> "hr"
-                                    unit.contains("day") -> "day"
-                                    unit.contains("week") -> "wk"
-                                    unit.contains("month") -> "mo"
-                                    unit == "once" || unit == "total" -> "total"
-                                    else -> unit
-                                }
-                            } ?: "hr"
                             val stayId = stay._id ?: ""
+                            // Memoize the per-stay derived strings — without
+                            // this, the price-unit when-chain and string
+                            // concat re-run for every item on every parent
+                            // recomposition (e.g. while pull-refresh ticks).
+                            val priceText = remember(stay.priceUnit, stay.price) {
+                                "$${stay.price?.toInt() ?: "0"}/${normalizeSplitStayPriceUnit(stay.priceUnit)}"
+                            }
                             PaceDreamPropertyCard(
                                 title = stay.name ?: "Service",
                                 location = stay.location ?: stay.city ?: "Location",
-                                price = "$${stay.price?.toInt() ?: "0"}/$priceUnit",
+                                price = priceText,
                                 rating = stay.rating?.toDouble() ?: 0.0,
                                 reviewCount = stay.reviewCount ?: 0,
                                 imageUrl = stay.images?.firstOrNull(),
@@ -466,6 +469,23 @@ fun SectionHeader(
                 fontWeight = FontWeight.Medium,
             )
         }
+    }
+}
+
+/**
+ * Normalize the loose `priceUnit` strings the backend sends ("per hour",
+ * "Hourly", "wk", null, …) into the short tokens we render on cards.
+ * Lifted out of the LazyRow item lambda so the lookup is allocation-free.
+ */
+internal fun normalizeSplitStayPriceUnit(raw: String?): String {
+    val unit = raw?.lowercase() ?: return "hr"
+    return when {
+        unit.contains("hour") || unit == "hr" -> "hr"
+        unit.contains("day") -> "day"
+        unit.contains("week") -> "wk"
+        unit.contains("month") -> "mo"
+        unit == "once" || unit == "total" -> "total"
+        else -> unit
     }
 }
 

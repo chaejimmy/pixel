@@ -39,6 +39,25 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+// File-scope constants — these lists never change so we don't need to
+// re-build them on every recomposition of the LazyColumn that uses them.
+private val FilterPropertyTypes: List<String> =
+    listOf("Apartment", "House", "Villa", "Condo", "Studio")
+
+private val FilterAmenities: List<String> = listOf(
+    "WiFi", "Parking", "Pool", "Gym", "Kitchen",
+    "AC", "TV", "Pet Friendly", "Balcony", "Garden",
+)
+
+private val FilterCountOptions: List<Pair<String, Int?>> = listOf(
+    "Any" to null,
+    "1" to 1,
+    "2" to 2,
+    "3" to 3,
+    "4" to 4,
+    "5+" to 5,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterScreen(
@@ -150,9 +169,8 @@ fun FilterScreen(
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
                 FilterSectionHeader("Property Type")
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-                val propertyTypes = listOf("Apartment", "House", "Villa", "Condo", "Studio")
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                    items(propertyTypes) { type ->
+                    items(FilterPropertyTypes, key = { it }) { type ->
                         FilterChip(
                             label = type,
                             isSelected = selectedPropertyType == type,
@@ -238,28 +256,15 @@ fun FilterScreen(
                 FilterSectionHeader("Amenities")
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
 
-                val amenities = listOf(
-                    "WiFi", "Parking", "Pool", "Gym", "Kitchen",
-                    "AC", "TV", "Pet Friendly", "Balcony", "Garden"
-                )
-
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-                    items(amenities) { amenity ->
+                    items(FilterAmenities, key = { it }) { amenity ->
                         AmenityChip(
                             amenity = amenity,
-                            icon = when (amenity) {
-                                "WiFi" -> PaceDreamIcons.Wifi
-                                "Parking" -> PaceDreamIcons.LocalParking
-                                "Pool" -> PaceDreamIcons.Pool
-                                "Gym" -> PaceDreamIcons.FitnessCenter
-                                "Kitchen" -> PaceDreamIcons.Kitchen
-                                "AC" -> PaceDreamIcons.Air
-                                "TV" -> PaceDreamIcons.Tv
-                                "Pet Friendly" -> PaceDreamIcons.Pets
-                                "Balcony" -> PaceDreamIcons.Balcony
-                                "Garden" -> PaceDreamIcons.Yard
-                                else -> PaceDreamIcons.Star
-                            },
+                            // Shared icon lookup table (declared at file scope
+                            // in EnhancedAmenityComponents) so the chip row
+                            // doesn't rebuild a `when` chain per item on each
+                            // recomposition of FilterScreen.
+                            icon = amenityIcon(amenity),
                             isSelected = selectedAmenities.contains(amenity),
                             onClick = {
                                 selectedAmenities = if (selectedAmenities.contains(amenity)) {
@@ -469,15 +474,7 @@ private fun CountSelectorRow(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
-            val options = listOf<Pair<String, Int?>>(
-                "Any" to null,
-                "1" to 1,
-                "2" to 2,
-                "3" to 3,
-                "4" to 4,
-                "5+" to 5,
-            )
-            items(options) { (text, count) ->
+            items(FilterCountOptions, key = { it.first }) { (text, count) ->
                 FilterChip(
                     label = text,
                     isSelected = value == count,

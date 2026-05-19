@@ -113,7 +113,7 @@ fun DestinationListScreen(
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
                             ) {
-                                items(popularDestinations) { destination ->
+                                items(popularDestinations, key = { it.name }) { destination ->
                                     PaceDreamDestinationCard(
                                         name = destination.name,
                                         imageUrl = destination.imageUrl,
@@ -135,7 +135,7 @@ fun DestinationListScreen(
                             )
                         }
 
-                        items(allDestinations) { destination ->
+                        items(allDestinations, key = { it.name }) { destination ->
                             DestinationListItem(
                                 destination = destination.name,
                                 propertyCount = destination.propertyCount,
