@@ -81,8 +81,19 @@ object HomeTestTags {
     const val Root = "home_screen_root"
     const val ListingFeed = "home_listing_feed"
     const val SearchBar = "home_search_bar"
+    const val FilterButton = "home_filter_button"
     const val NotificationButton = "home_notification_button"
     const val CategoryTabs = "home_category_tabs"
+    // Per-card primary CTA + favourite — shared across all three card
+    // variants (Featured / Grid / Listing). Tests should use
+    // onAllNodesWithTag(...) when asserting card counts.
+    const val ListingCard = "home_listing_card"
+    const val FavoriteButton = "home_favorite_button"
+    // FAQ + Support sections — registered ahead of implementation
+    // (DESIGN_QA_REPORT_ANDROID.md §P2-#10) so the tag string is locked
+    // in before the section composables land.
+    const val FaqSection = "home_faq_section"
+    const val SupportSection = "home_support_section"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -517,6 +528,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
+                        .testTag(HomeTestTags.FilterButton)
                         .semantics { role = Role.Button }
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
@@ -974,6 +986,7 @@ private fun FeaturedFullWidthCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1053,7 +1066,8 @@ private fun FeaturedFullWidthCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM2)
-                        .size(34.dp),
+                        .size(34.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1393,6 +1407,7 @@ private fun GridListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1478,7 +1493,8 @@ private fun GridListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(30.dp),
+                        .size(30.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1593,6 +1609,7 @@ private fun ListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1678,7 +1695,8 @@ private fun ListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(32.dp),
+                        .size(32.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
