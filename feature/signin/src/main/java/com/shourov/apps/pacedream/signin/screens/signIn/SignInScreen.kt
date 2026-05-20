@@ -114,6 +114,7 @@ fun SignIn(
 
                 CustomInputTextField(
                     modifier = Modifier.fillMaxWidth(),
+                    value = uiState.email,
                     leadingIcon = {
                         Icon(
                             imageVector = PaceDreamIcons.Email,
@@ -127,6 +128,7 @@ fun SignIn(
                 VerticalSpacer(height = 10)
                 CustomPasswordField(
                     modifier = Modifier.fillMaxWidth(),
+                    value = uiState.password,
                     leadingIcon = {
                         Icon(
                             imageVector = PaceDreamIcons.Password,
