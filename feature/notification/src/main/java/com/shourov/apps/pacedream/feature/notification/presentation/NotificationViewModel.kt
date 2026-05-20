@@ -3,6 +3,7 @@ package com.shourov.apps.pacedream.feature.notification.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shourov.apps.pacedream.feature.notification.data.NotificationRepository
+import com.shourov.apps.pacedream.feature.notification.model.AppNotification
 import com.shourov.apps.pacedream.feature.notification.model.NotificationGroup
 import com.shourov.apps.pacedream.feature.notification.model.NotificationUiState
 import com.pacedream.common.util.UserFacingErrorMapper
@@ -10,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -39,13 +41,53 @@ class NotificationViewModel @Inject constructor(
     }
 
     fun markAsRead(notificationId: String) {
+        // Optimistic: flip the row to read locally so the UI animates bold → regular
+        // without having to drop and re-render the list.
+        updateNotification(notificationId) { it.copy(isRead = true) }
         viewModelScope.launch {
-            repository.markAsRead(notificationId).onSuccess {
-                // Reload to reflect read state
-                loadNotifications()
-            }.onFailure { e ->
+            repository.markAsRead(notificationId).onFailure { e ->
                 Timber.e(e, "Failed to mark notification as read")
             }
+        }
+    }
+
+    fun markAsUnread(notificationId: String) {
+        // Repository has no markAsUnread endpoint yet; keep the change local so
+        // the long-press affordance still feels responsive.
+        updateNotification(notificationId) { it.copy(isRead = false) }
+    }
+
+    fun markAllAsRead() {
+        // Optimistic single-pass update so the overflow action visibly zeroes
+        // out every row, even if the network call is slow.
+        _uiState.update { state ->
+            if (state is NotificationUiState.Success) {
+                state.copy(
+                    groupedNotifications = state.groupedNotifications.mapValues { (_, list) ->
+                        list.map { it.copy(isRead = true) }
+                    }
+                )
+            } else state
+        }
+        viewModelScope.launch {
+            repository.markAllAsRead().onFailure { e ->
+                Timber.e(e, "Failed to mark all notifications as read")
+            }
+        }
+    }
+
+    private fun updateNotification(
+        notificationId: String,
+        transform: (AppNotification) -> AppNotification
+    ) {
+        _uiState.update { state ->
+            if (state is NotificationUiState.Success) {
+                state.copy(
+                    groupedNotifications = state.groupedNotifications.mapValues { (_, list) ->
+                        list.map { if (it.id == notificationId) transform(it) else it }
+                    }
+                )
+            } else state
         }
     }
 
