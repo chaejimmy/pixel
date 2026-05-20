@@ -1,39 +1,50 @@
 package com.pacedream.app.feature.search
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.shourov.apps.pacedream.core.location.CurrentLocationState
-import com.shourov.apps.pacedream.core.location.PlacePrediction
+import com.pacedream.common.composables.components.PaceDreamSearchBar
+import com.pacedream.common.composables.components.SearchDateRange
+import com.pacedream.common.composables.components.SearchMode
 import com.pacedream.common.composables.components.DatePicker as CommonDatePicker
-import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamColors
-import com.pacedream.common.composables.theme.PaceDreamGlass
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.core.location.CurrentLocationState
+import com.shourov.apps.pacedream.core.location.PlacePrediction
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 /**
- * Modernized Enhanced Search Bar with Liquid Glass styling.
- * Features segmented tab control, unified search fields, and glass-morphism card.
+ * Thin host that adapts the marketplace search composition
+ * ([com.pacedream.common.composables.components.PaceDreamSearchBar]) to the
+ * existing Explore-screen API: it maps the in-app [SearchTab] enum to the
+ * design-system [SearchMode], keeps the legacy single-date ISO string
+ * contract, and adds the place-autocomplete dropdown that lives between
+ * the WHERE field and the dates field. New callers should target the
+ * design-system component directly.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,295 +63,85 @@ fun EnhancedSearchBar(
     onPlaceSuggestionClick: (PlacePrediction) -> Unit = {},
     /**
      * Current state of the location-detection flow.  When [Loading] we
-     * swap the "Nearby" chip for a spinner; when permanently denied we
-     * surface a small inline row with an "Open Settings" CTA right
-     * under the WHERE field so the user has a clear recovery path.
+     * swap the chip for a spinner; when permanently denied we surface a
+     * small inline row with an "Open Settings" CTA right under the WHERE
+     * field so the user has a clear recovery path.
      */
     currentLocationState: CurrentLocationState = CurrentLocationState.Idle,
     onOpenLocationSettings: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(PaceDreamRadius.LG),
-        color = PaceDreamColors.Card,
-        shadowElevation = 0.dp,
-        tonalElevation = 1.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = PaceDreamGlass.BorderWidth,
-                    color = PaceDreamColors.GlassBorder,
-                    shape = RoundedCornerShape(PaceDreamRadius.LG)
-                )
-                // Compact padding so the search card doesn't push listings
-                // below the fold on smaller devices.
-                .padding(PaceDreamSpacing.SM2)
-        ) {
-            // Segmented tab control
-            SegmentedTabRow(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            // WHAT field
-            ModernSearchField(
-                label = "What",
-                value = whatQuery,
-                onValueChange = onWhatQueryChange,
-                placeholder = "Search spaces, items, or services",
-                leadingIcon = PaceDreamIcons.Search,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-
-            // WHERE field with location button
-            val locating = currentLocationState is CurrentLocationState.Loading
-            ModernSearchField(
-                label = "Where",
-                value = whereQuery,
-                onValueChange = onWhereQueryChange,
-                placeholder = "City or neighborhood",
-                leadingIcon = PaceDreamIcons.LocationOn,
-                trailingContent = {
-                    TextButton(
-                        onClick = onUseMyLocation,
-                        enabled = !locating,
-                        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM)
-                    ) {
-                        if (locating) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                strokeWidth = 2.dp,
-                                color = PaceDreamColors.Primary,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = PaceDreamIcons.MyLocation,
-                                contentDescription = "Use current location",
-                                modifier = Modifier.size(16.dp),
-                                tint = PaceDreamColors.Primary
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
-                        Text(
-                            text = if (locating) "Locating…" else "Use current location",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.Primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Permanently-denied recovery prompt — only shown when the
-            // user has explicitly hit "Don't ask again", since the OS
-            // will no longer surface the runtime prompt on subsequent
-            // taps and the only path back is the system settings page.
-            if (currentLocationState is CurrentLocationState.PermissionPermanentlyDenied) {
-                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = PaceDreamColors.Surface,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = PaceDreamSpacing.MD,
-                                vertical = PaceDreamSpacing.SM,
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.LocationOn,
-                            contentDescription = null,
-                            tint = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        Text(
-                            text = "Location is off — enable it in Settings, or search manually.",
-                            style = PaceDreamTypography.Caption,
-                            color = PaceDreamColors.TextSecondary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                        TextButton(
-                            onClick = onOpenLocationSettings,
-                            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
-                        ) {
-                            Text(
-                                text = "Open Settings",
-                                style = PaceDreamTypography.Caption,
-                                color = PaceDreamColors.Primary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Place autocomplete suggestions
-            if (placeSuggestions.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    color = PaceDreamColors.Surface,
-                    tonalElevation = 2.dp
-                ) {
-                    Column {
-                        placeSuggestions.forEach { prediction ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onPlaceSuggestionClick(prediction) }
-                                    .padding(
-                                        horizontal = PaceDreamSpacing.MD,
-                                        vertical = PaceDreamSpacing.SM
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = PaceDreamIcons.LocationOn,
-                                    contentDescription = null,
-                                    tint = PaceDreamColors.TextSecondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = prediction.mainText,
-                                        style = PaceDreamTypography.Callout,
-                                        fontWeight = FontWeight.Medium,
-                                        color = PaceDreamColors.TextPrimary
-                                    )
-                                    if (prediction.secondaryText.isNotBlank()) {
-                                        Text(
-                                            text = prediction.secondaryText,
-                                            style = PaceDreamTypography.Caption,
-                                            color = PaceDreamColors.TextSecondary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
-
-            // DATES field
-            ModernSearchField(
-                label = "When",
-                value = selectedDate ?: "",
-                onValueChange = {},
-                placeholder = "Add dates",
-                leadingIcon = PaceDreamIcons.CalendarToday,
-                readOnly = true,
-                onClick = onDateClick,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-
-            // Search button — opens results in Explore. Routes ONLY to Search,
-            // never to host/post-request CTAs.
-            Button(
-                onClick = onSearchClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(PaceDreamButtonHeight.MD),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary
-                ),
-                shape = RoundedCornerShape(PaceDreamRadius.MD)
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Search,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                Text(
-                    text = "Search",
-                    style = PaceDreamTypography.Button,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-    }
+    PaceDreamSearchBar(
+        mode = selectedTab.toSearchMode(),
+        onModeChange = { onTabSelected(it.toSearchTab()) },
+        whatQuery = whatQuery,
+        onWhatQueryChange = onWhatQueryChange,
+        whereQuery = whereQuery,
+        onWhereQueryChange = onWhereQueryChange,
+        // Legacy callers own the picker; we delegate display + click via
+        // the override slots so the design-system bar's built-in range
+        // picker stays inactive at this call site.
+        dateRange = SearchDateRange(),
+        onDateRangeChange = { /* unused — legacy caller owns the picker */ },
+        datesLabelOverride = selectedDate.orEmpty(),
+        onDatesClickOverride = onDateClick,
+        onUseMyLocation = onUseMyLocation,
+        onSearchClick = onSearchClick,
+        modifier = modifier,
+        isLocating = currentLocationState is CurrentLocationState.Loading,
+        locationPermanentlyDenied = currentLocationState is CurrentLocationState.PermissionPermanentlyDenied,
+        onOpenLocationSettings = onOpenLocationSettings,
+        suggestionsContent = if (placeSuggestions.isNotEmpty()) {
+            { PlaceSuggestionsList(placeSuggestions, onPlaceSuggestionClick) }
+        } else null,
+    )
 }
 
-/**
- * Modern segmented control that replaces basic FilterChips.
- * Visually similar to iOS segmented control with pill-shaped indicator.
- */
 @Composable
-private fun SegmentedTabRow(
-    selectedTab: SearchTab,
-    onTabSelected: (SearchTab) -> Unit,
-    modifier: Modifier = Modifier
+private fun PlaceSuggestionsList(
+    suggestions: List<PlacePrediction>,
+    onClick: (PlacePrediction) -> Unit,
 ) {
-    val tabs = SearchTab.entries
-
+    Spacer(modifier = Modifier.size(PaceDreamSpacing.XS))
     Surface(
-        modifier = modifier,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         color = PaceDreamColors.Surface,
-        tonalElevation = 0.dp
+        tonalElevation = 2.dp,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(PaceDreamSpacing.XS),
-            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
-        ) {
-            tabs.forEach { tab ->
-                val isSelected = selectedTab == tab
-                val bgColor by animateColorAsState(
-                    targetValue = if (isSelected) PaceDreamColors.Card else Color.Transparent,
-                    animationSpec = tween(200),
-                    label = "tab_bg"
-                )
-                val elevation by animateDpAsState(
-                    targetValue = if (isSelected) 2.dp else 0.dp,
-                    animationSpec = tween(200),
-                    label = "tab_elevation"
-                )
-                val tabText = tab.label
-
-                Surface(
+        Column {
+            suggestions.forEach { prediction ->
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(PaceDreamRadius.SM))
-                        .clickable { onTabSelected(tab) },
-                    shape = RoundedCornerShape(PaceDreamRadius.SM),
-                    color = bgColor,
-                    shadowElevation = elevation
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(
+                        .fillMaxWidth()
+                        .clickable { onClick(prediction) }
+                        .padding(
                             horizontal = PaceDreamSpacing.MD,
-                            vertical = PaceDreamSpacing.SM
-                        )
-                    ) {
+                            vertical = PaceDreamSpacing.SM,
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.LocationOn,
+                        contentDescription = null,
+                        tint = PaceDreamColors.TextSecondary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = tabText,
-                            style = PaceDreamTypography.Subheadline,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary
+                            text = prediction.mainText,
+                            style = PaceDreamTypography.Callout,
+                            fontWeight = FontWeight.Medium,
+                            color = PaceDreamColors.TextPrimary,
                         )
+                        if (prediction.secondaryText.isNotBlank()) {
+                            Text(
+                                text = prediction.secondaryText,
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.TextSecondary,
+                            )
+                        }
                     }
                 }
             }
@@ -348,87 +149,27 @@ private fun SegmentedTabRow(
     }
 }
 
-/**
- * Modernized search field with cleaner styling:
- * - Filled background instead of outlined border
- * - Inline label
- * - Rounded pill shape
- */
-@Composable
-private fun ModernSearchField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    readOnly: Boolean = false,
-    onClick: (() -> Unit)? = null,
-    trailingContent: @Composable (() -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = label,
-            style = PaceDreamTypography.Caption,
-            color = PaceDreamColors.TextSecondary,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(start = PaceDreamSpacing.XS, bottom = PaceDreamSpacing.XS)
-        )
-        TextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    style = PaceDreamTypography.Callout,
-                    color = PaceDreamColors.TextTertiary
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = leadingIcon,
-                    contentDescription = null,
-                    tint = PaceDreamColors.TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = if (trailingContent != null) {
-                { trailingContent() }
-            } else null,
-            readOnly = readOnly,
-            enabled = !readOnly,
-            singleLine = true,
-            modifier = (if (onClick != null && readOnly) {
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick)
-            } else {
-                Modifier.fillMaxWidth()
-            }),
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = PaceDreamColors.Surface,
-                unfocusedContainerColor = PaceDreamColors.Surface,
-                disabledContainerColor = PaceDreamColors.Surface,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-                focusedTextColor = PaceDreamColors.TextPrimary,
-                unfocusedTextColor = PaceDreamColors.TextPrimary
-            ),
-            textStyle = PaceDreamTypography.Callout
-        )
-    }
+private fun SearchTab.toSearchMode(): SearchMode = when (this) {
+    SearchTab.SPACES -> SearchMode.USE
+    SearchTab.ITEMS -> SearchMode.BORROW
+    SearchTab.SERVICES -> SearchMode.SPLIT
+}
+
+private fun SearchMode.toSearchTab(): SearchTab = when (this) {
+    SearchMode.USE -> SearchTab.SPACES
+    SearchMode.BORROW -> SearchTab.ITEMS
+    SearchMode.SPLIT -> SearchTab.SERVICES
 }
 
 /**
- * Date picker helper with formatted date string
- * Returns both display string and ISO date string for API
+ * Date picker helper retained for legacy callers (single-date ISO string).
+ * New code should use [SearchDateRange] + the built-in range picker on
+ * [PaceDreamSearchBar].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun rememberDatePickerState(
-    initialDate: Long? = null
+    initialDate: Long? = null,
 ): Triple<String?, String?, () -> Unit> {
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDateDisplay by remember { mutableStateOf<String?>(null) }
@@ -449,7 +190,7 @@ fun rememberDatePickerState(
                 selectedDateISO = isoFormatter.format(Date(dateMillis))
                 showDatePicker = false
             },
-            onDismiss = { showDatePicker = false }
+            onDismiss = { showDatePicker = false },
         )
     }
 

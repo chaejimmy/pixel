@@ -345,7 +345,10 @@ fun SearchScreen(
                 var isSearchBarExpanded by remember { mutableStateOf(true) }
                 val hasResults = state.phase == SearchPhase.Success || state.phase == SearchPhase.LoadingMore
                 var selectedTab by remember { mutableStateOf(com.pacedream.app.feature.search.SearchTab.SPACES) }
-                var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
+                // WHAT field is driven by SearchQueryState (cleared on tab
+                // change in setMode); local copy is mirrored so the
+                // TextField stays in sync with the source of truth.
+                var whatQuery by remember { mutableStateOf(state.queryState.whatQuery) }
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
 
@@ -356,6 +359,17 @@ fun SearchScreen(
                 // ViewModel picks up the restored / detected value.
                 LaunchedEffect(state.query) {
                     if (state.query != whereQuery) whereQuery = state.query
+                }
+
+                // Mirror queryState.whatQuery back into the local field
+                // when it's reset by setMode (tab switch). Without this
+                // the user types into the field after switching tabs and
+                // it would still hold the stale keyword from the prior
+                // mode.
+                LaunchedEffect(state.queryState.whatQuery) {
+                    if (state.queryState.whatQuery != whatQuery) {
+                        whatQuery = state.queryState.whatQuery
+                    }
                 }
 
                 // Hero "Where / When / Who" focus routing ----------------
@@ -468,21 +482,32 @@ fun SearchScreen(
                         selectedTab = selectedTab,
                         onTabSelected = { tab ->
                             selectedTab = tab
-                            val shareType = when (tab) {
-                                com.pacedream.app.feature.search.SearchTab.SPACES -> "SHARE"
-                                com.pacedream.app.feature.search.SearchTab.ITEMS -> "BORROW"
-                                com.pacedream.app.feature.search.SearchTab.SERVICES -> "SPLIT"
+                            val (shareType, mode) = when (tab) {
+                                com.pacedream.app.feature.search.SearchTab.SPACES ->
+                                    "SHARE" to com.pacedream.common.composables.components.SearchMode.USE
+                                com.pacedream.app.feature.search.SearchTab.ITEMS ->
+                                    "BORROW" to com.pacedream.common.composables.components.SearchMode.BORROW
+                                com.pacedream.app.feature.search.SearchTab.SERVICES ->
+                                    "SPLIT" to com.pacedream.common.composables.components.SearchMode.SPLIT
                             }
+                            // setMode clears WHAT but preserves WHERE +
+                            // date range; updateSearchParams updates the
+                            // legacy primitive fields the repo currently
+                            // reads. Local whatQuery is mirrored back in
+                            // the LaunchedEffect above.
+                            viewModel.setMode(mode)
                             viewModel.updateSearchParams(shareType = shareType)
                         },
                         whatQuery = whatQuery,
                         onWhatQueryChange = {
                             whatQuery = it
+                            viewModel.setWhatQuery(it)
                             viewModel.updateSearchParams(whatQuery = it.takeIf { it.isNotBlank() })
                         },
                         whereQuery = whereQuery,
                         onWhereQueryChange = { newQuery ->
                             whereQuery = newQuery
+                            viewModel.setWhereQuery(newQuery)
                             viewModel.onQueryChanged(newQuery)
                             viewModel.updateSearchParams(city = newQuery.takeIf { it.isNotBlank() })
                             // Typing invalidates the lat/lng pin from a
@@ -508,6 +533,7 @@ fun SearchScreen(
                         onPlaceSuggestionClick = { prediction ->
                             whereQuery = prediction.description
                             placeSuggestions = emptyList()
+                            viewModel.setWhereQuery(prediction.description)
                             viewModel.onQueryChanged(prediction.description)
                             viewModel.updateSearchParams(city = prediction.mainText)
                             // Autocomplete predictions don't carry coords
