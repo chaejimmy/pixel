@@ -14,6 +14,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
+import com.pacedream.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler
@@ -73,6 +74,11 @@ class MainActivity : ComponentActivity() {
         // This also sets up the initial system bar style based on the platform theme
         enableEdgeToEdge()
 
+        // Route pacedream:// push deep links into PushDeepLinkHandler before
+        // Compose mounts so the NavHost's collector picks the link up on its
+        // first frame (cold-start from a notification tap).
+        PushDeepLinkHandler.dispatch(intent?.data)
+
         // Handle deep links
         handleIntent(intent)
 
@@ -102,6 +108,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        PushDeepLinkHandler.dispatch(intent.data)
         handleIntent(intent)
     }
 

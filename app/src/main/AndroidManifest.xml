@@ -132,10 +132,25 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                
+
                 <data
                     android:scheme="com.pacedream.app"
                     android:host="auth0" />
+            </intent-filter>
+
+            <!-- pacedream:// push deep links (requests, bookings).
+                 Routed at runtime by PushDeepLinkHandler. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="pacedream"
+                    android:host="requests" />
+                <data
+                    android:scheme="pacedream"
+                    android:host="bookings" />
             </intent-filter>
 
         </activity>

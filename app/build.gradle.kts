@@ -209,6 +209,7 @@ dependencies {
     implementation(projects.feature.signin)
     implementation(projects.feature.booking)
     implementation(projects.feature.notification)
+    implementation(projects.feature.notifications)
     implementation(projects.feature.guest)
     implementation(projects.feature.payment)
     implementation(projects.feature.createAccount)
