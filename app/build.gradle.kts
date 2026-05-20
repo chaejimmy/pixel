@@ -211,7 +211,6 @@ dependencies {
     implementation(projects.feature.notification)
     implementation(projects.feature.notifications)
     implementation(projects.feature.guest)
-    implementation(projects.feature.payment)
     implementation(projects.feature.createAccount)
     implementation(projects.feature.host)
     implementation(projects.feature.wishlist)
