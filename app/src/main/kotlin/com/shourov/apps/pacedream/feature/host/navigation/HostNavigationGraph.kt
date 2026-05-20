@@ -37,6 +37,23 @@ interface ImageUploadEntryPoint {
     fun imageUploadService(): ImageUploadService
 }
 
+/**
+ * Builds the property-card click handler used inside [HostNavigationGraph].
+ * Property card taps escape the host NavController and resolve to the
+ * unified [com.shourov.apps.pacedream.navigation.Routes.listing]
+ * destination registered on the top-level NavHost, so the user lands on
+ * the real ListingDetail without a silent fall-through.
+ *
+ * Extracted as an internal function so the wiring (blank ids dropped,
+ * non-blank ids forwarded to `onNavigateToProperty`) can be unit-tested
+ * without standing up the full nav graph.
+ */
+internal fun hostListingClickHandler(
+    onNavigateToProperty: (String) -> Unit,
+): (String) -> Unit = { listingId ->
+    if (listingId.isNotBlank()) onNavigateToProperty(listingId)
+}
+
 // Distinct from HostScreen.Notifications.route ("host_notifications") which
 // hosts the settings preferences screen — this route hosts the in-app
 // notification list (bell destination).
@@ -53,12 +70,7 @@ fun NavGraphBuilder.HostNavigationGraph(
     onNavigateToAnalytics: () -> Unit = {},
     onNavigateToWithdraw: () -> Unit = {}
 ) {
-    // Host-side listing click: navigate within host nav graph to avoid switching to guest mode
-    val onHostListingClick: (String) -> Unit = { listingId ->
-        if (listingId.isNotBlank()) {
-            navController.navigate("host_listing_detail/$listingId")
-        }
-    }
+    val onHostListingClick: (String) -> Unit = hostListingClickHandler(onNavigateToProperty)
 
     composable(HostScreen.Dashboard.route) {
         HostDashboardScreenWithViewModel(
