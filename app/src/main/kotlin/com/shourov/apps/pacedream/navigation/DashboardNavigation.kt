@@ -1179,9 +1179,22 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onBackClick = { navController.popBackStack() },
                                     initial = filtersStore.criteria.value,
                                     onApplyFilters = { criteria ->
+                                        // Mirror of SearchViewModel.applyFilters:
+                                        // we can't share the search VM scope from
+                                        // here (sibling NavBackStackEntry), so we
+                                        // hit the singleton store directly. The
+                                        // VM observes the store and re-runs the
+                                        // query.
                                         filtersStore.update(criteria)
                                         navController.popBackStack()
-                                    }
+                                    },
+                                    onClearFilters = {
+                                        // Mirror of SearchViewModel.clearFilters:
+                                        // resets the upstream criteria so the
+                                        // search query also reverts without the
+                                        // user having to also press Apply.
+                                        filtersStore.clear()
+                                    },
                                 )
                             }
                             
