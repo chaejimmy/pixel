@@ -1,7 +1,6 @@
 package com.shourov.apps.pacedream
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -92,12 +91,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Request POST_NOTIFICATIONS permission on Android 13+ (API 33).
-        // Without this prompt, notifications are silently dropped because the
-        // permission defaults to denied. OneSignal handles the system dialog.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            oneSignalService.requestPermission()
-        }
+        // POST_NOTIFICATIONS (Android 13+) is requested through the in-app
+        // primer that the dashboard's home_root composable mounts via
+        // `NotificationPermissionGate` once the user is authenticated. We do
+        // NOT pop the system permission dialog here because it would land on
+        // the auth screens — too cold, with no context for why we need it.
     }
 
     override fun onNewIntent(intent: Intent) {

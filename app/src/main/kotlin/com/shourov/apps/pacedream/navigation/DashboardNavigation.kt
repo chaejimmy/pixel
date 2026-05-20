@@ -297,6 +297,18 @@ fun NavGraphBuilder.DashboardNavigation(
                             ) {
                                 composable("home_root") {
                                     var showAuthSheet by remember { mutableStateOf(false) }
+                                    // POST_NOTIFICATIONS in-app primer (Android 13+). Renders
+                                    // nothing until the user is authenticated and is landing on
+                                    // the main shell for the first time; gated by a persisted
+                                    // `notificationPermissionPrimerShown` flag so we never
+                                    // re-show it after an explicit choice.
+                                    val notificationGateAuthGate = hiltViewModel<AuthGateViewModel>()
+                                    val notificationGateAuthState by notificationGateAuthGate
+                                        .authState.collectAsStateWithLifecycle()
+                                    com.shourov.apps.pacedream.notification
+                                        .NotificationPermissionGate(
+                                            authState = notificationGateAuthState,
+                                        )
                                     HomeFeedScreen(
                                         onListingClick = { listingId ->
                                             selectedListingId = listingId
