@@ -218,12 +218,84 @@ tasks.register("designSystemCheck") {
     }
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// noGreenRebrandHex
+//
+// Belt-and-suspenders guard against re-introducing the apocryphal green
+// primary hex that briefly appeared in DESIGN_SYSTEM_COVERAGE.md before
+// being corrected. The canonical brand primary is purple #5527D7 (see
+// common/.../theme/Color.kt:108 and DESIGN_SYSTEM_README.md). Any
+// occurrence of the forbidden green (either the `#` form or the
+// `0xFF...` Compose form) outside docs/audits/ — where historical audit
+// copies are preserved verbatim — fails the build so doc drift can't
+// reintroduce the wrong claim. The regex source on its own line below is
+// the only allowed literal in this file: the leading `})` keeps it from
+// self-matching, so the guard catches everything else.
+//
+// Run locally:  ./gradlew noGreenRebrandHex
+// ──────────────────────────────────────────────────────────────────────────────
+tasks.register("noGreenRebrandHex") {
+    group = "verification"
+    description = "Fails the build if the apocryphal green hex appears outside docs/audits/."
+
+    val scanTree = project.fileTree(rootDir).apply {
+        include(
+            "**/*.md",
+            "**/*.kt",
+            "**/*.kts",
+            "**/*.xml",
+            "**/*.json",
+            "**/*.yml",
+            "**/*.yaml",
+        )
+        exclude(
+            "**/build/**",
+            "**/.gradle/**",
+            "**/.git/**",
+            "**/node_modules/**",
+            "docs/audits/**",
+        )
+    }
+
+    inputs.files(scanTree)
+    outputs.upToDateWhen { true }
+
+    doLast {
+        val pattern = Regex("""(?i)(?:#|0x[fF]{2})336633""")
+        val violations = mutableListOf<String>()
+        scanTree.forEach { file ->
+            file.readLines().forEachIndexed { idx, line ->
+                if (pattern.containsMatchIn(line)) {
+                    violations += "${file.relativeTo(rootDir).path}:${idx + 1}\n    $line"
+                }
+            }
+        }
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                buildString {
+                    appendLine(
+                        "noGreenRebrandHex: forbidden green hex found in ${violations.size} location(s).",
+                    )
+                    appendLine(
+                        "PaceDream Primary is purple #5527D7 (see Color.kt:108 + DESIGN_SYSTEM_README.md).",
+                    )
+                    appendLine("If this is a historical audit document, move it under docs/audits/.")
+                    appendLine()
+                    violations.forEach { appendLine(it) }
+                },
+            )
+        }
+        logger.lifecycle("noGreenRebrandHex: ✓ no forbidden green-hex occurrences outside docs/audits/.")
+    }
+}
+
 // Wire the check into per-module `check` so CI surfaces regressions on
 // the standard verification gate. Subprojects pick this up after their own
 // plugins create the `check` task.
 subprojects {
     afterEvaluate {
         tasks.findByName("check")?.dependsOn(rootProject.tasks.named("designSystemCheck"))
+        tasks.findByName("check")?.dependsOn(rootProject.tasks.named("noGreenRebrandHex"))
     }
 }
 
