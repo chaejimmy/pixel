@@ -94,7 +94,7 @@ fun HomeScreen(
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
     onShowAuthSheet: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -344,23 +344,20 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
+                    IconButton(
+                        onClick = onNotificationClick,
                         modifier = Modifier
                             .size(44.dp)
                             .testTag(HomeTestTags.NotificationButton)
-                            .semantics { role = Role.Button }
-                            .clickable(onClick = onNotificationClick),
-                        shape = CircleShape,
-                        color = OnBrandSurface.copy(alpha = 0.20f)
+                            .clip(CircleShape)
+                            .background(OnBrandSurface.copy(alpha = 0.20f))
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Notifications,
-                                contentDescription = "Notifications",
-                                tint = OnBrandSurface,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = PaceDreamIcons.Notifications,
+                            contentDescription = "Notifications",
+                            tint = OnBrandSurface,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
 

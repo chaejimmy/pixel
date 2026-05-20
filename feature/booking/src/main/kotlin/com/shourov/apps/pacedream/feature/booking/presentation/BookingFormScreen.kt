@@ -60,6 +60,7 @@ import java.util.*
 @Composable
 fun BookingFormScreen(
     propertyId: String,
+    onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BookingFormViewModel = hiltViewModel(),
     onBookingCreated: (String) -> Unit = {}
@@ -78,7 +79,8 @@ fun BookingFormScreen(
     ) {
         PaceDreamHeroHeader(
             title = "Reserve",
-            subtitle = uiState.propertyName.ifEmpty { "Complete your reservation" }
+            subtitle = uiState.propertyName.ifEmpty { "Complete your reservation" },
+            onNotificationClick = onNotificationClick
         )
 
         if (uiState.isLoading) {

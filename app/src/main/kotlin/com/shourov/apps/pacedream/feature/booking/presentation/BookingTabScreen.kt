@@ -60,6 +60,7 @@ object BookingTabTestTags {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingTabScreen(
+    onNotificationClick: () -> Unit,
     onBookingClick: (String) -> Unit = {},
     onNewBookingClick: () -> Unit = {},
     onShowAuthSheet: () -> Unit = {}
@@ -86,7 +87,8 @@ fun BookingTabScreen(
         // Header
         PaceDreamHeroHeader(
             title = "Bookings",
-            subtitle = "Manage your reservations"
+            subtitle = "Manage your reservations",
+            onNotificationClick = onNotificationClick
         )
 
         // Booking count + Tab picker (always visible, matching iOS)

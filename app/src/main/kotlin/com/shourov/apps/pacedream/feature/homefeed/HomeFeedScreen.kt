@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -102,12 +103,12 @@ private val PaperBg = Color(0xFFF7F6F3)
 fun HomeFeedScreen(
     onListingClick: (String) -> Unit,
     onSeeAll: (HomeSectionKey) -> Unit,
+    onNotificationClick: () -> Unit,
     onShowAuthSheet: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     onWhatClick: () -> Unit = onSearchClick,
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
-    onNotificationClick: () -> Unit = {},
     // The "Can't find what you need? Post a request" rail-end card routes
     // to the wanted/post-request flow, not to Search.
     onPostRequestClick: () -> Unit = {},
@@ -345,10 +346,10 @@ private fun DiscoverHeader(
     title: String,
     subtitle: String,
     onSearchClick: () -> Unit,
+    onNotificationClick: () -> Unit,
     onWhatClick: () -> Unit = onSearchClick,
     onWhereClick: () -> Unit = onSearchClick,
     onWhenClick: () -> Unit = onSearchClick,
-    onNotificationClick: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -403,22 +404,20 @@ private fun DiscoverHeader(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Surface(
+                IconButton(
+                    onClick = onNotificationClick,
                     modifier = Modifier
                         .size(PaceDreamButtonHeight.MD)
-                        .clickable(onClick = onNotificationClick),
-                    shape = CircleShape,
-                    color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, BrandPurpleEdge, CircleShape)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Notifications,
-                            contentDescription = "Notifications",
-                            tint = InkPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = PaceDreamIcons.Notifications,
+                        contentDescription = "Notifications",
+                        tint = InkPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

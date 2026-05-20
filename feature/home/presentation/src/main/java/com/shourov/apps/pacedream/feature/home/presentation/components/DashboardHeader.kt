@@ -18,7 +18,6 @@ package com.shourov.apps.pacedream.feature.home.presentation.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,10 +64,10 @@ import com.shourov.apps.pacedream.feature.home.presentation.R
 
 @Composable
 fun DashboardHeader(
+    onNotificationClick: () -> Unit,
     userName: String = "",
     profileImageUrl: String? = null,
     onSearchClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -127,19 +126,18 @@ fun DashboardHeader(
                         modifier = Modifier.weight(1F),
                     )
 
-                    Box(
-                        Modifier
+                    IconButton(
+                        onClick = onNotificationClick,
+                        modifier = Modifier
                             .clip(CircleShape)
                             .background(NotificationsBgColor)
-                            .clickable { onNotificationClick() }
                             .padding(MediumPadding),
                     ) {
-                        Image(
+                        Icon(
                             painter = painterResource(R.drawable.ic_dashboard_notifications),
                             contentDescription = "Notifications",
-                            modifier = Modifier.size(30.dp).clip(
-                                CircleShape,
-                            ),
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(30.dp).clip(CircleShape),
                         )
                     }
                 }
