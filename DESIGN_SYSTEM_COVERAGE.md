@@ -188,3 +188,37 @@ the `feature/home` row by `refactor/ds-migration-home`, for the
 `app/shourov/feature/host` row by `refactor/ds-migration-host`, and
 for the `app/pacedream.app/feature/listingdetail` row by
 `refactor/ds-migration-listingdetail`._
+
+## Guard-rails (prevent the debt from regrowing)
+
+`chore(ci): ban hex colors + inline .sp in feature code` flipped
+`designSystemCheck` from a narrow allowlist (only migrated modules
+scanned) to a **deny-by-default** policy across every
+`feature/**` and `app/src/main/kotlin/.../feature/**` Kotlin file.
+Both the `Color.White` / `Color.Black` rules and the four
+`Color(0x…)` / `fontSize = N.sp` / `RoundedCornerShape(N.dp)` rules
+now run repo-wide on the standard `check` lifecycle, so a future PR
+that introduces any of them inside feature code fails CI.
+
+To unblock the rollout without forcing the remaining ~494-hit
+migration in one PR, the 44 currently-violating files (post-merge
+with `refactor/ds-migration-listingdetail`) have been opted out with
+a top-of-file `// @DesignSystemEscape (reason="…")` marker.  The
+escape table:
+
+| Escape reason                                                          | File count |
+|---|---:|
+| `legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out` | 39 |
+| `HomeRedesign owns a self-contained Purple/Coral palette pending a design call — see DESIGN_SYSTEM_COVERAGE.md` | 5 |
+
+Removing an opt-out is the migration unit going forward: delete the
+`@DesignSystemEscape` marker once the file is clean, re-run
+`./gradlew designSystemCheck`, and the gate locks the zero-violation
+state in.
+
+A dark-mode `@Preview` snapshot gate (`darkModeSnapshotCheck`,
+backed by Roborazzi) is wired alongside `designSystemCheck`.  Each new
+screen-level composable should ship with a paired
+`*ScreenDarkModeSnapshotTest.kt` so dark-mode regressions surface on
+the same `check` step (see `DESIGN_SYSTEM_README.md` for the test
+template).

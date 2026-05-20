@@ -1,5 +1,6 @@
 @file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 
+// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.shourov.apps.pacedream.feature.inbox.presentation
 
 import androidx.compose.animation.AnimatedContent

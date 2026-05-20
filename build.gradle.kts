@@ -39,166 +39,127 @@ plugins {
 // designSystemCheck
 //
 // Repo-wide lint gate that fails CI if a Compose `feature/**` or
-// `app/feature/**` source file re-introduces a hardcoded design-system
-// literal. Replaces the audit's requested Detekt rule with a self-contained
-// Gradle task so we don't have to bootstrap an entirely new plugin to enforce
-// five regex patterns.
+// `app/src/main/kotlin/.../feature/**` source file re-introduces a hardcoded
+// design-system literal. Implemented as a self-contained Gradle task so we
+// don't have to bootstrap a Detekt plugin to enforce four regex patterns.
 //
-// Banned patterns:
+// Banned patterns (inside feature/** code):
 //   * `Color(0x...)`             — use `PaceDreamColors.*` (or `CategoryColors.*`)
 //   * `Color.White` / `Color.Black` — use `MaterialTheme.colorScheme.*`,
 //                                     `OnBrandSurface`, or `scrimOnImage(...)`
+//                                     (override per-line with `// allow-token`)
 //   * `fontSize = N.sp`          — use a `PaceDreamTypography.*` token directly
 //   * `RoundedCornerShape(N.dp)` — wrap a `PaceDreamRadius.*` token instead
 //
+// Escape hatches:
+//   * Files under `core/designsystem/**` and `common/.../theme/**` are the
+//     token sources themselves and never scanned (they live outside the
+//     `feature/**` roots below).
+//   * A file whose first 30 lines contain
+//       `// @DesignSystemEscape (reason="...")`
+//     is skipped entirely.  The 30-line window accommodates Apache 2.0
+//     copyright headers; place the marker on the line immediately above
+//     the `package` declaration.  The reason text is required and surfaced
+//     in the task log so reviewers see why a file was opted out.
+//   * A single line ending with `// allow-token` suppresses the `Color.White`
+//     and `Color.Black` rules on that line — for cases where the literal is
+//     semantically correct (system UI overlays, image scrims with explicit
+//     alpha, etc.).
+//
 // Run locally:  ./gradlew designSystemCheck
-// CI wires this into the regular `check` lifecycle below so a regression
-// fails the same green-bar that runs unit tests.
+// CI wires this into per-module `check` below so a regression fails the
+// same green-bar that runs unit tests.
 // ──────────────────────────────────────────────────────────────────────────────
 tasks.register("designSystemCheck") {
     group = "verification"
     description = "Fails the build if feature/** re-introduces banned design-system literals."
 
-    // Scoped allowlist of source roots that have completed the design-system
-    // migration. Phase 3 migrated `app/.../pacedream/app/feature/home`; future
-    // phases should add their feature dir here once they've cleaned up the
-    // existing literals. The pre-existing violations in other features
-    // (~257 `Color.White`, ~37 `Color.Black`) are intentionally left out of
-    // scope — flipping them on without migration would block every PR.
+    // Every `feature/**` source root in the repo.  Unlike the previous
+    // narrow allowlist, the rule now scans **all** feature code by default
+    // — legacy violations are opted out via the per-file `@DesignSystemEscape`
+    // marker instead of a path allowlist, so new files can never silently
+    // regress just because their module isn't on a list.
     val scanRoots = listOf(
-        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/home"),
-        // Legacy multi-module home — migrated in refactor/ds-migration-home.
-        // The redesign/ subtree is carved out via `scanExcludes` below
-        // pending the HomeRedesignTheme.kt palette decision (30 hex literals
-        // form a self-contained internal palette that should not be expanded
-        // into design-system tokens per "no new brand colors" rule).
-        rootProject.file("feature/home"),
-        // Legacy host module — migrated in refactor/ds-migration-host.
-        // No subtree carve-outs needed here (host has no redesign/).
-        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/host"),
-        // Zero-violation modules per DESIGN_SYSTEM_COVERAGE.md — locked in
-        // as CI insurance so a future PR cannot regress them.
-        rootProject.file("feature/search"),
-        rootProject.file("feature/notifications"),
-        rootProject.file("feature/notification"),
-        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/payment"),
-        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/destinations"),
-        rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature/bookingdetail"),
-        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/listing"),
-        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/hostprofile"),
-        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/faq"),
-        // Migrated in refactor/ds-migration-listingdetail — 43 hits cleared
-        // (30 hex literals on image overlays + status pills + ratings,
-        // plus 13 Color.White/Black for hero overlays and CTA buttons).
-        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/listingdetail"),
-        // TODO: add `app/src/main/kotlin/com/pacedream/app/feature/<next>` after
-        // each feature's design-system migration lands.
-    ).filter { it.exists() }
-
-    // Subtrees inside scanRoots that haven't been migrated yet.  The
-    // allowlist pass skips files matching any of these patterns; the
-    // strict radius pass still covers them so radius regressions are
-    // caught everywhere.  Currently the only carve-out is the redesign/
-    // subtree of feature/home — see the comment on scanRoots above.
-    val scanExcludes = listOf("**/redesign/**")
-
-    // STRICT corner-radius enforcement.  Phase B cleared the
-    // RoundedCornerShape(N.dp) column to 0 across every feature/** module
-    // (feature/wanted, feature/chat, feature/wishlist were the last three).
-    // To prevent regression, the radius rule alone scans every feature
-    // source root — not just the migration allowlist above — so a stray
-    // `RoundedCornerShape(N.dp)` anywhere in feature code fails CI.  The
-    // other four rules stay scoped to scanRoots because their columns are
-    // not yet zero across all modules.
-    val strictRadiusRoots = listOf(
         rootProject.file("feature"),
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature"),
         rootProject.file("app/src/main/kotlin/com/shourov/apps/pacedream/feature"),
     ).filter { it.exists() }
 
-    // Each rule pairs a regex with the suggested replacement so the failure
-    // message is actionable. Regexes are anchored to avoid matching tokens —
-    // e.g. `RoundedCornerShape(PaceDreamRadius.LG)` is allowed; only a `.dp`
-    // literal inside the constructor is flagged.
     val rules = listOf(
         BannedLiteral(
             id = "Color(0x...) hex literal",
-            pattern = Regex("""Color\(0x"""),
-            fix = "use PaceDreamColors.* or CategoryColors.* — never a raw hex"
+            // Negative lookbehind keeps `setToolbarColor(0x...)` and other
+            // identifiers ending in `Color` from triggering — only a bare
+            // `Color(0x...)` constructor call counts.
+            pattern = Regex("""(?<![A-Za-z_])Color\(0x[0-9A-Fa-f]+"""),
+            fix = "use PaceDreamColors.* or CategoryColors.* — never a raw hex",
+            lineEscapable = false,
         ),
         BannedLiteral(
             id = "Color.White",
             pattern = Regex("""\bColor\.White\b"""),
-            fix = "use MaterialTheme.colorScheme.* or OnBrandSurface (for image overlays)"
+            fix = "Color.White → MaterialTheme.colorScheme.surface, OnBrandSurface, or add `// allow-token` if intentional",
+            lineEscapable = true,
         ),
         BannedLiteral(
             id = "Color.Black",
             pattern = Regex("""\bColor\.Black\b"""),
-            fix = "use MaterialTheme.colorScheme.* or scrimOnImage(alpha)"
+            fix = "Color.Black → MaterialTheme.colorScheme.onSurface, scrimOnImage(alpha), or add `// allow-token` if intentional",
+            lineEscapable = true,
         ),
         BannedLiteral(
             id = "fontSize = N.sp inline literal",
             pattern = Regex("""fontSize\s*=\s*\d+\.sp"""),
-            fix = "use a PaceDreamTypography.* style instead of overriding fontSize"
+            fix = "use a PaceDreamTypography.* style instead of overriding fontSize",
+            lineEscapable = false,
         ),
         BannedLiteral(
             id = "RoundedCornerShape(N.dp)",
             pattern = Regex("""RoundedCornerShape\(\s*\d+\.dp"""),
-            fix = "use RoundedCornerShape(PaceDreamRadius.*)"
+            fix = "use RoundedCornerShape(PaceDreamRadius.*)",
+            lineEscapable = false,
         ),
     )
 
-    val radiusRule = rules.single { it.id == "RoundedCornerShape(N.dp)" }
-
     inputs.files(
-        scanRoots.map { project.fileTree(it).matching { include("**/*.kt"); exclude(scanExcludes) } } +
-            strictRadiusRoots.map { project.fileTree(it).matching { include("**/*.kt") } }
+        scanRoots.map { project.fileTree(it).matching { include("**/*.kt") } }
     )
     outputs.upToDateWhen { true } // Task is pure / idempotent.
 
     doLast {
         val violations = mutableListOf<String>()
+        var filesScanned = 0
+        val escapedFiles = mutableListOf<Pair<String, String>>() // (path, reason)
 
-        // Allowlist pass — all 5 rules over the migrated source roots,
-        // skipping any subtrees explicitly carved out via scanExcludes.
+        // Header marker matched against the first `escapeHeaderScanLines`
+        // lines of each file.  The reason is required so reviewers know
+        // why the file was opted out and what would need to change to
+        // remove the escape.
+        val escapeHeaderPattern =
+            Regex("""//\s*@DesignSystemEscape\s*\(\s*reason\s*=\s*"([^"]+)"\s*\)""")
+        // Generous enough for an Apache 2.0 license header above the
+        // package declaration, where the escape marker is conventionally
+        // placed.
+        val escapeHeaderScanLines = 30
+        // Inline opt-out token suffixing the same line as the literal.
+        val inlineAllowToken = "// allow-token"
+
         scanRoots.forEach { root ->
-            project.fileTree(root).matching {
-                include("**/*.kt")
-                exclude(scanExcludes)
-            }.forEach { file ->
-                // Skip auto-generated previews if any happen to live in feature
-                // dirs; the @Preview itself is unlikely to introduce these
-                // literals because previews call into the same Composables.
-                file.readLines().forEachIndexed { idx, line ->
-                    rules.forEach { rule ->
-                        if (rule.pattern.containsMatchIn(line)) {
-                            val rel = file.relativeTo(rootDir).path
-                            violations += "$rel:${idx + 1}  [${rule.id}]  →  ${rule.fix}\n    $line"
-                        }
-                    }
-                }
-            }
-        }
-
-        // Strict pass — radius rule only, across every feature/** source tree.
-        // Skip files already covered by scanRoots so duplicate hits are not
-        // reported twice when a module is both on the allowlist and inside a
-        // strict-root directory.  scanExcludes deliberately do NOT apply
-        // here — RoundedCornerShape(N.dp) regressions are blocked repo-wide
-        // including inside any carved-out subtree.
-        val coveredFiles = scanRoots.flatMap { root ->
-            project.fileTree(root).matching {
-                include("**/*.kt")
-                exclude(scanExcludes)
-            }.files
-        }.toSet()
-        strictRadiusRoots.forEach { root ->
             project.fileTree(root).matching { include("**/*.kt") }.forEach { file ->
-                if (file in coveredFiles) return@forEach
-                file.readLines().forEachIndexed { idx, line ->
-                    if (radiusRule.pattern.containsMatchIn(line)) {
+                val lines = file.readLines()
+                val header = lines.take(escapeHeaderScanLines).joinToString("\n")
+                val escapeMatch = escapeHeaderPattern.find(header)
+                if (escapeMatch != null) {
+                    escapedFiles += file.relativeTo(rootDir).path to escapeMatch.groupValues[1]
+                    return@forEach
+                }
+                filesScanned++
+                lines.forEachIndexed { idx, line ->
+                    rules.forEach { rule ->
+                        if (!rule.pattern.containsMatchIn(line)) return@forEach
+                        if (rule.lineEscapable && line.contains(inlineAllowToken)) return@forEach
                         val rel = file.relativeTo(rootDir).path
-                        violations += "$rel:${idx + 1}  [${radiusRule.id} — STRICT]  →  ${radiusRule.fix}\n    $line"
+                        violations += "$rel:${idx + 1}  [${rule.id}]  →  ${rule.fix}\n    ${line.trim()}"
                     }
                 }
             }
@@ -210,15 +171,67 @@ tasks.register("designSystemCheck") {
                 appendLine()
                 violations.forEach { appendLine(it) }
                 appendLine()
-                appendLine("Fix the violations above, or add the file to an explicit allowlist if the")
-                appendLine("literal is unavoidable (e.g. a design-system module itself).")
+                appendLine("Fix the violations above using the suggested replacement, or — if the literal")
+                appendLine("is genuinely unavoidable — add one of the escape hatches documented at the top")
+                appendLine("of build.gradle.kts (`// @DesignSystemEscape (reason=\"...\")` at file top, or")
+                appendLine("`// allow-token` on the same line for `Color.White` / `Color.Black`).")
             }
             throw GradleException(msg)
         }
         logger.lifecycle(
-            "designSystemCheck: ✓ scanned ${scanRoots.size} allowlisted root(s) " +
-                "+ ${strictRadiusRoots.size} strict-radius root(s); zero violations."
+            "designSystemCheck: ✓ scanned $filesScanned file(s) across ${scanRoots.size} feature " +
+                "root(s); ${escapedFiles.size} file(s) opted out via @DesignSystemEscape; zero violations."
         )
+        if (escapedFiles.isNotEmpty() && logger.isInfoEnabled) {
+            escapedFiles.forEach { (path, reason) ->
+                logger.info("  escape: $path  ($reason)")
+            }
+        }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// darkModeSnapshotCheck
+//
+// CI aggregator for dark-mode Compose `@Preview` snapshot tests.  The repo
+// uses Roborazzi (already wired through `gradle/libs.versions.toml` and
+// applied to `:app` and `:core:designsystem`); this task collects the
+// `verifyRoborazziDebug` outputs across every subproject that opts in.
+//
+// Conventions (see DESIGN_SYSTEM_README.md):
+//   * Every screen-level composable — a `*Screen.kt` top-level
+//     `@Composable fun XScreen(...)` invoked from the nav graph — should
+//     have a paired test file under `src/test/java/.../<Feature>ScreenDarkModeSnapshotTest.kt`.
+//   * Each test uses `androidx.compose.ui.test.junit4.createComposeRule`
+//     wrapped in `PaceDreamTheme(darkTheme = true)` and `captureRoboImage()`
+//     to record the dark-mode reference image.
+//   * Reference images are checked in under `src/test/snapshots/`; the
+//     `verifyRoborazziDebug` task fails CI when a pixel diff exceeds the
+//     Roborazzi default threshold.
+//
+// Run locally:  ./gradlew darkModeSnapshotCheck
+// CI wires this into `check` so dark-mode regressions block a PR on the
+// same green-bar as designSystemCheck.
+// ──────────────────────────────────────────────────────────────────────────────
+val darkModeSnapshotCheck = tasks.register("darkModeSnapshotCheck") {
+    group = "verification"
+    description =
+        "Verifies dark-mode @Preview snapshots across every subproject with Roborazzi configured."
+
+    doLast {
+        // `dependsOn` does the actual work; this `doLast` only logs whether
+        // any Roborazzi-enabled subproject contributed a verify task so a
+        // silent "no tests configured" doesn't go unnoticed in CI logs.
+        val ran = taskDependencies.getDependencies(this).count { it.name == "verifyRoborazziDebug" }
+        if (ran == 0) {
+            logger.warn(
+                "darkModeSnapshotCheck: no subproject exposes a verifyRoborazziDebug task. " +
+                    "Add a dark-mode @Preview snapshot test under src/test/java/... in each " +
+                    "screen-level composable's module (see DESIGN_SYSTEM_README.md)."
+            )
+        } else {
+            logger.lifecycle("darkModeSnapshotCheck: ✓ ran $ran Roborazzi verify task(s).")
+        }
     }
 }
 
@@ -293,20 +306,36 @@ tasks.register("noGreenRebrandHex") {
     }
 }
 
-// Wire the check into per-module `check` so CI surfaces regressions on
-// the standard verification gate. Subprojects pick this up after their own
-// plugins create the `check` task.
+// Wire every verification gate into per-subproject `check` once each
+// subproject has finished configuring its plugins.
+// `designSystemCheck` + `noGreenRebrandHex` are pure root-level tasks;
+// `darkModeSnapshotCheck` additionally collects each subproject's
+// `verifyRoborazziDebug` task (created lazily by the Roborazzi plugin after
+// Android variants are configured) so screen-level snapshot regressions
+// fail the same green-bar as the banned-literal and brand-hex scans.
 subprojects {
     afterEvaluate {
-        tasks.findByName("check")?.dependsOn(rootProject.tasks.named("designSystemCheck"))
-        tasks.findByName("check")?.dependsOn(rootProject.tasks.named("noGreenRebrandHex"))
+        tasks.findByName("verifyRoborazziDebug")?.let { verifyTask ->
+            darkModeSnapshotCheck.configure { dependsOn(verifyTask) }
+        }
+        tasks.findByName("check")?.dependsOn(
+            rootProject.tasks.named("designSystemCheck"),
+            rootProject.tasks.named("noGreenRebrandHex"),
+            darkModeSnapshotCheck,
+        )
     }
 }
 
 /**
  * One rule consumed by [designSystemCheck]. Carries the regex used to
- * flag the literal and a human-readable replacement suggestion that gets
+ * flag the literal, a human-readable replacement suggestion that gets
  * printed in the failure message so engineers can fix the violation
- * without re-reading this file.
+ * without re-reading this file, and a flag controlling whether a
+ * line-level `// allow-token` suppresses the rule on the matching line.
  */
-data class BannedLiteral(val id: String, val pattern: Regex, val fix: String)
+data class BannedLiteral(
+    val id: String,
+    val pattern: Regex,
+    val fix: String,
+    val lineEscapable: Boolean,
+)

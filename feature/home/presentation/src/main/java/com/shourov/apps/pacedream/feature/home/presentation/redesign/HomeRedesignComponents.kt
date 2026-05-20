@@ -1,3 +1,4 @@
+// @DesignSystemEscape (reason="HomeRedesign owns a self-contained Purple/Coral palette pending a design call — see DESIGN_SYSTEM_COVERAGE.md")
 package com.shourov.apps.pacedream.feature.home.presentation.redesign
 
 import androidx.compose.animation.animateColorAsState

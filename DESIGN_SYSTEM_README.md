@@ -318,6 +318,68 @@ PaceDreamTheme(
 4. **Maintainability**: Centralized design tokens make updates easy
 5. **Testing**: Components include proper test tags for UI testing
 
+## 🔒 CI Guard-Rails
+
+Two repo-wide Gradle gates keep the design system from regressing.  Both
+are wired into the standard `check` lifecycle, so a regression fails the
+same build that runs unit tests.
+
+### `designSystemCheck` — banned literals in feature code
+
+Scans every `*.kt` file under `feature/**` and
+`app/src/main/kotlin/.../feature/**` for inline design-system literals:
+
+| Pattern | Suggested replacement |
+|---|---|
+| `Color(0x…)` | `PaceDreamColors.*` or `CategoryColors.*` |
+| `Color.White` | `MaterialTheme.colorScheme.surface` or `OnBrandSurface` |
+| `Color.Black` | `MaterialTheme.colorScheme.onSurface` or `scrimOnImage(alpha)` |
+| `fontSize = N.sp` | a `PaceDreamTypography.*` style — never override `fontSize` inline |
+| `RoundedCornerShape(N.dp)` | `RoundedCornerShape(PaceDreamRadius.*)` |
+
+Escape hatches (use sparingly):
+
+* **File-level** — `// @DesignSystemEscape (reason="…")` placed above the
+  `package` declaration opts the whole file out.  The `reason` is
+  required and logged so reviewers see why the file is exempt.
+* **Line-level** — appending `// allow-token` to a line bypasses the
+  `Color.White` / `Color.Black` rules on that one line (useful for
+  system-UI overlays and image scrims where the literal is the correct
+  semantic colour).
+
+Run locally: `./gradlew designSystemCheck`.  The failure message names
+the file, line number, and suggested replacement so engineers don't
+have to re-read the rule.
+
+### `darkModeSnapshotCheck` — dark-mode `@Preview` snapshot tests
+
+Aggregates Roborazzi `verifyRoborazziDebug` tasks across every subproject
+that has Roborazzi configured.  Every screen-level composable
+(`*Screen.kt` invoked from the nav graph) should ship with a paired
+test:
+
+```kotlin
+class FooScreenDarkModeSnapshotTest {
+    @get:Rule val composeRule = createComposeRule()
+    @get:Rule val roborazziRule = RoborazziRule(
+        composeRule = composeRule,
+        captureRoot = composeRule.onRoot(),
+        options = RoborazziRule.Options(captureType = RoborazziRule.CaptureType.LastImage()),
+    )
+
+    @Test fun darkMode() {
+        composeRule.setContent {
+            PaceDreamTheme(darkTheme = true) { FooScreen(state = previewState()) }
+        }
+        composeRule.onRoot().captureRoboImage()
+    }
+}
+```
+
+Reference images live under `src/test/snapshots/`; a pixel-diff above
+the Roborazzi default threshold fails CI.  Run locally:
+`./gradlew darkModeSnapshotCheck`.
+
 ## 🚀 Future Enhancements
 
 - [ ] Animation system integration
