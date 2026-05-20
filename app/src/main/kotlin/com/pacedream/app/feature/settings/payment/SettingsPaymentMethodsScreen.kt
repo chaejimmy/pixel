@@ -1,4 +1,3 @@
-// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.pacedream.app.feature.settings.payment
 
 import androidx.compose.foundation.background
@@ -27,7 +26,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -46,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -216,7 +213,7 @@ private fun SettingsPaymentMethodsContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(PaceDreamColors.Background)
         ) {
             when {
                 uiState.isLoading -> {
@@ -238,7 +235,7 @@ private fun SettingsPaymentMethodsContent(
                     ) {
                         Text(
                             text = uiState.errorMessage,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = PaceDreamTypography.Body
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = onRetry) {
@@ -367,7 +364,7 @@ private fun EmptyPaymentMethodsState(
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             modifier = Modifier
                 .fillMaxWidth(0.65f)
-                .height(48.dp)
+                .height(48.dp) // touch-target
         ) {
             if (isCreatingSetupIntent) {
                 CircularProgressIndicator(
@@ -375,13 +372,13 @@ private fun EmptyPaymentMethodsState(
                         .size(20.dp)
                         .padding(end = 8.dp),
                     strokeWidth = 2.dp,
-                    color = Color.White
+                    color = PaceDreamColors.OnPrimary
                 )
             }
             Text(
                 "Add Card",
                 style = PaceDreamTypography.CalloutBold,
-                color = Color.White
+                color = PaceDreamColors.OnPrimary
             )
         }
         if (!isStripeConfigured) {
@@ -396,25 +393,25 @@ private fun StripeMissingWarning() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
+            containerColor = PaceDreamColors.ErrorContainer
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = PaceDreamIcons.Warning,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer
+                tint = PaceDreamColors.OnErrorContainer
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Stripe is not configured. Add Card is disabled.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.OnErrorContainer,
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
@@ -431,13 +428,13 @@ private fun PaymentMethodCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = PaceDreamColors.Surface
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(PaceDreamSpacing.MD)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -446,7 +443,7 @@ private fun PaymentMethodCard(
                 Icon(
                     imageVector = PaceDreamIcons.CreditCard,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = PaceDreamColors.Primary
                 )
                 Spacer(modifier = Modifier.height(0.dp))
 
@@ -457,19 +454,19 @@ private fun PaymentMethodCard(
                 ) {
                     Text(
                         text = method.brand.replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PaceDreamTypography.Headline,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "•••• •••• •••• ${method.last4}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = PaceDreamTypography.Callout
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Expires ${formatExpiry(method.expMonth, method.expYear)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = PaceDreamTypography.Subheadline,
+                        color = PaceDreamColors.OnSurfaceVariant
                     )
                 }
 
@@ -497,8 +494,8 @@ private fun PaymentMethodCard(
                 if (!method.isDefault) {
                     Text(
                         text = "Set as default",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.Primary,
                         modifier = Modifier.clickable(onClick = onSetDefault)
                     )
                 } else {
@@ -512,13 +509,13 @@ private fun PaymentMethodCard(
                     Icon(
                         imageVector = PaceDreamIcons.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = PaceDreamColors.Error
                     )
                     Spacer(modifier = Modifier.height(0.dp))
                     Text(
                         text = "Remove",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        style = PaceDreamTypography.Callout,
+                        color = PaceDreamColors.Error,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }

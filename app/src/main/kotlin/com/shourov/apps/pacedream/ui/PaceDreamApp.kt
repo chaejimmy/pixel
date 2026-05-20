@@ -21,6 +21,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.shourov.apps.pacedream.MainActivity
 import com.pacedream.common.composables.components.PaceDreamTopAppBar
+import com.pacedream.notifications.PushDeepLink
+import com.pacedream.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.feature.host.presentation.HostModeScreen
 import com.shourov.apps.pacedream.feature.wifi.presentation.WifiSessionHost
 import com.shourov.apps.pacedream.navigation.PaceDreamNavHost
@@ -50,6 +52,34 @@ fun PaceDreamApp(
                 appState.handleDeepLink(deepLinkResult)
             } catch (e: Exception) {
                 timber.log.Timber.e(e, "Failed to handle deep link: $deepLinkResult")
+            }
+        }
+    }
+
+    // Collect push deep links emitted by PushDeepLinkHandler. The handler is
+    // dispatched from MainActivity.onCreate/onNewIntent and from the OneSignal
+    // notification-click listener; this LaunchedEffect routes each emission to
+    // the matching destination on the top-level NavController.
+    //
+    // Routes used here mirror those declared inline in DashboardNavigation:
+    //   - bookings/{id}  -> "BOOKING_DETAIL/{bookingId}"
+    //   - requests/{id}  -> "requests/{requestId}"
+    // TODO: extract a Routes helper (e.g. Routes.requestOffers) once a
+    // dedicated offers-only sub-route exists. Today the request-detail screen
+    // already renders the offers list, so RequestOffers lands there as well.
+    LaunchedEffect(Unit) {
+        PushDeepLinkHandler.deepLinks.collect { link ->
+            try {
+                when (link) {
+                    is PushDeepLink.RequestDetail ->
+                        navController.navigate("requests/${link.requestId}")
+                    is PushDeepLink.RequestOffers ->
+                        navController.navigate("requests/${link.requestId}")
+                    is PushDeepLink.BookingDetail ->
+                        navController.navigate("BOOKING_DETAIL/${link.bookingId}")
+                }
+            } catch (e: Exception) {
+                timber.log.Timber.e(e, "Failed to navigate to push deep link: $link")
             }
         }
     }

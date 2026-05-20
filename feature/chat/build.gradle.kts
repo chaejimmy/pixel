@@ -10,6 +10,8 @@ android {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":common"))
+    // Bell badge: ChatListScreen observes UnreadNotificationsViewModel.
+    implementation(project(":feature:notification"))
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.coil.kt.compose)

@@ -2,6 +2,7 @@
 package com.pacedream.app.feature.settings.notifications
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,24 +40,33 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.notification.isNotificationPermissionGranted
+import com.shourov.apps.pacedream.notification.openAppNotificationSettings
 import kotlinx.coroutines.launch
 
 /**
@@ -242,6 +252,7 @@ fun SettingsNotificationsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    SystemNotificationPermissionRow()
                     ModernToggleRow(
                         title = "System notifications",
                         description = "Updates about maintenance and system changes",
@@ -329,6 +340,103 @@ fun SettingsNotificationsScreen(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         }
+    }
+}
+
+/**
+ * Surfaces the OS-level POST_NOTIFICATIONS state (Allowed / Blocked) with a
+ * deep-link to the system "App notifications" page. The status chip is
+ * refreshed when the screen returns to the foreground so that flipping the
+ * toggle in Settings is reflected here without needing to re-enter the
+ * screen.
+ */
+@Composable
+private fun SystemNotificationPermissionRow() {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var isAllowed by remember {
+        mutableStateOf(isNotificationPermissionGranted(context))
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                isAllowed = isNotificationPermissionGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(PaceDreamRadius.SM))
+            .clickable { openAppNotificationSettings(context) }
+            .padding(vertical = PaceDreamSpacing.SM),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(PaceDreamColors.Primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Notifications,
+                contentDescription = null,
+                tint = PaceDreamColors.Primary,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "System notification permission",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary
+            )
+            Text(
+                text = if (isAllowed) {
+                    "Tap to manage in Android Settings"
+                } else {
+                    "Blocked at the OS level — tap to open Settings"
+                },
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+
+        PermissionStatusChip(allowed = isAllowed)
+    }
+}
+
+@Composable
+private fun PermissionStatusChip(allowed: Boolean) {
+    val container = if (allowed) {
+        PaceDreamColors.Success.copy(alpha = 0.12f)
+    } else {
+        PaceDreamColors.Error.copy(alpha = 0.12f)
+    }
+    val content = if (allowed) PaceDreamColors.Success else PaceDreamColors.Error
+    val label = if (allowed) "Allowed" else "Blocked"
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(PaceDreamRadius.Round))
+            .background(container)
+            .padding(
+                horizontal = PaceDreamSpacing.SM,
+                vertical = PaceDreamSpacing.XS
+            )
+    ) {
+        Text(
+            text = label,
+            style = PaceDreamTypography.Caption,
+            color = content
+        )
     }
 }
 
