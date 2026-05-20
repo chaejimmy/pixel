@@ -9,6 +9,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -94,7 +96,11 @@ fun HomeScreen(
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
     onShowAuthSheet: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    // TODO(design): replace null default with the production 1920×1080 hero
+    //  painter once design ships the asset; until then, callers can pass
+    //  painterResource(R.drawable.home_hero) here and we'll skip the gradient.
+    heroAsset: Painter? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -124,6 +130,7 @@ fun HomeScreen(
             // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
                 HeroHeaderSection(
+                    heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
@@ -296,32 +303,53 @@ private fun HeroHeaderSection(
     onFilterClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onAboutClick: () -> Unit,
+    heroAsset: Painter? = null,
 ) {
+    // Brand purple → blue gradient used both as the hero background fallback
+    // and on the primary "Get to know PaceDream" CTA. Endpoints come from
+    // PaceDreamColors so the values stay tied to the brand tokens (iOS parity).
+    val brandGradient = Brush.linearGradient(
+        colors = listOf(PaceDreamColors.GradientStart, PaceDreamColors.GradientEnd)
+    )
+    val hasImage = heroAsset != null || !heroImageUrl.isNullOrBlank()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(360.dp)
     ) {
-        // TODO(product): swap this dark-photographic placeholder for the real
-        //  pacedream.com hero image once the asset ships. The design calls for
-        //  an AsyncImage of that photo; until then we render a subtle deep-grey
-        //  fill so the UI doesn't regress to the old vivid gradient.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(328.dp)
-                .background(PaceDreamColors.Gray900)
+                // Always paint the brand gradient as the base layer. When a
+                // hero image is supplied it's rendered on top and covers the
+                // gradient; without one, the gradient acts as the fallback so
+                // the header still reads as "PaceDream".
+                .background(brandGradient)
         ) {
-            if (!heroImageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(heroImageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            when {
+                heroAsset != null -> {
+                    Image(
+                        painter = heroAsset,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                !heroImageUrl.isNullOrBlank() -> {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(heroImageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            if (hasImage) {
                 // Scrim to keep copy readable over photography. Routes through
                 // the design-system helper so the overlay tones down in dark
                 // mode rather than crushing the image into a black rectangle.
@@ -390,10 +418,17 @@ private fun HeroHeaderSection(
                     onClick = onAboutClick,
                     modifier = Modifier
                         .defaultMinSize(minHeight = 50.dp)
+                        .background(
+                            brush = brandGradient,
+                            shape = RoundedCornerShape(PaceDreamRadius.LG)
+                        )
                         .semantics { role = Role.Button },
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    // Container is transparent so the brand gradient applied
+                    // via the modifier shows through; Material still owns the
+                    // ripple, focus state, and elevation.
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PaceDreamColors.Primary,
+                        containerColor = Color.Transparent,
                         contentColor = OnBrandSurface
                     ),
                     contentPadding = PaddingValues(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2),
