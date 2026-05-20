@@ -64,6 +64,22 @@ import com.shourov.apps.pacedream.feature.home.presentation.R
 
 const val DealCardCtaTestTag = "deal_card_cta"
 
+/**
+ * Horizontal deals carousel card with an inline "Rent Now" CTA.
+ *
+ * Two click surfaces, intentionally separate so callers can route them:
+ *  - [onClick]    — outer card tap. Default destination: listing detail
+ *                   (e.g. `navController.navigate(ListingRoutes.detail(roomModel.id))`).
+ *  - [onCtaClick] — inline primary CTA tap ("Rent Now").
+ *                   Default destination: same as [onClick] (listing detail),
+ *                   so the two surfaces never disagree about where they go.
+ *                   Callers may route the CTA to checkout pre-fill instead
+ *                   if product wants the inline CTA to short-circuit detail;
+ *                   keep that decision at the callsite, not in the card.
+ *
+ * Both parameters are required (no `{}` default) so a forgotten wire-up
+ * surfaces at compile time rather than as a dead button at runtime.
+ */
 @Composable
 fun DealsCard(
     roomModel: RoomModel,
@@ -172,6 +188,18 @@ fun DealsCard(
     }
 }
 
+/**
+ * Last-minute deals carousel card with discount badge and inline "Book Now" CTA.
+ *
+ *  - [onClick]    — outer card tap. Default destination: listing detail.
+ *  - [onCtaClick] — inline primary CTA tap ("Book Now").
+ *                   Default destination: same as [onClick]. Because last-minute
+ *                   deals already imply urgency, callers may wire this to a
+ *                   checkout pre-fill (skipping detail) when product asks for
+ *                   the shorter funnel; do that at the callsite, not in the card.
+ *
+ * Both parameters are required so unwired CTAs fail at compile time.
+ */
 @Composable
 fun LastMinuteDealCard(
     roomModel: RoomModel,
@@ -301,6 +329,19 @@ fun LastMinuteDealCard(
     }
 }
 
+/**
+ * Rented-gear deals carousel card with inline "Rent Now" CTA.
+ *
+ *  - [onClick]    — outer card tap. Default destination: gear listing detail
+ *                   (`navController.navigate(ListingRoutes.detail(rentedGearModel.id))`).
+ *  - [onCtaClick] — inline primary CTA tap ("Rent Now").
+ *                   Default destination: same as [onClick]. Gear rentals are
+ *                   typically detail-first because the renter needs to see
+ *                   pickup terms before paying, so callers should route both
+ *                   surfaces to detail unless explicitly told otherwise.
+ *
+ * Both parameters are required so unwired CTAs fail at compile time.
+ */
 @Composable
 fun RentedGearDealsCard(
     rentedGearModel: RentedGearModel,
