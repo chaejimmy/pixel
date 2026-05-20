@@ -99,6 +99,13 @@ fun NavGraphBuilder.userOnBoardingScreen(
                 onNavigateToSignInWithEmail()
             },
             onContinueAccountSetup = onNavigateToAccountSetup,
+            // C-03: route a validated phone to OTP verification. Account
+            // setup is reachable only from OtpVerificationScreen's
+            // onLoginSuccess below — never directly from phone entry.
+            onProceedToOtpVerification = { phoneNumber ->
+                val encodedPhone = java.net.URLEncoder.encode(phoneNumber, "UTF-8")
+                navController.navigate("otp_verification_route/$encodedPhone")
+            },
         )
     }
 
