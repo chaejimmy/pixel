@@ -82,7 +82,10 @@ fun NavGraphBuilder.HostNavigationGraph(
     // scope, so the screen is registered here too — otherwise the host bell
     // can't navigate to it without bridging back to the outer dashboard.
     composable(HOST_NOTIFICATION_CENTER_ROUTE) {
-        com.shourov.apps.pacedream.feature.notification.presentation.NotificationScreen()
+        com.shourov.apps.pacedream.feature.notification.presentation.NotificationScreen(
+            onBackClick = { navController.popBackStack() },
+            onSettingsClick = { navController.navigate(HostScreen.Notifications.route) },
+        )
     }
 
     composable(HostScreen.Listings.route) {

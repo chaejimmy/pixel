@@ -2551,7 +2551,7 @@ private fun HomeScreenPreviewBody() {
                     heroImageUrl = null,
                     onSearchClick = {},
                     onFilterClick = {},
-                    onNotificationClick = {},
+                    onNotificationClick = { /* preview no-op; production wired via NotificationRoutes.NOTIFICATIONS */ },
                     onAboutClick = {
                         // Preview-only hook so the CTA isn't a no-op in isolation;
                         // the real screen wires this to the in-app About route.

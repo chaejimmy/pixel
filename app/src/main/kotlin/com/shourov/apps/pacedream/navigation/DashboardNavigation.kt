@@ -80,7 +80,8 @@ import com.shourov.apps.pacedream.feature.inbox.presentation.ThreadScreen
 import com.shourov.apps.pacedream.feature.profile.presentation.ProfileTabScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmationScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
-import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
+import com.shourov.apps.pacedream.feature.notification.presentation.NotificationRoutes
+import com.shourov.apps.pacedream.feature.notification.presentation.NotificationScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
@@ -334,7 +335,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         },
                                         onShowAuthSheet = { showAuthSheet = true },
                                         onNotificationClick = {
-                                            navController.navigate("notifications")
+                                            navController.navigate(NotificationRoutes.NOTIFICATIONS)
                                         },
                                         // "Can't find what you need? Post a request" CTA — opens the
                                         // wanted/post-request flow tagged with the home source so
@@ -430,7 +431,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 BookingTabScreen(
                                     onNotificationClick = {
-                                        navController.navigate("notifications")
+                                        navController.navigate(NotificationRoutes.NOTIFICATIONS)
                                     },
                                     onBookingClick = { bookingId ->
                                         navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
@@ -850,12 +851,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
                             }
 
-                            // Notification Center Screen (iOS parity).
+                            // Notification Screen (iOS parity).
                             // Tap routing: turns a notification into navigation
                             // to the booking detail or chat thread when the
                             // backend payload includes one, so the in-app
                             // notification list is actionable (Airbnb/Turo parity).
-                            composable("notifications") {
+                            composable(NotificationRoutes.NOTIFICATIONS) {
                                 val notificationsAuthGate = hiltViewModel<AuthGateViewModel>()
                                 val notificationsAuthState by notificationsAuthGate.authState
                                     .collectAsStateWithLifecycle()
@@ -880,9 +881,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                     return@composable
                                 }
 
-                                NotificationCenterScreen(
+                                NotificationScreen(
                                     onBackClick = { navController.popBackStack() },
+                                    onSettingsClick = {
+                                        navController.navigate("settings_notifications")
+                                    },
                                     onNotificationClick = { notification ->
+                                        // Mimics PushDeepLinkHandler: maps a
+                                        // notification's type + data payload
+                                        // (or deepLink) to an in-app route so
+                                        // the list is actionable.
                                         val data = notification.data.orEmpty()
                                         val bookingId = data["bookingId"]
                                             ?: data["booking_id"]
@@ -894,7 +902,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                             ?: data["listing_id"]
                                             ?: data["propertyId"]
                                             ?: data["property_id"]
-                                        val type = notification.resolvedType.lowercase()
+                                        val requestId = data["requestId"]
+                                            ?: data["request_id"]
+                                        val type = notification.type.lowercase()
                                         val deepLink = notification.deepLink
 
                                         val parsedFromDeepLink: String? = deepLink
@@ -923,6 +933,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                                     type.startsWith("review")) &&
                                                     !listingId.isNullOrBlank() ->
                                                     selectedListingId = listingId
+                                                type.startsWith("request") &&
+                                                    !requestId.isNullOrBlank() ->
+                                                    navController.navigate("requests/$requestId")
                                                 deepLink?.startsWith("/bookings/") == true &&
                                                     !parsedFromDeepLink.isNullOrBlank() ->
                                                     navController.navigate(
@@ -936,6 +949,11 @@ fun NavGraphBuilder.DashboardNavigation(
                                                 deepLink?.startsWith("/listings/") == true &&
                                                     !parsedFromDeepLink.isNullOrBlank() ->
                                                     selectedListingId = parsedFromDeepLink
+                                                deepLink?.startsWith("/requests/") == true &&
+                                                    !parsedFromDeepLink.isNullOrBlank() ->
+                                                    navController.navigate(
+                                                        "requests/$parsedFromDeepLink"
+                                                    )
                                                 else -> { /* No routable payload; stay on list. */ }
                                             }
                                         } catch (e: Exception) {

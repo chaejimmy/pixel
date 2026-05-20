@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,6 +88,7 @@ fun NotificationScreen(
     viewModel: NotificationViewModel = hiltViewModel(),
     onNotificationClick: (AppNotification) -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onBackClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,6 +104,17 @@ fun NotificationScreen(
                         color = PaceDreamColors.TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
+                },
+                navigationIcon = {
+                    if (onBackClick != null) {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = PaceDreamIcons.ArrowBack,
+                                contentDescription = "Back",
+                                tint = PaceDreamColors.TextPrimary
+                            )
+                        }
+                    }
                 },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
@@ -541,3 +554,59 @@ private fun errorDescriptionFor(message: String): String {
         else -> message
     }
 }
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+private fun NotificationScreenPreview() {
+    val now = java.util.Calendar.getInstance()
+    val todayIso = java.text.SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        java.util.Locale.US
+    ).format(now.time)
+    val earlierIso = java.text.SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        java.util.Locale.US
+    ).format(java.util.Date(now.timeInMillis - 1000L * 60 * 60 * 24 * 40))
+
+    val mock = listOf(
+        AppNotification(
+            id = "n1",
+            title = "Booking confirmed",
+            body = "Your stay at Sunset Loft is booked for May 25–27.",
+            type = "booking_confirmed",
+            isRead = false,
+            createdAt = todayIso,
+        ),
+        AppNotification(
+            id = "n2",
+            title = "New message from Alex",
+            body = "Hey! Checking in re: parking instructions for tomorrow.",
+            type = "message_received",
+            isRead = false,
+            createdAt = todayIso,
+        ),
+        AppNotification(
+            id = "n3",
+            title = "Payout sent",
+            body = "Your payout of $148.00 is on the way to your bank.",
+            type = "payout_sent",
+            isRead = true,
+            createdAt = earlierIso,
+        ),
+    )
+
+    val state = NotificationUiState.Success(
+        groupedNotifications = mock
+            .groupBy { NotificationGroup.forDate(it.parsedDate) }
+            .toSortedMap(compareBy { it.ordinal })
+    )
+
+    NotificationSuccessState(
+        state = state,
+        onRefresh = { /* preview no-op */ },
+        onNotificationClick = { /* preview no-op */ },
+        onMarkAsRead = { /* preview no-op */ },
+        onMarkAsUnread = { /* preview no-op */ },
+    )
+}
+
