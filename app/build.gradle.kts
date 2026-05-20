@@ -210,7 +210,6 @@ dependencies {
     implementation(projects.feature.booking)
     implementation(projects.feature.notification)
     implementation(projects.feature.guest)
-    implementation(projects.feature.payment)
     implementation(projects.feature.createAccount)
     implementation(projects.feature.host)
     implementation(projects.feature.wishlist)

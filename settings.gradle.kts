@@ -41,7 +41,6 @@ include(":core:location")
 
 include(":feature:signin")
 include(":feature:booking")
-include(":feature:payment")
 include(":feature:guest")
 include(":feature:notification")
 include(":feature:create-account")
