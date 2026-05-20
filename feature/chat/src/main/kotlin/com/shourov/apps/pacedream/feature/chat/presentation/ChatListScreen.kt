@@ -36,8 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamUserAvatar
+import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamDesignSystem
+import com.pacedream.common.composables.theme.PaceDreamIconSize
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.model.MessageModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,12 +66,26 @@ fun ChatListScreen(
             .background(PaceDreamDesignSystem.PaceDreamColors.Background)
             .statusBarsPadding()
     ) {
+        val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+        val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
         PaceDreamHeroHeader(
             title = "Messages",
             subtitle = "Chat with hosts and guests",
-            // Caller wires this to the same "notifications" route the
-            // Home bell uses (see DashboardNavigation L323).
-            onNotificationClick = onNotificationClick
+            // Caller wires onNotificationClick to the same "notifications"
+            // route the Home bell uses (see DashboardNavigation L323).
+            trailingAction = {
+                NotificationBellButton(
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onNotificationClick()
+                        unreadVm.markAllAsSeen()
+                    },
+                    modifier = Modifier.size(PaceDreamButtonHeight.SM),
+                    containerColor = Color.White.copy(alpha = 0.18f),
+                    iconTint = Color.White,
+                    iconSize = PaceDreamIconSize.SM,
+                )
+            }
         )
         
         when {

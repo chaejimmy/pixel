@@ -90,6 +90,8 @@ import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.R
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.core.network.observer.ConnectionState
@@ -480,21 +482,20 @@ private fun DiscoverHeader(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                IconButton(
-                    onClick = onNotificationClick,
-                    modifier = Modifier
-                        .size(PaceDreamButtonHeight.MD)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, BrandPurpleEdge, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Notifications,
-                        contentDescription = "Notifications",
-                        tint = InkPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+                val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+                NotificationBellButton(
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onNotificationClick()
+                        unreadVm.markAllAsSeen()
+                    },
+                    modifier = Modifier.size(PaceDreamButtonHeight.MD),
+                    containerColor = Color.White,
+                    iconTint = InkPrimary,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+                    iconSize = 20.dp,
+                )
             }
 
             // Hero copy kept tight so the first listing rail clears the fold
