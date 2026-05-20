@@ -80,7 +80,8 @@ import com.shourov.apps.pacedream.feature.inbox.presentation.ThreadScreen
 import com.shourov.apps.pacedream.feature.profile.presentation.ProfileTabScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingConfirmationScreen
 import com.shourov.apps.pacedream.feature.webflow.presentation.BookingCancelledScreen
-import com.shourov.apps.pacedream.feature.notification.NotificationCenterScreen
+import com.shourov.apps.pacedream.feature.notification.presentation.NotificationRoutes
+import com.shourov.apps.pacedream.feature.notification.presentation.NotificationScreen
 import com.shourov.apps.pacedream.feature.wishlist.presentation.WishlistScreen
 import com.shourov.apps.pacedream.feature.bookingdetail.BookingDetailScreen
 import com.shourov.apps.pacedream.feature.host.data.ImageUploadService
@@ -322,7 +323,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                         },
                                         onShowAuthSheet = { showAuthSheet = true },
                                         onNotificationClick = {
-                                            navController.navigate("notifications")
+                                            navController.navigate(NotificationRoutes.NOTIFICATIONS)
                                         },
                                         // "Can't find what you need? Post a request" CTA — opens the
                                         // wanted/post-request flow tagged with the home source so
@@ -418,7 +419,7 @@ fun NavGraphBuilder.DashboardNavigation(
 
                                 BookingTabScreen(
                                     onNotificationClick = {
-                                        navController.navigate("notifications")
+                                        navController.navigate(NotificationRoutes.NOTIFICATIONS)
                                     },
                                     onBookingClick = { bookingId ->
                                         navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
@@ -838,12 +839,12 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
                             }
 
-                            // Notification Center Screen (iOS parity).
+                            // Notification Screen (iOS parity).
                             // Tap routing: turns a notification into navigation
                             // to the booking detail or chat thread when the
                             // backend payload includes one, so the in-app
                             // notification list is actionable (Airbnb/Turo parity).
-                            composable("notifications") {
+                            composable(NotificationRoutes.NOTIFICATIONS) {
                                 val notificationsAuthGate = hiltViewModel<AuthGateViewModel>()
                                 val notificationsAuthState by notificationsAuthGate.authState
                                     .collectAsStateWithLifecycle()
@@ -868,69 +869,108 @@ fun NavGraphBuilder.DashboardNavigation(
                                     return@composable
                                 }
 
-                                NotificationCenterScreen(
-                                    onBackClick = { navController.popBackStack() },
-                                    onNotificationClick = { notification ->
-                                        val data = notification.data.orEmpty()
-                                        val bookingId = data["bookingId"]
-                                            ?: data["booking_id"]
-                                        val threadId = data["threadId"]
-                                            ?: data["thread_id"]
-                                            ?: data["conversationId"]
-                                            ?: data["conversation_id"]
-                                        val listingId = data["listingId"]
-                                            ?: data["listing_id"]
-                                            ?: data["propertyId"]
-                                            ?: data["property_id"]
-                                        val type = notification.resolvedType.lowercase()
-                                        val deepLink = notification.deepLink
+                                androidx.compose.material3.Scaffold(
+                                    topBar = {
+                                        androidx.compose.material3.TopAppBar(
+                                            title = { Text("Notifications") },
+                                            navigationIcon = {
+                                                androidx.compose.material3.IconButton(
+                                                    onClick = { navController.popBackStack() }
+                                                ) {
+                                                    androidx.compose.material3.Icon(
+                                                        com.pacedream.common.icon.PaceDreamIcons.ArrowBack,
+                                                        contentDescription = "Back",
+                                                    )
+                                                }
+                                            },
+                                            colors = androidx.compose.material3.TopAppBarDefaults
+                                                .topAppBarColors(
+                                                    containerColor = PaceDreamColors.Background
+                                                ),
+                                        )
+                                    },
+                                    containerColor = PaceDreamColors.Background,
+                                ) { padding ->
+                                    NotificationScreen(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(padding),
+                                        onNotificationClick = { notification ->
+                                            // Mimics PushDeepLinkHandler: maps a
+                                            // notification's type + data payload
+                                            // (or deepLink) to an in-app route so
+                                            // the list is actionable.
+                                            val data = notification.data.orEmpty()
+                                            val bookingId = data["bookingId"]
+                                                ?: data["booking_id"]
+                                            val threadId = data["threadId"]
+                                                ?: data["thread_id"]
+                                                ?: data["conversationId"]
+                                                ?: data["conversation_id"]
+                                            val listingId = data["listingId"]
+                                                ?: data["listing_id"]
+                                                ?: data["propertyId"]
+                                                ?: data["property_id"]
+                                            val requestId = data["requestId"]
+                                                ?: data["request_id"]
+                                            val type = notification.type.lowercase()
+                                            val deepLink = notification.deepLink
 
-                                        val parsedFromDeepLink: String? = deepLink
-                                            ?.substringAfterLast('/')
-                                            ?.takeIf { it.isNotBlank() }
+                                            val parsedFromDeepLink: String? = deepLink
+                                                ?.substringAfterLast('/')
+                                                ?.takeIf { it.isNotBlank() }
 
-                                        try {
-                                            when {
-                                                type.startsWith("message") && !threadId.isNullOrBlank() ->
-                                                    navController.navigate(
-                                                        "${InboxDestination.THREAD.name}/$threadId"
-                                                    )
-                                                (type.startsWith("booking") ||
-                                                    type.startsWith("checkin") ||
-                                                    type.startsWith("extend") ||
-                                                    type.startsWith("overtime") ||
-                                                    type.startsWith("session") ||
-                                                    type.startsWith("payment") ||
-                                                    type.startsWith("payout")) &&
-                                                    !bookingId.isNullOrBlank() ->
-                                                    navController.navigate(
-                                                        "${BookingDestination.BOOKING_DETAIL.name}/$bookingId"
-                                                    )
-                                                (type.startsWith("property") ||
-                                                    type.startsWith("listing") ||
-                                                    type.startsWith("review")) &&
-                                                    !listingId.isNullOrBlank() ->
-                                                    selectedListingId = listingId
-                                                deepLink?.startsWith("/bookings/") == true &&
-                                                    !parsedFromDeepLink.isNullOrBlank() ->
-                                                    navController.navigate(
-                                                        "${BookingDestination.BOOKING_DETAIL.name}/$parsedFromDeepLink"
-                                                    )
-                                                deepLink?.startsWith("/threads/") == true &&
-                                                    !parsedFromDeepLink.isNullOrBlank() ->
-                                                    navController.navigate(
-                                                        "${InboxDestination.THREAD.name}/$parsedFromDeepLink"
-                                                    )
-                                                deepLink?.startsWith("/listings/") == true &&
-                                                    !parsedFromDeepLink.isNullOrBlank() ->
-                                                    selectedListingId = parsedFromDeepLink
-                                                else -> { /* No routable payload; stay on list. */ }
+                                            try {
+                                                when {
+                                                    type.startsWith("message") && !threadId.isNullOrBlank() ->
+                                                        navController.navigate(
+                                                            "${InboxDestination.THREAD.name}/$threadId"
+                                                        )
+                                                    (type.startsWith("booking") ||
+                                                        type.startsWith("checkin") ||
+                                                        type.startsWith("extend") ||
+                                                        type.startsWith("overtime") ||
+                                                        type.startsWith("session") ||
+                                                        type.startsWith("payment") ||
+                                                        type.startsWith("payout")) &&
+                                                        !bookingId.isNullOrBlank() ->
+                                                        navController.navigate(
+                                                            "${BookingDestination.BOOKING_DETAIL.name}/$bookingId"
+                                                        )
+                                                    (type.startsWith("property") ||
+                                                        type.startsWith("listing") ||
+                                                        type.startsWith("review")) &&
+                                                        !listingId.isNullOrBlank() ->
+                                                        selectedListingId = listingId
+                                                    type.startsWith("request") &&
+                                                        !requestId.isNullOrBlank() ->
+                                                        navController.navigate("requests/$requestId")
+                                                    deepLink?.startsWith("/bookings/") == true &&
+                                                        !parsedFromDeepLink.isNullOrBlank() ->
+                                                        navController.navigate(
+                                                            "${BookingDestination.BOOKING_DETAIL.name}/$parsedFromDeepLink"
+                                                        )
+                                                    deepLink?.startsWith("/threads/") == true &&
+                                                        !parsedFromDeepLink.isNullOrBlank() ->
+                                                        navController.navigate(
+                                                            "${InboxDestination.THREAD.name}/$parsedFromDeepLink"
+                                                        )
+                                                    deepLink?.startsWith("/listings/") == true &&
+                                                        !parsedFromDeepLink.isNullOrBlank() ->
+                                                        selectedListingId = parsedFromDeepLink
+                                                    deepLink?.startsWith("/requests/") == true &&
+                                                        !parsedFromDeepLink.isNullOrBlank() ->
+                                                        navController.navigate(
+                                                            "requests/$parsedFromDeepLink"
+                                                        )
+                                                    else -> { /* No routable payload; stay on list. */ }
+                                                }
+                                            } catch (e: Exception) {
+                                                timber.log.Timber.e(e, "Notification tap routing failed")
                                             }
-                                        } catch (e: Exception) {
-                                            timber.log.Timber.e(e, "Notification tap routing failed")
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
 
                             // Property Detail Screen – replaced with new ListingDetailRoute

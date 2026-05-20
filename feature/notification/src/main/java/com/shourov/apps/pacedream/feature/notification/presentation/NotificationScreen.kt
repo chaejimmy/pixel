@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,6 +65,25 @@ fun NotificationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    NotificationScreenContent(
+        uiState = uiState,
+        onRefresh = viewModel::refresh,
+        onNotificationClick = { notification ->
+            viewModel.markAsRead(notification.id)
+            onNotificationClick(notification)
+        },
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotificationScreenContent(
+    uiState: NotificationUiState,
+    onRefresh: () -> Unit,
+    onNotificationClick: (AppNotification) -> Unit,
+    modifier: Modifier = Modifier
+) {
     AnimatedContent(
         targetState = uiState,
         transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
@@ -77,16 +97,13 @@ fun NotificationScreen(
             )
             is NotificationUiState.Success -> NotificationSuccessState(
                 state = state,
-                onRefresh = viewModel::refresh,
-                onNotificationClick = { notification ->
-                    viewModel.markAsRead(notification.id)
-                    onNotificationClick(notification)
-                }
+                onRefresh = onRefresh,
+                onNotificationClick = onNotificationClick
             )
             is NotificationUiState.Error -> PaceDreamErrorState(
                 title = "Couldn\u2019t load notifications",
                 description = state.message,
-                onRetryClick = viewModel::refresh,
+                onRetryClick = onRefresh,
                 modifier = Modifier.fillMaxSize()
             )
             is NotificationUiState.Empty -> PaceDreamEmptyState(
@@ -202,4 +219,58 @@ private fun NotificationRow(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+private fun NotificationScreenPreview() {
+    val now = java.util.Calendar.getInstance()
+    val todayIso = java.text.SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        java.util.Locale.US
+    ).format(now.time)
+    val earlierIso = java.text.SimpleDateFormat(
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        java.util.Locale.US
+    ).format(java.util.Date(now.timeInMillis - 1000L * 60 * 60 * 24 * 40))
+
+    val mock = listOf(
+        AppNotification(
+            id = "n1",
+            title = "Booking confirmed",
+            body = "Your stay at Sunset Loft is booked for May 25–27.",
+            type = "booking_confirmed",
+            isRead = false,
+            createdAt = todayIso,
+        ),
+        AppNotification(
+            id = "n2",
+            title = "New message from Alex",
+            body = "Hey! Checking in re: parking instructions for tomorrow.",
+            type = "message_received",
+            isRead = false,
+            createdAt = todayIso,
+        ),
+        AppNotification(
+            id = "n3",
+            title = "Payout sent",
+            body = "Your payout of $148.00 is on the way to your bank.",
+            type = "payout_sent",
+            isRead = true,
+            createdAt = earlierIso,
+        ),
+    )
+
+    val state = NotificationUiState.Success(
+        groupedNotifications = mock
+            .groupBy { NotificationGroup.forDate(it.parsedDate) }
+            .toSortedMap(compareBy { it.ordinal })
+    )
+
+    NotificationScreenContent(
+        uiState = state,
+        onRefresh = { /* preview no-op */ },
+        onNotificationClick = { /* preview no-op */ },
+    )
 }
