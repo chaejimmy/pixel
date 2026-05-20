@@ -88,7 +88,7 @@ data class ReportFailureResponse(
  *   3. confirmBooking()     → POST /payments/native/confirm-booking
  */
 @Singleton
-class NativePaymentRepository @Inject constructor(
+open class NativePaymentRepository @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val json: Json
@@ -192,7 +192,7 @@ class NativePaymentRepository @Inject constructor(
      * [PendingPaymentStore] so process-death recovery reuses the same
      * key.
      */
-    suspend fun confirmBooking(
+    open suspend fun confirmBooking(
         paymentIntentId: String,
         idempotencyKey: String? = null,
         requestId: String? = null,
@@ -274,7 +274,7 @@ class NativePaymentRepository @Inject constructor(
      * Extract PaymentIntent ID from client secret.
      * Format: "pi_xxx_secret_yyy" → "pi_xxx"
      */
-    fun extractPaymentIntentId(clientSecret: String): String? {
+    open fun extractPaymentIntentId(clientSecret: String): String? {
         val parts = clientSecret.split("_secret_")
         val piId = parts.firstOrNull()
         return piId?.takeIf { it.startsWith("pi_") }
@@ -292,7 +292,7 @@ class NativePaymentRepository @Inject constructor(
      * persisted pending-payment state — the booking eventually got
      * created (usually by the Stripe webhook).
      */
-    suspend fun reportFailure(
+    open suspend fun reportFailure(
         paymentIntentId: String,
         quoteId: String?,
         retryCount: Int,

@@ -310,6 +310,8 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
 
 
 

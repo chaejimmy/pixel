@@ -83,4 +83,23 @@
     <string name="host_payouts_connected">Payouts: Connected</string>
     <string name="host_payouts_action_required">Payouts: Action required</string>
     <string name="host_payouts_not_connected">Payouts: Not connected</string>
+
+    <!-- Payment reconciliation worker — foreground + one-shot notifications -->
+    <string name="payment_reconciliation_running_title">Confirming your payment…</string>
+    <string name="payment_reconciliation_running_text">We\'re finishing your booking. This usually takes a few seconds.</string>
+    <string name="payment_reconciliation_running_text_with_listing">We\'re finishing your booking for %1$s. This usually takes a few seconds.</string>
+    <string name="payment_reconciliation_success_title">Booking confirmed</string>
+    <string name="payment_reconciliation_success_text">Your payment was confirmed and your booking is locked in.</string>
+    <string name="payment_reconciliation_success_text_with_listing">Your booking for %1$s is confirmed.</string>
+    <string name="payment_reconciliation_failure_title">Payment failed — tap to retry</string>
+
+    <!-- Booking detail banner copy for in-flight reconciliation -->
+    <string name="payment_reconciliation_banner_pending_title">Payment processing</string>
+    <string name="payment_reconciliation_banner_pending_body">We\'re confirming your payment with the bank. You can leave this screen — we\'ll keep working.</string>
+    <string name="payment_reconciliation_banner_succeeded_title">Booking confirmed</string>
+    <string name="payment_reconciliation_banner_succeeded_body">Your payment went through and your booking is now confirmed.</string>
+    <string name="payment_reconciliation_banner_failed_title">Payment failed</string>
+    <string name="payment_reconciliation_banner_failed_body">We couldn\'t confirm your booking. Tap retry to try again.</string>
+    <string name="payment_reconciliation_check_status">Check status</string>
+    <string name="payment_reconciliation_list_pill">Payment processing</string>
 </resources>
