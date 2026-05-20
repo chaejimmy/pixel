@@ -87,6 +87,10 @@ tasks.register("designSystemCheck") {
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/listing"),
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/hostprofile"),
         rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/faq"),
+        // Migrated in refactor/ds-migration-listingdetail — 43 hits cleared
+        // (30 hex literals on image overlays + status pills + ratings,
+        // plus 13 Color.White/Black for hero overlays and CTA buttons).
+        rootProject.file("app/src/main/kotlin/com/pacedream/app/feature/listingdetail"),
         // TODO: add `app/src/main/kotlin/com/pacedream/app/feature/<next>` after
         // each feature's design-system migration lands.
     ).filter { it.exists() }

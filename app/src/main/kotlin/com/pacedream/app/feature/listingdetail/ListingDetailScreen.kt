@@ -56,6 +56,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -236,12 +238,12 @@ fun ListingDetailScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM)
                                     .background(
-                                        androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.10f),
+                                        PaceDreamColors.Warning.copy(alpha = 0.10f),
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .border(
                                         1.dp,
-                                        androidx.compose.ui.graphics.Color(0xFFFFA500).copy(alpha = 0.25f),
+                                        PaceDreamColors.Warning.copy(alpha = 0.25f),
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
                                     )
                                     .padding(PaceDreamSpacing.MD),
@@ -251,19 +253,19 @@ fun ListingDetailScreen(
                                 androidx.compose.material3.Icon(
                                     imageVector = com.pacedream.common.icon.PaceDreamIcons.Schedule,
                                     contentDescription = null,
-                                    tint = androidx.compose.ui.graphics.Color(0xFFFFA500),
+                                    tint = PaceDreamColors.Warning,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 androidx.compose.foundation.layout.Column {
                                     androidx.compose.material3.Text(
                                         text = "Under Review",
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                        fontSize = 14.sp
                                     )
                                     androidx.compose.material3.Text(
                                         text = "This listing is being reviewed and will be visible to guests once approved.",
-                                        fontSize = 12.sp,
-                                        color = androidx.compose.ui.graphics.Color.Gray
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -645,7 +647,7 @@ fun ListingDetailScreen(
                                     Icon(
                                         PaceDreamIcons.Star,
                                         contentDescription = null,
-                                        tint = Color(0xFFFFB400),
+                                        tint = PaceDreamColors.StarRating,
                                         modifier = Modifier.size(28.dp)
                                     )
                                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -1487,7 +1489,7 @@ private fun BookingBar(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color.White
+                        color = OnBrandSurface
                     )
                 }
             }
@@ -1538,7 +1540,7 @@ private fun HeroGallery(
         // Back (top-left)
         Surface(
             shape = CircleShape,
-            color = Color.Black.copy(alpha = 0.35f),
+            color = scrimOnImage(0.35f),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(PaceDreamSpacing.MD)
@@ -1550,7 +1552,7 @@ private fun HeroGallery(
                 Icon(
                     imageVector = PaceDreamIcons.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = OnBrandSurface
                 )
             }
         }
@@ -1562,15 +1564,15 @@ private fun HeroGallery(
                 .padding(PaceDreamSpacing.MD),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
+            Surface(shape = CircleShape, color = scrimOnImage(0.35f)) {
                 IconButton(
                     onClick = onShare,
                     modifier = Modifier.testTag(ListingDetailTestTags.ShareButton),
                 ) {
-                    Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = Color.White)
+                    Icon(PaceDreamIcons.Share, contentDescription = "Share", tint = OnBrandSurface)
                 }
             }
-            Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.35f)) {
+            Surface(shape = CircleShape, color = scrimOnImage(0.35f)) {
                 IconButton(
                     onClick = onToggleFavorite,
                     modifier = Modifier.testTag(ListingDetailTestTags.FavoriteButton),
@@ -1579,7 +1581,7 @@ private fun HeroGallery(
                         imageVector = if (isFavorite) PaceDreamIcons.Favorite else PaceDreamIcons.FavoriteBorder,
                         // Dynamic label so TalkBack tells the user what tap will do.
                         contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.error else Color.White
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else OnBrandSurface
                     )
                 }
             }
@@ -1598,7 +1600,7 @@ private fun HeroGallery(
                     modifier = Modifier
                         .size(if (selected) 7.dp else 6.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = if (selected) 0.95f else 0.55f))
+                        .background(OnBrandSurface.copy(alpha = if (selected) 0.95f else 0.55f))
                 )
             }
         }
@@ -1636,7 +1638,7 @@ private fun TitleMetaBlock(
                 Icon(
                     imageVector = PaceDreamIcons.Star,
                     contentDescription = null,
-                    tint = Color(0xFFFFB400),
+                    tint = PaceDreamColors.StarRating,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
@@ -1759,7 +1761,7 @@ private fun TitleMetaBlock(
                 if (instantBook == true) {
                     Surface(
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
-                        color = Color(0xFFFFF3E0)
+                        color = PaceDreamColors.Warning.copy(alpha = 0.12f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
@@ -1768,7 +1770,7 @@ private fun TitleMetaBlock(
                             Icon(
                                 PaceDreamIcons.Bolt,
                                 contentDescription = null,
-                                tint = Color(0xFFFF9800),
+                                tint = PaceDreamColors.Warning,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -1776,7 +1778,7 @@ private fun TitleMetaBlock(
                                 text = "Instant Book",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFFFF9800)
+                                color = PaceDreamColors.Warning
                             )
                         }
                     }
@@ -1785,7 +1787,7 @@ private fun TitleMetaBlock(
                 available?.let { isAvailable ->
                     Surface(
                         shape = RoundedCornerShape(PaceDreamRadius.Round),
-                        color = if (isAvailable) Color(0xFF10B981).copy(alpha = 0.1f) else Color(0xFFEF4444).copy(alpha = 0.1f)
+                        color = if (isAvailable) PaceDreamColors.Success.copy(alpha = 0.1f) else PaceDreamColors.Error.copy(alpha = 0.1f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
@@ -1795,14 +1797,14 @@ private fun TitleMetaBlock(
                                 modifier = Modifier
                                     .size(8.dp)
                                     .clip(CircleShape)
-                                    .background(if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444))
+                                    .background(if (isAvailable) PaceDreamColors.Success else PaceDreamColors.Error)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                             Text(
                                 text = if (isAvailable) "Available" else "Unavailable",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isAvailable) Color(0xFF10B981) else Color(0xFFEF4444)
+                                color = if (isAvailable) PaceDreamColors.Success else PaceDreamColors.Error
                             )
                         }
                     }
@@ -1881,7 +1883,7 @@ private fun HostCard(
                             Icon(
                                 PaceDreamIcons.Star,
                                 contentDescription = "Superhost",
-                                tint = Color.White,
+                                tint = OnBrandSurface,
                                 modifier = Modifier.padding(PaceDreamSpacing.XS)
                             )
                         }
@@ -2173,7 +2175,7 @@ private fun SectionReviews(
                     Icon(
                         PaceDreamIcons.Star,
                         contentDescription = null,
-                        tint = Color(0xFFFFB400),
+                        tint = PaceDreamColors.StarRating,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
@@ -2198,7 +2200,7 @@ private fun SectionReviews(
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(PaceDreamIcons.Star, contentDescription = null, tint = Color(0xFFFFB400), modifier = Modifier.size(18.dp))
+                Icon(PaceDreamIcons.Star, contentDescription = null, tint = PaceDreamColors.StarRating, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     text = String.format("%.1f", displayRating),
@@ -2271,7 +2273,7 @@ private fun CategoryRatingBars(categoryRatings: CategoryRatings) {
                         .weight(1f)
                         .height(6.dp)
                         .clip(RoundedCornerShape(PaceDreamRadius.XS)),
-                    color = Color(0xFFFFB400),
+                    color = PaceDreamColors.StarRating,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -2339,7 +2341,7 @@ private fun ReviewPreviewCard(review: ReviewModel) {
                             Icon(
                                 PaceDreamIcons.Star,
                                 contentDescription = null,
-                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                tint = if (idx < review.rating.toInt()) PaceDreamColors.StarRating
                                 else MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(14.dp)
                             )
@@ -2427,7 +2429,7 @@ private fun ReviewCard(
                             Icon(
                                 PaceDreamIcons.Star,
                                 contentDescription = null,
-                                tint = if (idx < review.rating.toInt()) Color(0xFFFFB400)
+                                tint = if (idx < review.rating.toInt()) PaceDreamColors.StarRating
                                 else MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(14.dp)
                             )
@@ -2516,7 +2518,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
             Icon(
                 PaceDreamIcons.Star,
                 contentDescription = null,
-                tint = Color(0xFFFFB400),
+                tint = PaceDreamColors.StarRating,
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -2549,7 +2551,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                         Icon(
                             PaceDreamIcons.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFFB400),
+                            tint = PaceDreamColors.StarRating,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -2559,7 +2561,7 @@ private fun ReviewSummaryHeader(summary: ReviewSummary) {
                                 .weight(1f)
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(PaceDreamRadius.XS)),
-                            color = Color(0xFFFFB400),
+                            color = PaceDreamColors.StarRating,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -2715,21 +2717,21 @@ private fun WriteReviewSheet(
             if (isSubmitting) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
-                    color = Color.White,
+                    color = OnBrandSurface,
                     strokeWidth = 2.dp
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Text(
                     submittingCtaLabel,
                     style = PaceDreamTypography.Button,
-                    color = Color.White
+                    color = OnBrandSurface
                 )
             } else {
                 Text(
                     submitCtaLabel,
                     style = PaceDreamTypography.Button,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (rating > 0) Color.White else PaceDreamColors.TextTertiary
+                    color = if (rating > 0) OnBrandSurface else PaceDreamColors.TextTertiary
                 )
             }
         }
@@ -2843,7 +2845,7 @@ private fun SectionSplitInfo(
                         Surface(
                             shape = RoundedCornerShape(PaceDreamRadius.XS),
                             color = when (splitStatus.uppercase()) {
-                                "OPEN" -> Color(0xFF10B981).copy(alpha = 0.1f)
+                                "OPEN" -> PaceDreamColors.Success.copy(alpha = 0.1f)
                                 "MATCHED" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                 "CLOSED" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
                                 else -> MaterialTheme.colorScheme.surfaceVariant
@@ -2855,7 +2857,7 @@ private fun SectionSplitInfo(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = when (splitStatus.uppercase()) {
-                                    "OPEN" -> Color(0xFF10B981)
+                                    "OPEN" -> PaceDreamColors.Success
                                     "MATCHED" -> MaterialTheme.colorScheme.primary
                                     "CLOSED" -> MaterialTheme.colorScheme.error
                                     else -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -3263,7 +3265,7 @@ private fun SectionCancellationPolicy(
         Card(
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF10B981).copy(alpha = 0.08f)
+                containerColor = PaceDreamColors.Success.copy(alpha = 0.08f)
             )
         ) {
             Row(
@@ -3275,7 +3277,7 @@ private fun SectionCancellationPolicy(
                 Icon(
                     PaceDreamIcons.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF10B981),
+                    tint = PaceDreamColors.Success,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -3289,7 +3291,7 @@ private fun SectionCancellationPolicy(
                         },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF10B981)
+                        color = PaceDreamColors.Success
                     )
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
                     Text(
@@ -3357,7 +3359,7 @@ private fun SectionPricingBreakdown(
                         PricingRow(
                             label = "Weekly discount",
                             value = "-$discount%",
-                            valueColor = Color(0xFF10B981)
+                            valueColor = PaceDreamColors.Success
                         )
                     }
                 }
@@ -3368,7 +3370,7 @@ private fun SectionPricingBreakdown(
                         PricingRow(
                             label = "Monthly discount",
                             value = "-$discount%",
-                            valueColor = Color(0xFF10B981)
+                            valueColor = PaceDreamColors.Success
                         )
                     }
                 }
@@ -3595,7 +3597,7 @@ private fun SectionSafetyFeatures(
             Icon(
                 PaceDreamIcons.Security,
                 contentDescription = null,
-                tint = Color(0xFF10B981),
+                tint = PaceDreamColors.Success,
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -3610,7 +3612,7 @@ private fun SectionSafetyFeatures(
             features.forEach { feature ->
                 Surface(
                     shape = RoundedCornerShape(PaceDreamRadius.Round),
-                    color = Color(0xFF10B981).copy(alpha = 0.08f)
+                    color = PaceDreamColors.Success.copy(alpha = 0.08f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
@@ -3619,14 +3621,14 @@ private fun SectionSafetyFeatures(
                         Icon(
                             PaceDreamIcons.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF10B981),
+                            tint = PaceDreamColors.Success,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                         Text(
                             text = feature,
                             style = MaterialTheme.typography.labelLarge,
-                            color = Color(0xFF10B981)
+                            color = PaceDreamColors.Success
                         )
                     }
                 }
@@ -3776,7 +3778,7 @@ private fun ReportListingSheet(
                 if (isSubmitting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.White
+                        color = OnBrandSurface
                     )
                 } else {
                     Text("Submit Report", fontWeight = FontWeight.SemiBold)
