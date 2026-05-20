@@ -310,6 +310,10 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
+    // CheckoutViewModel unit tests (PaymentReconciliationTest) — coroutine
+    // dispatcher + Turbine for StateFlow assertions.
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 
 
 

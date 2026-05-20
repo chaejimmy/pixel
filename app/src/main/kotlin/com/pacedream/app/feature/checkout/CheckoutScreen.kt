@@ -369,9 +369,29 @@ fun CheckoutScreen(
                 // Cancellation policy
                 CancellationPolicyCard()
 
-                // Error banner
+                // Error banner — failure-kind aware.
+                //   • PAYMENT_FAILED (PaymentSheet failure OR setup-intent
+                //     failure) → red banner, "Try again" CTA wired to
+                //     [retryPayment], rendered just above the Pay button so
+                //     the retry affordance is in the user's focus path.
+                //   • everything else (quote fetch / availability) →
+                //     existing "Retry" CTA wired to [retryQuote].
                 uiState.errorMessage?.let { message ->
-                    ErrorBanner(message = message, onRetry = { viewModel.retryQuote() })
+                    val isPaymentFailure = uiState.failureKind ==
+                        CheckoutFailureKind.PAYMENT_FAILED
+                    ErrorBanner(
+                        message = message,
+                        retryLabel = if (isPaymentFailure) "Try again" else "Retry",
+                        emphasis = if (isPaymentFailure) {
+                            ErrorBannerEmphasis.PaymentFailure
+                        } else {
+                            ErrorBannerEmphasis.Generic
+                        },
+                        onRetry = {
+                            if (isPaymentFailure) viewModel.retryPayment()
+                            else viewModel.retryQuote()
+                        },
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -381,6 +401,7 @@ fun CheckoutScreen(
             PayBar(
                 quote = uiState.quote,
                 status = uiState.status,
+                isPaymentInFlight = uiState.isPaymentInFlight,
                 onPayClick = { viewModel.submitPayment() }
             )
         }
@@ -393,10 +414,20 @@ fun CheckoutScreen(
 private fun PayBar(
     quote: QuoteResponse?,
     status: CheckoutStatus,
+    isPaymentInFlight: Boolean,
     onPayClick: () -> Unit
 ) {
-    val isEnabled = status == CheckoutStatus.READY && quote != null
-    val isProcessing = status == CheckoutStatus.PROCESSING
+    // Allow tapping Pay from READY, IDLE, and FAILED (PaymentSheet/setup
+    // failure leaves the user in FAILED — the bottom Pay button must
+    // stay tappable so they can retry from the same focus path; the
+    // inline ErrorBanner "Try again" CTA above remains the primary
+    // affordance, this is the fallback).
+    val isPayableStatus = quote != null && (
+        status == CheckoutStatus.READY ||
+            status == CheckoutStatus.FAILED ||
+            status == CheckoutStatus.IDLE
+        )
+    val isProcessing = status == CheckoutStatus.PROCESSING || isPaymentInFlight
 
     HorizontalDivider(thickness = 0.5.dp, color = PaceDreamColors.Border)
     Column(
@@ -408,7 +439,7 @@ private fun PayBar(
     ) {
         Button(
             onClick = onPayClick,
-            enabled = isEnabled && !isProcessing,
+            enabled = isPayableStatus && !isProcessing,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
@@ -1258,11 +1289,41 @@ private fun SupportActionRowNoReference(
 
 // ── Error Banner (iOS parity: errorBanner) ──
 
+/**
+ * Emphasis variant for the inline checkout error banner.
+ *
+ *  - [Generic] — quote / availability / generic transport failures.
+ *    Soft red container background (ErrorContainer) so the banner is
+ *    visible but not alarming.
+ *  - [PaymentFailure] — Stripe PaymentSheet failure or setup-intent
+ *    failure.  Stronger emphasis: solid red border + red icon + red
+ *    "Try again" CTA so the user can't miss the failure and the
+ *    retry path is in their focus immediately above the Pay button.
+ */
+private enum class ErrorBannerEmphasis { Generic, PaymentFailure }
+
 @Composable
-private fun ErrorBanner(message: String, onRetry: () -> Unit) {
+private fun ErrorBanner(
+    message: String,
+    retryLabel: String = "Retry",
+    emphasis: ErrorBannerEmphasis = ErrorBannerEmphasis.Generic,
+    onRetry: () -> Unit,
+) {
+    val isPaymentFailure = emphasis == ErrorBannerEmphasis.PaymentFailure
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.ErrorContainer)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPaymentFailure) {
+                PaceDreamColors.Error.copy(alpha = 0.08f)
+            } else {
+                PaceDreamColors.ErrorContainer
+            },
+        ),
+        border = if (isPaymentFailure) {
+            androidx.compose.foundation.BorderStroke(1.dp, PaceDreamColors.Error)
+        } else {
+            null
+        },
     ) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1282,7 +1343,11 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
                 // screen.
                 Text(
                     com.pacedream.common.util.UserFacingErrorMapper.mapMessage(message),
-                    color = PaceDreamColors.OnErrorContainer,
+                    color = if (isPaymentFailure) {
+                        PaceDreamColors.TextPrimary
+                    } else {
+                        PaceDreamColors.OnErrorContainer
+                    },
                     style = PaceDreamTypography.Callout,
                     modifier = Modifier.weight(1f)
                 )
@@ -1294,7 +1359,7 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
                 shape = RoundedCornerShape(PaceDreamRadius.SM),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Retry", style = PaceDreamTypography.Caption, color = PaceDreamColors.OnPrimary)
+                Text(retryLabel, style = PaceDreamTypography.Caption, color = PaceDreamColors.OnPrimary)
             }
         }
     }
