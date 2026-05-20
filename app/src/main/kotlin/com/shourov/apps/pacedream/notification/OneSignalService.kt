@@ -7,6 +7,7 @@ import com.onesignal.notifications.INotificationClickEvent
 import com.onesignal.notifications.INotificationClickListener
 import com.onesignal.notifications.INotificationWillDisplayEvent
 import com.onesignal.notifications.INotificationLifecycleListener
+import com.pacedream.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.BuildConfig
 import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -106,7 +107,14 @@ class OneSignalService @Inject constructor(
                             dataMap[key] = value
                         }
                     }
-                    NotificationRouter.handleNotification(dataMap)
+                    // Route any pacedream:// deep link carried in the payload
+                    // (`deepLink` / `deeplink`) so background-launch from a
+                    // notification tap lands on the right screen.
+                    val dispatched = PushDeepLinkHandler
+                        .dispatchFromAdditionalData(dataMap)
+                    if (!dispatched) {
+                        NotificationRouter.handleNotification(dataMap)
+                    }
                 }
             }
         })

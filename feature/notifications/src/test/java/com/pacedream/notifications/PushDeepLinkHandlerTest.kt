@@ -37,4 +37,10 @@ class PushDeepLinkHandlerTest {
     fun `rejects unknown host`() {
         assertNull(PushDeepLink.parse(Uri.parse("pacedream://unknown/1")))
     }
+
+    @Test
+    fun `parses hyphenated request offers link`() {
+        val link = PushDeepLink.parse(Uri.parse("pacedream://requests/abc-123/offers"))
+        assertEquals(PushDeepLink.RequestOffers("abc-123"), link)
+    }
 }
