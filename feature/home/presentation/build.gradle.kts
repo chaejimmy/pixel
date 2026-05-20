@@ -52,6 +52,8 @@ dependencies {
     implementation(project(":feature:home:domain"))
     implementation(project(":feature:home:data"))
     implementation(project(":feature:wishlist"))
+    // Bell badge: DashboardHeader observes UnreadNotificationsViewModel.
+    implementation(project(":feature:notification"))
     implementation(libs.timber)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

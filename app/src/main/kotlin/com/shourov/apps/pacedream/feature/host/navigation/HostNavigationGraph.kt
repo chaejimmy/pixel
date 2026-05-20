@@ -37,6 +37,11 @@ interface ImageUploadEntryPoint {
     fun imageUploadService(): ImageUploadService
 }
 
+// Distinct from HostScreen.Notifications.route ("host_notifications") which
+// hosts the settings preferences screen — this route hosts the in-app
+// notification list (bell destination).
+private const val HOST_NOTIFICATION_CENTER_ROUTE = "host_notification_center"
+
 fun NavGraphBuilder.HostNavigationGraph(
     navController: NavController,
     onSwitchToGuestMode: () -> Unit = {},
@@ -62,11 +67,22 @@ fun NavGraphBuilder.HostNavigationGraph(
             onBookingClick = onNavigateToBooking,
             onEarningsClick = onNavigateToWithdraw,
             onAnalyticsClick = onNavigateToAnalytics,
+            onNotificationClick = {
+                navController.navigate(HOST_NOTIFICATION_CENTER_ROUTE) { launchSingleTop = true }
+            },
             onViewAllBookings = { navController.navigate(HostScreen.Bookings.route) { launchSingleTop = true } },
             onViewAllListings = { navController.navigate(HostScreen.Listings.route) { launchSingleTop = true } },
             onSwitchToGuestMode = onSwitchToGuestMode,
             onSignOut = onSignOut
         )
+    }
+
+    // In-app notification list mirrors the guest "notifications" route in
+    // DashboardNavigation. The host nav graph runs in its own NavController
+    // scope, so the screen is registered here too — otherwise the host bell
+    // can't navigate to it without bridging back to the outer dashboard.
+    composable(HOST_NOTIFICATION_CENTER_ROUTE) {
+        com.shourov.apps.pacedream.feature.notification.presentation.NotificationScreen()
     }
 
     composable(HostScreen.Listings.route) {

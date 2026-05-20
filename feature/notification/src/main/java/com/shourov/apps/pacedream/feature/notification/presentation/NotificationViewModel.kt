@@ -64,6 +64,10 @@ class NotificationViewModel @Inject constructor(
                             isRefreshing = false
                         )
                     }
+                    // Reaching the screen always zeros the bell badge — covers
+                    // entry paths where the bell tap didn't fire markAllAsSeen
+                    // (deep links, push tap, settings → notifications).
+                    repository.markAllAsSeen()
                 },
                 onFailure = { error ->
                     Timber.e(error, "Failed to load notifications")

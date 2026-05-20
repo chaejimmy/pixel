@@ -45,6 +45,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.theme.*
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
 import java.text.SimpleDateFormat
@@ -70,12 +72,26 @@ fun BookingScreen(
             .background(PaceDreamColors.Background)
             .statusBarsPadding()
     ) {
+        val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+        val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
         PaceDreamHeroHeader(
             title = "Bookings",
             subtitle = "Manage your reservations",
-            // Caller wires this to the same "notifications" route the
-            // Home bell uses (see DashboardNavigation L323).
-            onNotificationClick = onNotificationClick
+            // Caller wires onNotificationClick to the same "notifications"
+            // route the Home bell uses (see DashboardNavigation L323).
+            trailingAction = {
+                NotificationBellButton(
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onNotificationClick()
+                        unreadVm.markAllAsSeen()
+                    },
+                    modifier = Modifier.size(PaceDreamButtonHeight.SM),
+                    containerColor = Color.White.copy(alpha = 0.18f),
+                    iconTint = Color.White,
+                    iconSize = PaceDreamIconSize.SM,
+                )
+            }
         )
 
         // Booking count + Tab picker (like iOS)
