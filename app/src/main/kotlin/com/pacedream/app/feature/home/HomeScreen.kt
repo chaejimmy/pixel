@@ -67,7 +67,7 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
-import com.shourov.apps.pacedream.designsystem.adaptiveShadow
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.R
@@ -81,8 +81,19 @@ object HomeTestTags {
     const val Root = "home_screen_root"
     const val ListingFeed = "home_listing_feed"
     const val SearchBar = "home_search_bar"
+    const val FilterButton = "home_filter_button"
     const val NotificationButton = "home_notification_button"
     const val CategoryTabs = "home_category_tabs"
+    // Per-card primary CTA + favourite — shared across all three card
+    // variants (Featured / Grid / Listing). Tests should use
+    // onAllNodesWithTag(...) when asserting card counts.
+    const val ListingCard = "home_listing_card"
+    const val FavoriteButton = "home_favorite_button"
+    // FAQ + Support sections — registered ahead of implementation
+    // (DESIGN_QA_REPORT_ANDROID.md §P2-#10) so the tag string is locked
+    // in before the section composables land.
+    const val FaqSection = "home_faq_section"
+    const val SupportSection = "home_support_section"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -517,6 +528,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
+                        .testTag(HomeTestTags.FilterButton)
                         .semantics { role = Role.Button }
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
@@ -547,24 +559,20 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Category chips matching the website's pacedream.com filter order:
-    //   Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
+    // Category chips matching pacedream.com filter order exactly:
+    //   All · Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
     //   Apartment · Luxury Room · Parking · Storage Space
-    // Gym and WIFI are Android-only extras kept at the end so the website's
-    // primary order is preserved at the front (UI_UX_COMPARISON.md § 3).
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
         Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
         Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
         Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-        Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+        Triple("Study Room", PaceDreamIcons.MenuBookOutlined, PaceDreamIcons.MenuBook),
+        Triple("Short Stay", PaceDreamIcons.BedtimeOutlined, PaceDreamIcons.Bedtime),
         Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
-        Triple("Luxury Room", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
+        Triple("Luxury Room", PaceDreamIcons.DiamondOutlined, PaceDreamIcons.Diamond),
         Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
         Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
-        Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
-        Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
     )
 
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
@@ -976,8 +984,9 @@ private fun FeaturedFullWidthCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1057,7 +1066,8 @@ private fun FeaturedFullWidthCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM2)
-                        .size(34.dp),
+                        .size(34.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1395,8 +1405,9 @@ private fun GridListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1482,7 +1493,8 @@ private fun GridListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(30.dp),
+                        .size(30.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1595,8 +1607,9 @@ private fun ListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1682,7 +1695,8 @@ private fun ListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(32.dp),
+                        .size(32.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 

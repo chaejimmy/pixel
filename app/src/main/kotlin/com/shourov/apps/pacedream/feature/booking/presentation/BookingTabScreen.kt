@@ -48,6 +48,10 @@ import com.shourov.apps.pacedream.feature.booking.model.BookingTabUiState
 object BookingTabTestTags {
     const val Root = "booking_tab_screen_root"
     const val TabPicker = "booking_tab_picker"
+    // Same tag value as TabPicker — the row IS the status filter, but tests
+    // written against "the status filter" shouldn't have to know it's
+    // implemented as a tab picker.
+    const val StatusFilter = TabPicker
     const val List = "booking_tab_list"
     const val EmptyState = "booking_tab_empty_state"
 }

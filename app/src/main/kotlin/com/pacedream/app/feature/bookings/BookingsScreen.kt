@@ -77,6 +77,13 @@ object BookingsTestTags {
     const val ViewDetailsButton = "bookings_view_details_button"
     const val EmptyState = "bookings_empty_state"
     const val ErrorState = "bookings_error_state"
+    // Cancel/confirm flow — applied in HostBookingDetailScreen but kept in
+    // this registry so the whole Bookings feature's tag surface lives in
+    // one greppable file.
+    const val CancelButton = "bookings_cancel_button"
+    const val CancelConfirmDialog = "bookings_cancel_confirm_dialog"
+    const val ConfirmCancelButton = "bookings_confirm_cancel_button"
+    const val KeepBookingButton = "bookings_keep_booking_button"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

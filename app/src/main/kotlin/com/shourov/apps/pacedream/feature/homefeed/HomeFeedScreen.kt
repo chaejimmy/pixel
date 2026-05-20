@@ -2,10 +2,14 @@
 package com.shourov.apps.pacedream.feature.homefeed
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -31,15 +35,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -53,11 +60,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,7 +77,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
 import com.pacedream.common.composables.components.InlineErrorBanner
 import com.pacedream.common.composables.shimmerEffect
 import com.pacedream.common.composables.theme.PaceDreamAnimationDuration
@@ -77,6 +88,7 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.shourov.apps.pacedream.R
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.core.network.observer.ConnectionState
@@ -115,6 +127,10 @@ fun HomeFeedScreen(
     // The "Earn from unused spaces" promo and its "Start hosting" pill route
     // to the host / create-listing flow, not to Search.
     onStartHostingClick: () -> Unit = {},
+    // "See all FAQs" link from the home FAQ section.
+    onOpenFaq: () -> Unit = {},
+    // "Message Support" CTA from the home Support section.
+    onMessageSupport: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeFeedViewModel = hiltViewModel(),
     connectivityViewModel: ConnectivityViewModel = hiltViewModel(),
@@ -147,6 +163,47 @@ fun HomeFeedScreen(
                 }
             } catch (_: Exception) {
                 snackbarHostState.showSnackbar("Failed to save")
+            }
+        }
+    }
+
+    // Email-us handler for the home Support section. On devices with no
+    // mail client (restricted profiles, kiosks, secondary user accounts)
+    // ACTION_SENDTO throws ActivityNotFoundException — we surface a
+    // snackbar with a Copy action that puts the address on the clipboard
+    // so the user can paste it elsewhere, instead of silently failing
+    // (parity with the M-06 fix in SettingsHelpSupportScreen).
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val supportEmail = stringResource(R.string.home_support_email_address)
+    val supportEmailSubject = stringResource(R.string.home_support_email_subject)
+    val supportEmailUnavailableMessage = stringResource(R.string.home_support_email_unavailable)
+    val supportEmailCopyAction = stringResource(R.string.home_support_email_copy_action)
+    val supportEmailCopiedMessage = stringResource(R.string.home_support_email_copied, supportEmail)
+
+    fun onEmailSupport() {
+        // Percent-encode the subject per RFC 6068 (mailto:). URLEncoder uses
+        // form-style "+" for spaces, but mailto URIs expect "%20" — swap so
+        // the subject pre-fills correctly across Gmail, Outlook, etc.
+        val encodedSubject = java.net.URLEncoder
+            .encode(supportEmailSubject, Charsets.UTF_8.name())
+            .replace("+", "%20")
+        val uri = android.net.Uri.parse("mailto:$supportEmail?subject=$encodedSubject")
+        val launched = runCatching {
+            context.startActivity(
+                android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
+            )
+        }
+        if (launched.isFailure) {
+            scope.launch {
+                val outcome = snackbarHostState.showSnackbar(
+                    message = supportEmailUnavailableMessage,
+                    actionLabel = supportEmailCopyAction,
+                )
+                if (outcome == SnackbarResult.ActionPerformed) {
+                    clipboard.setText(AnnotatedString(supportEmail))
+                    snackbarHostState.showSnackbar(supportEmailCopiedMessage)
+                }
             }
         }
     }
@@ -308,13 +365,31 @@ fun HomeFeedScreen(
                     onRefresh = { viewModel.refresh() }
                 )
 
-                // 8. Request card — routes to the Post a Request flow, not Search.
+                // 8. FAQ section — promotes the 6 standard FAQ items the
+                //    website surfaces on its landing page. Routes "See all
+                //    FAQs" into the dedicated FAQ screen.
+                item(key = "home_faq", contentType = "home_faq") {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
+                    FaqSection(onSeeAllFaqs = onOpenFaq)
+                }
+
+                // 9. Support section — surfaces Help & Support on Home
+                //    instead of burying it inside the Profile menu.
+                item(key = "home_support", contentType = "home_support") {
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
+                    SupportSection(
+                        onMessageSupport = onMessageSupport,
+                        onEmailSupport = ::onEmailSupport,
+                    )
+                }
+
+                // 10. Request card — routes to the Post a Request flow, not Search.
                 item(key = "request_card", contentType = "request") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.XL))
                     RequestCard(onClick = onPostRequestClick)
                 }
 
-                // 9. Host CTA — routes to the host / create-listing flow, not Search.
+                // 11. Host CTA — routes to the host / create-listing flow, not Search.
                 item(key = "host_cta", contentType = "host_cta") {
                     Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
                     HostCtaCard(onClick = onStartHostingClick)
@@ -1196,6 +1271,264 @@ private fun HostCtaCard(onClick: () -> Unit) {
                         style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.5.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAQ section — surfaces the six standard FAQs from the website on Home so
+// users don't have to dig into Profile → Help & Support to find them. Each
+// row uses the same expand/collapse interaction as the dedicated FAQ screen.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private data class HomeFaqEntry(
+    val questionRes: Int,
+    val answerRes: Int,
+)
+
+private val HOME_FAQ_ENTRIES = listOf(
+    HomeFaqEntry(R.string.home_faq_q_hourly_booking, R.string.home_faq_a_hourly_booking),
+    HomeFaqEntry(R.string.home_faq_q_space_types, R.string.home_faq_a_space_types),
+    HomeFaqEntry(R.string.home_faq_q_cancellation, R.string.home_faq_a_cancellation),
+    HomeFaqEntry(R.string.home_faq_q_contact_support, R.string.home_faq_a_contact_support),
+    HomeFaqEntry(R.string.home_faq_q_membership, R.string.home_faq_a_membership),
+    HomeFaqEntry(R.string.home_faq_q_become_host, R.string.home_faq_a_become_host),
+)
+
+@Composable
+private fun FaqSection(onSeeAllFaqs: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SectionHeader(
+            title = stringResource(R.string.home_faq_title),
+            subtitle = stringResource(R.string.home_faq_subtitle),
+        )
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.LG),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            color = Color.White,
+            border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+            shadowElevation = 0.dp,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HOME_FAQ_ENTRIES.forEachIndexed { index, entry ->
+                    PaceDreamExpandableRow(
+                        question = stringResource(entry.questionRes),
+                        answer = stringResource(entry.answerRes),
+                    )
+                    if (index < HOME_FAQ_ENTRIES.lastIndex) {
+                        HorizontalDivider(
+                            color = BrandPurpleEdge,
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+
+        Text(
+            text = stringResource(R.string.home_faq_see_all),
+            style = PaceDreamTypography.Callout.copy(fontFamily = paceDreamFontFamily),
+            color = BrandPurple,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.5.sp,
+            modifier = Modifier
+                .padding(horizontal = PaceDreamSpacing.LG)
+                .clickable(onClick = onSeeAllFaqs)
+                .padding(vertical = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun PaceDreamExpandableRow(
+    question: String,
+    answer: String,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(
+            durationMillis = PaceDreamAnimationDuration.FAST,
+            easing = PaceDreamEasing.EaseInOut,
+        ),
+        label = "home_faq_chevron_rotation",
+    )
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(
+                    horizontal = PaceDreamSpacing.MD,
+                    vertical = PaceDreamSpacing.MD,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = question,
+                style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                color = InkPrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.5.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+            Icon(
+                imageVector = PaceDreamIcons.ExpandMore,
+                contentDescription = if (expanded) "Collapse answer" else "Expand answer",
+                tint = InkMuted,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(chevronRotation),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) +
+                expandVertically(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)),
+            exit = fadeOut(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)) +
+                shrinkVertically(tween(PaceDreamAnimationDuration.FAST, easing = PaceDreamEasing.EaseInOut)),
+        ) {
+            Text(
+                text = answer,
+                style = PaceDreamTypography.Body.copy(
+                    fontFamily = paceDreamFontFamily,
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp,
+                ),
+                color = InkMuted,
+                modifier = Modifier.padding(
+                    start = PaceDreamSpacing.MD,
+                    end = PaceDreamSpacing.MD,
+                    bottom = PaceDreamSpacing.MD,
+                ),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Support section — surfaces Help & Support on Home so users can reach the
+// contact form / email without digging into Profile. The "Email us" CTA uses
+// ACTION_SENDTO with a clipboard-copy snackbar fallback when no email app is
+// available (M-06 parity).
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SupportSection(
+    onMessageSupport: () -> Unit,
+    onEmailSupport: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = PaceDreamSpacing.LG),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandPurpleEdge),
+        shadowElevation = 0.dp,
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.LG)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(BrandPurpleSoft),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.HelpOutline,
+                        contentDescription = null,
+                        tint = BrandPurple,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.home_support_title),
+                        style = PaceDreamTypography.Title3.copy(
+                            fontFamily = paceDreamDisplayFontFamily,
+                            fontSize = 17.sp,
+                            letterSpacing = (-0.3).sp,
+                        ),
+                        color = InkPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.home_support_subtitle),
+                        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                        color = InkMuted,
+                        fontSize = 12.5.sp,
+                        lineHeight = 17.sp,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                Button(
+                    onClick = onMessageSupport,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandPurple,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.QuestionAnswer,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                    Text(
+                        text = stringResource(R.string.home_support_message_cta),
+                        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                    )
+                }
+                OutlinedButton(
+                    onClick = onEmailSupport,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandPurple),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        BrandPurple.copy(alpha = 0.6f),
+                    ),
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.MailOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
+                    Text(
+                        text = stringResource(R.string.home_support_email_cta),
+                        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
                     )
                 }
             }
