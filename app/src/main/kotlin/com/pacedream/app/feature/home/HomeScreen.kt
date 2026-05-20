@@ -65,7 +65,7 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
-import com.shourov.apps.pacedream.designsystem.adaptiveShadow
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.R
@@ -941,7 +941,7 @@ private fun FeaturedFullWidthCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
             .semantics { role = Role.Button }
             .clickable(
@@ -1360,7 +1360,7 @@ private fun GridListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
             .semantics { role = Role.Button }
             .clickable(
@@ -1560,7 +1560,7 @@ private fun ListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
             .semantics { role = Role.Button }
             .clickable(

@@ -21,4 +21,9 @@ dependencies {
 
     implementation(libs.coil.kt.compose)
     implementation(libs.androidx.ui.text.google.fonts)
+
+    // Provides PaceDreamElevation / PaceDreamRadius tokens used as the
+    // adaptiveShadow defaults. `common` has no project dependencies so this
+    // does not create a cycle.
+    implementation(project(":common"))
 }
