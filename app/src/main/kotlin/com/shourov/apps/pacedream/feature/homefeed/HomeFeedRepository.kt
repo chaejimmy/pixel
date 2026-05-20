@@ -26,11 +26,17 @@ class HomeFeedRepository @Inject constructor(
     /**
      * Primary: /v1/listings?page=1&limit=...&shareType=USE|BORROW|SPLIT
      * Fallback (only if backend listings fails): https://www.pacedream.com/api/proxy/listings?...&skip_pagination=true
+     *
+     * [category] when non-null is sent as `category=<slug>` so the backend
+     * filters server-side. Slugs come from the home category chips
+     * (restroom, nap_pod, study_room, short_stay, apartment, luxury_room,
+     * parking, storage_space, etc.).
      */
     suspend fun getListingsShareTypePage(
         shareType: String,
         page1: Int,
-        limit: Int
+        limit: Int,
+        category: String? = null,
     ): ApiResult<List<HomeCard>> {
         fun backendUrl(params: Map<String, String?>): HttpUrl =
             appConfig.buildApiUrlWithQuery("listings", queryParams = params)
@@ -45,10 +51,17 @@ class HomeFeedRepository @Inject constructor(
             }
         }
 
+        val base = buildMap<String, String?> {
+            put("page", page1.toString())
+            put("limit", limit.toString())
+            put("shareType", shareType)
+            if (!category.isNullOrBlank()) put("category", category)
+        }
+
         // Backend attempts: primary + fallback with status filter (avoid excessive retries)
         val attempts = listOf(
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType),
-            mapOf("page" to page1.toString(), "limit" to limit.toString(), "shareType" to shareType, "status" to "published"),
+            base,
+            base + ("status" to "published"),
         )
 
         var lastFailure: ApiResult.Failure? = null
@@ -68,16 +81,15 @@ class HomeFeedRepository @Inject constructor(
      * Matches website endpoint for spaces data.
      * Fallback: standard /v1/listings?shareType=USE if poc endpoint is empty.
      */
-    suspend fun getCuratedHourly(limit: Int = 24): ApiResult<List<HomeCard>> {
-        val curatedUrl = appConfig.buildApiUrlWithQuery(
-            "poc", "listings",
-            queryParams = mapOf(
-                "shareType" to "USE",
-                "status" to "published",
-                "limit" to limit.toString(),
-                "skip_pagination" to "true"
-            )
-        )
+    suspend fun getCuratedHourly(limit: Int = 24, category: String? = null): ApiResult<List<HomeCard>> {
+        val curatedParams = buildMap<String, String?> {
+            put("shareType", "USE")
+            put("status", "published")
+            put("limit", limit.toString())
+            put("skip_pagination", "true")
+            if (!category.isNullOrBlank()) put("category", category)
+        }
+        val curatedUrl = appConfig.buildApiUrlWithQuery("poc", "listings", queryParams = curatedParams)
         Timber.d("HomeFeed spaces: $curatedUrl")
         val curated = apiClient.get(curatedUrl, includeAuth = false)
         if (curated is ApiResult.Success) {
@@ -89,7 +101,8 @@ class HomeFeedRepository @Inject constructor(
         return getListingsShareTypePage(
             shareType = "USE",
             page1 = 1,
-            limit = limit
+            limit = limit,
+            category = category,
         )
     }
 

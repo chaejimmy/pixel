@@ -1,7 +1,9 @@
 package com.shourov.apps.pacedream.feature.search
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pacedream.common.composables.components.SearchMode
 import com.shourov.apps.pacedream.core.network.api.ApiError
 import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
@@ -28,11 +30,15 @@ class SearchViewModel @Inject constructor(
     private val repo: SearchRepository,
     private val authSession: AuthSession,
     private val wishlistRepository: WishlistRepository,
-    private val filtersStore: SearchFiltersStore
+    private val filtersStore: SearchFiltersStore,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        SearchUiState(filterCriteria = filtersStore.criteria.value)
+        SearchUiState(
+            filterCriteria = filtersStore.criteria.value,
+            queryState = savedStateHandle.restoreQueryState(),
+        )
     )
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
@@ -174,6 +180,73 @@ class SearchViewModel @Inject constructor(
                 errorMessage = null
             )
         }
+        persistQueryState()
+    }
+
+    /**
+     * Switch the Use/Borrow/Split mode for the search bar. WHERE and the
+     * date range are preserved — the user almost always wants the same
+     * location/dates after flipping the marketplace; WHAT is cleared
+     * because the keyword vocabulary differs per mode (e.g. "nap pod"
+     * is meaningless under Borrow). Mirrors the website behaviour
+     * documented in UI_UX_COMPARISON.md §2.
+     */
+    fun setMode(mode: SearchMode) {
+        val mappedShareType = when (mode) {
+            SearchMode.USE -> "SHARE"
+            SearchMode.BORROW -> "BORROW"
+            SearchMode.SPLIT -> "SPLIT"
+        }
+        _uiState.update { current ->
+            current.copy(
+                queryState = current.queryState.copy(
+                    mode = mode,
+                    whatQuery = "",
+                    // where + dateStart + dateEnd intentionally preserved.
+                ),
+                shareType = mappedShareType,
+                whatQuery = null,
+                errorMessage = null,
+            )
+        }
+        persistQueryState()
+    }
+
+    /** Update the WHAT keyword in the structured query state. */
+    fun setWhatQuery(value: String) {
+        _uiState.update { it.copy(queryState = it.queryState.copy(whatQuery = value)) }
+        persistQueryState()
+    }
+
+    /** Update the WHERE keyword in the structured query state. */
+    fun setWhereQuery(value: String) {
+        _uiState.update { it.copy(queryState = it.queryState.copy(whereQuery = value)) }
+        persistQueryState()
+    }
+
+    /**
+     * Update the structured date range. UTC-midnight epoch millis to match
+     * the Material3 DateRangePicker contract; null clears the field.
+     */
+    fun setDateRange(startMillis: Long?, endMillis: Long?) {
+        _uiState.update {
+            it.copy(
+                queryState = it.queryState.copy(
+                    dateStartMillis = startMillis,
+                    dateEndMillis = endMillis,
+                ),
+            )
+        }
+        persistQueryState()
+    }
+
+    private fun persistQueryState() {
+        val s = _uiState.value.queryState
+        savedStateHandle[SAVED_KEY_MODE] = s.mode.name
+        savedStateHandle[SAVED_KEY_WHAT] = s.whatQuery
+        savedStateHandle[SAVED_KEY_WHERE] = s.whereQuery
+        savedStateHandle[SAVED_KEY_DATE_START] = s.dateStartMillis
+        savedStateHandle[SAVED_KEY_DATE_END] = s.dateEndMillis
     }
 
     /**
@@ -488,6 +561,28 @@ class SearchViewModel @Inject constructor(
     companion object {
         private val ISO_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
+        // SavedStateHandle keys for SearchQueryState persistence. Kept here so
+        // they survive process death together — restoring a partial state
+        // would leak stale mode/what pairs across modes (e.g. "nap pod"
+        // under BORROW), so all four are written and read as a unit.
+        private const val SAVED_KEY_MODE = "search.queryState.mode"
+        private const val SAVED_KEY_WHAT = "search.queryState.what"
+        private const val SAVED_KEY_WHERE = "search.queryState.where"
+        private const val SAVED_KEY_DATE_START = "search.queryState.dateStart"
+        private const val SAVED_KEY_DATE_END = "search.queryState.dateEnd"
+
+        internal fun SavedStateHandle.restoreQueryState(): SearchQueryState {
+            val modeName = get<String>(SAVED_KEY_MODE)
+            val mode = SearchMode.entries.firstOrNull { it.name == modeName } ?: SearchMode.USE
+            return SearchQueryState(
+                mode = mode,
+                whatQuery = get<String>(SAVED_KEY_WHAT).orEmpty(),
+                whereQuery = get<String>(SAVED_KEY_WHERE).orEmpty(),
+                dateStartMillis = get<Long?>(SAVED_KEY_DATE_START),
+                dateEndMillis = get<Long?>(SAVED_KEY_DATE_END),
+            )
+        }
+
         /**
          * Client-side relevance pass over a single page of search
          * results.  Two responsibilities:
@@ -558,7 +653,28 @@ class SearchViewModel @Inject constructor(
  */
 enum class SearchViewMode { LIST, MAP }
 
+/**
+ * Structured representation of the four pieces of the website search
+ * composition: marketplace mode + WHAT + WHERE + dates. Owned by
+ * [SearchViewModel] and persisted via SavedStateHandle so the user's
+ * in-flight query survives process death (e.g. backgrounding while
+ * filling in a date range, then returning).
+ *
+ * This is the source of truth for the new design-system PaceDreamSearchBar
+ * call site; the legacy primitive fields on [SearchUiState] (`query`,
+ * `whatQuery`, `startDate`, etc.) remain populated alongside it for the
+ * SearchRepository call until the repo migrates.
+ */
+data class SearchQueryState(
+    val mode: SearchMode = SearchMode.USE,
+    val whatQuery: String = "",
+    val whereQuery: String = "",
+    val dateStartMillis: Long? = null,
+    val dateEndMillis: Long? = null,
+)
+
 data class SearchUiState(
+    val queryState: SearchQueryState = SearchQueryState(),
     val query: String = "",
     val city: String? = null,
     /**

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,12 +37,11 @@ class HomeFeedViewModel @Inject constructor(
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
     /**
-     * Derived view of sections, filtered by the selected category chip.
-     * Matches iOS/web behaviour: "All" shows everything; any other chip filters
-     * items whose subCategory (or title, as fallback) contains the category keyword.
+     * Sections filtered by the selected category. Filtering happens server-side
+     * via the `category=<slug>` query param; this flow simply mirrors [_state]
+     * so existing UI subscribers keep working.
      */
-    private val _filteredState = MutableStateFlow(HomeFeedState())
-    val filteredState: StateFlow<HomeFeedState> = _filteredState.asStateFlow()
+    val filteredState: StateFlow<HomeFeedState> = _state.asStateFlow()
 
     val authState: StateFlow<AuthState> = authSession.authState
 
@@ -54,15 +54,12 @@ class HomeFeedViewModel @Inject constructor(
 
         loadAll()
 
-        // Keep filteredState in sync whenever raw state or selected category changes
+        // Reload sections from the backend whenever the category chip changes.
+        // The first emission ("All") is dropped so we don't double-load on init.
         viewModelScope.launch {
             try {
-                kotlinx.coroutines.flow.combine(_state, _selectedCategory) { raw, cat ->
-                    applyFilter(raw, cat)
-                }.collectLatest { filtered ->
-                    _filteredState.value = filtered
-                }
-            } catch (_: Exception) { /* filter sync failed; UI shows unfiltered state */ }
+                _selectedCategory.drop(1).collectLatest { _ -> loadAll(refresh = false) }
+            } catch (_: Exception) { /* category reload failed; UI keeps prior data */ }
         }
 
         viewModelScope.launch {
@@ -97,23 +94,15 @@ class HomeFeedViewModel @Inject constructor(
     }
 
     /**
-     * Filter sections by the selected category chip.
-     * "All" returns unfiltered data; other chips match against subCategory or title.
+     * Backend slug for the currently-selected chip, or null for "All".
+     * Returned to the listings endpoint as `category=<slug>` so filtering
+     * happens server-side. Unmapped labels are slugified (lowercase, spaces
+     * → underscores) as a defensive default.
      */
-    private fun applyFilter(raw: HomeFeedState, category: String): HomeFeedState {
-        if (category == "All") return raw
-        val keyword = CATEGORY_TO_KEYWORD[category] ?: category.lowercase().replace(" ", "_")
-        return raw.copy(
-            sections = raw.sections.map { section ->
-                section.copy(
-                    items = section.items.filter { card ->
-                        val sub = card.subCategory?.lowercase() ?: ""
-                        val title = card.title.lowercase()
-                        sub.contains(keyword) || title.contains(keyword)
-                    }
-                )
-            }
-        )
+    private fun currentCategorySlug(): String? {
+        val cat = _selectedCategory.value
+        if (cat == "All") return null
+        return CATEGORY_TO_SLUG[cat] ?: cat.lowercase().replace(" ", "_")
     }
 
     companion object {
@@ -136,27 +125,27 @@ class HomeFeedViewModel @Inject constructor(
         }
 
         /**
-         * Map UI category labels to backend subCategory keywords.
-         *
-         * Top-level home categories ("Stays", "Gear", "Spaces", "Help") are now
-         * surfaced as broad lifestyle tiles. The legacy utility chips
-         * (restroom / nap_pod / parking / …) survive as deeper filters reachable
-         * from search and from the dedicated section screens — keeping them here
-         * means deep-links and existing routes don't break.
+         * UI label → backend category slug. Slugs are sent verbatim as the
+         * `category=` query param on `/v1/(poc/)listings`, so they must match
+         * the taxonomy in the backend listings index. Slugs that don't appear
+         * in the index produce an empty result set rather than a crash —
+         * which is the desired UX (the chip is still tappable, but shows
+         * "No results" sourced from the API).
          */
-        private val CATEGORY_TO_KEYWORD = mapOf(
-            // New top-level taxonomy
+        private val CATEGORY_TO_SLUG = mapOf(
+            // Top-level home category tiles
             "Stays" to "stay",
             "Gear" to "gear",
             "Spaces" to "space",
             "Help" to "help",
-            // Utility chips (legacy, reachable from deeper search flows)
+            // Website parity chips (matches pacedream.com filter order)
             "Restroom" to "restroom",
             "Nap Pod" to "nap_pod",
             "Meeting Room" to "meeting_room",
-            "Gym" to "gym",
+            "Study Room" to "study_room",
             "Short Stay" to "short_stay",
-            "WIFI" to "wifi",
+            "Apartment" to "apartment",
+            "Luxury Room" to "luxury_room",
             "Parking" to "parking",
             "Storage Space" to "storage_space",
         )
@@ -253,23 +242,23 @@ class HomeFeedViewModel @Inject constructor(
 
     private fun loadAll(refresh: Boolean = false) {
         loadJob?.cancel()
+        val categorySlug = currentCategorySlug()
         loadJob = viewModelScope.launch {
             try {
-                if (refresh) _state.update { it.copy(isRefreshing = true, globalErrorMessage = null) }
-
-                // Set all sections to loading if initial load
-                if (!refresh) {
-                    _state.update { s ->
-                        s.copy(
-                            sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
-                            globalErrorMessage = null
-                        )
-                    }
+                // Always mark sections loading on a category-driven reload so the
+                // user sees rails clear instead of showing the previous chip's
+                // results while the new request is in flight.
+                _state.update { s ->
+                    s.copy(
+                        sections = s.sections.map { it.copy(isLoading = true, errorMessage = null) },
+                        globalErrorMessage = null,
+                        isRefreshing = refresh,
+                    )
                 }
 
-                val hourlyDeferred = async { loadHourly() }
-                val gearDeferred = async { loadSection(HomeSectionKey.ITEMS) }
-                val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES) }
+                val hourlyDeferred = async { loadHourly(categorySlug) }
+                val gearDeferred = async { loadSection(HomeSectionKey.ITEMS, categorySlug) }
+                val servicesDeferred = async { loadSection(HomeSectionKey.SERVICES, categorySlug) }
 
                 hourlyDeferred.await()
                 gearDeferred.await()
@@ -284,8 +273,8 @@ class HomeFeedViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadHourly() {
-        val res = repo.getCuratedHourly()
+    private suspend fun loadHourly(category: String? = null) {
+        val res = repo.getCuratedHourly(category = category)
         _state.update { s ->
             s.copy(
                 sections = s.sections.map { section ->
@@ -312,9 +301,14 @@ class HomeFeedViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadSection(key: HomeSectionKey) {
+    private suspend fun loadSection(key: HomeSectionKey, category: String? = null) {
         val shareType = key.shareType ?: return
-        val res = repo.getListingsShareTypePage(shareType = shareType, page1 = 1, limit = 24)
+        val res = repo.getListingsShareTypePage(
+            shareType = shareType,
+            page1 = 1,
+            limit = 24,
+            category = category,
+        )
         _state.update { s ->
             s.copy(
                 sections = s.sections.map { section ->

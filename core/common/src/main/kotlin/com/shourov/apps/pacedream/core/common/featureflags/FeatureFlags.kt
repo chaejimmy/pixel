@@ -1,5 +1,7 @@
 package com.shourov.apps.pacedream.core.common.featureflags
 
+import com.shourov.apps.pacedream.core.common.BuildConfig
+
 /**
  * Compile-time feature gates for in-progress features. Anything that
  * would otherwise ship as a half-built screen with a TODO `onClick`
@@ -7,10 +9,14 @@ package com.shourov.apps.pacedream.core.common.featureflags
  * is `false`. Each flag should be flipped on by a real PR that wires
  * the full UI / backend, not by a silent default change.
  *
- * Today these are `const val` so dead branches are stripped at compile
- * time. If we need server-driven flags later, swap individual
- * properties to a `FeatureFlagsSource` injected via Hilt — call sites
- * stay the same because they read `FeatureFlags.<name>` regardless.
+ * Most flags are `const val` so dead branches are stripped at compile
+ * time. Flags that need to differ between debug and release builds
+ * read from `BuildConfig` (a plain `val`, but `BuildConfig` fields are
+ * `public static final` so R8 still strips the dead branches in the
+ * release variant). If we need server-driven flags later, swap
+ * individual properties to a `FeatureFlagsSource` injected via Hilt —
+ * call sites stay the same because they read `FeatureFlags.<name>`
+ * regardless.
  *
  * Audit references:
  *   - `ANDROID_AUDIT_REPORT.md` Finding 4 (Roommate Finder)
@@ -21,13 +27,18 @@ object FeatureFlags {
 
     /**
      * Roommate Finder feature — search, post listing, advanced filters.
-     * The 2026-04-10 audit found this screen had only a static UI shell
-     * with TODO comments on every primary CTA. The screen has since
-     * been removed from the build entirely, so this flag is `false` and
-     * any future re-introduction must flip it to `true` from a real
-     * implementation PR rather than leaving a half-wired screen behind.
+     * The 2026-04-10 audit (Finding 4) found this screen had only a
+     * static UI shell with TODO comments on every primary CTA, so it
+     * was removed from the build (commit `49503db`, C-09/10).
+     *
+     * Backed by `BuildConfig.FEATURE_ROOMMATE_FINDER`: `false` in
+     * release builds (the route stays hidden from Play Store users)
+     * and `true` in debug builds (so a re-introduction can be wired
+     * up and tested locally without flipping a default). The flag must
+     * stay off in release until a real implementation PR ships the
+     * full UI + backend wiring.
      */
-    const val ROOMMATE_FINDER: Boolean = false
+    val ROOMMATE_FINDER: Boolean = BuildConfig.FEATURE_ROOMMATE_FINDER
 
     /**
      * Trip Planner — multi-stop trip composition with a backend.

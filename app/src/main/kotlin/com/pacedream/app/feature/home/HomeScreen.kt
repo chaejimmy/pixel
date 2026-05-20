@@ -9,6 +9,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,6 +37,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -65,7 +67,7 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
-import com.shourov.apps.pacedream.designsystem.adaptiveShadow
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.R
@@ -79,8 +81,19 @@ object HomeTestTags {
     const val Root = "home_screen_root"
     const val ListingFeed = "home_listing_feed"
     const val SearchBar = "home_search_bar"
+    const val FilterButton = "home_filter_button"
     const val NotificationButton = "home_notification_button"
     const val CategoryTabs = "home_category_tabs"
+    // Per-card primary CTA + favourite — shared across all three card
+    // variants (Featured / Grid / Listing). Tests should use
+    // onAllNodesWithTag(...) when asserting card counts.
+    const val ListingCard = "home_listing_card"
+    const val FavoriteButton = "home_favorite_button"
+    // FAQ + Support sections — registered ahead of implementation
+    // (DESIGN_QA_REPORT_ANDROID.md §P2-#10) so the tag string is locked
+    // in before the section composables land.
+    const val FaqSection = "home_faq_section"
+    const val SupportSection = "home_support_section"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,7 +107,11 @@ fun HomeScreen(
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
     onShowAuthSheet: () -> Unit = {},
-    onNotificationClick: () -> Unit
+    onNotificationClick: () -> Unit,
+    // TODO(design): replace null default with the production 1920×1080 hero
+    //  painter once design ships the asset; until then, callers can pass
+    //  painterResource(R.drawable.home_hero) here and we'll skip the gradient.
+    heroAsset: Painter? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -124,6 +141,7 @@ fun HomeScreen(
             // ── Hero Header with Gradient + Overlapping Search Bar ──
             item {
                 HeroHeaderSection(
+                    heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
@@ -296,32 +314,53 @@ private fun HeroHeaderSection(
     onFilterClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onAboutClick: () -> Unit,
+    heroAsset: Painter? = null,
 ) {
+    // Brand purple → blue gradient used both as the hero background fallback
+    // and on the primary "Get to know PaceDream" CTA. Endpoints come from
+    // PaceDreamColors so the values stay tied to the brand tokens (iOS parity).
+    val brandGradient = Brush.linearGradient(
+        colors = listOf(PaceDreamColors.GradientStart, PaceDreamColors.GradientEnd)
+    )
+    val hasImage = heroAsset != null || !heroImageUrl.isNullOrBlank()
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(360.dp)
     ) {
-        // TODO(product): swap this dark-photographic placeholder for the real
-        //  pacedream.com hero image once the asset ships. The design calls for
-        //  an AsyncImage of that photo; until then we render a subtle deep-grey
-        //  fill so the UI doesn't regress to the old vivid gradient.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(328.dp)
-                .background(PaceDreamColors.Gray900)
+                // Always paint the brand gradient as the base layer. When a
+                // hero image is supplied it's rendered on top and covers the
+                // gradient; without one, the gradient acts as the fallback so
+                // the header still reads as "PaceDream".
+                .background(brandGradient)
         ) {
-            if (!heroImageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(heroImageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            when {
+                heroAsset != null -> {
+                    Image(
+                        painter = heroAsset,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                !heroImageUrl.isNullOrBlank() -> {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(heroImageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            if (hasImage) {
                 // Scrim to keep copy readable over photography. Routes through
                 // the design-system helper so the overlay tones down in dark
                 // mode rather than crushing the image into a black rectangle.
@@ -387,10 +426,17 @@ private fun HeroHeaderSection(
                     onClick = onAboutClick,
                     modifier = Modifier
                         .defaultMinSize(minHeight = 50.dp)
+                        .background(
+                            brush = brandGradient,
+                            shape = RoundedCornerShape(PaceDreamRadius.LG)
+                        )
                         .semantics { role = Role.Button },
                     shape = RoundedCornerShape(PaceDreamRadius.LG),
+                    // Container is transparent so the brand gradient applied
+                    // via the modifier shows through; Material still owns the
+                    // ripple, focus state, and elevation.
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PaceDreamColors.Primary,
+                        containerColor = Color.Transparent,
                         contentColor = OnBrandSurface
                     ),
                     contentPadding = PaddingValues(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2),
@@ -479,6 +525,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
+                        .testTag(HomeTestTags.FilterButton)
                         .semantics { role = Role.Button }
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
@@ -509,24 +556,20 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Category chips matching the website's pacedream.com filter order:
-    //   Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
+    // Category chips matching pacedream.com filter order exactly:
+    //   All · Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
     //   Apartment · Luxury Room · Parking · Storage Space
-    // Gym and WIFI are Android-only extras kept at the end so the website's
-    // primary order is preserved at the front (UI_UX_COMPARISON.md § 3).
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
         Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
         Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
         Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-        Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+        Triple("Study Room", PaceDreamIcons.MenuBookOutlined, PaceDreamIcons.MenuBook),
+        Triple("Short Stay", PaceDreamIcons.BedtimeOutlined, PaceDreamIcons.Bedtime),
         Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
-        Triple("Luxury Room", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
+        Triple("Luxury Room", PaceDreamIcons.DiamondOutlined, PaceDreamIcons.Diamond),
         Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
         Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
-        Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
-        Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
     )
 
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
@@ -938,8 +981,9 @@ private fun FeaturedFullWidthCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1019,7 +1063,8 @@ private fun FeaturedFullWidthCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM2)
-                        .size(34.dp),
+                        .size(34.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1357,8 +1402,9 @@ private fun GridListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1444,7 +1490,8 @@ private fun GridListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(30.dp),
+                        .size(30.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 
@@ -1557,8 +1604,9 @@ private fun ListingCard(
             .adaptiveShadow(
                 elevation = if (isPressed) 10.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                pressed = isPressed
+                intensity = if (isPressed) 1.5f else 1f
             )
+            .testTag(HomeTestTags.ListingCard)
             .semantics { role = Role.Button }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1644,7 +1692,8 @@ private fun ListingCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(PaceDreamSpacing.SM)
-                        .size(32.dp),
+                        .size(32.dp)
+                        .testTag(HomeTestTags.FavoriteButton),
                 )
             }
 

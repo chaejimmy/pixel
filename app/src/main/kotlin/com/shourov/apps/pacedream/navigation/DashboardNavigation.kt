@@ -340,6 +340,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                                 launchSingleTop = true
                                             }
                                         },
+                                        // "See all FAQs" from the on-home FAQ section.
+                                        onOpenFaq = {
+                                            navController.navigate("faq")
+                                        },
+                                        // "Message Support" from the on-home Support section —
+                                        // opens the Help & Support contact form (parity with
+                                        // the Profile → Help & Support entry point).
+                                        onMessageSupport = {
+                                            navController.navigate("support")
+                                        },
                                     )
 
                                     if (showAuthSheet) {
