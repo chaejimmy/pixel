@@ -1,3 +1,4 @@
+// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.pacedream.app.feature.bookings
 
 import androidx.compose.foundation.background

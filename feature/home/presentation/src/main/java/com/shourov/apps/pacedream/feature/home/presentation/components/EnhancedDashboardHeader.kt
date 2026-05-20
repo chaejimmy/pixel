@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.shourov.apps.pacedream.feature.home.presentation.components
 
 import androidx.compose.foundation.Image
