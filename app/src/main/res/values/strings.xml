@@ -21,6 +21,34 @@
     <string name="home_hero_subtitle">Book, share, or split stays, time, and spaces—on one platform.</string>
     <string name="home_hero_cta">Get to know PaceDream</string>
 
+    <!-- Home FAQ section (pacedream.com parity §6) -->
+    <string name="home_faq_title">Frequently asked questions</string>
+    <string name="home_faq_subtitle">Quick answers to the things people ask most.</string>
+    <string name="home_faq_see_all">See all FAQs</string>
+    <string name="home_faq_q_hourly_booking">How does hourly booking work?</string>
+    <string name="home_faq_a_hourly_booking">Hourly booking lets you reserve spaces for short periods, typically by the hour. Pick a time slot, confirm the booking, and enjoy flexible access to the space.</string>
+    <string name="home_faq_q_space_types">What types of spaces can I book?</string>
+    <string name="home_faq_a_space_types">You can book entire homes, private rooms, nap rooms, meeting rooms, workspaces, restrooms, EV parking, nap pods, study rooms, storage, parking spots, apartments, and luxury rooms.</string>
+    <string name="home_faq_q_cancellation">Is there a cancellation policy?</string>
+    <string name="home_faq_a_cancellation">Yes — cancellation policies are set by the host and shown on each listing. Many hourly rentals allow free cancellation up to two hours before the booking starts.</string>
+    <string name="home_faq_q_contact_support">How do I contact support?</string>
+    <string name="home_faq_a_contact_support">You can reach us 24/7 from Help &amp; Support — send a message in-app or email support@pacedream.com. We aim to reply within 24 hours.</string>
+    <string name="home_faq_q_membership">Are there any membership benefits?</string>
+    <string name="home_faq_a_membership">All users get full access to PaceDream today. A membership program with early access and perks is in the works — keep an eye on Help &amp; Support for updates.</string>
+    <string name="home_faq_q_become_host">How do I become a host?</string>
+    <string name="home_faq_a_become_host">Go to Profile, tap "Switch to Host Mode", and follow the prompts to list your space, set your availability, and start earning.</string>
+
+    <!-- Home Support section (pacedream.com parity §6) -->
+    <string name="home_support_title">Need help?</string>
+    <string name="home_support_subtitle">Our support team is here 24/7 — for bookings, hosts, payments, or anything else.</string>
+    <string name="home_support_message_cta">Message Support</string>
+    <string name="home_support_email_cta">Email us</string>
+    <string name="home_support_email_address">support@pacedream.com</string>
+    <string name="home_support_email_subject">PaceDream Support</string>
+    <string name="home_support_email_unavailable">No email app available.</string>
+    <string name="home_support_email_copy_action">Copy</string>
+    <string name="home_support_email_copied">Copied %1$s</string>
+
     <!-- Host Mode — iOS parity -->
     <string name="host_dashboard">Dashboard</string>
     <string name="host_earnings">Earnings</string>
