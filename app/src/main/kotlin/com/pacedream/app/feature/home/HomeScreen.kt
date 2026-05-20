@@ -512,24 +512,20 @@ private fun CategoryFilterTabs(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Category chips matching the website's pacedream.com filter order:
-    //   Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
+    // Category chips matching pacedream.com filter order exactly:
+    //   All · Restroom · Nap Pod · Meeting Room · Study Room · Short Stay ·
     //   Apartment · Luxury Room · Parking · Storage Space
-    // Gym and WIFI are Android-only extras kept at the end so the website's
-    // primary order is preserved at the front (UI_UX_COMPARISON.md § 3).
     val categories = listOf(
         Triple("All", PaceDreamIcons.AppsOutlined, PaceDreamIcons.Apps),
         Triple("Restroom", PaceDreamIcons.WcOutlined, PaceDreamIcons.Wc),
         Triple("Nap Pod", PaceDreamIcons.BedOutlined, PaceDreamIcons.Bed),
         Triple("Meeting Room", PaceDreamIcons.MeetingRoomOutlined, PaceDreamIcons.MeetingRoom),
-        Triple("Study Room", PaceDreamIcons.SchoolOutlined, PaceDreamIcons.School),
-        Triple("Short Stay", PaceDreamIcons.ScheduleOutlined, PaceDreamIcons.Schedule),
+        Triple("Study Room", PaceDreamIcons.MenuBookOutlined, PaceDreamIcons.MenuBook),
+        Triple("Short Stay", PaceDreamIcons.BedtimeOutlined, PaceDreamIcons.Bedtime),
         Triple("Apartment", PaceDreamIcons.ApartmentOutlined, PaceDreamIcons.Apartment),
-        Triple("Luxury Room", PaceDreamIcons.HotelOutlined, PaceDreamIcons.Hotel),
+        Triple("Luxury Room", PaceDreamIcons.DiamondOutlined, PaceDreamIcons.Diamond),
         Triple("Parking", PaceDreamIcons.LocalParkingOutlined, PaceDreamIcons.LocalParking),
         Triple("Storage Space", PaceDreamIcons.StorageOutlined, PaceDreamIcons.Storage),
-        Triple("Gym", PaceDreamIcons.FitnessCenterOutlined, PaceDreamIcons.FitnessCenter),
-        Triple("WIFI", PaceDreamIcons.WifiOutlined, PaceDreamIcons.Wifi),
     )
 
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
