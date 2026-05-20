@@ -253,6 +253,49 @@ class TokenStorage @Inject constructor(
         get() = safeGetString(KEY_CHECKOUT_IDEMPOTENCY_KEY)
         set(value) = safePutString(KEY_CHECKOUT_IDEMPOTENCY_KEY, value)
 
+    /**
+     * Idempotency-Key for the in-flight host payout request
+     * (`POST /host/stripe/payouts/create`).  Persisted across process
+     * death so a relaunch retry reuses the same key — Stripe Connect
+     * dedupes and the host gets exactly one transfer instead of two.
+     *
+     * The matching [pendingPayoutAmountCents] and
+     * [pendingPayoutTimestampMs] pin the key to the amount the user
+     * actually requested: if the next Withdraw tap is for a different
+     * amount, the call site mints a fresh key rather than letting
+     * Stripe return the previous transfer for a request the user
+     * thinks is a new amount.  After 24h the key is treated as stale
+     * and re-minted regardless of amount.
+     *
+     * Cleared on payout success, on logout, and (by the call site)
+     * when the user dismisses the payout sheet.
+     */
+    var pendingPayoutIdempotencyKey: String?
+        get() = safeGetString(KEY_PENDING_PAYOUT_KEY)
+        set(value) = safePutString(KEY_PENDING_PAYOUT_KEY, value)
+
+    /**
+     * Amount in minor units (cents) that [pendingPayoutIdempotencyKey]
+     * was minted for.  Stored as a decimal string so we can reuse the
+     * existing crash-safe / init-race-safe string helpers — Long-backed
+     * helpers would have to replicate the same locking dance.
+     */
+    var pendingPayoutAmountCents: Long?
+        get() = safeGetString(KEY_PENDING_PAYOUT_AMOUNT_CENTS)?.toLongOrNull()
+        set(value) = safePutString(KEY_PENDING_PAYOUT_AMOUNT_CENTS, value?.toString())
+
+    /** Epoch millis when [pendingPayoutIdempotencyKey] was minted. */
+    var pendingPayoutTimestampMs: Long?
+        get() = safeGetString(KEY_PENDING_PAYOUT_TIMESTAMP_MS)?.toLongOrNull()
+        set(value) = safePutString(KEY_PENDING_PAYOUT_TIMESTAMP_MS, value?.toString())
+
+    /** Clears all three pending-payout fields atomically (best-effort — no SharedPreferences batching). */
+    fun clearPendingPayout() {
+        pendingPayoutIdempotencyKey = null
+        pendingPayoutAmountCents = null
+        pendingPayoutTimestampMs = null
+    }
+
     private fun safeGetString(key: String): String? {
         // Fast path: prefs ready (no lock needed for a read of an immutable
         // SharedPreferences reference).
@@ -397,6 +440,9 @@ class TokenStorage @Inject constructor(
                         .remove(KEY_CHECKOUT_SESSION_ID)
                         .remove(KEY_CHECKOUT_BOOKING_TYPE)
                         .remove(KEY_CHECKOUT_IDEMPOTENCY_KEY)
+                        .remove(KEY_PENDING_PAYOUT_KEY)
+                        .remove(KEY_PENDING_PAYOUT_AMOUNT_CENTS)
+                        .remove(KEY_PENDING_PAYOUT_TIMESTAMP_MS)
                         .apply()
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to clear all tokens")
@@ -409,6 +455,8 @@ class TokenStorage @Inject constructor(
                     KEY_USER_ID, KEY_CACHED_USER,
                     KEY_CHECKOUT_SESSION_ID, KEY_CHECKOUT_BOOKING_TYPE,
                     KEY_CHECKOUT_IDEMPOTENCY_KEY,
+                    KEY_PENDING_PAYOUT_KEY, KEY_PENDING_PAYOUT_AMOUNT_CENTS,
+                    KEY_PENDING_PAYOUT_TIMESTAMP_MS,
                 ).forEach { pendingValues[it] = null }
                 pendingOps += { p ->
                     try {
@@ -422,6 +470,9 @@ class TokenStorage @Inject constructor(
                             .remove(KEY_CHECKOUT_SESSION_ID)
                             .remove(KEY_CHECKOUT_BOOKING_TYPE)
                             .remove(KEY_CHECKOUT_IDEMPOTENCY_KEY)
+                            .remove(KEY_PENDING_PAYOUT_KEY)
+                            .remove(KEY_PENDING_PAYOUT_AMOUNT_CENTS)
+                            .remove(KEY_PENDING_PAYOUT_TIMESTAMP_MS)
                             .apply()
                     } catch (e: Exception) {
                         Timber.e(e, "Failed to replay clearAll")
@@ -481,5 +532,8 @@ class TokenStorage @Inject constructor(
         private const val KEY_CHECKOUT_SESSION_ID = "checkout_session_id"
         private const val KEY_CHECKOUT_BOOKING_TYPE = "checkout_booking_type"
         private const val KEY_CHECKOUT_IDEMPOTENCY_KEY = "checkout_idempotency_key"
+        private const val KEY_PENDING_PAYOUT_KEY = "pending_payout_idempotency_key"
+        private const val KEY_PENDING_PAYOUT_AMOUNT_CENTS = "pending_payout_amount_cents"
+        private const val KEY_PENDING_PAYOUT_TIMESTAMP_MS = "pending_payout_timestamp_ms"
     }
 }

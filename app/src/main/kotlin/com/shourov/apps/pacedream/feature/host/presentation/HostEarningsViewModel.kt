@@ -6,10 +6,12 @@ import com.shourov.apps.pacedream.feature.host.data.EarningsConnectionState
 import com.shourov.apps.pacedream.feature.host.data.EarningsScreenState
 import com.shourov.apps.pacedream.feature.host.data.HostEarningsData
 import com.shourov.apps.pacedream.feature.host.data.HostEarningsUiState
+import com.shourov.apps.pacedream.feature.host.data.HostPayoutTelemetry
 import com.shourov.apps.pacedream.feature.host.data.HostRepository
 import com.shourov.apps.pacedream.feature.host.data.StripeConnectRepository
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.core.network.auth.AuthState
+import com.shourov.apps.pacedream.core.network.auth.TokenStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +34,8 @@ import javax.inject.Inject
 class HostEarningsViewModel @Inject constructor(
     private val hostRepository: HostRepository,
     private val stripeConnectRepository: StripeConnectRepository,
-    private val authSession: AuthSession
+    private val authSession: AuthSession,
+    private val tokenStorage: TokenStorage,
 ) : ViewModel() {
 
     // Legacy state for backward compatibility
@@ -195,30 +198,43 @@ class HostEarningsViewModel @Inject constructor(
     fun hidePayoutSheet() {
         // Dismissing the sheet is a fresh-start signal — drop any pending
         // idempotency key so the next "Withdraw" tap mints a new one.
-        pendingPayoutIdempotencyKey = null
+        // The key is persisted (see [TokenStorage.pendingPayoutIdempotencyKey])
+        // so we explicitly clear all three fields here.
+        if (!tokenStorage.pendingPayoutIdempotencyKey.isNullOrBlank()) {
+            HostPayoutTelemetry.pendingKeyDiscarded("sheet_dismissed")
+        }
+        tokenStorage.clearPendingPayout()
         _earningsUiState.value = _earningsUiState.value.copy(showPayoutSheet = false, payoutAmount = "")
     }
 
     /**
-     * Idempotency-Key for the in-flight payout request.  Minted once per
-     * user "Withdraw" tap and reused on the same tap's retries so the
-     * backend / Stripe Connect deduplicates concurrent or retried
-     * submissions.  Cleared on success or when the user dismisses the
-     * payout sheet.
+     * Submit a payout request.  Hardened in three places (audit F-07 / F-08):
+     *
+     * 1. **Fresh status check before submission.**  Cached
+     *    `payoutsEnabled` from the last dashboard fetch can be minutes
+     *    or hours stale.  We re-fetch the dashboard right before the
+     *    POST and fail closed if the fetch fails or the fresh value is
+     *    `false` — better to ask the user to retry than to fire a
+     *    payout at a backend that has since restricted the account.
+     *
+     * 2. **Idempotency-Key persisted across process death.**  Stored
+     *    in [TokenStorage] (key + amount + timestamp).  A relaunch
+     *    after a crash mid-POST reuses the same key so Stripe Connect
+     *    dedupes; the user gets exactly one transfer, not two.
+     *
+     * 3. **Amount-pinned key.**  If the persisted key was minted for a
+     *    different amount than the one the user is now requesting, we
+     *    rotate to a fresh key.  Without this, Stripe Connect would
+     *    return the prior amount's transfer for a request the user
+     *    thinks is a new amount.
      */
-    private var pendingPayoutIdempotencyKey: String? = null
-
     fun requestPayout(amount: Double) {
         if (_earningsUiState.value.isRequestingPayout) return
 
-        // Guard: block payout requests when Stripe payouts are not enabled.
-        // This prevents confusing API errors when the host's account is restricted.
-        val dashboard = _earningsUiState.value.dashboard
-        val payoutsEnabled = dashboard?.stripe?.payoutsEnabled ?: false
-        if (!payoutsEnabled) {
-            Timber.w("[Earnings] Payout request blocked: payoutsEnabled=false")
+        val amountInCents = Math.round(amount * 100)
+        if (amountInCents <= 0) {
             _earningsUiState.value = _earningsUiState.value.copy(
-                payoutError = "Payouts are not yet enabled on your account. Please complete Stripe setup first."
+                payoutError = "Enter an amount greater than zero."
             )
             return
         }
@@ -228,16 +244,35 @@ class HostEarningsViewModel @Inject constructor(
                 isRequestingPayout = true, payoutError = null
             )
 
-            val amountInCents = Math.round(amount * 100).toInt()
-            // Reuse the same key on retry so the backend dedupes; mint fresh
-            // when there's no pending key (i.e. first attempt for this tap).
-            val key = pendingPayoutIdempotencyKey
-                ?: java.util.UUID.randomUUID().toString().also {
-                    pendingPayoutIdempotencyKey = it
-                }
-            stripeConnectRepository.createPayout(amountInCents, idempotencyKey = key)
+            // ── F-07: fresh status check ────────────────────────────
+            //
+            // We deliberately refetch the full dashboard (instead of a
+            // lighter status-only endpoint) for two reasons:
+            //   (a) the dashboard endpoint is what populates `available`
+            //       balance — re-fetching also catches the case where
+            //       another device just drew the balance down to <
+            //       amountInCents, which would otherwise let the POST
+            //       go out only to fail at Stripe.
+            //   (b) one endpoint instead of two means one auth/refresh
+            //       cycle, smaller blast radius if the network is flaky.
+            val freshOk = refreshStatusForPayout(amountInCents)
+            if (!freshOk) {
+                // refreshStatusForPayout has already populated payoutError
+                // and reset the busy flag — just return.
+                return@launch
+            }
+
+            // ── F-08: persisted, amount-pinned idempotency key ──────
+            val acquired = acquireOrRotateIdempotencyKey(amountInCents)
+            HostPayoutTelemetry.requestAttempt(amountInCents, reusedKey = acquired.reused)
+
+            stripeConnectRepository.createPayout(amountInCents.toInt(), idempotencyKey = acquired.key)
                 .onSuccess {
-                    pendingPayoutIdempotencyKey = null
+                    // Stripe Connect accepted the transfer; the persisted
+                    // key has done its job and must be cleared so a
+                    // future Withdraw mints a brand-new key.
+                    tokenStorage.clearPendingPayout()
+                    HostPayoutTelemetry.requestSucceeded(amountInCents)
                     _earningsUiState.value = _earningsUiState.value.copy(
                         isRequestingPayout = false,
                         showPayoutSheet = false,
@@ -246,13 +281,117 @@ class HostEarningsViewModel @Inject constructor(
                     refreshData()
                 }
                 .onFailure { exception ->
+                    // Key intentionally kept persisted — a retry of the
+                    // same amount should hit Stripe with the same key.
                     Timber.e(exception, "[Earnings] Payout request failed")
+                    HostPayoutTelemetry.requestFailed(
+                        amountInCents,
+                        exception::class.simpleName ?: "unknown",
+                    )
                     _earningsUiState.value = _earningsUiState.value.copy(
                         isRequestingPayout = false,
                         payoutError = com.pacedream.common.util.UserFacingErrorMapper.map(exception, "We couldn't process your payout. Please try again.")
                     )
                 }
         }
+    }
+
+    /**
+     * Re-fetches the dashboard and confirms `payoutsEnabled=true`
+     * before letting the payout POST go out.  Returns `true` when it is
+     * safe to proceed; otherwise populates `payoutError`, clears the
+     * `isRequestingPayout` flag and returns `false`.
+     */
+    private suspend fun refreshStatusForPayout(amountInCents: Long): Boolean {
+        val result = stripeConnectRepository.getEarningsDashboard()
+        result.onSuccess { dashboard ->
+            // Refresh the in-memory cache so the UI reflects the same
+            // numbers the gate decided on.
+            _earningsUiState.value = _earningsUiState.value.copy(
+                dashboard = dashboard,
+                connectionState = EarningsConnectionState.from(dashboard.stripe),
+            )
+
+            val payoutsEnabled = dashboard.stripe?.payoutsEnabled ?: false
+            if (!payoutsEnabled) {
+                Timber.w("[Earnings] Payout blocked by fresh status: payoutsEnabled=false")
+                HostPayoutTelemetry.freshStatusBlocked("payouts_disabled")
+                _earningsUiState.value = _earningsUiState.value.copy(
+                    isRequestingPayout = false,
+                    payoutError = "Payouts are not currently enabled on your account. Please complete Stripe setup or contact support.",
+                )
+                return false
+            }
+
+            val available = dashboard.balances?.available
+            if (available != null) {
+                val availableCents = Math.round(available * 100)
+                if (amountInCents > availableCents) {
+                    Timber.w(
+                        "[Earnings] Payout blocked by fresh status: requested=$amountInCents > available=$availableCents"
+                    )
+                    HostPayoutTelemetry.freshStatusBlocked("insufficient_balance")
+                    _earningsUiState.value = _earningsUiState.value.copy(
+                        isRequestingPayout = false,
+                        payoutError = "Your available balance has changed. Please try again with the updated amount.",
+                    )
+                    return false
+                }
+            }
+
+            HostPayoutTelemetry.freshStatusOk()
+            return true
+        }
+        result.onFailure { exception ->
+            Timber.e(exception, "[Earnings] Could not verify payout status; refusing to submit")
+            HostPayoutTelemetry.freshStatusBlocked("status_fetch_failed")
+            _earningsUiState.value = _earningsUiState.value.copy(
+                isRequestingPayout = false,
+                payoutError = "We couldn't verify your payout status. Please check your connection and try again.",
+            )
+        }
+        return false
+    }
+
+    /**
+     * Outcome of [acquireOrRotateIdempotencyKey] — the key to send and
+     * whether it was reused from persisted storage (vs freshly minted).
+     * Returned as a tuple so the caller can log accurate telemetry
+     * without consulting `TokenStorage` again.
+     */
+    private data class AcquiredIdempotencyKey(val key: String, val reused: Boolean)
+
+    /**
+     * Returns the idempotency key to send on the next POST.  Reuses
+     * the persisted key when it was minted for the same amount and is
+     * still within the staleness window; otherwise rotates to a fresh
+     * key and updates the persisted record.  The amount is part of the
+     * pinning so a retry with a different amount cannot accidentally
+     * dedupe against the original transfer.
+     */
+    private fun acquireOrRotateIdempotencyKey(amountInCents: Long): AcquiredIdempotencyKey {
+        val existingKey = tokenStorage.pendingPayoutIdempotencyKey
+        val existingAmount = tokenStorage.pendingPayoutAmountCents
+        val existingTs = tokenStorage.pendingPayoutTimestampMs
+        val now = System.currentTimeMillis()
+
+        if (!existingKey.isNullOrBlank() && existingAmount != null && existingTs != null) {
+            val age = now - existingTs
+            when {
+                age >= PENDING_PAYOUT_STALE_AFTER_MS ->
+                    HostPayoutTelemetry.pendingKeyExpired(age)
+                existingAmount != amountInCents ->
+                    HostPayoutTelemetry.pendingKeyAmountMismatch(existingAmount, amountInCents)
+                else ->
+                    return AcquiredIdempotencyKey(existingKey, reused = true)
+            }
+        }
+
+        val fresh = java.util.UUID.randomUUID().toString()
+        tokenStorage.pendingPayoutIdempotencyKey = fresh
+        tokenStorage.pendingPayoutAmountCents = amountInCents
+        tokenStorage.pendingPayoutTimestampMs = now
+        return AcquiredIdempotencyKey(fresh, reused = false)
     }
 
     fun clearPayoutError() {
@@ -329,5 +468,16 @@ class HostEarningsViewModel @Inject constructor(
 
     fun withdrawEarnings(amount: Double) {
         requestPayout(amount)
+    }
+
+    private companion object {
+        /**
+         * After this many millis the persisted payout idempotency key
+         * is treated as stale and force-rotated regardless of amount.
+         * Set to 24h to comfortably outlast any normal retry / app
+         * relaunch window while preventing a year-old key from
+         * accidentally deduping a brand-new request.
+         */
+        private const val PENDING_PAYOUT_STALE_AFTER_MS: Long = 24L * 60L * 60L * 1000L
     }
 }
