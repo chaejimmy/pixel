@@ -276,11 +276,17 @@ private fun SuccessState(
         }
         
         Spacer(modifier = Modifier.weight(1f))
-        
-        // Action buttons
+
+        // Action buttons.  "View Booking" is disabled when bookingId is
+        // blank — fail-closed parsing in BookingRepository should already
+        // prevent us from reaching SuccessState without a real id, but
+        // we keep this defensive guard so a future regression there can
+        // never let a tap navigate to confirmation/{empty}.
+        val canViewBooking = confirmation.bookingId.isNotBlank()
         ProcessButton(
-            onClick = onViewBooking,
+            onClick = { if (canViewBooking) onViewBooking() },
             text = "View Booking",
+            isEnabled = canViewBooking,
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -289,7 +295,7 @@ private fun SuccessState(
             onClick = onGoHome,
             text = "Go Home",
         )
-        
+
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
     }
 }

@@ -240,6 +240,19 @@ class TokenStorage @Inject constructor(
         get() = safeGetString(KEY_CHECKOUT_BOOKING_TYPE)
         set(value) = safePutString(KEY_CHECKOUT_BOOKING_TYPE, value)
 
+    /**
+     * Idempotency-Key for the in-flight webflow booking creation
+     * (`POST /v1/properties/bookings/timebased`, `POST /v1/gear-rentals/book`).
+     * Persisted so that a retry or a relaunch after process death reuses
+     * the same key — the backend can then dedupe and return the existing
+     * booking instead of creating a duplicate.  Cleared as soon as we
+     * have a checkout URL (the booking row is committed at that point)
+     * and on logout / checkout cancellation.
+     */
+    var checkoutIdempotencyKey: String?
+        get() = safeGetString(KEY_CHECKOUT_IDEMPOTENCY_KEY)
+        set(value) = safePutString(KEY_CHECKOUT_IDEMPOTENCY_KEY, value)
+
     private fun safeGetString(key: String): String? {
         // Fast path: prefs ready (no lock needed for a read of an immutable
         // SharedPreferences reference).
@@ -383,6 +396,7 @@ class TokenStorage @Inject constructor(
                         .remove(KEY_CACHED_USER)
                         .remove(KEY_CHECKOUT_SESSION_ID)
                         .remove(KEY_CHECKOUT_BOOKING_TYPE)
+                        .remove(KEY_CHECKOUT_IDEMPOTENCY_KEY)
                         .apply()
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to clear all tokens")
@@ -394,6 +408,7 @@ class TokenStorage @Inject constructor(
                     KEY_AUTH0_ACCESS_TOKEN, KEY_AUTH0_ID_TOKEN,
                     KEY_USER_ID, KEY_CACHED_USER,
                     KEY_CHECKOUT_SESSION_ID, KEY_CHECKOUT_BOOKING_TYPE,
+                    KEY_CHECKOUT_IDEMPOTENCY_KEY,
                 ).forEach { pendingValues[it] = null }
                 pendingOps += { p ->
                     try {
@@ -406,6 +421,7 @@ class TokenStorage @Inject constructor(
                             .remove(KEY_CACHED_USER)
                             .remove(KEY_CHECKOUT_SESSION_ID)
                             .remove(KEY_CHECKOUT_BOOKING_TYPE)
+                            .remove(KEY_CHECKOUT_IDEMPOTENCY_KEY)
                             .apply()
                     } catch (e: Exception) {
                         Timber.e(e, "Failed to replay clearAll")
@@ -464,5 +480,6 @@ class TokenStorage @Inject constructor(
         private const val KEY_CACHED_USER = "cached_user"
         private const val KEY_CHECKOUT_SESSION_ID = "checkout_session_id"
         private const val KEY_CHECKOUT_BOOKING_TYPE = "checkout_booking_type"
+        private const val KEY_CHECKOUT_IDEMPOTENCY_KEY = "checkout_idempotency_key"
     }
 }

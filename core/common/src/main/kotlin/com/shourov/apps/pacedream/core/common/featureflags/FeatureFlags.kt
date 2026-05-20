@@ -54,4 +54,22 @@ object FeatureFlags {
      * the multi-field UI + location flow lands.
      */
     const val MULTI_FIELD_SEARCH: Boolean = false
+
+    /**
+     * Send the `Idempotency-Key` header on the webflow booking-creation
+     * endpoints (`POST /v1/properties/bookings/timebased`,
+     * `POST /v1/gear-rentals/book`).  Persisted across process death so
+     * a retry or relaunch reuses the same key and the backend can return
+     * the existing booking + checkout url instead of creating a duplicate.
+     *
+     * REQUIRES backend support: server must dedupe by
+     * `(authenticated_user, Idempotency-Key)` for at least 24h and
+     * return the same `checkoutUrl` for the same key.  Until backend
+     * confirms, leave this `false` — the header is silently dropped by
+     * servers that do not honour it, but flipping it on without backend
+     * support would give a false sense of security.
+     *
+     * Audit reference: `claude/audit-stripe-payments` Phase 0, F-02.
+     */
+    const val WEBFLOW_IDEMPOTENCY_KEY: Boolean = false
 }
