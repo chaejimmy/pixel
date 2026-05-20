@@ -32,6 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.components.*
 import com.pacedream.common.composables.theme.*
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.feature.booking.model.BookingItem
 import com.shourov.apps.pacedream.feature.booking.model.BookingRole
 import com.shourov.apps.pacedream.feature.booking.model.BookingStatusConfig
@@ -90,10 +92,24 @@ fun BookingTabScreen(
             .testTag(BookingTabTestTags.Root)
     ) {
         // Header
+        val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+        val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
         PaceDreamHeroHeader(
             title = "Bookings",
             subtitle = "Manage your reservations",
-            onNotificationClick = onNotificationClick
+            trailingAction = {
+                NotificationBellButton(
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onNotificationClick()
+                        unreadVm.markAllAsSeen()
+                    },
+                    modifier = Modifier.size(PaceDreamButtonHeight.SM),
+                    containerColor = Color.White.copy(alpha = 0.18f),
+                    iconTint = Color.White,
+                    iconSize = PaceDreamIconSize.SM,
+                )
+            }
         )
 
         // Booking count + Tab picker (always visible, matching iOS)

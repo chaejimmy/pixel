@@ -71,10 +71,19 @@ fun Modifier.glassSurface(
 // ============================================================================
 // Hero Header - Floating glass header with gradient
 // ============================================================================
+/**
+ * Glass hero header used by Bookings / Chat / BookingForm.
+ *
+ * The trailing action is a slot so each call-site can drop in the shared
+ * `NotificationBellButton` from `core:designsystem` and wire it to the
+ * unread-count badge. `common` intentionally does not depend on
+ * `core:designsystem`, so the slot keeps this header decoupled from the
+ * badge composable.
+ */
 @Composable
 fun PaceDreamHeroHeader(
     title: String,
-    onNotificationClick: () -> Unit,
+    trailingAction: @Composable () -> Unit,
     subtitle: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -121,21 +130,7 @@ fun PaceDreamHeroHeader(
                 }
             }
 
-            // Floating glass notification button
-            IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier
-                    .size(PaceDreamButtonHeight.SM)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.18f))
-            ) {
-                Icon(
-                    imageVector = PaceDreamIcons.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color.White,
-                    modifier = Modifier.size(PaceDreamIconSize.SM)
-                )
-            }
+            trailingAction()
         }
     }
 }

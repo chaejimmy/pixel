@@ -32,12 +32,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -126,20 +131,19 @@ fun DashboardHeader(
                         modifier = Modifier.weight(1F),
                     )
 
-                    IconButton(
-                        onClick = onNotificationClick,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(NotificationsBgColor)
-                            .padding(MediumPadding),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_dashboard_notifications),
-                            contentDescription = "Notifications",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(30.dp).clip(CircleShape),
-                        )
-                    }
+                    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+                    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+                    NotificationBellButton(
+                        unreadCount = unreadCount,
+                        onClick = {
+                            onNotificationClick()
+                            unreadVm.markAllAsSeen()
+                        },
+                        modifier = Modifier.padding(MediumPadding),
+                        containerColor = NotificationsBgColor,
+                        iconTint = WhiteTextColor,
+                        iconSize = 30.dp,
+                    )
                 }
 
                 VerticalSpacer(20)

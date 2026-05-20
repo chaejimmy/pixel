@@ -54,6 +54,8 @@ import com.pacedream.common.composables.buttons.PrimaryTextButton
 import com.pacedream.common.composables.components.PaceDreamHeroHeader
 import com.pacedream.common.composables.components.PaceDreamPropertyImage
 import com.pacedream.common.composables.theme.*
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -77,10 +79,24 @@ fun BookingFormScreen(
             .background(PaceDreamColors.Background)
             .statusBarsPadding()
     ) {
+        val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+        val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
         PaceDreamHeroHeader(
             title = "Reserve",
             subtitle = uiState.propertyName.ifEmpty { "Complete your reservation" },
-            onNotificationClick = onNotificationClick
+            trailingAction = {
+                NotificationBellButton(
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onNotificationClick()
+                        unreadVm.markAllAsSeen()
+                    },
+                    modifier = Modifier.size(PaceDreamButtonHeight.SM),
+                    containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.18f),
+                    iconTint = androidx.compose.ui.graphics.Color.White,
+                    iconSize = PaceDreamIconSize.SM,
+                )
+            }
         )
 
         if (uiState.isLoading) {

@@ -44,6 +44,7 @@ fun HostDashboardScreen(
     onEarningsClick: () -> Unit = {},
     onAnalyticsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
+    onNotificationClick: () -> Unit = {},
     onViewAllBookings: () -> Unit = {},
     onViewAllListings: () -> Unit = {},
     onSwitchToGuestMode: () -> Unit = {},
@@ -91,7 +92,8 @@ fun HostDashboardScreen(
             item {
                 DashboardHeader(
                     userName = uiState.userName,
-                    payoutState = uiState.payoutState
+                    payoutState = uiState.payoutState,
+                    onNotificationClick = onNotificationClick
                 )
             }
 
@@ -233,7 +235,8 @@ fun HostDashboardScreen(
 @Composable
 private fun DashboardHeader(
     userName: String,
-    payoutState: PayoutConnectionState
+    payoutState: PayoutConnectionState,
+    onNotificationClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -242,23 +245,34 @@ private fun DashboardHeader(
             .padding(horizontal = PaceDreamSpacing.MD)
             .padding(top = PaceDreamSpacing.MD, bottom = PaceDreamSpacing.SM)
     ) {
-        // Greeting — only personalize if we have a real name
-        val displayName = userName.trim().let { if (it == "Host" || it.isBlank()) null else it }
-        if (displayName != null) {
+        // Title row: greeting on the left, notification bell on the right.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Greeting — only personalize if we have a real name
+            val displayName = userName.trim().let { if (it == "Host" || it.isBlank()) null else it }
             Text(
-                text = "Good ${timeOfDayGreeting()}, $displayName",
+                text = if (displayName != null) "Good ${timeOfDayGreeting()}, $displayName" else "Host Dashboard",
                 style = PaceDreamTypography.Title1,
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
-        } else {
-            Text(
-                text = "Host Dashboard",
-                style = PaceDreamTypography.Title1,
-                color = PaceDreamColors.TextPrimary,
-                fontWeight = FontWeight.Bold
+
+            val unreadVm: com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel =
+                hiltViewModel()
+            val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+            com.shourov.apps.pacedream.designsystem.NotificationBellButton(
+                unreadCount = unreadCount,
+                onClick = {
+                    onNotificationClick()
+                    unreadVm.markAllAsSeen()
+                },
+                modifier = Modifier.size(40.dp),
+                iconTint = PaceDreamColors.TextPrimary,
             )
         }
 

@@ -12,4 +12,6 @@ dependencies {
     implementation(projects.core.data)
     implementation(projects.core.network)
     implementation(projects.common)
+    // Bell badge: BookingFormScreen observes UnreadNotificationsViewModel.
+    implementation(projects.feature.notification)
 }

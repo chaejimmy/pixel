@@ -66,10 +66,12 @@ import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
+import com.shourov.apps.pacedream.designsystem.NotificationBellButton
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
+import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.R
 
 // intentional: 20.dp page gutter is off the 4/8/16/24 scale but is a deliberate
@@ -383,21 +385,20 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onNotificationClick,
+                    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+                    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+                    NotificationBellButton(
+                        unreadCount = unreadCount,
+                        onClick = {
+                            onNotificationClick()
+                            unreadVm.markAllAsSeen()
+                        },
                         modifier = Modifier
                             .size(44.dp)
-                            .testTag(HomeTestTags.NotificationButton)
-                            .clip(CircleShape)
-                            .background(OnBrandSurface.copy(alpha = 0.20f))
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Notifications,
-                            contentDescription = "Notifications",
-                            tint = OnBrandSurface,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                            .testTag(HomeTestTags.NotificationButton),
+                        containerColor = OnBrandSurface.copy(alpha = 0.20f),
+                        iconTint = OnBrandSurface,
+                    )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
