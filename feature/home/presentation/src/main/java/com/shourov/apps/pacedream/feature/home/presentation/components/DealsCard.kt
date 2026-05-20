@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -61,10 +62,13 @@ import com.shourov.apps.pacedream.feature.home.domain.models.RentedGearModel
 import com.shourov.apps.pacedream.feature.home.domain.models.rooms.RoomModel
 import com.shourov.apps.pacedream.feature.home.presentation.R
 
+const val DealCardCtaTestTag = "deal_card_cta"
+
 @Composable
 fun DealsCard(
     roomModel: RoomModel,
     onClick: () -> Unit,
+    onCtaClick: () -> Unit,
 ) {
     roomModel.apply {
         Column(
@@ -156,8 +160,10 @@ fun DealsCard(
                 VerticalSpacer(12)
                 ProcessButton(
                     text = stringResource(R.string.feature_home_rent_now),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(DealCardCtaTestTag),
+                    onClick = onCtaClick,
                 )
 
             }
@@ -172,6 +178,7 @@ fun LastMinuteDealCard(
     discountPercent: Int,
     spotsLeft: Int? = null,
     onClick: () -> Unit,
+    onCtaClick: () -> Unit,
 ) {
     roomModel.apply {
         Column(
@@ -284,8 +291,10 @@ fun LastMinuteDealCard(
                 VerticalSpacer(12)
                 ProcessButton(
                     text = stringResource(R.string.feature_home_book_now),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(DealCardCtaTestTag),
+                    onClick = onCtaClick,
                 )
             }
         }
@@ -296,6 +305,7 @@ fun LastMinuteDealCard(
 fun RentedGearDealsCard(
     rentedGearModel: RentedGearModel,
     onClick: () -> Unit,
+    onCtaClick: () -> Unit,
 ) {
     rentedGearModel.apply {
         Column(
@@ -352,8 +362,10 @@ fun RentedGearDealsCard(
                 VerticalSpacer(12)
                 ProcessButton(
                     text = stringResource(R.string.feature_home_rent_now),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(DealCardCtaTestTag),
+                    onClick = onCtaClick,
                 )
             }
         }
