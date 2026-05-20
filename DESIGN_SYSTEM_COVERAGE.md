@@ -151,7 +151,8 @@ enforces zero via STRICT mode regardless.
    Both `feature/home` routes (legacy + app/pacedream.app namespace),
    the host module, and the Chrome Custom Tabs chrome bar opened from
    host's earnings flow now all read through `PaceDreamColors.Primary`
-   (the green `#336633` per the rebrand documented in `Color.kt:452`).
+   (PaceDream purple #5527D7 per Color.kt:108; the inline comment block
+   there is explicit that green is reserved for success states only).
 3. **`RoundedCornerShape(N.dp)` is fully eradicated repo-wide** (10 → 0)
    and locked in by STRICT mode in `designSystemCheck`.  Any new hit
    anywhere in `feature/**` fails CI.
