@@ -417,6 +417,9 @@ fun NavGraphBuilder.DashboardNavigation(
                                 var showAuthSheet by remember { mutableStateOf(false) }
 
                                 BookingTabScreen(
+                                    onNotificationClick = {
+                                        navController.navigate("notifications")
+                                    },
                                     onBookingClick = { bookingId ->
                                         navController.navigate("${BookingDestination.BOOKING_DETAIL.name}/$bookingId")
                                     },

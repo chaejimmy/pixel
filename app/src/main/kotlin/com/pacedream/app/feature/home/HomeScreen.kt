@@ -107,7 +107,7 @@ fun HomeScreen(
     onCategoryClick: (String) -> Unit = {},
     onCategoryFilterClick: (String) -> Unit = {},
     onShowAuthSheet: () -> Unit = {},
-    onNotificationClick: () -> Unit = {},
+    onNotificationClick: () -> Unit,
     // TODO(design): replace null default with the production 1920×1080 hero
     //  painter once design ships the asset; until then, callers can pass
     //  painterResource(R.drawable.home_hero) here and we'll skip the gradient.
@@ -383,23 +383,20 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
+                    IconButton(
+                        onClick = onNotificationClick,
                         modifier = Modifier
                             .size(44.dp)
                             .testTag(HomeTestTags.NotificationButton)
-                            .semantics { role = Role.Button }
-                            .clickable(onClick = onNotificationClick),
-                        shape = CircleShape,
-                        color = OnBrandSurface.copy(alpha = 0.20f)
+                            .clip(CircleShape)
+                            .background(OnBrandSurface.copy(alpha = 0.20f))
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = PaceDreamIcons.Notifications,
-                                contentDescription = "Notifications",
-                                tint = OnBrandSurface,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = PaceDreamIcons.Notifications,
+                            contentDescription = "Notifications",
+                            tint = OnBrandSurface,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                 }
 

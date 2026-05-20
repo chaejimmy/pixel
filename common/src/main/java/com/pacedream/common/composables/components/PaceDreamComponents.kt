@@ -74,8 +74,8 @@ fun Modifier.glassSurface(
 @Composable
 fun PaceDreamHeroHeader(
     title: String,
+    onNotificationClick: () -> Unit,
     subtitle: String? = null,
-    onNotificationClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
