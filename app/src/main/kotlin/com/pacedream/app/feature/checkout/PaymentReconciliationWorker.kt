@@ -165,31 +165,44 @@ class PaymentReconciliationWorker @AssistedInject constructor(
         /**
          * Enqueue or replace the unique reconciliation worker.  Safe to
          * call multiple times — WorkManager dedupes by [UNIQUE_WORK_NAME].
+         *
+         * Wrapped in a try/catch so a missing/unitialised WorkManager
+         * (e.g. early-launch race, or a host process that didn't run our
+         * Application class) never crashes the checkout flow.  The user's
+         * foreground retries still drive reconciliation.
          */
         fun enqueue(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-            val request = OneTimeWorkRequestBuilder<PaymentReconciliationWorker>()
-                .setConstraints(constraints)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    BACKOFF_INITIAL_SECONDS,
-                    TimeUnit.SECONDS,
+            try {
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+                val request = OneTimeWorkRequestBuilder<PaymentReconciliationWorker>()
+                    .setConstraints(constraints)
+                    .setBackoffCriteria(
+                        BackoffPolicy.EXPONENTIAL,
+                        BACKOFF_INITIAL_SECONDS,
+                        TimeUnit.SECONDS,
+                    )
+                    .addTag(UNIQUE_WORK_NAME)
+                    .build()
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    UNIQUE_WORK_NAME,
+                    ExistingWorkPolicy.REPLACE,
+                    request,
                 )
-                .addTag(UNIQUE_WORK_NAME)
-                .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                UNIQUE_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
-                request,
-            )
+            } catch (t: Throwable) {
+                Timber.w(t, "[PaymentReconcile] WorkManager unavailable — reconciliation deferred")
+            }
         }
 
         /** Cancel any pending reconciliation work. */
         fun cancel(context: Context) {
-            WorkManager.getInstance(context)
-                .cancelUniqueWork(UNIQUE_WORK_NAME)
+            try {
+                WorkManager.getInstance(context)
+                    .cancelUniqueWork(UNIQUE_WORK_NAME)
+            } catch (t: Throwable) {
+                Timber.w(t, "[PaymentReconcile] WorkManager cancel failed")
+            }
         }
 
         private const val BACKOFF_INITIAL_SECONDS = 30L
