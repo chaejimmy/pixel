@@ -59,7 +59,7 @@ import javax.inject.Singleton
  *   3. GET /v1/account/bookings?role=guest
  */
 @Singleton
-class BookingRepository @Inject constructor(
+open class BookingRepository @Inject constructor(
     private val apiService: PaceDreamApiService,
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
@@ -262,7 +262,7 @@ class BookingRepository @Inject constructor(
      * Save a booking model directly to Room cache.
      * Used after booking confirmation to ensure the booking is available for detail view.
      */
-    suspend fun cacheBooking(booking: BookingModel) {
+    open suspend fun cacheBooking(booking: BookingModel) {
         booking.asEntity()?.let { entity ->
             try {
                 bookingDao.insertBooking(entity)
@@ -281,7 +281,7 @@ class BookingRepository @Inject constructor(
      * Returns a [AvailabilityCheckResult] with available status and reason if unavailable.
      * Must be called BEFORE creating a booking to prevent invalid/overlapping bookings.
      */
-    suspend fun checkAvailability(
+    open suspend fun checkAvailability(
         listingId: String,
         startDate: String,
         endDate: String

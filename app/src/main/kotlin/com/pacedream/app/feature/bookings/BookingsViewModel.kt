@@ -1,16 +1,14 @@
 package com.pacedream.app.feature.bookings
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
-import com.pacedream.app.feature.checkout.PaymentReconciliationWorker
 import com.pacedream.app.feature.checkout.PendingPaymentState
 import com.pacedream.app.feature.checkout.PendingPaymentStore
+import com.pacedream.app.feature.checkout.ReconciliationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -139,7 +137,7 @@ class BookingsViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
     private val json: Json,
-    @ApplicationContext private val appContext: Context,
+    private val reconciliationScheduler: ReconciliationScheduler,
     pendingPaymentStore: PendingPaymentStore,
 ) : ViewModel() {
 
@@ -155,7 +153,7 @@ class BookingsViewModel @Inject constructor(
 
     /** "Check status" hook (also surfaced as a row affordance). */
     fun checkPaymentStatus() {
-        PaymentReconciliationWorker.enqueue(appContext)
+        reconciliationScheduler.enqueue()
     }
 
     // Cached status configs for each booking

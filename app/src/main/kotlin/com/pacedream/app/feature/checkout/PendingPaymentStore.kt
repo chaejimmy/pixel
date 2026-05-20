@@ -126,7 +126,7 @@ data class PendingNativePayment(
  * `apply()` is async and would race a crash immediately after.
  */
 @Singleton
-class PendingPaymentStore @Inject constructor(
+open class PendingPaymentStore @Inject constructor(
     @ApplicationContext private val context: Context,
     private val json: Json,
 ) {
@@ -164,7 +164,7 @@ class PendingPaymentStore @Inject constructor(
     }
 
     /** Returns the current pending payment record, or null if none. */
-    fun load(): PendingNativePayment? {
+    open fun load(): PendingNativePayment? {
         val raw = try {
             prefs.getString(KEY_RECORD, null)
         } catch (e: Exception) {
@@ -185,7 +185,7 @@ class PendingPaymentStore @Inject constructor(
      * so the value is on disk before the caller hands control over
      * to the Stripe PaymentSheet — `apply()` would race a crash.
      */
-    fun save(record: PendingNativePayment): Boolean {
+    open fun save(record: PendingNativePayment): Boolean {
         val ok = try {
             val raw = json.encodeToString(PendingNativePayment.serializer(), record)
             prefs.edit().putString(KEY_RECORD, raw).commit()
@@ -208,7 +208,7 @@ class PendingPaymentStore @Inject constructor(
     }
 
     /** Removes any stored pending record.  Idempotent. */
-    fun clear(): Boolean {
+    open fun clear(): Boolean {
         val ok = try {
             prefs.edit().remove(KEY_RECORD).commit()
         } catch (e: Exception) {
@@ -264,7 +264,7 @@ class PendingPaymentStore @Inject constructor(
      * Bumps `retryCount` and updates `lastAttemptAt`.  No-op when
      * there is no stored record.  Returns the updated record.
      */
-    fun recordRetryAttempt(): PendingNativePayment? {
+    open fun recordRetryAttempt(): PendingNativePayment? {
         val current = load() ?: return null
         val updated = current.copy(
             retryCount = current.retryCount + 1,
@@ -277,7 +277,7 @@ class PendingPaymentStore @Inject constructor(
      * Flips `paymentSucceededLocally` to true and stamps
      * `lastAttemptAt`.  No-op when there is no stored record.
      */
-    fun markPaymentSucceededLocally(): PendingNativePayment? {
+    open fun markPaymentSucceededLocally(): PendingNativePayment? {
         val current = load() ?: return null
         val updated = current.copy(
             paymentSucceededLocally = true,
@@ -291,7 +291,7 @@ class PendingPaymentStore @Inject constructor(
      * record (e.g. a transient confirm-booking failure).  No-op when
      * there is no stored record.
      */
-    fun recordLastError(message: String?): PendingNativePayment? {
+    open fun recordLastError(message: String?): PendingNativePayment? {
         val current = load() ?: return null
         val updated = current.copy(lastErrorMessage = message?.take(512))
         return if (save(updated)) updated else current

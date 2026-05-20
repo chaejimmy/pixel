@@ -102,7 +102,7 @@ open class NativePaymentRepository @Inject constructor(
      * double-tap on Pay (or a network-retried POST) returns the same
      * quote id rather than creating a duplicate quote row.
      */
-    suspend fun createQuote(
+    open suspend fun createQuote(
         listingId: String,
         bookingType: String,
         startTime: String,
@@ -148,7 +148,7 @@ open class NativePaymentRepository @Inject constructor(
      * crash-and-retry between createQuote and PaymentSheet does not
      * create a second pending PaymentIntent against the same quote.
      */
-    suspend fun createPaymentIntent(
+    open suspend fun createPaymentIntent(
         quoteId: String,
         idempotencyKey: String? = null
     ): ApiResult<PaymentSheetConfig> {
@@ -235,7 +235,7 @@ open class NativePaymentRepository @Inject constructor(
      * Resolve Stripe publishable key.
      * Priority: PaymentSheetConfig response → BuildConfig → backend /stripe/config
      */
-    suspend fun resolvePublishableKey(config: PaymentSheetConfig): String? {
+    open suspend fun resolvePublishableKey(config: PaymentSheetConfig): String? {
         // 1. From payment-intent response
         if (!config.publishableKey.isNullOrBlank()) return config.publishableKey
 

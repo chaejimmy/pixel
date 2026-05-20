@@ -1,20 +1,16 @@
 package com.pacedream.app.feature.checkout
 
 import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
 import androidx.work.testing.TestListenableWorkerBuilder
-import com.pacedream.app.core.config.AppConfig
-import com.pacedream.app.core.network.ApiClient
+import androidx.test.core.app.ApplicationProvider
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -39,7 +35,10 @@ import org.robolectric.annotation.Config
  *     the success notification or moving the store off Succeeded.
  *
  * The fake repository records every invocation so the test can assert the
- * exact wire-call count rather than relying on indirect effects.
+ * exact wire-call count rather than relying on indirect effects.  Robolectric
+ * stands up an in-memory Application + SharedPreferences so we can use the
+ * real PendingPaymentStore — its state-flow transitions are part of the
+ * worker's behaviour and are exercised end-to-end here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
@@ -52,35 +51,21 @@ class PaymentReconciliationWorkerIdempotencyTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        // Clean slate per test — the prefs file outlives the JVM run.
+        // Clean slate per test — Robolectric's SharedPreferences are
+        // process-scoped, not test-scoped.
         context
             .getSharedPreferences("pacedream_pending_payment", Context.MODE_PRIVATE)
             .edit()
             .clear()
             .commit()
         store = PendingPaymentStore(context, Json { ignoreUnknownKeys = true })
-        val json = Json { ignoreUnknownKeys = true }
-        val appConfig = AppConfig()
-        // ApiClient is required by NativePaymentRepository's super
-        // constructor but is unreachable in this test because every method
-        // that would dispatch through it is overridden by
-        // RecordingNativePaymentRepository.
-        val apiClient = ApiClient(
-            appConfig = appConfig,
-            tokenStorage = com.pacedream.app.core.auth.TokenStorage(context),
-            json = json,
-        )
-        repo = RecordingNativePaymentRepository(
-            apiClient = apiClient,
-            appConfig = appConfig,
-            json = json,
-        )
+        repo = RecordingNativePaymentRepository()
     }
 
     @Test
     fun `worker is a no-op when no pending record exists`() {
-        // Pre-condition: no record on disk.
-        assertNull(store.load())
+        // Pre-condition: nothing in flight.
+        assertEquals(PendingPaymentState.None, store.state.value)
 
         val result = runBlocking { buildWorker().doWork() }
 
@@ -111,7 +96,7 @@ class PaymentReconciliationWorkerIdempotencyTest {
         assertEquals(0, repo.reportFailureCalls)
         // The record stays put — the marker exists exactly so we recognise
         // future re-runs as idempotent.
-        assertNotNull(store.load()?.confirmedBookingId)
+        assertEquals("booking_already_locked_in", store.load()?.confirmedBookingId)
     }
 
     @Test
@@ -169,16 +154,17 @@ class PaymentReconciliationWorkerIdempotencyTest {
             .build()
 
     /**
-     * NativePaymentRepository fake that records invocations.  The base
-     * NativePaymentRepository constructor needs an ApiClient / AppConfig /
-     * Json — we hand it stubs since every method we care about is
-     * overridden and the real implementations never run.
+     * NativePaymentRepository fake that records invocations.  The parent
+     * class is `open` and we override every method the worker touches so
+     * the (uninitialised) ApiClient / AppConfig dependencies on the super
+     * constructor are never dereferenced — the same pattern
+     * [CheckoutViewModelPaymentReconciliationTest] uses.
      */
-    private class RecordingNativePaymentRepository(
-        apiClient: ApiClient,
-        appConfig: AppConfig,
-        json: Json,
-    ) : NativePaymentRepository(apiClient, appConfig, json) {
+    private open class RecordingNativePaymentRepository : NativePaymentRepository(
+        apiClient = uninitialised(),
+        appConfig = uninitialised(),
+        json = Json.Default,
+    ) {
         var confirmCalls: Int = 0
             private set
         var reportFailureCalls: Int = 0
@@ -213,5 +199,12 @@ class PaymentReconciliationWorkerIdempotencyTest {
             return ApiResult.Success(ReportFailureResponse(success = true))
         }
     }
-
 }
+
+/**
+ * Lets us hand a parent class a non-null reference whose methods are never
+ * called because every accessor is overridden by the fake.  Same pattern as
+ * the matching helper in [CheckoutViewModelPaymentReconciliationTest].
+ */
+@Suppress("UNCHECKED_CAST")
+private fun <T> uninitialised(): T = null as T

@@ -1,18 +1,14 @@
 package com.pacedream.app.feature.checkout
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pacedream.app.core.config.AppConfig
-import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
-import com.shourov.apps.pacedream.core.data.repository.BookingRepository as CoreBookingRepository
 import com.shourov.apps.pacedream.model.BookingModel
 import com.shourov.apps.pacedream.model.BookingStatus
+import com.pacedream.common.util.StripeErrorMapper
 import com.pacedream.common.util.UserFacingErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -23,9 +19,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.math.pow
@@ -115,17 +111,24 @@ data class CheckoutUiState(
     val capturedAmountCents: Int? = null,
     /** Currency for the captured amount. */
     val capturedCurrency: String? = null,
+    /**
+     * True from the moment the user taps "Pay" until either the
+     * PaymentSheet returns (success/cancelled/failed) or the backend
+     * setup-intent call fails.  Drives the PayBar's enabled state so
+     * rapid double-taps cannot fire a second `createPaymentIntent`
+     * before the first has settled.  Also kept true while the Stripe
+     * 3DS / SCA challenge WebView is in front so the parent screen
+     * never re-presents the sheet under the auth flow.
+     */
+    val isPaymentInFlight: Boolean = false,
 )
 
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
-    @ApplicationContext private val appContext: Context,
-    private val apiClient: ApiClient,
-    private val appConfig: AppConfig,
-    private val json: Json,
     private val nativePaymentRepository: NativePaymentRepository,
-    private val coreBookingRepository: CoreBookingRepository,
+    private val bookingGate: CheckoutBookingGate,
     private val pendingPaymentStore: PendingPaymentStore,
+    private val reconciliationScheduler: ReconciliationScheduler,
 ) : ViewModel() {
 
     sealed class Effect {
@@ -174,6 +177,17 @@ class CheckoutViewModel @Inject constructor(
      * PaymentIntent on the backend.
      */
     private var currentPaymentIntentIdempotencyKey: String? = null
+
+    /**
+     * Synchronous claim-once gate for Pay taps.  A StateFlow update inside
+     * `viewModelScope.launch` is too late — the second tap will already
+     * have passed the status check while the first coroutine is still
+     * suspended on availability/createPaymentIntent.  This [AtomicBoolean]
+     * is flipped synchronously inside [submitPayment] before any
+     * suspension point, so concurrent taps see the claimed state and
+     * bail out before doing any network work.
+     */
+    private val paymentInFlight = AtomicBoolean(false)
 
     init {
         // Process-death recovery: if the previous instance of the app
@@ -274,12 +288,26 @@ class CheckoutViewModel @Inject constructor(
         if (_uiState.value.status == CheckoutStatus.PROCESSING ||
             _uiState.value.status == CheckoutStatus.SUCCEEDED) return
 
+        // Synchronous double-tap gate: claim the in-flight slot *before* any
+        // suspension or state update.  If another tap has already claimed
+        // it, bail out immediately so two concurrent taps never both reach
+        // `createPaymentIntent` and create two PaymentIntents on the
+        // backend.  See `paymentInFlight` doc above for the race this
+        // closes vs. the status-based check (status updates only land
+        // after the first suspension point inside the launched coroutine).
+        if (!paymentInFlight.compareAndSet(false, true)) {
+            Timber.d("[Checkout] submitPayment ignored — payment already in flight")
+            return
+        }
+
         // Quote expiry protection: refresh stale quotes before creating a PaymentIntent
         if (isQuoteExpired(quote)) {
             Timber.w("Quote expired, prompting user to retry")
+            paymentInFlight.set(false)
             _uiState.update {
                 it.copy(
                     status = CheckoutStatus.FAILED,
+                    isPaymentInFlight = false,
                     errorMessage = "Price quote expired. Please tap Pay again to get an updated price."
                 )
             }
@@ -289,7 +317,14 @@ class CheckoutViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(status = CheckoutStatus.PROCESSING, errorMessage = null) }
+            _uiState.update {
+                it.copy(
+                    status = CheckoutStatus.PROCESSING,
+                    isPaymentInFlight = true,
+                    errorMessage = null,
+                    failureKind = null,
+                )
+            }
 
             // ── Step 0: Availability pre-check ───────────────────────
             // Guards against the race where another guest books the same
@@ -303,7 +338,7 @@ class CheckoutViewModel @Inject constructor(
             if (draft != null) {
                 val startIso = draft.startTimeISO.ensureUtcSuffix()
                 val endIso = draft.endTimeISO.ensureUtcSuffix()
-                when (val avail = coreBookingRepository.checkAvailability(
+                when (val avail = bookingGate.checkAvailability(
                     listingId = draft.listingId,
                     startDate = startIso,
                     endDate = endIso,
@@ -315,9 +350,11 @@ class CheckoutViewModel @Inject constructor(
                                 "This listing is not currently accepting bookings."
                             else
                                 result.displayReason
+                            paymentInFlight.set(false)
                             _uiState.update {
                                 it.copy(
                                     status = CheckoutStatus.FAILED,
+                                    isPaymentInFlight = false,
                                     errorMessage = reason,
                                     failureKind = CheckoutFailureKind.BOOKING_UNAVAILABLE,
                                 )
@@ -334,15 +371,24 @@ class CheckoutViewModel @Inject constructor(
                 }
             }
 
-            // Mint a fresh idempotency key for this Pay tap.  Used for the
-            // PaymentIntent POST and persisted with the pending record so
-            // both retries and process-death recovery reuse the same key.
-            val piIdempotencyKey = UUID.randomUUID().toString()
+            // Stable Idempotency-Key derived from (quoteId, total cents,
+            // currency).  Same booking-draft + amount → same key → same
+            // backend dedup slot.  A genuine double-tap that somehow slips
+            // past [paymentInFlight] (or a network-retried POST that the
+            // OkHttp layer replays on a transient SSL failure) therefore
+            // can NOT create two PaymentIntents — Stripe + our backend
+            // both honour the header and return the existing PI.  We
+            // reuse the already-set key when a prior tap pre-minted it so
+            // mid-flight crash recovery picks up the same key on
+            // recovery.
+            val piIdempotencyKey = currentPaymentIntentIdempotencyKey
+                ?: paymentIntentIdempotencyKey(quote)
             currentPaymentIntentIdempotencyKey = piIdempotencyKey
             // confirm-booking key is also pre-minted so it can be persisted
             // BEFORE the Stripe sheet opens — crash recovery needs the same
             // key the original attempt would have used.
-            val confirmKey = UUID.randomUUID().toString()
+            val confirmKey = currentConfirmIdempotencyKey
+                ?: UUID.randomUUID().toString()
             currentConfirmIdempotencyKey = confirmKey
 
             // Create PaymentIntent on backend
@@ -356,10 +402,13 @@ class CheckoutViewModel @Inject constructor(
                     // Resolve Stripe publishable key
                     val stripeKey = nativePaymentRepository.resolvePublishableKey(config)
                     if (stripeKey.isNullOrBlank()) {
+                        paymentInFlight.set(false)
                         _uiState.update {
                             it.copy(
                                 status = CheckoutStatus.FAILED,
-                                errorMessage = "Stripe is not configured. Please try again later."
+                                isPaymentInFlight = false,
+                                errorMessage = "Stripe is not configured. Please try again later.",
+                                failureKind = CheckoutFailureKind.PAYMENT_FAILED,
                             )
                         }
                         return@launch
@@ -425,15 +474,42 @@ class CheckoutViewModel @Inject constructor(
                 }
                 is ApiResult.Failure -> {
                     Timber.e("PaymentIntent creation failed: ${result.error.message}")
+                    // Setup-intent failures may carry Stripe-flavoured codes
+                    // (e.g. backend forwards a stripe `payment_intent_*` error
+                    // body).  Route through StripeErrorMapper first so any
+                    // decline / SCA / fraud signals show curated copy; then
+                    // fall back to the generic UserFacingErrorMapper.
+                    val mapped = mapSetupIntentError(result.error)
+                    paymentInFlight.set(false)
                     _uiState.update {
                         it.copy(
                             status = CheckoutStatus.FAILED,
-                            errorMessage = UserFacingErrorMapper.map(result.error, "We couldn't set up your payment. Please try again.")
+                            isPaymentInFlight = false,
+                            errorMessage = mapped,
+                            failureKind = CheckoutFailureKind.PAYMENT_FAILED,
                         )
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Map a backend setup-intent failure ([ApiError]) to a user-facing
+     * string.  Tries [StripeErrorMapper] first so any Stripe-flavoured
+     * decline codes embedded in the server body get curated messages
+     * identical to the PaymentSheet failure path; falls back to the
+     * generic [UserFacingErrorMapper] for transport / generic errors.
+     */
+    private fun mapSetupIntentError(error: ApiError): String {
+        val raw = error.message
+        return StripeErrorMapper.mapPaymentSheetMessage(
+            raw,
+            fallback = UserFacingErrorMapper.map(
+                error,
+                "We couldn't set up your payment. Please try again.",
+            ),
+        )
     }
 
     // ── Step 3: Handle PaymentSheet result (called by UI) ──
@@ -446,6 +522,7 @@ class CheckoutViewModel @Inject constructor(
         // PAYMENT_CAPTURED_PENDING_CONFIRMATION state so the user sees
         // truthful "payment received, finalizing" copy even before the
         // first confirm-booking response lands.
+        paymentInFlight.set(false)
         pendingPaymentStore.markPaymentSucceededLocally()
         val piId = currentClientSecret?.let {
             nativePaymentRepository.extractPaymentIntentId(it)
@@ -453,6 +530,7 @@ class CheckoutViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.PAYMENT_CAPTURED_PENDING_CONFIRMATION,
+                isPaymentInFlight = false,
                 pendingPaymentIntentId = piId ?: it.pendingPaymentIntentId,
                 isConfirmingBooking = true,
                 failureKind = null,
@@ -460,7 +538,7 @@ class CheckoutViewModel @Inject constructor(
         }
         // Hand off to the background worker so reconciliation
         // continues even if the user backgrounds / kills the app.
-        PaymentReconciliationWorker.enqueue(appContext)
+        reconciliationScheduler.enqueue()
         viewModelScope.launch {
             confirmBookingOnBackend()
         }
@@ -469,8 +547,9 @@ class CheckoutViewModel @Inject constructor(
     fun onPaymentSheetCancelled() {
         // User intentionally cancelled — no money captured, clear
         // the pending record and allow a fresh attempt.
+        paymentInFlight.set(false)
         pendingPaymentStore.clear()
-        PaymentReconciliationWorker.cancel(appContext)
+        reconciliationScheduler.cancel()
         currentClientSecret = null
         currentQuoteId = null
         currentConfirmIdempotencyKey = null
@@ -479,6 +558,7 @@ class CheckoutViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.READY,
+                isPaymentInFlight = false,
                 errorMessage = null,
                 pendingPaymentIntentId = null,
                 hasExhaustedRetries = false,
@@ -494,8 +574,9 @@ class CheckoutViewModel @Inject constructor(
         // UI layer; route it through UserFacingErrorMapper as a safety net in
         // case a caller passes a raw string.
         Timber.w("[Checkout] PaymentSheet failed (no capture)")
+        paymentInFlight.set(false)
         pendingPaymentStore.clear()
-        PaymentReconciliationWorker.cancel(appContext)
+        reconciliationScheduler.cancel()
         currentClientSecret = null
         currentQuoteId = null
         currentConfirmIdempotencyKey = null
@@ -504,7 +585,8 @@ class CheckoutViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 status = CheckoutStatus.FAILED,
-                errorMessage = com.pacedream.common.util.StripeErrorMapper.mapPaymentSheetMessage(
+                isPaymentInFlight = false,
+                errorMessage = StripeErrorMapper.mapPaymentSheetMessage(
                     errorMessage,
                     fallback = "Your payment couldn't be completed. Please try again."
                 ),
@@ -514,6 +596,33 @@ class CheckoutViewModel @Inject constructor(
                 failureKind = CheckoutFailureKind.PAYMENT_FAILED,
             )
         }
+    }
+
+    /**
+     * Re-try the payment after a [CheckoutFailureKind.PAYMENT_FAILED]
+     * surface in the UI banner.  Resets the cached PaymentIntent
+     * idempotency key (a NEW Pay tap on the same draft should mint a
+     * new key — same key would re-hit the failed PI on the backend)
+     * and re-enters [submitPayment].
+     */
+    fun retryPayment() {
+        if (_uiState.value.status != CheckoutStatus.FAILED) {
+            // Caller only invokes this from the FAILED state.  Defensive
+            // bail-out so a stale UI tap during PROCESSING / SUCCEEDED
+            // doesn't reset state.
+            return
+        }
+        currentPaymentIntentIdempotencyKey = null
+        currentConfirmIdempotencyKey = null
+        currentConfirmRequestId = null
+        _uiState.update {
+            it.copy(
+                status = CheckoutStatus.READY,
+                errorMessage = null,
+                failureKind = null,
+            )
+        }
+        submitPayment()
     }
 
     // ── Step 4: Confirm booking on backend after successful payment ──
@@ -634,7 +743,7 @@ class CheckoutViewModel @Inject constructor(
                 // Booking is live on the backend — we no longer need
                 // the pending-payment recovery record or the worker.
                 pendingPaymentStore.clear()
-                PaymentReconciliationWorker.cancel(appContext)
+                reconciliationScheduler.cancel()
                 currentClientSecret = null
                 currentQuoteId = null
                 currentConfirmIdempotencyKey = null
@@ -687,7 +796,7 @@ class CheckoutViewModel @Inject constructor(
                 // Always hand off to the background reconciler — the
                 // worker survives process death and continues retrying
                 // independently of the foreground retries.
-                PaymentReconciliationWorker.enqueue(appContext)
+                reconciliationScheduler.enqueue()
                 if (exhausted) {
                     sendFailureReport(
                         paymentIntentId = paymentIntentId,
@@ -772,7 +881,7 @@ class CheckoutViewModel @Inject constructor(
 
         // Either way, ensure the background reconciler is enqueued so
         // confirmation continues if the user backgrounds the app again.
-        PaymentReconciliationWorker.enqueue(appContext)
+        reconciliationScheduler.enqueue()
 
         viewModelScope.launch {
             if (record.retryCount >= MAX_CONFIRM_RETRIES) {
@@ -818,7 +927,7 @@ class CheckoutViewModel @Inject constructor(
                     // acknowledge the recovery state first.
                     val bookingId = response.bookingId
                     pendingPaymentStore.clear()
-                    PaymentReconciliationWorker.cancel(appContext)
+                    reconciliationScheduler.cancel()
                     currentClientSecret = null
                     currentQuoteId = null
                     currentConfirmIdempotencyKey = null
@@ -886,6 +995,26 @@ class CheckoutViewModel @Inject constructor(
         return UUID.nameUUIDFromBytes(raw.toByteArray(Charsets.UTF_8)).toString()
     }
 
+    /**
+     * Stable PaymentIntent idempotency key derived from
+     * `(quoteId, totalCents, currency)`.  Same draft+amount produces
+     * the SAME key on every tap, so a true double-tap (or an OkHttp
+     * transport-level replay) that somehow slips past
+     * [paymentInFlight] still hits the backend's dedup slot — the
+     * second POST returns the original PaymentIntent instead of
+     * creating a second one.  Cleared after every PaymentSheet
+     * settlement (cancelled/failed/succeeded → fresh key on next
+     * attempt), and after a manual retryPayment() call.
+     */
+    private fun paymentIntentIdempotencyKey(quote: QuoteResponse): String {
+        val raw = listOf(
+            quote.quoteId,
+            quote.totalCents.toString(),
+            quote.currency.lowercase(),
+        ).joinToString("|")
+        return UUID.nameUUIDFromBytes(raw.toByteArray(Charsets.UTF_8)).toString()
+    }
+
     private suspend fun cacheConfirmedBooking(bookingId: String, response: ConfirmBookingResponse) {
         try {
             val data = response.booking ?: return
@@ -902,7 +1031,7 @@ class CheckoutViewModel @Inject constructor(
                 checkOutTime = data.endDate ?: "",
                 currency = "USD"
             )
-            coreBookingRepository.cacheBooking(booking)
+            bookingGate.cacheBooking(booking)
             Timber.d("Cached confirmed booking $bookingId to Room")
         } catch (e: Exception) {
             Timber.w(e, "Failed to cache confirmed booking to Room")
