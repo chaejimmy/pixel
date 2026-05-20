@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.shourov.apps.pacedream.core.location.CurrentLocationState
 import com.shourov.apps.pacedream.core.location.PlacePrediction
 import com.pacedream.common.composables.components.DatePicker as CommonDatePicker
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
@@ -49,6 +50,14 @@ fun EnhancedSearchBar(
     onSearchClick: () -> Unit,
     placeSuggestions: List<PlacePrediction> = emptyList(),
     onPlaceSuggestionClick: (PlacePrediction) -> Unit = {},
+    /**
+     * Current state of the location-detection flow.  When [Loading] we
+     * swap the "Nearby" chip for a spinner; when permanently denied we
+     * surface a small inline row with an "Open Settings" CTA right
+     * under the WHERE field so the user has a clear recovery path.
+     */
+    currentLocationState: CurrentLocationState = CurrentLocationState.Idle,
+    onOpenLocationSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -92,6 +101,7 @@ fun EnhancedSearchBar(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
             // WHERE field with location button
+            val locating = currentLocationState is CurrentLocationState.Loading
             ModernSearchField(
                 label = "Where",
                 value = whereQuery,
@@ -101,17 +111,26 @@ fun EnhancedSearchBar(
                 trailingContent = {
                     TextButton(
                         onClick = onUseMyLocation,
+                        enabled = !locating,
                         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM)
                     ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.MyLocation,
-                            contentDescription = "Use my location",
-                            modifier = Modifier.size(16.dp),
-                            tint = PaceDreamColors.Primary
-                        )
+                        if (locating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(14.dp),
+                                strokeWidth = 2.dp,
+                                color = PaceDreamColors.Primary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = PaceDreamIcons.MyLocation,
+                                contentDescription = "Use current location",
+                                modifier = Modifier.size(16.dp),
+                                tint = PaceDreamColors.Primary
+                            )
+                        }
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
                         Text(
-                            text = "Nearby",
+                            text = if (locating) "Locating…" else "Use current location",
                             style = PaceDreamTypography.Caption,
                             color = PaceDreamColors.Primary,
                             fontWeight = FontWeight.Medium
@@ -120,6 +139,55 @@ fun EnhancedSearchBar(
                 },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // Permanently-denied recovery prompt — only shown when the
+            // user has explicitly hit "Don't ask again", since the OS
+            // will no longer surface the runtime prompt on subsequent
+            // taps and the only path back is the system settings page.
+            if (currentLocationState is CurrentLocationState.PermissionPermanentlyDenied) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    color = PaceDreamColors.Surface,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = PaceDreamSpacing.MD,
+                                vertical = PaceDreamSpacing.SM,
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = PaceDreamIcons.LocationOn,
+                            contentDescription = null,
+                            tint = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        Text(
+                            text = "Location is off — enable it in Settings, or search manually.",
+                            style = PaceDreamTypography.Caption,
+                            color = PaceDreamColors.TextSecondary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                        TextButton(
+                            onClick = onOpenLocationSettings,
+                            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM),
+                        ) {
+                            Text(
+                                text = "Open Settings",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
 
             // Place autocomplete suggestions
             if (placeSuggestions.isNotEmpty()) {
