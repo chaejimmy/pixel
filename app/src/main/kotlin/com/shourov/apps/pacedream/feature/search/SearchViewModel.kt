@@ -151,7 +151,9 @@ class SearchViewModel @Inject constructor(
         startDate: String? = null,
         endDate: String? = null,
         category: String? = null,
-        sort: String? = null
+        sort: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
     ) {
         _uiState.update { current ->
             current.copy(
@@ -162,9 +164,26 @@ class SearchViewModel @Inject constructor(
                 endDate = endDate ?: current.endDate,
                 category = category ?: current.category,
                 sort = sort ?: current.sort,
+                // Coordinates are explicitly nullable on the wire — passing
+                // null clears the previously-chosen location pin so a
+                // subsequent manual city search isn't silently re-scoped
+                // to the old lat/lng.  Callers that just want to set the
+                // share type / dates / etc. shouldn't touch these args.
+                latitude = latitude ?: current.latitude,
+                longitude = longitude ?: current.longitude,
                 errorMessage = null
             )
         }
+    }
+
+    /**
+     * Clear the lat/lng pin without touching the rest of the search
+     * params.  Used when the user edits the WHERE field by hand after a
+     * "Use current location" pick — the text no longer matches the pin,
+     * so we drop the pin to avoid an incoherent query.
+     */
+    fun clearCurrentLocationPin() {
+        _uiState.update { it.copy(latitude = null, longitude = null) }
     }
 
     /**
@@ -317,6 +336,17 @@ class SearchViewModel @Inject constructor(
                 val effectiveGuests = filterGuests
                     ?: current.adultGuests.takeIf { it > 0 }
 
+                // When the user picked "Use current location" we have an
+                // exact lat/lng but no panned map bbox.  Synthesize a
+                // ~25km square around the pin so the backend's bbox
+                // filter restricts results to nearby listings.  An
+                // explicit user-panned mapBounds wins — it represents
+                // a more specific intent than the synthesized box.
+                val effectiveBounds = current.mapBounds
+                    ?: current.latitude?.let { lat ->
+                        current.longitude?.let { lng -> nearbyBounds(lat, lng) }
+                    }
+
                 val res = repo.search(
                     q = whereQuery,
                     city = current.city?.takeIf { it.isNotBlank() }
@@ -329,10 +359,10 @@ class SearchViewModel @Inject constructor(
                     whatQuery = current.whatQuery?.takeIf { it.isNotBlank() },
                     startDate = effectiveStartDate,
                     endDate = effectiveEndDate,
-                    swLat = current.mapBounds?.swLat,
-                    swLng = current.mapBounds?.swLng,
-                    neLat = current.mapBounds?.neLat,
-                    neLng = current.mapBounds?.neLng,
+                    swLat = effectiveBounds?.swLat,
+                    swLng = effectiveBounds?.swLng,
+                    neLat = effectiveBounds?.neLat,
+                    neLng = effectiveBounds?.neLng,
                     guests = effectiveGuests,
                     bedrooms = filters.bedrooms,
                     beds = filters.beds,
@@ -430,6 +460,31 @@ class SearchViewModel @Inject constructor(
     private fun Long.toIsoDate(): String =
         LocalDate.ofEpochDay(this).format(ISO_DATE_FORMATTER)
 
+    /**
+     * Build a roughly 25-kilometer-square bounding box centered on a
+     * lat/lng pin.  Used to scope "Use current location" searches when
+     * the user hasn't panned a map yet — we still want a bbox so the
+     * backend's location filter can narrow the candidate set instead
+     * of returning a global list.
+     *
+     * The longitude delta widens away from the equator (cos(lat))
+     * because a degree of longitude shrinks; the latitude delta is a
+     * constant ~111km/deg.  Approximations are deliberate: this is a
+     * "nearby" hint, not a navigation tool, so we don't ship a great-
+     * circle library for it.
+     */
+    private fun nearbyBounds(lat: Double, lng: Double, radiusKm: Double = 25.0): MapBounds {
+        val latDelta = radiusKm / 111.0
+        val cosLat = kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.0001)
+        val lngDelta = radiusKm / (111.0 * cosLat)
+        return MapBounds(
+            swLat = lat - latDelta,
+            swLng = lng - lngDelta,
+            neLat = lat + latDelta,
+            neLng = lng + lngDelta,
+        )
+    }
+
     companion object {
         private val ISO_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
@@ -506,6 +561,14 @@ enum class SearchViewMode { LIST, MAP }
 data class SearchUiState(
     val query: String = "",
     val city: String? = null,
+    /**
+     * Latitude of the user's selected location, when picked via "Use
+     * current location" or a place autocomplete result that carried a
+     * coordinate.  Null when only a manual city string was entered.
+     */
+    val latitude: Double? = null,
+    /** Longitude pair to [latitude]. Same null semantics. */
+    val longitude: Double? = null,
     val category: String? = null,
     val sort: String? = null,
     val perPage: Int = 24,

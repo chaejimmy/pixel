@@ -1,6 +1,5 @@
 package com.shourov.apps.pacedream.feature.search
 
-import android.Manifest
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -71,8 +70,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.pacedream.common.composables.components.InlineErrorBanner
@@ -88,10 +85,12 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.auth.AuthState
 import com.shourov.apps.pacedream.listing.ListingPreview
 import com.shourov.apps.pacedream.listing.ListingPreviewStore
-import com.shourov.apps.pacedream.core.location.LocationService
+import com.shourov.apps.pacedream.core.location.CurrentLocationState
 import com.shourov.apps.pacedream.core.location.LocationServiceEntryPoint
 import com.shourov.apps.pacedream.core.location.PlacePrediction
 import com.shourov.apps.pacedream.core.location.PlacesAutocompleteService
+import com.shourov.apps.pacedream.core.location.SavedLocation
+import com.shourov.apps.pacedream.core.location.rememberCurrentLocationController
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -216,40 +215,44 @@ fun SearchScreen(
             LocationServiceEntryPoint::class.java
         )
     }
-    val locationService = remember { entryPoint.locationService() }
     val placesService = remember { entryPoint.placesAutocompleteService() }
+    val lastLocationStore = remember { entryPoint.lastLocationStore() }
     var placeSuggestions by remember { mutableStateOf<List<PlacePrediction>>(emptyList()) }
     var placesJob by remember { mutableStateOf<Job?>(null) }
 
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val hasPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-
-        if (hasPermission) {
-            scope.launch {
-                val location = locationService.getCurrentLocation()
-                if (location != null) {
-                    val address = locationService.getAddressFromLocation(
-                        location.latitude,
-                        location.longitude
-                    )
-                    if (address != null) {
-                        viewModel.onQueryChanged(address)
-                        viewModel.updateSearchParams(city = address)
-                        inlineBannerMessage = ("Location set: $address")
-                    } else {
-                        inlineBannerMessage = ("Could not determine address")
-                    }
-                } else {
-                    inlineBannerMessage = ("Location unavailable")
-                }
-            }
-        } else {
-            inlineBannerMessage = "Location permission denied"
-        }
-    }
+    // Compose-driven "Use current location" flow.  The controller owns
+    // permission requests, the FusedLocationProviderClient call, and
+    // reverse-geocoding state — see CurrentLocationController for the
+    // full state machine.  The onResolved callback runs once per
+    // successful pick and is the single place where we mutate the search
+    // ViewModel + persist for next session.
+    val currentLocationController = rememberCurrentLocationController(
+        onResolved = { place ->
+            val label = place.formattedAddress.ifBlank {
+                listOf(place.city, place.state, place.country)
+                    .filter { it.isNotBlank() }
+                    .joinToString(", ")
+            }.ifBlank { "Current location" }
+            viewModel.onQueryChanged(label)
+            viewModel.updateSearchParams(
+                city = place.city.ifBlank { label },
+                latitude = place.lat,
+                longitude = place.lng,
+            )
+            viewModel.submitSearch()
+            lastLocationStore.save(
+                SavedLocation(
+                    label = label,
+                    city = place.city,
+                    region = place.state,
+                    country = place.country,
+                    lat = place.lat,
+                    lng = place.lng,
+                )
+            )
+            inlineBannerMessage = "Showing nearby: $label"
+        },
+    )
 
     // Clear categories when mode changes (categories differ per mode, like website)
     val currentShareType = state.shareType?.uppercase() ?: "SHARE"
@@ -263,6 +266,35 @@ fun SearchScreen(
         if (q.isNotBlank() && viewModel.uiState.value.query.isBlank()) {
             viewModel.onQueryChanged(q)
             viewModel.submitSearch()
+        } else if (q.isBlank() && viewModel.uiState.value.query.isBlank()) {
+            // Re-hydrate from the last-selected location so reopening
+            // Search defaults to the user's previous area instead of
+            // resetting to "Anywhere".  Only kicks in when no other
+            // initialQuery / WHERE value is already set so we never
+            // overwrite an intentional caller-supplied query.
+            lastLocationStore.load()?.let { saved ->
+                viewModel.onQueryChanged(saved.label)
+                viewModel.updateSearchParams(
+                    city = saved.city.ifBlank { saved.label },
+                    latitude = saved.lat,
+                    longitude = saved.lng,
+                )
+            }
+        }
+    }
+
+    // Surface controller terminal states (denial / unavailable) into the
+    // inline banner so the user gets feedback without us tying the host
+    // screen to the controller's internal state machine.  Permanent
+    // denial is handled inline next to the WHERE field (Open Settings),
+    // not via this banner — see the EnhancedSearchBar block below.
+    LaunchedEffect(currentLocationController.state) {
+        when (currentLocationController.state) {
+            CurrentLocationState.PermissionDenied ->
+                inlineBannerMessage = "Location permission denied — search manually instead."
+            CurrentLocationState.Unavailable ->
+                inlineBannerMessage = "Couldn't get a location fix. Try again or search manually."
+            else -> Unit
         }
     }
 
@@ -316,6 +348,15 @@ fun SearchScreen(
                 var whatQuery by remember { mutableStateOf(state.whatQuery ?: "") }
                 var whereQuery by remember { mutableStateOf(state.query) }
                 val (selectedDateDisplay, selectedDateISO, openDatePicker) = com.pacedream.app.feature.search.rememberDatePickerState()
+
+                // Sync the local WHERE field whenever the source-of-truth
+                // state.query changes from outside (initialQuery hydration,
+                // last-location restore, "Use current location" resolve).
+                // Without this the text field stays empty even after the
+                // ViewModel picks up the restored / detected value.
+                LaunchedEffect(state.query) {
+                    if (state.query != whereQuery) whereQuery = state.query
+                }
 
                 // Hero "Where / When / Who" focus routing ----------------
                 // Adults / showGuestsSheet / pickerHandled are declared at
@@ -444,6 +485,14 @@ fun SearchScreen(
                             whereQuery = newQuery
                             viewModel.onQueryChanged(newQuery)
                             viewModel.updateSearchParams(city = newQuery.takeIf { it.isNotBlank() })
+                            // Typing invalidates the lat/lng pin from a
+                            // prior "Use current location" pick — without
+                            // this the user could end up searching for a
+                            // city while still scoped to the old nearby
+                            // bbox.  Controller state is reset too so
+                            // the loading / denied banners don't linger.
+                            viewModel.clearCurrentLocationPin()
+                            currentLocationController.reset()
                             // Fetch place autocomplete suggestions
                             placesJob?.cancel()
                             if (newQuery.trim().length >= 2) {
@@ -461,39 +510,27 @@ fun SearchScreen(
                             placeSuggestions = emptyList()
                             viewModel.onQueryChanged(prediction.description)
                             viewModel.updateSearchParams(city = prediction.mainText)
+                            // Autocomplete predictions don't carry coords
+                            // up front (we'd need a follow-up Place Details
+                            // call to get them).  Persist the label so a
+                            // future session restores it; lat/lng stay null
+                            // and the search falls back to the city string.
+                            lastLocationStore.save(
+                                SavedLocation(
+                                    label = prediction.description,
+                                    city = prediction.mainText,
+                                    region = "",
+                                    country = "",
+                                    lat = null,
+                                    lng = null,
+                                )
+                            )
                         },
                         selectedDate = selectedDateDisplay,
                         onDateClick = openDatePicker,
-                        onUseMyLocation = {
-                            if (!locationService.hasLocationPermission()) {
-                                locationPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION
-                                    )
-                                )
-                            } else {
-                                scope.launch {
-                                    val location = locationService.getCurrentLocation()
-                                    if (location != null) {
-                                        val address = locationService.getAddressFromLocation(
-                                            location.latitude,
-                                            location.longitude
-                                        )
-                                        if (address != null) {
-                                            whereQuery = address
-                                            viewModel.onQueryChanged(address)
-                                            viewModel.updateSearchParams(city = address)
-                                            inlineBannerMessage = ("Location set: $address")
-                                        } else {
-                                            inlineBannerMessage = ("Could not determine address")
-                                        }
-                                    } else {
-                                        inlineBannerMessage = ("Location unavailable")
-                                    }
-                                }
-                            }
-                        },
+                        onUseMyLocation = { currentLocationController.request() },
+                        currentLocationState = currentLocationController.state,
+                        onOpenLocationSettings = { currentLocationController.openSettings() },
                         onSearchClick = {
                             keyboardController?.hide()
                             focusManager.clearFocus()

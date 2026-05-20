@@ -9,4 +9,5 @@ import dagger.hilt.components.SingletonComponent
 interface LocationServiceEntryPoint {
     fun locationService(): LocationService
     fun placesAutocompleteService(): PlacesAutocompleteService
+    fun lastLocationStore(): LastLocationStore
 }
