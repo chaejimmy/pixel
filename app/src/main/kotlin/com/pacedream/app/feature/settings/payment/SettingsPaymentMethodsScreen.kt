@@ -1,7 +1,6 @@
 package com.pacedream.app.feature.settings.payment
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,14 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.designsystem.StatusBadge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -44,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -471,17 +472,14 @@ private fun PaymentMethodCard(
                 }
 
                 if (method.isDefault) {
-                    // Disabled tonal button used as a non-interactive
-                    // "Default" status badge — enabled = false guarantees the
-                    // onClick can never fire. We could swap to a Surface/Chip,
-                    // but that would lose the tonal-button visual treatment
-                    // the rest of Settings uses.
-                    FilledTonalButton(
-                        onClick = { /* status badge — enabled = false, never fires */ },
-                        enabled = false
-                    ) {
-                        Text("Default")
-                    }
+                    StatusBadge(
+                        text = "Default",
+                        icon = PaceDreamIcons.CheckCircle,
+                        color = PaceDreamColors.Primary,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Default payment method"
+                        }
+                    )
                 }
             }
 
@@ -489,34 +487,34 @@ private fun PaymentMethodCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (!method.isDefault) {
-                    Text(
-                        text = "Set as default",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.Primary,
-                        modifier = Modifier.clickable(onClick = onSetDefault)
-                    )
+                    TextButton(onClick = onSetDefault) {
+                        Text(
+                            text = "Set as default",
+                            style = PaceDreamTypography.Callout
+                        )
+                    }
                 } else {
-                    Spacer(modifier = Modifier.height(0.dp))
+                    Spacer(modifier = Modifier.size(0.dp))
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onDelete)
+                TextButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = PaceDreamColors.Error
+                    )
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.Delete,
-                        contentDescription = "Delete",
-                        tint = PaceDreamColors.Error
+                        contentDescription = null
                     )
-                    Spacer(modifier = Modifier.height(0.dp))
+                    Spacer(modifier = Modifier.size(4.dp))
                     Text(
                         text = "Remove",
-                        style = PaceDreamTypography.Callout,
-                        color = PaceDreamColors.Error,
-                        modifier = Modifier.padding(start = 4.dp)
+                        style = PaceDreamTypography.Callout
                     )
                 }
             }
