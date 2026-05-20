@@ -117,8 +117,13 @@ object ListingDetailTestTags {
     const val BackButton = "listing_detail_back_button"
     const val ShareButton = "listing_detail_share_button"
     const val FavoriteButton = "listing_detail_favorite_button"
+    const val HeroGallery = "listing_detail_hero_gallery"
     const val BookingBar = "listing_detail_booking_bar"
     const val ReserveButton = "listing_detail_reserve_button"
+    // Alias for ReserveButton — tests written against "the book CTA" shouldn't
+    // need to know the in-product label is "Reserve".
+    const val BookCta = ReserveButton
+    const val ContactHostButton = "listing_detail_contact_host_button"
     const val ErrorState = "listing_detail_error_state"
 }
 
@@ -1512,6 +1517,7 @@ private fun HeroGallery(
         modifier = modifier
             .fillMaxWidth()
             .height(330.dp)
+            .testTag(ListingDetailTestTags.HeroGallery)
     ) {
         HorizontalPager(state = pagerState) { page ->
             val url = urls[page]
@@ -1933,7 +1939,9 @@ private fun HostCard(
                 ) {
                     OutlinedButton(
                         onClick = onContact,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(ListingDetailTestTags.ContactHostButton)
                     ) { Text("Message") }
                     Button(
                         onClick = onViewProfile,

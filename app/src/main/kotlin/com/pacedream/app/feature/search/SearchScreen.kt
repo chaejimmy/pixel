@@ -92,6 +92,15 @@ object SearchTestTags {
     const val Input = "search_input"
     const val Tabs = "search_tabs"
     const val ResultsList = "search_results_list"
+    // Result row — shared across every search card; tests should use
+    // onAllNodesWithTag(...) when asserting on count or by-index access.
+    const val ResultRow = "search_result_row"
+    // Filter chips are the in-product "filter button" equivalent on Search
+    // (no separate Tune button — chips toggle category filters in place).
+    const val FilterChip = "search_filter_chip"
+    const val EmptyState = "search_empty_state"
+    const val NoResultsState = "search_no_results_state"
+    const val ErrorState = "search_error_state"
 }
 
 // File-scope chip labels — invariant, so the LazyRow can iterate the same
@@ -307,7 +316,9 @@ fun SearchScreen(
                         borderWidth = 1.dp,
                         selectedBorderWidth = 0.dp
                     ),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier
+                        .height(32.dp)
+                        .testTag(SearchTestTags.FilterChip)
                 )
             }
         }
@@ -349,7 +360,9 @@ fun SearchScreen(
                     ),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
                     verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(SearchTestTags.ResultsList)
                 ) {
                     items(uiState.results, key = { it.id }) { item ->
                         SearchResultCard(
@@ -390,6 +403,7 @@ private fun SearchResultCard(
                 ambientColor = Color.Black.copy(alpha = 0.06f),
                 spotColor = Color.Black.copy(alpha = 0.06f)
             )
+            .testTag(SearchTestTags.ResultRow)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -684,7 +698,8 @@ private fun SearchErrorState(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.Page),
+            .padding(PaceDreamSpacing.Page)
+            .testTag(SearchTestTags.ErrorState),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -754,7 +769,8 @@ private fun SearchNoResultsState(query: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.Page),
+            .padding(PaceDreamSpacing.Page)
+            .testTag(SearchTestTags.NoResultsState),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -806,7 +822,8 @@ private fun SearchEmptyState() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(PaceDreamSpacing.Page),
+            .padding(PaceDreamSpacing.Page)
+            .testTag(SearchTestTags.EmptyState),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

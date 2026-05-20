@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -666,7 +667,8 @@ private fun CancelSection(isCancelling: Boolean, onCancelClick: () -> Unit) {
         onClick = onCancelClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(PaceDreamButtonHeight.LG),
+            .height(PaceDreamButtonHeight.LG)
+            .testTag(BookingsTestTags.CancelButton),
         enabled = !isCancelling,
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = PaceDreamColors.Error
@@ -715,6 +717,7 @@ private fun CancelConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.testTag(BookingsTestTags.CancelConfirmDialog),
         containerColor = PaceDreamColors.Card,
         shape = RoundedCornerShape(PaceDreamRadius.XL),
         icon = {
@@ -742,6 +745,7 @@ private fun CancelConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                modifier = Modifier.testTag(BookingsTestTags.ConfirmCancelButton),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Error
                 ),
@@ -751,7 +755,10 @@ private fun CancelConfirmationDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag(BookingsTestTags.KeepBookingButton)
+            ) {
                 Text(
                     "Keep Booking",
                     style = PaceDreamTypography.Button,
