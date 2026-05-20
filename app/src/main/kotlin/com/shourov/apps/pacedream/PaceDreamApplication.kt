@@ -9,6 +9,7 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.google.firebase.FirebaseApp
 import com.pacedream.app.core.auth.SessionManager
+import com.pacedream.app.core.notifications.NotificationChannels
 import com.shourov.apps.pacedream.core.network.auth.AuthSession
 import com.shourov.apps.pacedream.notification.FcmTokenRegistrar
 import com.shourov.apps.pacedream.notification.OneSignalService
@@ -70,6 +71,15 @@ class PaceDreamApplication : Application(), ImageLoaderFactory, Configuration.Pr
         // Install global exception handler to prevent background thread crashes
         // from killing the app. Fatal errors (OOM, etc.) still propagate to Crashlytics.
         com.shourov.apps.pacedream.stability.GlobalExceptionHandler.install()
+
+        // Register the user-visible notification channels (Bookings, Messages,
+        // Payments, Host updates, Marketing) before any FCM push can arrive.
+        // Idempotent — re-registering preserves the user's importance choices.
+        try {
+            NotificationChannels.registerAll(this)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to register notification channels; pushes may be silently dropped on Android 8+")
+        }
 
         // Initialize Firebase before any network calls. The firebase-perf gradle plugin
         // instruments OkHttp at bytecode level, so it requires Firebase to be initialized
