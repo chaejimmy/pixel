@@ -127,21 +127,21 @@ class BookingRepositoryExtendedTest {
 
     @Test
     fun `parseConfirmation handles _id variant`() {
-        val body = """{ "data": { "_id": "bk_xyz" } }"""
+        val body = """{ "data": { "_id": "bk_xyz", "status": "confirmed" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("bk_xyz", result.bookingId)
     }
 
     @Test
     fun `parseConfirmation handles id variant`() {
-        val body = """{ "data": { "id": "bk_simple" } }"""
+        val body = """{ "data": { "id": "bk_simple", "status": "confirmed" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("bk_simple", result.bookingId)
     }
 
     @Test
     fun `parseConfirmation handles start_date and end_date snake_case`() {
-        val body = """{ "data": { "start_date": "2024-06-01", "end_date": "2024-06-02" } }"""
+        val body = """{ "data": { "bookingId": "bk_1", "status": "confirmed", "start_date": "2024-06-01", "end_date": "2024-06-02" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("2024-06-01", result.startDate)
         assertEquals("2024-06-02", result.endDate)
@@ -149,7 +149,7 @@ class BookingRepositoryExtendedTest {
 
     @Test
     fun `parseConfirmation handles startTime and endTime as fallback`() {
-        val body = """{ "data": { "startTime": "10:00", "endTime": "12:00" } }"""
+        val body = """{ "data": { "bookingId": "bk_1", "status": "confirmed", "startTime": "10:00", "endTime": "12:00" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("10:00", result.startDate)
         assertEquals("12:00", result.endDate)
@@ -157,52 +157,119 @@ class BookingRepositoryExtendedTest {
 
     @Test
     fun `parseConfirmation handles total as amount fallback`() {
-        val body = """{ "data": { "total": "45.00" } }"""
+        val body = """{ "data": { "bookingId": "bk_1", "status": "confirmed", "total": "45.00" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals(45.0, result.amount!!, 0.01)
     }
 
     @Test
     fun `parseConfirmation handles title variant`() {
-        val body = """{ "data": { "title": "Desk Space" } }"""
+        val body = """{ "data": { "bookingId": "bk_1", "status": "confirmed", "title": "Desk Space" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("Desk Space", result.itemTitle)
     }
 
     @Test
     fun `parseConfirmation handles listingTitle variant`() {
-        val body = """{ "data": { "listingTitle": "Camera Kit" } }"""
+        val body = """{ "data": { "bookingId": "bk_1", "status": "confirmed", "listingTitle": "Camera Kit" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("Camera Kit", result.itemTitle)
     }
 
+    // ── Fail-closed parse semantics (Phase 0 / audit F-03) ──────────
+    //
+    // The parser used to default `status` to "confirmed" and `bookingId`
+    // to "" when the server response was missing those fields.  That let
+    // a malformed 200 (or a still-pending session) render as "Booking
+    // Confirmed" with no booking row behind it.  These tests pin down
+    // the new behaviour: any of those cases throw and the call site
+    // surfaces an error.
+
     @Test
-    fun `parseConfirmation defaults status to confirmed`() {
+    fun `parseConfirmation rejects empty data with missing bookingId`() {
         val body = """{ "data": {} }"""
+        try {
+            parseConfirmationFromBody(body)
+            org.junit.Assert.fail("Expected parse to throw on missing bookingId")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("missing_booking_id"))
+        }
+    }
+
+    @Test
+    fun `parseConfirmation rejects bookingId with missing status`() {
+        val body = """{ "data": { "bookingId": "bk_123" } }"""
+        try {
+            parseConfirmationFromBody(body)
+            org.junit.Assert.fail("Expected parse to throw on missing status")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("invalid_status"))
+        }
+    }
+
+    @Test
+    fun `parseConfirmation rejects bookingId with pending status`() {
+        val body = """{ "data": { "bookingId": "bk_123", "status": "pending" } }"""
+        try {
+            parseConfirmationFromBody(body)
+            org.junit.Assert.fail("Expected parse to throw on pending status")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("invalid_status:pending"))
+        }
+    }
+
+    @Test
+    fun `parseConfirmation rejects blank bookingId`() {
+        val body = """{ "data": { "bookingId": "   ", "status": "confirmed" } }"""
+        try {
+            parseConfirmationFromBody(body)
+            org.junit.Assert.fail("Expected parse to throw on blank bookingId")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message!!.contains("missing_booking_id"))
+        }
+    }
+
+    @Test
+    fun `parseConfirmation accepts confirmed status`() {
+        val body = """{ "data": { "bookingId": "bk_123", "status": "confirmed" } }"""
         val result = parseConfirmationFromBody(body)
+        assertEquals("bk_123", result.bookingId)
         assertEquals("confirmed", result.status)
     }
 
     @Test
-    fun `parseConfirmation defaults message`() {
-        val body = """{ "data": {} }"""
+    fun `parseConfirmation accepts succeeded status`() {
+        val body = """{ "data": { "bookingId": "bk_123", "status": "succeeded" } }"""
+        val result = parseConfirmationFromBody(body)
+        assertEquals("succeeded", result.status)
+    }
+
+    @Test
+    fun `parseConfirmation accepts paid status case-insensitively`() {
+        val body = """{ "data": { "bookingId": "bk_123", "status": "PAID" } }"""
+        val result = parseConfirmationFromBody(body)
+        assertEquals("paid", result.status)
+    }
+
+    @Test
+    fun `parseConfirmation defaults message when valid bookingId and status`() {
+        val body = """{ "data": { "bookingId": "bk_abc", "status": "confirmed" } }"""
         val result = parseConfirmationFromBody(body)
         assertEquals("Booking confirmed successfully", result.message)
     }
 
-    @Test
-    fun `parseConfirmation defaults bookingId to empty`() {
-        val body = """{ "data": {} }"""
-        val result = parseConfirmationFromBody(body)
-        assertEquals("", result.bookingId)
-    }
-
     // ── Helpers (replicating repo parsing logic for testing) ────────
+    //
+    // Mirrors BookingRepository.parseBookingConfirmation; if you change
+    // the parser there, update this helper to match — these tests pin
+    // the documented contract.
 
     private fun extractSessionIdFromUrl(url: String): String? {
         val regex = "[?&]session_id=([^&]+)".toRegex()
         return regex.find(url)?.groupValues?.getOrNull(1)
     }
+
+    private val CONFIRMED_STATUSES = setOf("confirmed", "succeeded", "paid")
 
     private fun parseCheckoutFromBody(responseBody: String): CheckoutResult {
         val jsonElement = json.parseToJsonElement(responseBody)
@@ -227,13 +294,21 @@ class BookingRepositoryExtendedTest {
         val jsonObject = jsonElement.jsonObject
         val data = jsonObject["data"]?.jsonObject ?: jsonObject
 
+        val bookingId = data["bookingId"]?.jsonPrimitive?.content
+            ?: data["_id"]?.jsonPrimitive?.content
+            ?: data["id"]?.jsonPrimitive?.content
+        if (bookingId.isNullOrBlank()) {
+            throw IllegalStateException("missing_booking_id")
+        }
+        val status = data["status"]?.jsonPrimitive?.content?.trim()?.lowercase()
+        if (status.isNullOrBlank() || status !in CONFIRMED_STATUSES) {
+            throw IllegalStateException("invalid_status:${status ?: "null"}")
+        }
+
         return BookingConfirmation(
-            bookingId = data["bookingId"]?.jsonPrimitive?.content
-                ?: data["_id"]?.jsonPrimitive?.content
-                ?: data["id"]?.jsonPrimitive?.content
-                ?: "",
+            bookingId = bookingId,
             bookingType = BookingType.TIME_BASED,
-            status = data["status"]?.jsonPrimitive?.content ?: "confirmed",
+            status = status,
             message = data["message"]?.jsonPrimitive?.content ?: "Booking confirmed successfully",
             itemTitle = data["itemTitle"]?.jsonPrimitive?.content
                 ?: data["title"]?.jsonPrimitive?.content
