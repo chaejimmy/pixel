@@ -310,6 +310,12 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
+    // JUnit + Robolectric so Collections/Trip delete tests can drive the
+    // dialog composables and the ViewModels without a connected device.
+    // Keep these JVM-only — the app module has no androidTest source set.
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
 
 
 

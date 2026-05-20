@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,6 +25,18 @@ class CollectionsViewModel @Inject constructor(
     sealed class Effect {
         data object ShowAuthRequired : Effect()
         data class ShowToast(val message: String) : Effect()
+    }
+
+    // Snackbar copy is intentionally short and user-facing; the matching
+    // analytics / log lines on the failure path live alongside the
+    // viewModelScope.launch blocks below.
+    internal companion object Copy {
+        const val DELETE_SUCCESS = "Deleted"
+        const val DELETE_FAILURE = "Couldn't delete — try again."
+        const val CREATE_SUCCESS = "List created!"
+        const val CREATE_FAILURE = "Couldn't create that list. Please try again."
+        const val ADD_SUCCESS = "Added to list!"
+        const val ADD_FAILURE = "Couldn't add to that list. Please try again."
     }
 
     private val _uiState = MutableStateFlow(CollectionsUiState())
@@ -72,16 +85,29 @@ class CollectionsViewModel @Inject constructor(
                             collections = listOf(result.data) + it.collections
                         )
                     }
-                    _effects.send(Effect.ShowToast("List created!"))
+                    _effects.send(Effect.ShowToast(CREATE_SUCCESS))
                 }
                 is ApiResult.Failure -> {
                     _uiState.update { it.copy(isCreating = false) }
-                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
+                    Timber.w("Collection create failed: ${result.error}")
+                    _effects.send(Effect.ShowToast(CREATE_FAILURE))
                 }
             }
         }
     }
 
+    /**
+     * Delete a collection after the user has confirmed in the screen-level
+     * AlertDialog. Failure is *not* swallowed: it is logged via Timber and
+     * surfaced through the [Effect.ShowToast] channel so the screen can
+     * raise a Snackbar.
+     *
+     * NOTE on Undo: the backend has no restore endpoint
+     * (`DELETE /v1/collections/{id}` is destructive; `POST /v1/collections`
+     * only creates an empty list with a fresh id and would not restore the
+     * saved items). Until that lands, we deliberately surface a plain
+     * "Deleted" toast without an Undo action.
+     */
     fun deleteCollection(collectionId: String) {
         viewModelScope.launch {
             when (val result = repository.deleteCollection(collectionId)) {
@@ -91,10 +117,11 @@ class CollectionsViewModel @Inject constructor(
                             collections = it.collections.filter { c -> c.id != collectionId }
                         )
                     }
-                    _effects.send(Effect.ShowToast("List deleted"))
+                    _effects.send(Effect.ShowToast(DELETE_SUCCESS))
                 }
                 is ApiResult.Failure -> {
-                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
+                    Timber.w("Collection delete failed: ${result.error}")
+                    _effects.send(Effect.ShowToast(DELETE_FAILURE))
                 }
             }
         }
@@ -110,11 +137,12 @@ class CollectionsViewModel @Inject constructor(
             val request = AddToCollectionRequest(collectionId, listingId)
             when (val result = repository.addToCollection(request)) {
                 is ApiResult.Success -> {
-                    _effects.send(Effect.ShowToast("Added to list!"))
+                    _effects.send(Effect.ShowToast(ADD_SUCCESS))
                     loadCollections() // Refresh
                 }
                 is ApiResult.Failure -> {
-                    _effects.send(Effect.ShowToast("Something went wrong. Please try again."))
+                    Timber.w("Add-to-collection failed: ${result.error}")
+                    _effects.send(Effect.ShowToast(ADD_FAILURE))
                 }
             }
         }
