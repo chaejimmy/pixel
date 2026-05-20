@@ -34,9 +34,11 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Apartment
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Bed
+import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.ElectricCar
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -46,6 +48,7 @@ import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material.icons.outlined.MeetingRoom
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Schedule
@@ -67,6 +70,7 @@ import androidx.compose.material.icons.rounded.AttachMoney
 import androidx.compose.material.icons.rounded.Balcony
 import androidx.compose.material.icons.rounded.Bathtub
 import androidx.compose.material.icons.rounded.Bed
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Bookmarks
@@ -89,6 +93,7 @@ import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Diamond
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DirectionsBike
@@ -122,6 +127,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.MeetingRoom
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Message
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -307,6 +313,12 @@ object PaceDreamIcons {
     val WcOutlined: ImageVector = Icons.Outlined.Wc
     val School: ImageVector = Icons.Rounded.School
     val SchoolOutlined: ImageVector = Icons.Outlined.School
+    val MenuBook: ImageVector = Icons.Rounded.MenuBook
+    val MenuBookOutlined: ImageVector = Icons.Outlined.MenuBook
+    val Bedtime: ImageVector = Icons.Rounded.Bedtime
+    val BedtimeOutlined: ImageVector = Icons.Outlined.Bedtime
+    val Diamond: ImageVector = Icons.Rounded.Diamond
+    val DiamondOutlined: ImageVector = Icons.Outlined.Diamond
     val Bathtub: ImageVector = Icons.Rounded.Bathtub
     val Rule: ImageVector = Icons.Rounded.Rule
 
