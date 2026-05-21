@@ -82,6 +82,50 @@ object PaceDreamSpacing {
     val XXL = 48.dp    // Section separation — iOS xxl
     val XXXL = 64.dp   // Major section breaks — iOS xxxl
     val Page = 48.dp   // Page-level vertical spacing (alias for XXL)
+
+    /**
+     * Layout-scale spacing tokens — values that sit OFF the 4/8/16/24 grid
+     * by design. These exist because certain product surfaces (the Home hero
+     * feed, the listing-detail page, bottom-nav-clearing scrolls, the type-
+     * baseline hairline) cannot resolve to a grid token without visibly
+     * breaking the intended composition. Naming these so feature code stops
+     * dropping raw `20.dp` / `80.dp` / `1.dp` literals with justifying
+     * "intentional: …" comments next to them — the token IS the justification.
+     */
+    object Layout {
+        /**
+         * 20dp page gutter used by Home and Listing Detail — the iOS-parity
+         * edge padding for hero / edge-to-edge photographic layouts. Sits
+         * between MD (16dp) and LG (24dp) on purpose; both grid tokens
+         * misframe the hero imagery.
+         */
+        val HomeGutter = 20.dp
+
+        /**
+         * 80dp bottom clearance for scrollable surfaces that sit under the
+         * bottom navigation bar plus a floating action button. Lands between
+         * XXXL (64dp) and XXXL+MD (80dp on the nose, but not a grid token)
+         * — sized to the union of nav-bar height + FAB overhang, not the
+         * 8dp grid.
+         */
+        val BottomNavClearance = 80.dp
+
+        /**
+         * 1dp hairline used between a type label and its sub-copy on the
+         * Home search bar. Tighter than any spacing token (XXS = 2dp would
+         * already feel loose) — this is a baseline-rhythm adjustment, not
+         * a layout gap.
+         */
+        val Hairline = 1.dp
+
+        /**
+         * 3dp tick width for segmented progress indicators on the listing-
+         * detail surface. Matches PaceDreamStroke.Heavy in magnitude but is
+         * exposed here as a *layout* size (segment width) rather than a
+         * stroke, so callers reach for the semantically correct token.
+         */
+        val ProgressSegment = 3.dp
+    }
 }
 
 // ============================================================================

@@ -246,8 +246,7 @@ fun BookingsScreen(
 
                         // Bottom padding for nav bar
                         item {
-                            // intentional: 80.dp clears the bottom nav bar + FAB; between XXXL (64) and XXXL+MD — neither fits
-                            Spacer(modifier = Modifier.height(80.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.BottomNavClearance))
                         }
                     }
                 }

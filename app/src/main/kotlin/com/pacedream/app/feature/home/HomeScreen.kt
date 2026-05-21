@@ -75,11 +75,6 @@ import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.R
 
-// intentional: 20.dp page gutter is off the 4/8/16/24 scale but is a deliberate
-// design decision for Home's edge-to-edge photographic hero layout. Keep it
-// exported as a private token so future token sweeps recognise it.
-private val HomeHorizontalGutter = 20.dp
-
 object HomeTestTags {
     const val Root = "home_screen_root"
     const val ListingFeed = "home_listing_feed"
@@ -170,7 +165,7 @@ fun HomeScreen(
                 item {
                     WarningBanner(
                         message = "Some content couldn't load. Pull to refresh.",
-                        modifier = Modifier.padding(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2)
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2)
                     )
                 }
             }
@@ -378,7 +373,7 @@ private fun HeroHeaderSection(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(horizontal = HomeHorizontalGutter, vertical = HomeHorizontalGutter)
+                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
             ) {
                 // Top row: notification bell (right-aligned; hero copy takes over greeting).
                 Row(
@@ -441,7 +436,7 @@ private fun HeroHeaderSection(
                         containerColor = Color.Transparent,
                         contentColor = OnBrandSurface
                     ),
-                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2),
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.PlayArrow,
@@ -465,7 +460,7 @@ private fun HeroHeaderSection(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = HomeHorizontalGutter)
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 .fillMaxWidth()
                 .testTag(HomeTestTags.SearchBar)
                 .adaptiveShadow(
@@ -514,8 +509,7 @@ private fun HeroHeaderSection(
                         ),
                         color = PaceDreamColors.TextHeadline
                     )
-                    // intentional: 1.dp hairline between title and subcopy; any token would be too loose
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.Hairline))
                     Text(
                         text = "Spaces \u00B7 Items \u00B7 Services",
                         style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
@@ -577,7 +571,6 @@ private fun CategoryFilterTabs(
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
-            // intentional: tabs own their own internal horizontal padding so we want zero arrangement gap
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(categories) { (name, outlinedIcon, filledIcon) ->
@@ -620,7 +613,6 @@ private fun CategoryTab(
                 onClick = onClick
             )
             .padding(horizontal = PaceDreamSpacing.MD)
-            // intentional: 0.dp bottom so the indicator rule underneath sits flush
             .padding(top = PaceDreamSpacing.SM2, bottom = 0.dp)
     ) {
         Icon(
@@ -667,11 +659,11 @@ private fun ExtendedCategoriesSection(
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
             title = "Categories",
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
         LazyRow(
-            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(getCategoryCards()) { category ->
@@ -887,14 +879,14 @@ private fun ListingSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         if (isLoading) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
             ) {
                 items(3) { ShimmerCard(modifier = Modifier.fillParentMaxWidth(0.62f)) }
@@ -908,7 +900,7 @@ private fun ListingSection(
                     isFavorite = item.id in favoriteIds,
                     onClick = { onItemClick(item) },
                     onFavoriteClick = { onFavoriteClick(item.id) },
-                    modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 )
             }
             // Two items: side-by-side compact grid
@@ -916,7 +908,7 @@ private fun ListingSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = HomeHorizontalGutter),
+                        .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items.forEach { item ->
@@ -934,7 +926,7 @@ private fun ListingSection(
             // 3+ items: horizontal carousel with peek-optimized card width
             else -> {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items(items) { item ->
@@ -1167,7 +1159,7 @@ private fun ServicesGridSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -1175,7 +1167,7 @@ private fun ServicesGridSection(
         if (isLoading) {
             // 2-column shimmer grid (4 skeleton cards)
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 for (row in 0 until 2) {
@@ -1191,7 +1183,7 @@ private fun ServicesGridSection(
         } else {
             // 2-column listing grid
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 val rows = items.chunked(2)
@@ -1853,7 +1845,7 @@ private fun BrowseByTypeSection(
         SectionHeader(
             title = "Browse by Type",
             subtitle = "Explore spaces, items, and services",
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
@@ -1861,7 +1853,7 @@ private fun BrowseByTypeSection(
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = HomeHorizontalGutter)
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 .fillMaxWidth()
                 .background(
                     PaceDreamColors.Gray100,
@@ -1887,7 +1879,7 @@ private fun BrowseByTypeSection(
         // Subcategory chips
         val accentColor = selectedType.categoryColor.gradientStart
         LazyRow(
-            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(selectedType.subcategories) { sub ->
@@ -2050,13 +2042,13 @@ private fun TrendingDestinationsSection(
             title = "Trending Destinations",
             subtitle = "Popular places our community loves",
             onViewAllClick = onViewAllTap,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         val destinations = getTrendingDestinations()
         Column(
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             for (rowIndex in 0 until (destinations.size + 1) / 2) {
@@ -2206,7 +2198,7 @@ private fun ThreeStepsCTASection(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = HomeHorizontalGutter),
+            .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
         shape = RoundedCornerShape(PaceDreamRadius.XL),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
@@ -2237,7 +2229,7 @@ private fun ThreeStepsCTASection(
 
             // Steps
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 steps.forEachIndexed { index, step ->
@@ -2256,7 +2248,7 @@ private fun ThreeStepsCTASection(
                 modifier = Modifier
                     .widthIn(max = 260.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = HomeHorizontalGutter),
+                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
@@ -2456,8 +2448,7 @@ private fun EmptyState(
                 modifier = Modifier.size(36.dp)
             )
         }
-        // intentional: 20.dp empty-state gap; MD/LG both fall outside 2.dp tolerance
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
         Text(
             text = "Nothing to show right now",
             style = DSTypo.Title3.copy(
