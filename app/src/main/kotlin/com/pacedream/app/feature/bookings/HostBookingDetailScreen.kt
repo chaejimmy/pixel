@@ -322,10 +322,11 @@ private data class StatusBadgeStyle(
     val icon: ImageVector
 )
 
+@Composable
 private fun statusBadgeStyle(status: BookingStatus): StatusBadgeStyle {
     return when (status) {
         BookingStatus.PENDING -> StatusBadgeStyle(
-            fg = Color(0xFF8C6600), // Darker for contrast on glass
+            fg = PaceDreamColors.OnWarningContainer,
             bg = PaceDreamColors.Warning.copy(alpha = 0.15f),
             border = PaceDreamColors.Warning.copy(alpha = 0.4f),
             icon = PaceDreamIcons.AccessTime

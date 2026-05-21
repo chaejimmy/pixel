@@ -1,6 +1,9 @@
 
 package com.pacedream.common.composables.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
@@ -246,7 +249,26 @@ object PaceDreamColors {
     val TextHeadline = Color(0xFF1A1A1A) // section headers, card titles
     val TextBody = Color(0xFF111827)     // primary body text (same as TextPrimary)
     val IconNeutral = Color(0xFF374151)  // gray-700 filter icons, rating labels
-    val OnWarningContainer = Color(0xFF78350F) // text on warning-tinted banner
+
+    // Theme-aware "on-container" foregrounds for alpha-blended brand chips
+    // (e.g. Warning@15%, Purple@12%, Teal@12%). Light variants are saturated
+    // dark hues for readable text on the pale tint; dark variants flip to
+    // lifted light tints so contrast survives a black-leaning container.
+    // Resolved via isSystemInDarkTheme() following the CategoryColors pattern.
+    val OnWarningContainer: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFFFCB9F) else Color(0xFF78350F)
+
+    val OnPurpleContainer: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFE6D4FF) else Color(0xFF59339A)
+
+    val OnTealContainer: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = if (isSystemInDarkTheme()) Color(0xFFB3E5F2) else Color(0xFF1A6B8C)
 
     // Shimmer skeleton gradient stops
     val ShimmerHighlight = Color(0xFFF0F0F0)

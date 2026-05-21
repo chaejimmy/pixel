@@ -45,8 +45,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pacedream.common.composables.theme.PaceDreamTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -619,13 +623,13 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
     val icon: androidx.compose.ui.graphics.vector.ImageVector
     when (role) {
         BookingRole.GUEST -> {
-            textColor = Color(0xFF59339A)
+            textColor = PaceDreamColors.OnPurpleContainer
             bgColor = PaceDreamColors.Purple.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Purple.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Person
         }
         BookingRole.HOST -> {
-            textColor = Color(0xFF1A6B8C)
+            textColor = PaceDreamColors.OnTealContainer
             bgColor = PaceDreamColors.Teal.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Teal.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Home
@@ -690,10 +694,11 @@ private data class BadgeColors(
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
+@Composable
 private fun statusBadgeColors(badgeColor: String): BadgeColors {
     return when (badgeColor) {
         "yellow" -> BadgeColors(
-            fg = Color(0xFF8C6600), // Keep darker for contrast
+            fg = PaceDreamColors.OnWarningContainer,
             bg = PaceDreamColors.Warning.copy(alpha = 0.15f),
             border = PaceDreamColors.Warning.copy(alpha = 0.4f),
             icon = PaceDreamIcons.AccessTime
@@ -1089,6 +1094,42 @@ private fun BookingCardSkeleton() {
                         PaceDreamColors.Gray200.copy(alpha = 0.4f),
                         RoundedCornerShape(PaceDreamRadius.MD)
                     )
+            )
+        }
+    }
+}
+
+// ============================================================================
+// Previews — covers the three tokenized badge foregrounds (RoleBadge GUEST/HOST
+// and the yellow StatusBadge) in both light and dark themes so the alpha-blended
+// brand-token containers (Purple/Teal/Warning @ 12-15%) can be eyeballed for
+// readable text against shifting dark surfaces. Drives `OnPurpleContainer`,
+// `OnTealContainer`, and `OnWarningContainer` through `isSystemInDarkTheme()`.
+// ============================================================================
+private class BookingsBadgeThemeProvider : PreviewParameterProvider<Boolean> {
+    override val values: Sequence<Boolean> = sequenceOf(false, true)
+}
+
+@Preview(name = "Bookings badges", showBackground = true, widthDp = 240)
+@Composable
+private fun BookingsBadgesPreview(
+    @PreviewParameter(BookingsBadgeThemeProvider::class) darkTheme: Boolean
+) {
+    PaceDreamTheme(darkTheme = darkTheme) {
+        Column(
+            modifier = Modifier
+                .background(PaceDreamColors.Background)
+                .padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            RoleBadge(role = BookingRole.GUEST)
+            RoleBadge(role = BookingRole.HOST)
+            StatusBadge(
+                config = BookingStatusConfig(
+                    label = "Pending",
+                    filterCategory = BookingFilterCategory.UPCOMING,
+                    badgeColor = "yellow"
+                )
             )
         }
     }

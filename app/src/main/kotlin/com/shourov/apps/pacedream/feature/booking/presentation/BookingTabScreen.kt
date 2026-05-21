@@ -588,15 +588,13 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
 
     when (role) {
         BookingRole.RENTER -> {
-            // Darker Purple foreground for text contrast on the tinted chip background.
-            textColor = Color(0xFF59339A)
+            textColor = PaceDreamColors.OnPurpleContainer
             bgColor = PaceDreamColors.Purple.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Purple.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Person
         }
         BookingRole.HOST -> {
-            // Darker Teal foreground for text contrast on the tinted chip background.
-            textColor = Color(0xFF1A6B8C)
+            textColor = PaceDreamColors.OnTealContainer
             bgColor = PaceDreamColors.Teal.copy(alpha = 0.12f)
             borderColor = PaceDreamColors.Teal.copy(alpha = 0.3f)
             icon = PaceDreamIcons.Home
@@ -641,7 +639,7 @@ private fun StatusBadge(config: BookingStatusConfig, modifier: Modifier = Modifi
     // the semi-transparent fill (AA contrast on the light theme).
     when (config.badgeColor) {
         "yellow" -> {
-            fgColor = Color(0xFF8C6600)
+            fgColor = PaceDreamColors.OnWarningContainer
             bgColor = PaceDreamColors.Yellow.copy(alpha = 0.15f)
             borderColor = PaceDreamColors.Yellow.copy(alpha = 0.4f)
             icon = PaceDreamIcons.AccessTime
