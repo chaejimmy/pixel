@@ -81,6 +81,8 @@ class AuthFlowSheetViewModel @Inject constructor(
     private val AuthFlowSheetUiState.isAnyLoading: Boolean
         get() = isEmailLoading || isGoogleLoading || isAppleLoading
 
+    fun loginWithApple(activity: Activity) = loginWithAuth0(activity, Auth0Connection.Apple)
+
     fun loginWithAuth0(activity: Activity, connection: Auth0Connection) {
         if (_uiState.value.isAnyLoading) return
         viewModelScope.launch {

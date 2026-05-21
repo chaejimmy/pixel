@@ -39,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,6 +49,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.app.core.auth.Auth0Connection
+import com.pacedream.common.composables.theme.PaceDreamRadius
 
 /**
  * AuthFlowSheet - iOS-parity authentication modal sheet.
@@ -110,11 +112,17 @@ fun AuthFlowSheet(
                     AuthFlowMode.Chooser -> ChooserContent(
                         subtitle = subtitle,
                         isGoogleLoading = uiState.isGoogleLoading,
+                        isAppleLoading = uiState.isAppleLoading,
                         onSignIn = viewModel::goToSignIn,
                         onSignUp = viewModel::goToSignUp,
                         onGoogle = {
                             (context as? Activity)?.let { activity ->
                                 viewModel.loginWithAuth0(activity, Auth0Connection.Google)
+                            }
+                        },
+                        onApple = {
+                            (context as? Activity)?.let { activity ->
+                                viewModel.loginWithApple(activity)
                             }
                         },
                         onNotNow = {
@@ -158,9 +166,11 @@ fun AuthFlowSheet(
 private fun ChooserContent(
     subtitle: String,
     isGoogleLoading: Boolean,
+    isAppleLoading: Boolean,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onGoogle: () -> Unit,
+    onApple: () -> Unit,
     onNotNow: () -> Unit
 ) {
     Column(
@@ -235,13 +245,41 @@ private fun ChooserContent(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            enabled = !isGoogleLoading
+            enabled = !isGoogleLoading && !isAppleLoading
         ) {
             if (isGoogleLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(10.dp))
             }
             Text("Continue with Google", fontWeight = FontWeight.Medium)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Apple sign-in (iOS parity: solid black with white content, 16dp radius)
+        Button(
+            onClick = onApple,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor = Color.White,
+                disabledContainerColor = Color.Black.copy(alpha = 0.6f),
+                disabledContentColor = Color.White.copy(alpha = 0.8f)
+            ),
+            enabled = !isAppleLoading && !isGoogleLoading
+        ) {
+            if (isAppleLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Text("Continue with Apple", fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -468,9 +506,11 @@ private fun PreviewAuthChooserContent() {
             ChooserContent(
                 subtitle = "Save your favorites and book spaces.",
                 isGoogleLoading = false,
+                isAppleLoading = false,
                 onSignIn = {},
                 onSignUp = {},
                 onGoogle = {},
+                onApple = {},
                 onNotNow = {}
             )
         }
