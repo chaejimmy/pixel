@@ -7,11 +7,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -26,6 +30,7 @@ import com.pacedream.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.feature.host.presentation.HostModeScreen
 import com.shourov.apps.pacedream.feature.wifi.presentation.WifiSessionHost
 import com.shourov.apps.pacedream.navigation.PaceDreamNavHost
+import com.shourov.apps.pacedream.navigation.Routes
 import com.shourov.apps.pacedream.signin.navigation.DASHBOARD_ROUTE
 import com.shourov.apps.pacedream.signin.navigation.ONBOARDING_ROUTE
 
@@ -40,6 +45,12 @@ fun PaceDreamApp(
     val navController = appState.navController
     val isHostMode by appState.isHostMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    // User-visible failure message for navigation that hits a destination
+    // not registered on the active NavController.  Surfacing this avoids
+    // the prior "tap does nothing" silent failure mode.
+    val navFailureMessage = "We couldn't open that — try again"
     
     // Handle pending deep links from MainActivity (reactive: handles onNewIntent too)
     val activity = context as? MainActivity
@@ -59,27 +70,25 @@ fun PaceDreamApp(
     // Collect push deep links emitted by PushDeepLinkHandler. The handler is
     // dispatched from MainActivity.onCreate/onNewIntent and from the OneSignal
     // notification-click listener; this LaunchedEffect routes each emission to
-    // the matching destination on the top-level NavController.
+    // the matching destination on the top-level NavController. Booking deep
+    // links resolve via the unified Routes.bookingDetail helper so the route
+    // pattern matches the destination registered on the top-level NavHost.
     //
-    // Routes used here mirror those declared inline in DashboardNavigation:
-    //   - bookings/{id}  -> "BOOKING_DETAIL/{bookingId}"
-    //   - requests/{id}  -> "requests/{requestId}"
-    // TODO: extract a Routes helper (e.g. Routes.requestOffers) once a
-    // dedicated offers-only sub-route exists. Today the request-detail screen
-    // already renders the offers list, so RequestOffers lands there as well.
+    // Routing failures here are reported via a snackbar instead of being
+    // swallowed: silent failures look identical to "tap did nothing" and
+    // make destination/route mismatches invisible until QA spots them.
     LaunchedEffect(Unit) {
         PushDeepLinkHandler.deepLinks.collect { link ->
+            val target = when (link) {
+                is PushDeepLink.RequestDetail -> "requests/${link.requestId}"
+                is PushDeepLink.RequestOffers -> "requests/${link.requestId}"
+                is PushDeepLink.BookingDetail -> Routes.bookingDetail(link.bookingId)
+            }
             try {
-                when (link) {
-                    is PushDeepLink.RequestDetail ->
-                        navController.navigate("requests/${link.requestId}")
-                    is PushDeepLink.RequestOffers ->
-                        navController.navigate("requests/${link.requestId}")
-                    is PushDeepLink.BookingDetail ->
-                        navController.navigate("BOOKING_DETAIL/${link.bookingId}")
-                }
-            } catch (e: Exception) {
-                timber.log.Timber.e(e, "Failed to navigate to push deep link: $link")
+                navController.navigate(target)
+            } catch (e: IllegalArgumentException) {
+                timber.log.Timber.e(e, "Push deep link route not found: $target")
+                snackbarHostState.showSnackbar(navFailureMessage)
             }
         }
     }
@@ -108,20 +117,44 @@ fun PaceDreamApp(
     Box(modifier = Modifier.fillMaxSize()) {
         if (isHostMode) {
             // Show host mode interface
-            // Booking, edit-listing, add-listing, analytics, and withdraw navigation
-            // are handled internally by HostModeScreen using its own NavHost.
-            // Only onNavigateToProperty escapes to guest mode (intentional mode switch).
+            // Add-listing, analytics, withdraw, and edit-listing navigation
+            // are handled internally by HostModeScreen's own NavHost.
+            // Property card taps and booking row taps escape the host
+            // NavController and land on the unified destinations registered
+            // at the top-level NavHost so the user sees the real
+            // ListingDetail / BookingDetail without a mode switch.
             HostModeScreen(
                 hostModeManager = appState.hostModeManager,
                 onSwitchToGuestMode = {
                     appState.hostModeManager.setHostMode(false)
                 },
                 onNavigateToProperty = { propertyId ->
-                    // Switch to guest mode — the dashboard's inner NavHost handles property detail.
-                    // Cross-NavHost navigation is not possible, so we land on the Home tab.
+                    // The Box swaps between HostModeScreen and the guest
+                    // Scaffold based on isHostMode, so the top-level NavHost
+                    // (which owns the unified listing destination) is only
+                    // composed in guest mode. Flip the flag first so the
+                    // navigation lands on a mounted host before navigating.
                     appState.hostModeManager.setHostMode(false)
-                    timber.log.Timber.d("Switched to guest mode for property: $propertyId")
-                }
+                    try {
+                        navController.navigate(Routes.listing(propertyId))
+                    } catch (e: IllegalArgumentException) {
+                        timber.log.Timber.e(e, "Host listing nav failed for id='$propertyId'")
+                        snackbarScope.launch {
+                            snackbarHostState.showSnackbar(navFailureMessage)
+                        }
+                    }
+                },
+                onNavigateToBooking = { bookingId ->
+                    appState.hostModeManager.setHostMode(false)
+                    try {
+                        navController.navigate(Routes.bookingDetail(bookingId))
+                    } catch (e: IllegalArgumentException) {
+                        timber.log.Timber.e(e, "Host booking nav failed for id='$bookingId'")
+                        snackbarScope.launch {
+                            snackbarHostState.showSnackbar(navFailureMessage)
+                        }
+                    }
+                },
             )
         } else {
             // Show guest mode interface
@@ -174,6 +207,15 @@ fun PaceDreamApp(
         OfflineBanner(
             modifier = Modifier
                 .align(Alignment.TopStart)
+                .fillMaxWidth(),
+        )
+
+        // Nav-failure snackbar sits at the bottom so it does not collide
+        // with the offline banner or wi-fi session pill above.
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth(),
         )
     }

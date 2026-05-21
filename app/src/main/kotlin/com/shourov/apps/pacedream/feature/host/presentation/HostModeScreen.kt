@@ -19,6 +19,10 @@ fun HostModeScreen(
     hostModeManager: HostModeManager,
     onSwitchToGuestMode: () -> Unit,
     onSignOut: () -> Unit = {},
+    // Escape hatches to the top-level NavHost. Property card taps and
+    // booking row taps reach the unified [Routes.listing] /
+    // [Routes.bookingDetail] destinations registered there; the host's own
+    // NavController cannot resolve those routes itself.
     onNavigateToProperty: (String) -> Unit = {},
     onNavigateToBooking: (String) -> Unit = {},
     onNavigateToAddListing: () -> Unit = {},
@@ -60,11 +64,7 @@ fun HostModeScreen(
                 onSwitchToGuestMode = onSwitchToGuestMode,
                 onSignOut = onSignOut,
                 onNavigateToProperty = onNavigateToProperty,
-                onNavigateToBooking = { bookingId ->
-                    navController.navigate("booking_details/$bookingId") {
-                        launchSingleTop = true
-                    }
-                },
+                onNavigateToBooking = onNavigateToBooking,
                 onNavigateToAddListing = {
                     navController.navigate(HostNavigationDestinations.ADD_LISTING) {
                         launchSingleTop = true
