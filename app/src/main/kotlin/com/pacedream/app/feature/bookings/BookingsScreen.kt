@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -50,6 +51,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
+import com.pacedream.app.feature.checkout.PendingPaymentState
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -77,6 +79,9 @@ object BookingsTestTags {
     const val ViewDetailsButton = "bookings_view_details_button"
     const val EmptyState = "bookings_empty_state"
     const val ErrorState = "bookings_error_state"
+    // Inline row + pill for an in-flight payment reconciliation cycle.
+    const val PendingPaymentRow = "bookings_pending_payment_row"
+    const val PendingPaymentPill = "bookings_pending_payment_pill"
     // Cancel/confirm flow — applied in HostBookingDetailScreen but kept in
     // this registry so the whole Bookings feature's tag surface lives in
     // one greppable file.
@@ -94,6 +99,7 @@ fun BookingsScreen(
     viewModel: BookingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val paymentState by viewModel.pendingPaymentState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -148,8 +154,12 @@ fun BookingsScreen(
                     }
                 }
 
-                // Empty state for selected tab
-                uiState.filteredBookings.isEmpty() -> {
+                // Empty state for selected tab — but if a payment is currently
+                // reconciling, still show the list so the synthetic pending
+                // row is visible.  A user who killed the app mid-3DS would
+                // otherwise see "No bookings" with no hint that their card
+                // was charged.
+                uiState.filteredBookings.isEmpty() && paymentState !is PendingPaymentState.Pending -> {
                     val emptyConfig = when (uiState.selectedTab) {
                         BookingTab.ALL -> Pair(PaceDreamIcons.ListIcon, "No bookings found")
                         BookingTab.UPCOMING -> Pair(PaceDreamIcons.CalendarToday, "No upcoming bookings")
@@ -190,6 +200,32 @@ fun BookingsScreen(
                                     message = uiState.error ?: "An unexpected error occurred",
                                     onAction = { viewModel.refresh() },
                                     actionText = "Retry"
+                                )
+                            }
+                        }
+
+                        // Synthetic "Payment processing" row for the in-flight
+                        // reconciliation cycle, surfaced on the Upcoming / All
+                        // tabs so the user sees their charged-but-unconfirmed
+                        // booking even before the backend materialises a real
+                        // booking row.  Only shown when the global reconciliation
+                        // state is Pending — Succeeded / Failed don't render
+                        // because the backend booking has either landed or the
+                        // user will see the failure notification.
+                        val pending = paymentState as? PendingPaymentState.Pending
+                        if (pending != null &&
+                            uiState.selectedTab in setOf(BookingTab.ALL, BookingTab.UPCOMING)
+                        ) {
+                            item(key = "pending_payment_${pending.bookingId ?: "unknown"}") {
+                                PendingPaymentRow(
+                                    state = pending,
+                                    onCheckStatus = { viewModel.checkPaymentStatus() },
+                                    onClick = {
+                                        // No detail to open yet — re-kick the
+                                        // worker as the implicit "tell me more"
+                                        // affordance.
+                                        viewModel.checkPaymentStatus()
+                                    },
                                 )
                             }
                         }
@@ -685,6 +721,229 @@ private fun statusBadgeColors(badgeColor: String): BadgeColors {
             bg = PaceDreamColors.Gray100,
             border = PaceDreamColors.Gray200,
             icon = PaceDreamIcons.Info
+        )
+    }
+}
+
+// ============================================================================
+// Pending payment list row — surfaced while PaymentReconciliationWorker is
+// still confirming a captured payment with the backend.  Renders as a
+// compact card with the "Payment processing" pill in Warning color.
+// ============================================================================
+@Composable
+private fun PendingPaymentRow(
+    state: PendingPaymentState.Pending,
+    onCheckStatus: () -> Unit,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .testTag(BookingsTestTags.PendingPaymentRow)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = PaceDreamColors.Warning.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG)
+                )
+                .padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Payment in progress",
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+                PaymentProcessingPill()
+            }
+            Text(
+                text = "We're confirming your payment with the bank — usually a few seconds. We'll keep working in the background if you leave.",
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = PaceDreamColors.Warning,
+                )
+                Text(
+                    text = "Reference: ${state.bookingId ?: "—"}",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "Check status",
+                    style = PaceDreamTypography.Caption.copy(fontWeight = FontWeight.SemiBold),
+                    color = PaceDreamColors.Primary,
+                    modifier = Modifier.clickable { onCheckStatus() }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Banner card used by BookingDetail surfaces to surface the in-flight
+ * payment reconciliation cycle.  Mirrors the row shown in the list but at
+ * banner scale, with a primary "Check status" button that nudges the
+ * worker.  Renders pending / succeeded / failed copy off the same [state]
+ * so the BookingDetail screen only has to wire one composable.
+ */
+@Composable
+fun PaymentReconciliationBanner(
+    state: PendingPaymentState,
+    onCheckStatus: () -> Unit,
+    onRetryCheckout: () -> Unit = onCheckStatus,
+    modifier: Modifier = Modifier,
+) {
+    if (state is PendingPaymentState.None) return
+
+    val (accent, icon, title, body, primaryLabel, primaryAction) = when (state) {
+        is PendingPaymentState.Pending -> BannerSpec(
+            accent = PaceDreamColors.Warning,
+            icon = PaceDreamIcons.AccessTime,
+            title = "Payment processing",
+            body = "We're confirming your payment with the bank. You can leave this screen — we'll keep working in the background.",
+            primaryLabel = "Check status",
+            primaryAction = onCheckStatus,
+        )
+        is PendingPaymentState.Succeeded -> BannerSpec(
+            accent = PaceDreamColors.Success,
+            icon = PaceDreamIcons.Verified,
+            title = "Booking confirmed",
+            body = "Your payment went through and your booking is locked in.",
+            primaryLabel = "Check status",
+            primaryAction = onCheckStatus,
+        )
+        is PendingPaymentState.Failed -> BannerSpec(
+            accent = PaceDreamColors.Error,
+            icon = PaceDreamIcons.Cancel,
+            title = "Payment failed",
+            body = state.reason ?: "We couldn't confirm your booking. Tap retry to try again.",
+            primaryLabel = "Retry",
+            primaryAction = onRetryCheckout,
+        )
+        else -> return
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = accent.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(PaceDreamRadius.LG),
+                )
+                .padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = title,
+                    style = PaceDreamTypography.Headline,
+                    color = PaceDreamColors.TextPrimary,
+                )
+            }
+            Text(
+                text = body,
+                style = PaceDreamTypography.Subheadline,
+                color = PaceDreamColors.TextSecondary,
+            )
+            Button(
+                onClick = primaryAction,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = accent),
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            ) {
+                Text(
+                    text = primaryLabel,
+                    style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
+                    color = Color.White,
+                )
+            }
+        }
+    }
+}
+
+private data class BannerSpec(
+    val accent: Color,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val title: String,
+    val body: String,
+    val primaryLabel: String,
+    val primaryAction: () -> Unit,
+)
+
+/**
+ * The "Payment processing" pill rendered in PaceDreamColors.Warning.
+ * Exposed publicly so BookingDetail (and the BookingDetail banner) can reuse
+ * the exact same visual treatment without duplicating the colors.
+ */
+@Composable
+fun PaymentProcessingPill(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .background(
+                PaceDreamColors.Warning.copy(alpha = 0.15f),
+                RoundedCornerShape(PaceDreamRadius.Round)
+            )
+            .border(
+                width = 0.5.dp,
+                color = PaceDreamColors.Warning.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(PaceDreamRadius.Round)
+            )
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+            .testTag(BookingsTestTags.PendingPaymentPill),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
+    ) {
+        Icon(
+            imageVector = PaceDreamIcons.AccessTime,
+            contentDescription = null,
+            tint = PaceDreamColors.Warning,
+            modifier = Modifier.size(10.dp)
+        )
+        Text(
+            text = "Payment processing",
+            style = PaceDreamTypography.Caption2.copy(fontWeight = FontWeight.SemiBold),
+            color = PaceDreamColors.Warning,
         )
     }
 }

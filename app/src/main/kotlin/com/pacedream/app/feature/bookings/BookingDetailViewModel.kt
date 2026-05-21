@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.checkout.PendingPaymentState
+import com.pacedream.app.feature.checkout.PendingPaymentStore
+import com.pacedream.app.feature.checkout.ReconciliationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -112,13 +115,35 @@ class BookingDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
-    private val json: Json
+    private val json: Json,
+    private val reconciliationScheduler: ReconciliationScheduler,
+    pendingPaymentStore: PendingPaymentStore,
 ) : ViewModel() {
 
     private val bookingId: String = savedStateHandle.get<String>("bookingId").orEmpty()
 
     private val _uiState = MutableStateFlow(BookingDetailUiState())
     val uiState: StateFlow<BookingDetailUiState> = _uiState.asStateFlow()
+
+    /**
+     * Stream of the most recent payment-reconciliation state for this device.
+     * The BookingDetail screen subscribes to render the inline pending /
+     * succeeded / failed banner without having to poke at SharedPreferences.
+     * The state is global (one in-flight payment at a time) rather than per
+     * booking, because a booking only acquires an id after reconciliation
+     * resolves — until then there is nothing to scope to.
+     */
+    val pendingPaymentState: StateFlow<PendingPaymentState> = pendingPaymentStore.state
+
+    /**
+     * "Check status" hook on the BookingDetail banner: kicks the reconciliation
+     * worker (which routes through `WorkManager.enqueueUniqueWork`) so a stuck
+     * cycle gets retried immediately rather than waiting for the next backoff
+     * window.  Safe to call repeatedly — the unique-work policy dedupes.
+     */
+    fun checkPaymentStatus() {
+        reconciliationScheduler.enqueue()
+    }
 
     init {
         if (bookingId.isNotBlank()) {

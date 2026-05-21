@@ -1050,13 +1050,34 @@ fun NavGraphBuilder.DashboardNavigation(
                                 val authGate = hiltViewModel<AuthGateViewModel>()
                                 val authState by authGate.authState.collectAsStateWithLifecycle()
                                 var showAuthSheet by remember { mutableStateOf(false) }
+                                val routeContext = androidx.compose.ui.platform.LocalContext.current
 
                                 // Decode the BookingDraft that was saved by the detail page
                                 val draftJson = navController.previousBackStackEntry
                                     ?.savedStateHandle
                                     ?.get<String>("booking_draft_json_$propertyId")
-                                val draft = draftJson?.let {
+                                val draftFromBackStack = draftJson?.let {
                                     runCatching { BookingDraftCodec.decode(it) }.getOrNull()
+                                }
+                                // Failure-notification deep link path: when the user
+                                // taps "Payment failed — tap to retry" the route lands
+                                // here with no previous backstack entry, so the
+                                // savedStateHandle is empty.  Fall back to the persisted
+                                // pending-payment record (still on disk because
+                                // markFailed leaves it alone for exactly this reason).
+                                // Without this fallback the user would always hit the
+                                // missing-draft recovery surface.
+                                val draft = draftFromBackStack ?: remember(propertyId) {
+                                    runCatching {
+                                        EntryPointAccessors
+                                            .fromApplication(
+                                                routeContext.applicationContext,
+                                                com.pacedream.app.feature.checkout.PendingPaymentStoreEntryPoint::class.java,
+                                            )
+                                            .pendingPaymentStore()
+                                            .restoreBookingDraft()
+                                            ?.takeIf { it.listingId == propertyId }
+                                    }.getOrNull()
                                 }
 
                                 // Booking is a protected action; keep parity with iOS by gating with AuthFlowSheet.

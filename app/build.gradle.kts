@@ -314,6 +314,7 @@ dependencies {
     // dispatcher + Turbine for StateFlow assertions.
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
 
 
 
