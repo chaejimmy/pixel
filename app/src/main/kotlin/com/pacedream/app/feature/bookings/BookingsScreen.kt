@@ -49,9 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
 import com.pacedream.app.feature.checkout.PendingPaymentState
+import com.pacedream.common.composables.designsystem.PaceDreamImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -423,29 +422,12 @@ private fun UnifiedBookingCard(
                     .height(170.dp)
                     .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
             ) {
-                if (!item.imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = item.imageUrl,
-                        contentDescription = item.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    // Placeholder
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(PaceDreamColors.Gray200.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Image,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
+                PaceDreamImage(
+                    url = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
 
                 // Top-left: Role badge
                 RoleBadge(
