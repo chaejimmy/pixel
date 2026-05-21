@@ -472,12 +472,8 @@ private fun HeroHeaderSection(
                     elevation = 10.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
-                .semantics { role = Role.Button }
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onSearchClick
-                ),
+                .semantics(mergeDescendants = true) { role = Role.Button }
+                .clickable(onClick = onSearchClick),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp
@@ -615,8 +611,7 @@ private fun CategoryTab(
         modifier = Modifier
             .semantics { role = Role.Button }
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                onClickLabel = "Filter by $name",
                 onClick = onClick
             )
             .padding(horizontal = PaceDreamSpacing.MD)
