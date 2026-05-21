@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -684,11 +685,12 @@ private fun ExtendedCategoriesSection(
 }
 
 @Composable
-private fun QuickCategoryChip(
+internal fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = tween(durationMillis = 100),
@@ -700,17 +702,13 @@ private fun QuickCategoryChip(
         modifier = Modifier
             .height(48.dp)
             .scale(scale)
-            .semantics { role = Role.Button }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClickLabel = "Open ${category.name}",
+                onClick = onClick,
+            ),
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         color = tint.copy(alpha = 0.08f),
         border = BorderStroke(0.5.dp, tint.copy(alpha = 0.12f))
@@ -746,7 +744,7 @@ private fun QuickCategoryChip(
     }
 }
 
-private data class CategoryCardData(
+internal data class CategoryCardData(
     val name: String,
     val icon: ImageVector,
     val color: CategoryColor,
