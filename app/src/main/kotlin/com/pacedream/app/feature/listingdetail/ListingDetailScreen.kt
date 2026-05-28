@@ -104,10 +104,6 @@ import java.time.format.DateTimeFormatter
 
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 
-// intentional: 20.dp page gutter is the listing-detail edge padding. Sits off the
-// 4/8/16/24 grid but is the deliberate iOS-parity design for the detail screen.
-private val ListingDetailGutter = 20.dp
-
 /**
  * Test tags for the listing detail screen — used by Espresso to address
  * the screen root, the bottom booking bar / Reserve CTA, and the
@@ -241,7 +237,7 @@ fun ListingDetailScreen(
                             androidx.compose.foundation.layout.Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM)
                                     .background(
                                         PaceDreamColors.Warning.copy(alpha = 0.10f),
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(PaceDreamRadius.MD)
@@ -284,7 +280,7 @@ fun ListingDetailScreen(
                                 onRetry = onRetry,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2)
                             )
                         }
                     }
@@ -308,7 +304,7 @@ fun ListingDetailScreen(
                             deliveryModeLabel = listing?.deliveryModeLabel,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.MD)
+                                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.MD)
                         )
                     }
 
@@ -323,7 +319,7 @@ fun ListingDetailScreen(
                                 bathrooms = listing.bathrooms,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.XS)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.XS)
                             )
                         }
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
@@ -351,7 +347,7 @@ fun ListingDetailScreen(
                                 onReadMore = { showAboutSheet = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                         item { HorizontalDivider(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) }
@@ -366,7 +362,7 @@ fun ListingDetailScreen(
                                 category = listing?.category,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -381,7 +377,7 @@ fun ListingDetailScreen(
                                 checkOutTime = listing.checkOutTime,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -394,7 +390,7 @@ fun ListingDetailScreen(
                                 features = listing.safetyFeatures,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -412,7 +408,7 @@ fun ListingDetailScreen(
                             onWriteReview = { showWriteReviewSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                         )
                     }
 
@@ -424,7 +420,7 @@ fun ListingDetailScreen(
                             cancellationPolicy = listing?.cancellationPolicy,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                         )
                     }
 
@@ -436,7 +432,7 @@ fun ListingDetailScreen(
                             pricing = listing?.pricing,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                         )
                     }
 
@@ -452,7 +448,7 @@ fun ListingDetailScreen(
                                 deadlineAt = listing.deadlineAt,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -474,7 +470,7 @@ fun ListingDetailScreen(
                                     "In-person location" else "Where you'll be",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -493,7 +489,7 @@ fun ListingDetailScreen(
                                 onlineSession = listing.onlineSession ?: OnlineSessionInfo(),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                             )
                         }
                     }
@@ -505,7 +501,7 @@ fun ListingDetailScreen(
                             onReportClick = { showReportSheet = true },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ListingDetailGutter, vertical = ListingDetailGutter)
+                                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
                         )
                     }
                 }
@@ -538,7 +534,7 @@ fun ListingDetailScreen(
                     text = listing?.description?.trim().orEmpty(),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(ListingDetailGutter)
+                    modifier = Modifier.padding(PaceDreamSpacing.Layout.HomeGutter)
                 )
                 Spacer(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues()))
             }
@@ -557,7 +553,7 @@ fun ListingDetailScreen(
                     else -> "Highlights"
                 }
                 BottomSheetHeader(title = highlightsTitle, onClose = { showAmenitiesSheet = false })
-                Column(modifier = Modifier.padding(ListingDetailGutter)) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.Layout.HomeGutter)) {
                     listing?.amenities.orEmpty().forEach { amenity ->
                         Row(
                             modifier = Modifier.padding(vertical = PaceDreamSpacing.SM),
@@ -896,7 +892,7 @@ private fun ReserveSheet(
                 .weight(1f, fill = false)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = ListingDetailGutter)
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         ) {
         // Duration selection chips — hidden for monthly listings (hourly concept doesn't apply).
         if (!isMonthlyListing) {
@@ -921,7 +917,7 @@ private fun ReserveSheet(
                     ) {
                         Text(
                             text = label,
-                            modifier = Modifier.padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM),
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
@@ -985,7 +981,7 @@ private fun ReserveSheet(
                     ) {
                         Text(
                             text = label,
-                            modifier = Modifier.padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM),
+                            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM),
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
@@ -1198,13 +1194,13 @@ private fun ReserveSheet(
                     Text("−", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                 }
             }
-            Spacer(modifier = Modifier.width(ListingDetailGutter))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.Layout.HomeGutter))
             Text(
                 "$guests",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(ListingDetailGutter))
+            Spacer(modifier = Modifier.width(PaceDreamSpacing.Layout.HomeGutter))
             Surface(
                 onClick = { guests = (guests + 1).coerceAtMost(20) },
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -1282,7 +1278,7 @@ private fun ReserveSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2)
+                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2)
             ) {
                 if (isMonthlyListing) {
                     val canReserveMonthly = selectedDate != null && monthlyDurationMonths != null
@@ -2609,7 +2605,7 @@ private fun WriteReviewSheet(
     BottomSheetHeader(title = title, onClose = onClose)
 
     Column(
-        modifier = Modifier.padding(horizontal = ListingDetailGutter),
+        modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -2663,7 +2659,7 @@ private fun WriteReviewSheet(
             modifier = Modifier.height(24.dp)
         )
 
-        Spacer(modifier = Modifier.height(ListingDetailGutter))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
 
         // Comment (optional)
         Text(
@@ -3651,7 +3647,7 @@ private fun BottomSheetHeader(title: String, onClose: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = ListingDetailGutter, vertical = PaceDreamSpacing.SM2),
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -3770,7 +3766,7 @@ private fun ReportListingSheet(
                 maxLines = 5
             )
 
-            Spacer(Modifier.height(ListingDetailGutter))
+            Spacer(Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
             Button(
                 onClick = {
                     isSubmitting = true
