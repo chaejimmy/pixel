@@ -490,6 +490,7 @@ private fun HeroHeaderSection(
                     modifier = Modifier
                         .weight(1f)
                         .testTag(HomeTestTags.SearchBar)
+                        .semantics(mergeDescendants = true) {}
                         .clickable(
                             role = Role.Button,
                             onClickLabel = "Search",
@@ -629,8 +630,7 @@ private fun CategoryTab(
         modifier = Modifier
             .semantics { role = Role.Button }
             .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
+                onClickLabel = "Filter by $name",
                 onClick = onClick
             )
             .padding(horizontal = PaceDreamSpacing.MD)
