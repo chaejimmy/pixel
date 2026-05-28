@@ -2,6 +2,7 @@
 package com.pacedream.app.feature.search
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -12,7 +13,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -167,6 +171,14 @@ fun SearchScreen(
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
             // Search bar (iOS parity: filled background, rounded, leading icon)
+            val searchFieldShape = RoundedCornerShape(PaceDreamRadius.MD)
+            val interactionSource = remember { MutableInteractionSource() }
+            val isFocused by interactionSource.collectIsFocusedAsState()
+            val borderColor by animateColorAsState(
+                if (isFocused) PaceDreamColors.Primary else PaceDreamColors.Gray200,
+                tween(150),
+                label = "searchBorder",
+            )
             TextField(
                 value = uiState.query,
                 onValueChange = { viewModel.onQueryChanged(it) },
@@ -182,7 +194,7 @@ fun SearchScreen(
                 leadingIcon = {
                     Icon(
                         PaceDreamIcons.Search,
-                        contentDescription = "Search",
+                        contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -199,9 +211,13 @@ fun SearchScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().testTag(SearchTestTags.Input),
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, borderColor, searchFieldShape)
+                    .testTag(SearchTestTags.Input),
+                shape = searchFieldShape,
                 singleLine = true,
+                interactionSource = interactionSource,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = {
                     keyboardController?.hide()

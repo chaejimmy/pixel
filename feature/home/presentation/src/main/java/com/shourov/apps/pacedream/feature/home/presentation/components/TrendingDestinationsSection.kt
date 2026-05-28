@@ -112,9 +112,10 @@ private fun TrendingDestinationCard(
             .crossfade(200)
             .build()
     }
-    val scrimBrush = remember(height) {
+    val scrimColor = scrimOnImage(0.55f)
+    val scrimBrush = remember(height, scrimColor) {
         Brush.verticalGradient(
-            colors = listOf(Color.Transparent, scrimOnImage(0.55f)),
+            colors = listOf(Color.Transparent, scrimColor),
             startY = 0.4f * height.value,
         )
     }

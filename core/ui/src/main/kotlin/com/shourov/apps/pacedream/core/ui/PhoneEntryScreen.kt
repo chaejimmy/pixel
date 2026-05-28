@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -55,14 +56,22 @@ import com.pacedream.common.composables.theme.stronglyDeemphasizedAlpha
 import com.shourov.apps.pacedream.core.data.UserAuthPath.NEW
 import com.shourov.apps.pacedream.core.ui.R as CoreUiR
 
+/**
+ * Phone entry screen for the legacy sign-in flow. The Continue button is
+ * gated on `PhoneNumberValidationState.isValid` — invalid input must NEVER
+ * route forward (security gate C-03 in the interaction audit). Account
+ * setup is reachable only after OTP verification succeeds, so this
+ * composable only ever invokes [onProceedToOtpVerification].
+ */
 @Composable
 fun PhoneEntryScreen(
     modifier: Modifier = Modifier,
-    onProceedToOtpVerification: () -> Unit,
+    onProceedToOtpVerification: (String) -> Unit,
     onNavigateToCreateAccount: () -> Unit,
     onNavigateToAccountSignIn: () -> Unit,
     onNavigateToAccountSetup: () -> Unit,
     userAuthPath: UserAuthPath,
+    onShowSnackbar: (String) -> Unit = {},
 ) {
     var phoneNumberState by remember {
         mutableStateOf(
@@ -107,14 +116,24 @@ fun PhoneEntryScreen(
             },
         )
         Spacer(modifier = Modifier.height(14.dp))
+        val invalidPhoneMessage = stringResource(
+            id = CoreUiR.string.core_ui_phone_number_invalid_snackbar,
+        )
         ProcessButton(
             onClick = {
+                // Mark the field dirty so the inline error shows; only after
+                // dirty does `showErrors()` flip. Then guard navigation on
+                // `isValid` — without this guard users would bypass OTP
+                // verification entirely (C-03 auth bypass).
                 phoneNumberState.enableShowErrors()
                 if (phoneNumberState.isValid) {
-                    onProceedToOtpVerification()
+                    onProceedToOtpVerification(phoneNumberState.text)
+                } else {
+                    onShowSnackbar(invalidPhoneMessage)
                 }
             },
             modifier = Modifier
+                .testTag(PhoneEntryScreenTestTags.ContinueButton)
                 .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()),
             text = stringResource(id = CoreUiR.string.core_ui_continue_button),
         )
@@ -165,6 +184,7 @@ fun PhoneNumberInput(
             ),
             modifier = Modifier
                 .weight(1f)
+                .testTag(PhoneEntryScreenTestTags.PhoneInput)
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
                         hasFocus = true
@@ -332,4 +352,9 @@ fun PhoneEntryScreenPreview() {
             userAuthPath = NEW,
         )
     }
+}
+
+object PhoneEntryScreenTestTags {
+    const val ContinueButton = "phone_entry_continue_button"
+    const val PhoneInput = "phone_entry_input"
 }

@@ -739,7 +739,6 @@ private fun ReviewCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // intentional: 0.dp contentPadding so the TextButton's icon+label hug the leading edge
                 TextButton(onClick = onHelpful, contentPadding = PaddingValues(0.dp)) {
                     Icon(PaceDreamIcons.ThumbUp, null, modifier = Modifier.size(14.dp), tint = PaceDreamColors.TextSecondary)
                     Spacer(Modifier.width(PaceDreamSpacing.XS))

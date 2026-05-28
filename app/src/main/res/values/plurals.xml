@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="booking_count">
+        <item quantity="one">%1$d booking</item>
+        <item quantity="other">%1$d bookings</item>
+    </plurals>
+    <plurals name="night_count">
+        <item quantity="one">%1$d night</item>
+        <item quantity="other">%1$d nights</item>
+    </plurals>
+    <plurals name="guest_count">
+        <item quantity="one">%1$d guest</item>
+        <item quantity="other">%1$d guests</item>
+    </plurals>
+</resources>
