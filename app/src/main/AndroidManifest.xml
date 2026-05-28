@@ -12,6 +12,17 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!--
+    PaymentReconciliationWorker runs as a foreground service while it is
+    confirming a captured payment so the user sees the "Confirming your
+    payment…" notification even after force-killing the app.  data_sync is
+    the right type: we're synchronising payment state with the backend.
+    Required on Android 14+ (API 34+); the WorkManager runtime takes care of
+    the service declaration itself.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!--
     Firebase automatically adds the AD_ID permission, even though we don't use it. If you use this
     permission you must declare how you're using it to Google Play, otherwise the app will be
     rejected when publishing it. To avoid this we remove the permission entirely.
@@ -132,13 +143,40 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                
+
                 <data
                     android:scheme="com.pacedream.app"
                     android:host="auth0" />
             </intent-filter>
 
+            <!-- pacedream:// push deep links (requests, bookings).
+                 Routed at runtime by PushDeepLinkHandler. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="pacedream"
+                    android:host="requests" />
+                <data
+                    android:scheme="pacedream"
+                    android:host="bookings" />
+            </intent-filter>
+
         </activity>
+
+        <!--
+        Merge the dataSync foregroundServiceType onto WorkManager's
+        SystemForegroundService entry. Required on Android 14+ (API 34+)
+        so PaymentReconciliationWorker's ForegroundInfo with
+        FOREGROUND_SERVICE_TYPE_DATA_SYNC is accepted at runtime, and to
+        satisfy the SpecifyForegroundServiceType lint check.
+        -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
 
         <!-- Disable Firebase analytics by default. This setting is overwritten for the `prod`
         flavor -->

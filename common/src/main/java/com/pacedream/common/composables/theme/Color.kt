@@ -1,6 +1,9 @@
 
 package com.pacedream.common.composables.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 // ============================================================================
@@ -245,8 +248,24 @@ object PaceDreamColors {
     // existing iOS-aligned palette so feature code does not reach for hex.
     val TextHeadline = Color(0xFF1A1A1A) // section headers, card titles
     val TextBody = Color(0xFF111827)     // primary body text (same as TextPrimary)
-    val IconNeutral = Color(0xFF374151)  // gray-700 filter icons, rating labels
     val OnWarningContainer = Color(0xFF78350F) // text on warning-tinted banner
+
+    // Semantic icon + divider tokens — resolve against MaterialTheme so they
+    // adapt to dark mode instead of locking to a light-only gray.
+    val IconNeutral: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val IconMuted: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+
+    val DividerNeutral: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.outlineVariant
 
     // Shimmer skeleton gradient stops
     val ShimmerHighlight = Color(0xFFF0F0F0)

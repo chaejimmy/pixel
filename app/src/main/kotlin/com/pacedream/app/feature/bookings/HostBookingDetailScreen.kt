@@ -61,10 +61,6 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 
-// intentional: 20.dp horizontal gutter is the product-wide page edge padding. Sits off
-// the 4/8/16/24 grid but is the deliberate design for booking/listing detail screens.
-private val BookingDetailGutter = 20.dp
-
 /**
  * Host-side booking detail screen.  Renamed from `BookingDetailScreen`
  * to disambiguate from the guest-side
@@ -149,7 +145,7 @@ fun HostBookingDetailScreen(
 
                     Column(
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
-                        verticalArrangement = Arrangement.spacedBy(BookingDetailGutter)
+                        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.Layout.HomeGutter)
                     ) {
                         Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
@@ -297,7 +293,6 @@ private fun HeroImage(imageUrl: String?, statusLabel: String, status: BookingSta
                 .border(0.5.dp, badgeBorder, RoundedCornerShape(PaceDreamRadius.Round))
                 .padding(horizontal = PaceDreamSpacing.SM2, vertical = PaceDreamSpacing.SM),
             verticalAlignment = Alignment.CenterVertically,
-            // intentional: 5.dp icon-to-label gap inside status badge; tighter than XS feels crowded, SM feels loose
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
@@ -415,7 +410,7 @@ private fun BookingDetailsCard(booking: BookingDetail) {
                     color = PaceDreamColors.Gray200,
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
-                .padding(BookingDetailGutter)
+                .padding(PaceDreamSpacing.Layout.HomeGutter)
         ) {
             Text(
                 text = "Booking Details",
@@ -588,7 +583,7 @@ private fun PricingCard(booking: BookingDetail) {
                     color = PaceDreamColors.Gray200,
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
-                .padding(BookingDetailGutter)
+                .padding(PaceDreamSpacing.Layout.HomeGutter)
         ) {
             Text(
                 text = "Pricing",
@@ -788,7 +783,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
 
         Column(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD),
-            verticalArrangement = Arrangement.spacedBy(BookingDetailGutter)
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.Layout.HomeGutter)
         ) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
@@ -814,7 +809,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray50)
             ) {
-                Column(modifier = Modifier.padding(BookingDetailGutter)) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.Layout.HomeGutter)) {
                     repeat(5) {
                         Row(
                             modifier = Modifier
@@ -861,7 +856,7 @@ private fun BookingDetailLoadingSkeleton(modifier: Modifier = Modifier) {
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Gray50)
             ) {
-                Column(modifier = Modifier.padding(BookingDetailGutter)) {
+                Column(modifier = Modifier.padding(PaceDreamSpacing.Layout.HomeGutter)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween

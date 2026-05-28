@@ -58,18 +58,30 @@ private val FilterCountOptions: List<Pair<String, Int?>> = listOf(
     "5+" to 5,
 )
 
+// Upper bound of the price RangeSlider. Lifted from the inline 2000f magic
+// numbers so the "did the user constrain the max?" check on Apply uses the
+// same ceiling the slider exposes — otherwise a slider topping out at 2000
+// would silently send maxPrice=2000 even when the user left it untouched.
+private const val PRICE_MAX: Float = 2000f
+private const val PRICE_STEPS: Int = 19
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterScreen(
     onBackClick: () -> Unit,
     onApplyFilters: (FilterCriteria) -> Unit,
     initial: FilterCriteria = FilterCriteria(),
+    // Resets the upstream filter store (parity with
+    // `SearchViewModel.clearFilters()`). Called alongside the local form
+    // reset so the search query reverts immediately — the user does not
+    // need to also press Apply to clear the underlying results.
+    onClearFilters: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedAmenities by remember { mutableStateOf(initial.amenities) }
     var priceRange by remember {
         mutableStateOf(
-            (initial.minPrice ?: 0).toFloat()..(initial.maxPrice ?: 1000).toFloat()
+            (initial.minPrice ?: 0).toFloat()..(initial.maxPrice ?: PRICE_MAX.toInt()).toFloat()
         )
     }
     var selectedPropertyType by remember { mutableStateOf(initial.propertyType.orEmpty()) }
@@ -85,6 +97,25 @@ fun FilterScreen(
     var instantBookOnly by remember { mutableStateOf(initial.instantBookOnly) }
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // Reset every control to its default. Pulled out so both the in-screen
+    // "Clear all" button and any future entry points (e.g. swipe-to-reset)
+    // share the same definition of "empty form".
+    val resetForm: () -> Unit = {
+        selectedAmenities = emptySet()
+        priceRange = 0f..PRICE_MAX
+        selectedPropertyType = ""
+        checkIn = null
+        checkOut = null
+        adults = 0
+        children = 0
+        infants = 0
+        pets = 0
+        bedrooms = null
+        beds = null
+        bathrooms = null
+        instantBookOnly = false
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -93,22 +124,26 @@ fun FilterScreen(
         MinimalDashboardHeader(
             title = "Filters",
             onBackClick = onBackClick,
-            onActionClick = {
-                selectedAmenities = emptySet()
-                priceRange = 0f..1000f
-                selectedPropertyType = ""
-                checkIn = null
-                checkOut = null
-                adults = 0
-                children = 0
-                infants = 0
-                pets = 0
-                bedrooms = null
-                beds = null
-                bathrooms = null
-                instantBookOnly = false
-            }
         )
+
+        // Top-right "Clear all" affordance — a labeled text button is
+        // self-explanatory in a way the previous MoreVert icon was not.
+        // Tapping it resets the form AND the upstream filter store so the
+        // search query reflects the cleared state without the user
+        // pressing Apply.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = PaceDreamSpacing.SM),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = {
+                resetForm()
+                onClearFilters()
+            }) {
+                Text("Clear all")
+            }
+        }
 
         LazyColumn(
             modifier = Modifier
@@ -195,8 +230,8 @@ fun FilterScreen(
                 RangeSlider(
                     value = priceRange,
                     onValueChange = { priceRange = it },
-                    valueRange = 0f..2000f,
-                    steps = 19
+                    valueRange = 0f..PRICE_MAX,
+                    steps = PRICE_STEPS,
                 )
             }
 
@@ -301,30 +336,35 @@ fun FilterScreen(
                     text = "Cancel",
                 )
 
+                // Build the criteria once so the CTA label and the
+                // commit-on-tap payload stay in sync (a count of N filters
+                // on the button must match what onApplyFilters delivers).
+                val pendingCriteria = FilterCriteria(
+                    checkInEpochDay = checkIn,
+                    checkOutEpochDay = checkOut,
+                    adults = adults,
+                    children = children,
+                    infants = infants,
+                    pets = pets,
+                    propertyType = selectedPropertyType.takeIf { it.isNotBlank() },
+                    minPrice = priceRange.start.toInt().takeIf { it > 0 },
+                    maxPrice = priceRange.endInclusive.toInt()
+                        .takeIf { it < PRICE_MAX.toInt() },
+                    bedrooms = bedrooms,
+                    beds = beds,
+                    bathrooms = bathrooms,
+                    amenities = selectedAmenities,
+                    instantBookOnly = instantBookOnly,
+                )
+                val activeCount = pendingCriteria.activeFilterCount()
                 CompactProcessButton(
-                    onClick = {
-                        onApplyFilters(
-                            FilterCriteria(
-                                checkInEpochDay = checkIn,
-                                checkOutEpochDay = checkOut,
-                                adults = adults,
-                                children = children,
-                                infants = infants,
-                                pets = pets,
-                                propertyType = selectedPropertyType.takeIf { it.isNotBlank() },
-                                minPrice = priceRange.start.toInt().takeIf { it > 0 },
-                                maxPrice = priceRange.endInclusive.toInt()
-                                    .takeIf { it < 2000 },
-                                bedrooms = bedrooms,
-                                beds = beds,
-                                bathrooms = bathrooms,
-                                amenities = selectedAmenities,
-                                instantBookOnly = instantBookOnly,
-                            )
-                        )
-                    },
+                    onClick = { onApplyFilters(pendingCriteria) },
                     modifier = Modifier.weight(1f),
-                    text = "Apply Filters",
+                    text = if (activeCount > 0) {
+                        "Apply $activeCount " + if (activeCount == 1) "filter" else "filters"
+                    } else {
+                        "Apply Filters"
+                    },
                 )
             }
         }
