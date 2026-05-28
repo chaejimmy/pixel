@@ -5,7 +5,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +20,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,9 +32,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,16 +44,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shourov.apps.pacedream.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
 import com.pacedream.app.feature.checkout.PendingPaymentState
+import com.pacedream.common.composables.designsystem.PaceDreamImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -96,6 +101,7 @@ object BookingsTestTags {
 fun BookingsScreen(
     onBookingClick: (String) -> Unit,
     onBookingClickWithData: ((BookingListItem) -> Unit)? = null,
+    onBrowseClick: (() -> Unit)? = null,
     viewModel: BookingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -160,21 +166,34 @@ fun BookingsScreen(
                 // otherwise see "No bookings" with no hint that their card
                 // was charged.
                 uiState.filteredBookings.isEmpty() && paymentState !is PendingPaymentState.Pending -> {
-                    val emptyConfig = when (uiState.selectedTab) {
-                        BookingTab.ALL -> Pair(PaceDreamIcons.ListIcon, "No bookings found")
-                        BookingTab.UPCOMING -> Pair(PaceDreamIcons.CalendarToday, "No upcoming bookings")
-                        BookingTab.PAST -> Pair(PaceDreamIcons.CheckCircle, "No past bookings")
-                        BookingTab.CANCELLED -> Pair(PaceDreamIcons.Cancel, "No cancelled bookings")
+                    val emptyIcon = when (uiState.selectedTab) {
+                        BookingTab.ALL -> PaceDreamIcons.ListIcon
+                        BookingTab.UPCOMING -> PaceDreamIcons.CalendarToday
+                        BookingTab.PAST -> PaceDreamIcons.CheckCircle
+                        BookingTab.CANCELLED -> PaceDreamIcons.Cancel
+                    }
+                    val emptyTitle = when (uiState.selectedTab) {
+                        BookingTab.ALL -> "No bookings yet"
+                        BookingTab.UPCOMING -> "No upcoming bookings"
+                        BookingTab.PAST -> "No past bookings"
+                        BookingTab.CANCELLED -> "No cancelled bookings"
+                    }
+                    val emptyDescription = when (uiState.selectedTab) {
+                        BookingTab.ALL -> "Your bookings will live here. Browse spaces, items, and services to make your first one."
+                        BookingTab.UPCOMING -> "When you book a stay, it will appear here."
+                        BookingTab.PAST -> "Completed stays will appear here after checkout."
+                        BookingTab.CANCELLED -> "Cancelled or refunded bookings will show up here."
                     }
                     PaceDreamEmptyState(
-                        title = emptyConfig.second,
-                        description = when (uiState.selectedTab) {
-                            BookingTab.UPCOMING -> "When you book a stay, it will appear here."
-                            BookingTab.PAST -> "Completed stays will appear here after checkout."
-                            BookingTab.CANCELLED -> "Cancelled or refunded bookings will show up here."
-                            else -> "Start exploring and find your next stay!"
+                        title = emptyTitle,
+                        description = emptyDescription,
+                        icon = emptyIcon,
+                        actionText = "Browse spaces".takeIf {
+                            uiState.selectedTab == BookingTab.ALL && onBrowseClick != null
                         },
-                        icon = emptyConfig.first,
+                        onActionClick = onBrowseClick.takeIf {
+                            uiState.selectedTab == BookingTab.ALL
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag(BookingsTestTags.EmptyState)
@@ -246,8 +265,7 @@ fun BookingsScreen(
 
                         // Bottom padding for nav bar
                         item {
-                            // intentional: 80.dp clears the bottom nav bar + FAB; between XXXL (64) and XXXL+MD — neither fits
-                            Spacer(modifier = Modifier.height(80.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.BottomNavClearance))
                         }
                     }
                 }
@@ -285,7 +303,7 @@ private fun BookingsHeader(
         if (bookingCount > 0) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
-                text = "$bookingCount booking${if (bookingCount == 1) "" else "s"}",
+                text = pluralStringResource(R.plurals.booking_count, bookingCount, bookingCount),
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary
             )
@@ -311,14 +329,22 @@ private fun BookingTabPicker(
     countProvider: (BookingTab) -> Int,
     onTabSelected: (BookingTab) -> Unit
 ) {
-    Row(
+    val listState = rememberLazyListState()
+    LaunchedEffect(selectedTab) {
+        listState.animateScrollToItem(
+            index = selectedTab.ordinal,
+            scrollOffset = -32 // small lead-in so the pill isn't flush to the edge
+        )
+    }
+    LazyRow(
+        state = listState,
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .testTag(BookingsTestTags.TabPicker),
-        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
     ) {
-        BookingTab.entries.forEach { tab ->
+        items(BookingTab.entries.toList()) { tab ->
             val isSelected = selectedTab == tab
             val count = countProvider(tab)
 
@@ -404,7 +430,9 @@ private fun UnifiedBookingCard(
             .fillMaxWidth()
             .testTag(BookingsTestTags.Card),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -423,29 +451,12 @@ private fun UnifiedBookingCard(
                     .height(170.dp)
                     .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
             ) {
-                if (!item.imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = item.imageUrl,
-                        contentDescription = item.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    // Placeholder
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(PaceDreamColors.Gray200.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = PaceDreamIcons.Image,
-                            contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                }
+                PaceDreamImage(
+                    url = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
 
                 // Top-left: Role badge
                 RoleBadge(
@@ -527,7 +538,11 @@ private fun UnifiedBookingCard(
                         BookingDetailRow(
                             icon = PaceDreamIcons.Hotel,
                             label = "Nights",
-                            value = "${item.nightsCount} night${if (item.nightsCount == 1) "" else "s"}"
+                            value = pluralStringResource(
+                                R.plurals.night_count,
+                                item.nightsCount,
+                                item.nightsCount
+                            )
                         )
                     }
                 }
@@ -600,7 +615,7 @@ private fun UnifiedBookingCard(
                     Text(
                         "View Details",
                         style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -636,7 +651,10 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
             .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS),
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Role: ${role.label}"
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
     ) {
@@ -665,7 +683,10 @@ private fun StatusBadge(config: BookingStatusConfig, modifier: Modifier = Modifi
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
             .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.SM),
+            .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.SM)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Status: ${config.label}"
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)
     ) {
@@ -743,7 +764,9 @@ private fun PendingPaymentRow(
             .testTag(BookingsTestTags.PendingPaymentRow)
             .clickable { onClick() },
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -895,7 +918,7 @@ fun PaymentReconciliationBanner(
                 Text(
                     text = primaryLabel,
                     style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
@@ -990,7 +1013,9 @@ private fun BookingCardSkeleton() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(

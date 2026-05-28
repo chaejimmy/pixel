@@ -166,6 +166,18 @@
 
         </activity>
 
+        <!--
+        Merge the dataSync foregroundServiceType onto WorkManager's
+        SystemForegroundService entry. Required on Android 14+ (API 34+)
+        so PaymentReconciliationWorker's ForegroundInfo with
+        FOREGROUND_SERVICE_TYPE_DATA_SYNC is accepted at runtime, and to
+        satisfy the SpecifyForegroundServiceType lint check.
+        -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
         <!-- Disable Firebase analytics by default. This setting is overwritten for the `prod`
         flavor -->
         <meta-data
