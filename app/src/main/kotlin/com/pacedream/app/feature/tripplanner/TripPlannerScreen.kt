@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -31,7 +32,11 @@ import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
 import com.pacedream.common.composables.theme.*
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,11 +98,28 @@ data class ToursEnvelope(val data: List<Tour>? = null, val tours: List<Tour>? = 
 
 // ── Repository ───────────────────────────────────────────────────
 
+/**
+ * Network-facing contract for trip planning. Kept as an interface so the
+ * ViewModel can be tested with a deterministic fake without booting an
+ * `ApiClient` and its OkHttp / token storage dependencies. Production
+ * binding is provided by [TripPlannerRepositoryImpl] via [TripPlannerRepositoryModule].
+ *
+ * NOTE on Undo: there is no companion restore endpoint for [deleteTrip],
+ * so the screen must not offer an Undo action until a server-side restore
+ * lands.
+ */
+interface TripPlannerRepository {
+    suspend fun getTrips(): ApiResult<TripsEnvelope>
+    suspend fun createTrip(request: CreateTripRequest): ApiResult<String>
+    suspend fun deleteTrip(tripId: String): ApiResult<String>
+    suspend fun getTours(city: String): ApiResult<ToursEnvelope>
+}
+
 @Singleton
-class TripPlannerRepository @Inject constructor(
+class TripPlannerRepositoryImpl @Inject constructor(
     private val apiClient: ApiClient, private val appConfig: AppConfig, private val json: Json
-) {
-    suspend fun getTrips(): ApiResult<TripsEnvelope> {
+) : TripPlannerRepository {
+    override suspend fun getTrips(): ApiResult<TripsEnvelope> {
         val url = appConfig.buildApiUrl("trips")
         return when (val result = apiClient.get(url, includeAuth = true)) {
             is ApiResult.Success -> try {
@@ -109,15 +131,15 @@ class TripPlannerRepository @Inject constructor(
         }
     }
 
-    suspend fun createTrip(request: CreateTripRequest): ApiResult<String> {
+    override suspend fun createTrip(request: CreateTripRequest): ApiResult<String> {
         val url = appConfig.buildApiUrl("trips")
         return apiClient.post(url, json.encodeToString(CreateTripRequest.serializer(), request), includeAuth = true)
     }
 
-    suspend fun deleteTrip(tripId: String): ApiResult<String> =
+    override suspend fun deleteTrip(tripId: String): ApiResult<String> =
         apiClient.delete(appConfig.buildApiUrl("trips", tripId), includeAuth = true)
 
-    suspend fun getTours(city: String): ApiResult<ToursEnvelope> {
+    override suspend fun getTours(city: String): ApiResult<ToursEnvelope> {
         val url = appConfig.buildApiUrl("tours", queryParams = mapOf("city" to city))
         return when (val result = apiClient.get(url, includeAuth = false)) {
             is ApiResult.Success -> try {
@@ -130,6 +152,14 @@ class TripPlannerRepository @Inject constructor(
     }
 }
 
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class TripPlannerRepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindTripPlannerRepository(impl: TripPlannerRepositoryImpl): TripPlannerRepository
+}
+
 // ── ViewModel ────────────────────────────────────────────────────
 
 data class TripPlannerUiState(
@@ -138,7 +168,14 @@ data class TripPlannerUiState(
     val fromCity: String = "", val toCity: String = "",
     val departureDate: String = "", val returnDate: String = "",
     val isLoading: Boolean = false, val isRefreshing: Boolean = false,
-    val error: String? = null, val showCreateDialog: Boolean = false,
+    val error: String? = null,
+    /**
+     * Transient success message for the Snackbar (e.g. "Deleted" after a
+     * successful trip delete). Cleared by [TripPlannerViewModel.consumeMessage]
+     * once the host has consumed it.
+     */
+    val message: String? = null,
+    val showCreateDialog: Boolean = false,
     val isSearchingTours: Boolean = false
 )
 
@@ -196,22 +233,44 @@ class TripPlannerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Delete a trip after the user has confirmed in the screen-level
+     * AlertDialog. Failure is not swallowed: it is logged via Timber and
+     * surfaced through [TripPlannerUiState.error] which the screen routes
+     * into the SnackbarHost. Success is surfaced via
+     * [TripPlannerUiState.message] so the user sees a positive
+     * acknowledgement instead of a silent list mutation.
+     *
+     * NOTE on Undo: the backend has no restore endpoint — `DELETE
+     * /v1/trips/{id}` is destructive and `POST /v1/trips` would only create
+     * a new trip with a fresh id. Until a server-side restore lands we
+     * deliberately surface a plain "Deleted" message without an Undo
+     * action.
+     */
     fun deleteTrip(id: String) { viewModelScope.launch {
         try {
             when (val result = repository.deleteTrip(id)) {
-                is ApiResult.Success -> loadTrips()
+                is ApiResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            trips = it.trips.filter { trip -> trip.id != id },
+                            message = TripPlannerCopy.DELETE_SUCCESS,
+                        )
+                    }
+                }
                 is ApiResult.Failure -> {
                     Timber.w("Trip delete failed: ${'$'}{result.error}")
-                    _uiState.update { it.copy(error = "Couldn't delete that trip. Please try again.") }
+                    _uiState.update { it.copy(error = TripPlannerCopy.DELETE_FAILURE) }
                 }
             }
         } catch (e: Exception) {
             Timber.e(e, "Failed to delete trip")
-            _uiState.update { it.copy(error = "Couldn't delete that trip. Please try again.") }
+            _uiState.update { it.copy(error = TripPlannerCopy.DELETE_FAILURE) }
         }
     }}
 
     fun consumeError() { _uiState.update { it.copy(error = null) } }
+    fun consumeMessage() { _uiState.update { it.copy(message = null) } }
 
     // Hoisted handler for TourCard taps.  Tour detail navigation is not
     // yet wired (no detail screen in the current spec); the recorded
@@ -220,6 +279,16 @@ class TripPlannerViewModel @Inject constructor(
     fun openTour(tour: Tour) {
         Timber.d("Tour selected: id=${'$'}{tour.id} title=${'$'}{tour.title}")
     }
+}
+
+/**
+ * Single source of truth for the Trip Planner Snackbar copy. Reused by the
+ * ViewModel (success / failure paths) and the Compose UI tests so the
+ * test fixture cannot drift from the production strings.
+ */
+internal object TripPlannerCopy {
+    const val DELETE_SUCCESS = "Deleted"
+    const val DELETE_FAILURE = "Couldn't delete — try again."
 }
 
 // ── Screen ───────────────────────────────────────────────────────
@@ -239,6 +308,18 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
         if (msg != null && uiState.trips.isNotEmpty()) {
             snackbarHostState.showSnackbar(msg)
             viewModel.consumeError()
+        }
+    }
+
+    // Surface success messages (e.g. "Deleted" after a successful trip
+    // delete) so users get explicit acknowledgement rather than a silent
+    // mutation of the list.  Failure messages flow through `uiState.error`
+    // above; success messages flow here.
+    LaunchedEffect(uiState.message) {
+        val msg = uiState.message
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.consumeMessage()
         }
     }
 
@@ -308,45 +389,83 @@ fun TripPlannerScreen(onBackClick: () -> Unit, viewModel: TripPlannerViewModel =
     // explicit user confirmation; if the underlying call fails, the
     // Snackbar above surfaces the error rather than silently swallowing.
     pendingDelete?.let { trip ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = {
-                Text(
-                    text = "Delete trip?",
-                    style = PaceDreamTypography.Headline,
-                    color = PaceDreamColors.TextPrimary,
-                )
+        DeleteTripConfirmDialog(
+            trip = trip,
+            onConfirm = {
+                viewModel.deleteTrip(trip.id)
+                pendingDelete = null
             },
-            text = {
-                Text(
-                    text = "“${trip.name}” will be permanently removed " +
-                        "from your trip planner.",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteTrip(trip.id)
-                        pendingDelete = null
-                    }
-                ) {
-                    Text(
-                        text = "Delete",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
-                    Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
-                }
-            },
-            containerColor = PaceDreamColors.Background,
+            onDismiss = { pendingDelete = null },
         )
     }
+}
+
+/**
+ * Confirmation dialog gating destructive trip deletes.
+ *
+ * Pulled out of the screen body so the dialog can be exercised by
+ * `createComposeRule` tests without spinning up the full Hilt graph. The
+ * "Delete" CTA is in the PaceDream error color; "Cancel" is neutral.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun DeleteTripConfirmDialog(
+    trip: TripPlan,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Delete trip?",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+        },
+        text = {
+            Text(
+                text = "“${trip.name}” will be permanently removed " +
+                    "from your trip planner. This action cannot be undone.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.testTag(TripPlannerDeleteDialogTags.Body),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.testTag(TripPlannerDeleteDialogTags.Confirm),
+            ) {
+                Text(
+                    text = "Delete",
+                    color = PaceDreamColors.Error,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag(TripPlannerDeleteDialogTags.Cancel),
+            ) {
+                Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
+            }
+        },
+        containerColor = PaceDreamColors.Background,
+        modifier = Modifier.testTag(TripPlannerDeleteDialogTags.Root),
+    )
+}
+
+internal object TripPlannerDeleteDialogTags {
+    const val Root = "trip.delete.dialog"
+    const val Body = "trip.delete.dialog.body"
+    const val Confirm = "trip.delete.dialog.confirm"
+    const val Cancel = "trip.delete.dialog.cancel"
+
+    /** Delete CTA on a trip card. Used by tests to verify that tapping
+     * it merely opens the dialog (no API call yet). */
+    fun row(tripId: String): String = "trip.row.$tripId.delete"
 }
 
 // ── Components ───────────────────────────────────────────────────
@@ -432,7 +551,11 @@ private fun TripCard(trip: TripPlan, onDelete: () -> Unit) {
             }
             Spacer(Modifier.height(PaceDreamSpacing.SM))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDelete, contentPadding = PaddingValues(0.dp)) {
+                TextButton(
+                    onClick = onDelete,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.testTag(TripPlannerDeleteDialogTags.row(trip.id)),
+                ) {
                     Icon(PaceDreamIcons.Delete, null, Modifier.size(14.dp), tint = PaceDreamColors.Error)
                     Spacer(Modifier.width(4.dp)); Text("Delete", style = PaceDreamTypography.Caption, color = PaceDreamColors.Error)
                 }

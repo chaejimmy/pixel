@@ -39,12 +39,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,6 +75,25 @@ fun CollectionsScreen(
     var showCreateSheet by remember { mutableStateOf(false) }
     // Captured collection awaiting confirmation; null when no dialog is up.
     var pendingDelete by remember { mutableStateOf<UserCollection?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Drain the ViewModel's effects channel into the Snackbar host. Without
+    // this collector, every Effect.ShowToast emitted by the ViewModel (success
+    // *and* failure for delete / create / add-to-list) is silently buffered
+    // and dropped — the original audit defect.  Re-entering on a fresh
+    // viewModel instance ensures the collector follows config changes.
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is CollectionsViewModel.Effect.ShowToast ->
+                    snackbarHostState.showSnackbar(effect.message)
+                CollectionsViewModel.Effect.ShowAuthRequired -> {
+                    // Auth-required is handled in the screen body via the
+                    // `viewModel.isAuthenticated()` branch; no Snackbar.
+                }
+            }
+        }
+    }
 
     if (!viewModel.isAuthenticated()) {
         Box(
@@ -115,6 +138,7 @@ fun CollectionsScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = PaceDreamColors.Background,
         floatingActionButton = {
             FloatingActionButton(
@@ -241,45 +265,84 @@ fun CollectionsScreen(
     // pattern.  Tapping the trash icon stages a pendingDelete; the dialog
     // only fires the viewModel call on explicit Delete confirmation.
     pendingDelete?.let { collection ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = {
-                Text(
-                    text = "Delete collection?",
-                    style = PaceDreamTypography.Headline,
-                    color = PaceDreamColors.TextPrimary,
-                )
+        DeleteCollectionConfirmDialog(
+            collection = collection,
+            onConfirm = {
+                viewModel.deleteCollection(collection.id)
+                pendingDelete = null
             },
-            text = {
-                Text(
-                    text = "This will permanently remove “${collection.name}” " +
-                        "and all of its saved listings.",
-                    style = PaceDreamTypography.Body,
-                    color = PaceDreamColors.TextSecondary,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteCollection(collection.id)
-                        pendingDelete = null
-                    }
-                ) {
-                    Text(
-                        text = "Delete",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
-                    Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
-                }
-            },
-            containerColor = PaceDreamColors.Background,
+            onDismiss = { pendingDelete = null },
         )
     }
+}
+
+/**
+ * Confirmation dialog gating destructive deletes from the collections list.
+ *
+ * Pulled out of the screen body so the dialog can be exercised by
+ * `createComposeRule` tests without spinning up the full Hilt graph.  The
+ * "Delete" CTA is in the Material 3 error color and the dismiss button is
+ * a neutral "Cancel"; consult [CollectionsDeleteDialogTags] for the test
+ * tag surface area.
+ */
+@Composable
+internal fun DeleteCollectionConfirmDialog(
+    collection: UserCollection,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Delete collection?",
+                style = PaceDreamTypography.Headline,
+                color = PaceDreamColors.TextPrimary,
+            )
+        },
+        text = {
+            Text(
+                text = "Items in this collection will not be deleted. " +
+                    "This action cannot be undone.",
+                style = PaceDreamTypography.Body,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.testTag(CollectionsDeleteDialogTags.Body),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.testTag(CollectionsDeleteDialogTags.Confirm),
+            ) {
+                Text(
+                    text = "Delete",
+                    color = PaceDreamColors.Error,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag(CollectionsDeleteDialogTags.Cancel),
+            ) {
+                Text(text = "Cancel", color = PaceDreamColors.TextSecondary)
+            }
+        },
+        containerColor = PaceDreamColors.Background,
+        modifier = Modifier.testTag(CollectionsDeleteDialogTags.Root),
+    )
+}
+
+internal object CollectionsDeleteDialogTags {
+    const val Root = "collections.delete.dialog"
+    const val Body = "collections.delete.dialog.body"
+    const val Confirm = "collections.delete.dialog.confirm"
+    const val Cancel = "collections.delete.dialog.cancel"
+
+    /** Trash icon on a collection row. Used by tests to verify that
+     * tapping it merely opens the dialog (no API call yet). */
+    fun row(collectionId: String): String = "collections.row.$collectionId.delete"
 }
 
 @Composable
@@ -357,7 +420,10 @@ private fun CollectionCard(
                 )
             }
 
-            IconButton(onClick = onDelete) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.testTag(CollectionsDeleteDialogTags.row(collection.id)),
+            ) {
                 Icon(
                     PaceDreamIcons.Delete,
                     contentDescription = "Delete",

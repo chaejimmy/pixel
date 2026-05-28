@@ -310,11 +310,14 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
-    // CheckoutViewModel unit tests (PaymentReconciliationTest) — coroutine
-    // dispatcher + Turbine for StateFlow assertions.
+    // JVM unit tests: JUnit + Robolectric drive the Collections/Trip delete
+    // dialog composables and ViewModels without a connected device; Turbine
+    // backs StateFlow assertions in CheckoutViewModel's PaymentReconciliationTest.
+    // Keep these JVM-only — the app module has no androidTest source set.
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
-    testImplementation(libs.robolectric)
 
 
 

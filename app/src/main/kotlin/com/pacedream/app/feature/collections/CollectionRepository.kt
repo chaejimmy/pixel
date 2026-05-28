@@ -109,6 +109,9 @@ class CollectionRepository @Inject constructor(
     /**
      * Delete a collection.
      * DELETE /v1/collections/{id}
+     *
+     * NOTE: there is no companion restore endpoint, so callers must NOT
+     * offer an Undo action until the server-side gap closes.
      */
     suspend fun deleteCollection(collectionId: String): ApiResult<String> {
         val url = appConfig.buildApiUrl("collections", collectionId)
