@@ -68,7 +68,6 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.NotificationBellButton
-import com.shourov.apps.pacedream.designsystem.modifier.touchTargetSize
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
@@ -467,90 +466,97 @@ private fun HeroHeaderSection(
             }
         }
 
-        // Overlapping Search Bar
+        // Overlapping Search Bar \u2014 two sibling click regions (search + filter)
+        // separated by a hairline divider so a tap can't be ambiguous.
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 .fillMaxWidth()
-                .testTag(HomeTestTags.SearchBar)
                 .adaptiveShadow(
                     elevation = 10.dp,
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
-                )
-                .semantics { role = Role.Button }
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onSearchClick
                 ),
             shape = RoundedCornerShape(PaceDreamRadius.LG),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
+                // LEFT \u2014 search affordance, takes remaining width
+                Row(
                     modifier = Modifier
-                        .size(42.dp)
-                        .background(
-                            PaceDreamColors.Primary.copy(alpha = 0.08f),
-                            CircleShape
+                        .weight(1f)
+                        .testTag(HomeTestTags.SearchBar)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Search",
+                            onClick = onSearchClick,
+                        )
+                        .padding(
+                            horizontal = PaceDreamSpacing.MD,
+                            vertical = PaceDreamSpacing.SM2
                         ),
-                    contentAlignment = Alignment.Center
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = PaceDreamIcons.Search,
-                        contentDescription = "Search",
-                        tint = PaceDreamColors.Primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Search anywhere",
-                        style = DSTypo.Callout.copy(
-                            fontFamily = paceDreamFontFamily,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = PaceDreamColors.TextHeadline
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.Hairline))
-                    Text(
-                        text = "Spaces \u00B7 Items \u00B7 Services",
-                        style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                        color = PaceDreamColors.IconNeutral
-                    )
-                }
-                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
-                Surface(
-                    modifier = Modifier
-                        // 48dp accessible hit area, 42dp visual; this control
-                        // sits flush against the search-bar tap target so the
-                        // extra 6dp materially reduces mis-taps.
-                        .touchTargetSize()
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .testTag(HomeTestTags.FilterButton)
-                        .semantics { role = Role.Button }
-                        .clickable(onClick = onFilterClick),
-                    shape = CircleShape,
-                    color = PaceDreamColors.Gray100,
-                    border = BorderStroke(0.5.dp, PaceDreamColors.DividerNeutral)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(
+                                PaceDreamColors.Primary.copy(alpha = 0.08f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            imageVector = PaceDreamIcons.Tune,
-                            contentDescription = "Filters",
-                            tint = PaceDreamColors.IconNeutral,
+                            imageVector = PaceDreamIcons.Search,
+                            contentDescription = "Search",
+                            tint = PaceDreamColors.Primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
+                    Spacer(modifier = Modifier.width(PaceDreamSpacing.MD))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Search anywhere",
+                            style = DSTypo.Callout.copy(
+                                fontFamily = paceDreamFontFamily,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = PaceDreamColors.TextHeadline
+                        )
+                        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.Hairline))
+                        Text(
+                            text = "Spaces \u00B7 Items \u00B7 Services",
+                            style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
+                            color = PaceDreamColors.IconNeutral
+                        )
+                    }
+                }
+
+                // hairline divider \u2014 visually separates the two touch regions
+                Box(
+                    Modifier
+                        .height(28.dp)
+                        .width(0.5.dp)
+                        .background(PaceDreamColors.DividerNeutral)
+                )
+
+                // RIGHT \u2014 filter button, fixed width
+                IconButton(
+                    onClick = onFilterClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(end = PaceDreamSpacing.SM)
+                        .testTag(HomeTestTags.FilterButton)
+                ) {
+                    Icon(
+                        imageVector = PaceDreamIcons.Tune,
+                        contentDescription = "Filters",
+                        tint = PaceDreamColors.IconNeutral
+                    )
                 }
             }
         }
