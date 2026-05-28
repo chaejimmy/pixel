@@ -81,6 +81,9 @@ class AuthFlowSheetViewModel @Inject constructor(
     private val AuthFlowSheetUiState.isAnyLoading: Boolean
         get() = isEmailLoading || isGoogleLoading || isAppleLoading
 
+    private fun String?.sanitizeAuthError(): String? =
+        this?.removePrefix("Server error 200: ")
+
     fun loginWithApple(activity: Activity) = loginWithAuth0(activity, Auth0Connection.Apple)
 
     fun loginWithAuth0(activity: Activity, connection: Auth0Connection) {
@@ -116,7 +119,7 @@ class AuthFlowSheetViewModel @Inject constructor(
                             it.copy(
                                 isGoogleLoading = false,
                                 isAppleLoading = false,
-                                error = result.message
+                                error = result.message.sanitizeAuthError()
                             )
                         }
                     }
@@ -126,7 +129,7 @@ class AuthFlowSheetViewModel @Inject constructor(
                     it.copy(
                         isGoogleLoading = false,
                         isAppleLoading = false,
-                        error = e.message ?: "Authentication failed"
+                        error = (e.message ?: "Authentication failed").sanitizeAuthError()
                     )
                 }
             }
@@ -151,12 +154,12 @@ class AuthFlowSheetViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         Timber.e(e, "AuthFlowSheet: login failed")
-                        _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
+                        _uiState.update { it.copy(isEmailLoading = false, error = (e.message ?: "Sign in failed").sanitizeAuthError()) }
                     }
                 )
             } catch (e: Exception) {
                 Timber.e(e, "AuthFlowSheet: login exception")
-                _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Sign in failed") }
+                _uiState.update { it.copy(isEmailLoading = false, error = (e.message ?: "Sign in failed").sanitizeAuthError()) }
             }
         }
     }
@@ -187,12 +190,12 @@ class AuthFlowSheetViewModel @Inject constructor(
                     },
                     onFailure = { e ->
                         Timber.e(e, "AuthFlowSheet: signup failed")
-                        _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
+                        _uiState.update { it.copy(isEmailLoading = false, error = (e.message ?: "Create account failed").sanitizeAuthError()) }
                     }
                 )
             } catch (e: Exception) {
                 Timber.e(e, "AuthFlowSheet: signup exception")
-                _uiState.update { it.copy(isEmailLoading = false, error = e.message ?: "Create account failed") }
+                _uiState.update { it.copy(isEmailLoading = false, error = (e.message ?: "Create account failed").sanitizeAuthError()) }
             }
         }
     }
