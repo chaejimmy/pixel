@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.shourov.apps.pacedream.designsystem.modifier.touchTargetSize
 
 /**
  * Notification bell with an unread-count badge. Wraps a Material 3 [BadgedBox]
@@ -43,6 +44,11 @@ import androidx.compose.ui.unit.dp
  * Color / shape parameters let callers match the existing bell-container
  * styling on each surface (purple glass on Home, white circle on the
  * Discover header, etc.) without re-implementing the badge logic.
+ *
+ * The component enforces an Android-spec 48dp minimum touch target via
+ * [touchTargetSize] regardless of the visual diameter requested through
+ * [modifier] — call-sites can keep tight 36–44dp circular chrome and
+ * still satisfy the accessibility floor.
  */
 @Composable
 fun NotificationBellButton(
@@ -62,9 +68,14 @@ fun NotificationBellButton(
         else -> "$contentDescription, $unreadCount unread"
     }
 
+    // touchTargetSize() wraps the caller's modifier chain so any sub-48dp
+    // .size(...) request (e.g. .size(44.dp) on the home hero) constrains
+    // only the visual circle while the hit area is floored at 48dp.
     IconButton(
         onClick = onClick,
-        modifier = modifier
+        modifier = Modifier
+            .touchTargetSize()
+            .then(modifier)
             .clip(CircleShape)
             .background(containerColor)
             .let { base -> if (border != null) base.border(border, CircleShape) else base }

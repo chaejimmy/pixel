@@ -68,6 +68,7 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.designsystem.modifier.touchTargetSize
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
@@ -394,6 +395,9 @@ private fun HeroHeaderSection(
                             onNotificationClick()
                             unreadVm.markAllAsSeen()
                         },
+                        // .size(44.dp) constrains only the visual purple circle;
+                        // the component prepends touchTargetSize() so the hit
+                        // area is floored at 48dp regardless.
                         modifier = Modifier
                             .size(44.dp)
                             .testTag(HomeTestTags.NotificationButton),
@@ -525,6 +529,10 @@ private fun HeroHeaderSection(
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Surface(
                     modifier = Modifier
+                        // 48dp accessible hit area, 42dp visual; this control
+                        // sits flush against the search-bar tap target so the
+                        // extra 6dp materially reduces mis-taps.
+                        .touchTargetSize()
                         .size(42.dp)
                         .clip(CircleShape)
                         .testTag(HomeTestTags.FilterButton)
