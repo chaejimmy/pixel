@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -114,6 +115,24 @@ fun BookingDetailScreen(
                         .padding(PaceDreamSpacing.LG),
                     verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
                 ) {
+                    // "Payment pending" reconciliation banner — visible
+                    // when the previous app session captured a payment
+                    // (Stripe completed locally) but the backend has not
+                    // yet confirmed it.  Re-fires the worker on tap so
+                    // the user can prod reconciliation instead of staring
+                    // at a possibly-stale booking row.  Resolves to
+                    // either Success (banner disappears, booking shows
+                    // confirmed) or Failure (record's lastErrorMessage
+                    // surfaces in support copy) within the worker's
+                    // backoff window.
+                    uiState.pendingPayment?.let { pending ->
+                        PaymentPendingBanner(
+                            paymentIntentId = pending.paymentIntentId,
+                            requestId = pending.confirmRequestId,
+                            onCheckStatus = { viewModel.checkPendingPaymentStatus() },
+                        )
+                    }
+
                     // Status Badge (iOS BookingStatusHelper parity)
                     val statusLabel = resolveStatusLabel(booking.status)
                     val statusColor = statusColor(statusLabel)
@@ -646,6 +665,85 @@ private fun BookingDetailError(
                     onClick = onBack,
                     colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Card)
                 ) { Text("Back", color = PaceDreamColors.TextPrimary) }
+            }
+        }
+    }
+}
+
+/**
+ * "Payment pending" banner — shown when a previous app session
+ * captured a payment but the booking has not yet been confirmed on
+ * the backend.  Tapping "Check status" re-fires the reconciliation
+ * worker via [BookingDetailViewModel.checkPendingPaymentStatus] and
+ * reloads the booking from the API.
+ *
+ * Style: warning-coloured (PaceDreamColors.Warning) to differentiate
+ * from the destructive Error banner — payment IS captured, just
+ * waiting to confirm.
+ */
+@Composable
+private fun PaymentPendingBanner(
+    paymentIntentId: String?,
+    requestId: String?,
+    onCheckStatus: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(PaceDreamRadius.LG),
+        colors = CardDefaults.cardColors(
+            containerColor = PaceDreamColors.Warning.copy(alpha = 0.10f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = PaceDreamIcons.Schedule,
+                    contentDescription = null,
+                    tint = PaceDreamColors.Warning,
+                    modifier = Modifier.size(PaceDreamIconSize.MD),
+                )
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Payment pending",
+                        style = PaceDreamTypography.Headline,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PaceDreamColors.TextPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "We received your payment and we’re finalizing your booking. " +
+                            "This usually takes a moment.",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextSecondary,
+                    )
+                }
+            }
+            if (!paymentIntentId.isNullOrBlank() || !requestId.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+                if (!paymentIntentId.isNullOrBlank()) {
+                    Text(
+                        text = "Reference: $paymentIntentId",
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.TextTertiary,
+                        maxLines = 1,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
+            Button(
+                onClick = onCheckStatus,
+                colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Warning),
+                shape = RoundedCornerShape(PaceDreamRadius.SM),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    "Check status",
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.OnPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

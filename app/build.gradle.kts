@@ -209,8 +209,8 @@ dependencies {
     implementation(projects.feature.signin)
     implementation(projects.feature.booking)
     implementation(projects.feature.notification)
+    implementation(projects.feature.notifications)
     implementation(projects.feature.guest)
-    implementation(projects.feature.payment)
     implementation(projects.feature.createAccount)
     implementation(projects.feature.host)
     implementation(projects.feature.wishlist)
@@ -310,6 +310,11 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.hilt.android.testing)
+    // CheckoutViewModel unit tests (PaymentReconciliationTest) — coroutine
+    // dispatcher + Turbine for StateFlow assertions.
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.robolectric)
 
 
 

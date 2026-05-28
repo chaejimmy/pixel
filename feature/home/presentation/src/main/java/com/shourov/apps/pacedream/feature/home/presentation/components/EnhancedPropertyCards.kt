@@ -74,11 +74,12 @@ fun EnhancedDestinationCard(
             
             // Gradient Overlay — memoized; the colors are constants so the
             // brush only needs to be allocated once per card instance.
-            val destinationScrim = remember {
+            val scrimColor = scrimOnImage(0.7f)
+            val destinationScrim = remember(scrimColor) {
                 Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        scrimOnImage(0.7f)
+                        scrimColor
                     )
                 )
             }

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.auth.SessionManager
 import com.pacedream.app.core.network.ApiError
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.core.notifications.NotificationChannels
 import com.pacedream.app.feature.settings.AccountSettingsRepository
 import com.shourov.apps.pacedream.core.common.network.di.ApplicationScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +49,12 @@ data class NotificationsUiState(
     val quietHoursEnabled: Boolean = false,
     val quietHoursStart: String = "22:00",
     val quietHoursEnd: String = "08:00",
+    // System-level (Android NotificationChannels). These are not toggled
+    // from inside the app — they reflect what the OS reports right now.
+    // Default to true so the initial render does not flash "off" before
+    // the first refresh.
+    val systemMasterEnabled: Boolean = true,
+    val channelEnabled: Map<String, Boolean> = emptyMap(),
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -74,7 +81,28 @@ class SettingsNotificationsViewModel @Inject constructor(
     )
 
     init {
+        refreshSystemNotificationState()
         load()
+    }
+
+    /**
+     * Re-read per-channel enabled state from the system NotificationManager.
+     *
+     * Channel importance can be changed by the user from system Settings at
+     * any time, so the UI must re-query whenever it becomes visible again
+     * (the screen calls this on every ON_RESUME).
+     */
+    fun refreshSystemNotificationState() {
+        val master = NotificationChannels.isMasterEnabled(context)
+        val perChannel = NotificationChannels.ALL.associate { ch ->
+            ch.id to NotificationChannels.isEnabled(context, ch)
+        }
+        _uiState.update {
+            it.copy(
+                systemMasterEnabled = master,
+                channelEnabled = perChannel,
+            )
+        }
     }
 
     fun load() {

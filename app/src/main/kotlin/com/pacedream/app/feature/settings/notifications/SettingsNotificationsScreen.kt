@@ -19,8 +19,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Sms
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -61,6 +69,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.app.core.notifications.NotificationChannels
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -70,16 +79,17 @@ import com.shourov.apps.pacedream.notification.openAppNotificationSettings
 import kotlinx.coroutines.launch
 
 /**
- * Notification settings screen matching iOS NotificationsSettingsView (iOS parity).
+ * Notification settings screen.
  *
- * Sections:
- * - General: email, push, SMS
- * - Messages: message notifications
- * - Bookings: booking updates, booking alerts
- * - Social: friend request, reviews
- * - System: system notifications
- * - Marketing: marketing & promotions
- * - Quiet Hours: enable/disable with time display
+ * Layout (top → bottom):
+ * - Push notifications (this device): master "System notifications" row +
+ *   one card per [NotificationChannels] entry. Read-only mirrors of the
+ *   system state — tapping a row deep-links to system Settings.
+ * - Email preferences: backend opt-ins for each category, prefixed
+ *   "Email · …" so users see that push and email are separate controls.
+ * - Other notifications: SMS + server-side "send pushes at all" toggle.
+ * - Social, Product updates, Quiet Hours: remaining iOS-parity backend
+ *   preferences.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +100,22 @@ fun SettingsNotificationsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // The Android notification-channel state lives in system Settings, not in
+    // the app. Re-read it on every ON_RESUME so that toggling the Bookings
+    // channel from Settings → Apps → PaceDream → Notifications reflects back
+    // into this screen on the next composition.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshSystemNotificationState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         val message = uiState.errorMessage ?: uiState.successMessage
@@ -136,8 +162,99 @@ fun SettingsNotificationsScreen(
         ) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
 
-            // General Section
-            SectionLabel("General")
+            // ── Device push notifications (Android NotificationChannels) ──
+            // The state here is read from the system and cannot be mutated
+            // from inside the app; tapping a row deep-links to the matching
+            // system Settings page.
+            SectionLabel("Push notifications · this device")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    SystemMasterRow(
+                        enabled = uiState.systemMasterEnabled,
+                        onClick = { NotificationChannels.openAppNotificationSettings(context) }
+                    )
+                }
+            }
+
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
+                    ChannelRow(
+                        channel = NotificationChannels.BOOKINGS,
+                        icon = Icons.Filled.EventAvailable,
+                        iconColor = PaceDreamColors.Success,
+                        enabled = uiState.systemMasterEnabled &&
+                            (uiState.channelEnabled[NotificationChannels.BOOKINGS.id] ?: true),
+                        onClick = {
+                            NotificationChannels.openChannelSettings(context, NotificationChannels.BOOKINGS)
+                        }
+                    )
+                    ChannelRow(
+                        channel = NotificationChannels.MESSAGES,
+                        icon = Icons.Filled.Message,
+                        iconColor = PaceDreamColors.Secondary,
+                        enabled = uiState.systemMasterEnabled &&
+                            (uiState.channelEnabled[NotificationChannels.MESSAGES.id] ?: true),
+                        onClick = {
+                            NotificationChannels.openChannelSettings(context, NotificationChannels.MESSAGES)
+                        }
+                    )
+                    ChannelRow(
+                        channel = NotificationChannels.PAYMENTS,
+                        icon = Icons.Filled.AttachMoney,
+                        iconColor = PaceDreamColors.Primary,
+                        enabled = uiState.systemMasterEnabled &&
+                            (uiState.channelEnabled[NotificationChannels.PAYMENTS.id] ?: true),
+                        onClick = {
+                            NotificationChannels.openChannelSettings(context, NotificationChannels.PAYMENTS)
+                        }
+                    )
+                    ChannelRow(
+                        channel = NotificationChannels.HOST_UPDATES,
+                        icon = Icons.Filled.Home,
+                        iconColor = PaceDreamColors.Info,
+                        enabled = uiState.systemMasterEnabled &&
+                            (uiState.channelEnabled[NotificationChannels.HOST_UPDATES.id] ?: true),
+                        onClick = {
+                            NotificationChannels.openChannelSettings(context, NotificationChannels.HOST_UPDATES)
+                        }
+                    )
+                    ChannelRow(
+                        channel = NotificationChannels.MARKETING,
+                        icon = Icons.Outlined.Campaign,
+                        iconColor = PaceDreamColors.Accent,
+                        enabled = uiState.systemMasterEnabled &&
+                            (uiState.channelEnabled[NotificationChannels.MARKETING.id] ?: true),
+                        onClick = {
+                            NotificationChannels.openChannelSettings(context, NotificationChannels.MARKETING)
+                        }
+                    )
+                }
+            }
+
+            // Helper text clarifying why these rows behave differently from
+            // the email rows below — toggling them deep-links to the system.
+            Text(
+                text = "These categories are controlled by Android. " +
+                    "Tap a row to open system settings, where you can change its importance or mute it independently.",
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.XS)
+            )
+
+            // ── Backend (email/SMS) preferences ─────────────────────────────
+            // These are server-side opt-ins that determine whether PaceDream
+            // sends a given category at all, regardless of the device channels
+            // above. They are clearly labelled "Email"/"SMS" so users see that
+            // push and email are two separate controls.
+            SectionLabel("Email preferences")
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
@@ -145,21 +262,56 @@ fun SettingsNotificationsScreen(
             ) {
                 Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
                     ModernToggleRow(
-                        title = "Email notifications",
-                        description = "Receive notifications via email",
+                        title = "Email · general updates",
+                        description = "Account, security, and product updates from PaceDream",
                         icon = Icons.Filled.Email,
                         iconColor = PaceDreamColors.Primary,
                         checked = uiState.emailGeneral,
                         onCheckedChange = { viewModel.toggleEmailGeneral() }
                     )
                     ModernToggleRow(
-                        title = "Push notifications",
-                        description = "Receive push notifications on your device",
-                        icon = Icons.Filled.Notifications,
-                        iconColor = PaceDreamColors.Primary,
-                        checked = uiState.pushGeneral,
-                        onCheckedChange = { viewModel.togglePushGeneral() }
+                        title = "Email · messages",
+                        description = "Receive email when someone sends you a chat message",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
+                        iconColor = PaceDreamColors.Secondary,
+                        checked = uiState.messageNotifications,
+                        onCheckedChange = { viewModel.toggleMessageNotifications() }
                     )
+                    ModernToggleRow(
+                        title = "Email · booking updates",
+                        description = "Email about confirmations, changes, and check-in",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
+                        iconColor = PaceDreamColors.Success,
+                        checked = uiState.bookingUpdates,
+                        onCheckedChange = { viewModel.toggleBookingUpdates() }
+                    )
+                    ModernToggleRow(
+                        title = "Email · booking alerts",
+                        description = "Email for urgent booking alerts",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = PaceDreamColors.Warning,
+                        checked = uiState.bookingAlerts,
+                        onCheckedChange = { viewModel.toggleBookingAlerts() }
+                    )
+                    ModernToggleRow(
+                        title = "Email · marketing & promotions",
+                        description = "Email about deals, offers, and partner promotions",
+                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
+                        iconColor = PaceDreamColors.Accent,
+                        checked = uiState.marketingPromotions,
+                        onCheckedChange = { viewModel.toggleMarketingPromotions() }
+                    )
+                }
+            }
+
+            // ── Other channels: SMS + in-app extras ─────────────────────────
+            SectionLabel("Other notifications")
+            Card(
+                shape = RoundedCornerShape(PaceDreamRadius.LG),
+                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
                     ModernToggleRow(
                         title = "SMS notifications",
                         description = "Receive important updates via text message",
@@ -168,51 +320,13 @@ fun SettingsNotificationsScreen(
                         checked = uiState.smsNotifications,
                         onCheckedChange = { viewModel.toggleSmsNotifications() }
                     )
-                }
-            }
-
-            // Messages Section
-            SectionLabel("Messages")
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
                     ModernToggleRow(
-                        title = "Message notifications",
-                        description = "Get notified about new messages",
-                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
-                        iconColor = PaceDreamColors.Secondary,
-                        checked = uiState.messageNotifications,
-                        onCheckedChange = { viewModel.toggleMessageNotifications() }
-                    )
-                }
-            }
-
-            // Bookings Section
-            SectionLabel("Bookings")
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
-                    ModernToggleRow(
-                        title = "Booking updates",
-                        description = "Notifications about booking changes",
-                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notifications),
-                        iconColor = PaceDreamColors.Success,
-                        checked = uiState.bookingUpdates,
-                        onCheckedChange = { viewModel.toggleBookingUpdates() }
-                    )
-                    ModernToggleRow(
-                        title = "Booking alerts",
-                        description = "Important alerts about your bookings",
-                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                        iconColor = PaceDreamColors.Warning,
-                        checked = uiState.bookingAlerts,
-                        onCheckedChange = { viewModel.toggleBookingAlerts() }
+                        title = "Push · general (server)",
+                        description = "Allow PaceDream's server to send pushes at all",
+                        icon = Icons.Filled.Notifications,
+                        iconColor = PaceDreamColors.Primary,
+                        checked = uiState.pushGeneral,
+                        onCheckedChange = { viewModel.togglePushGeneral() }
                     )
                 }
             }
@@ -244,8 +358,10 @@ fun SettingsNotificationsScreen(
                 }
             }
 
-            // System Section
-            SectionLabel("System")
+            // Product updates section (legacy field name: systemNotifications).
+            // Renamed to avoid confusion with the master "System notifications"
+            // row at the top, which reflects the OS-level toggle.
+            SectionLabel("Product updates")
             Card(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
                 colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
@@ -254,31 +370,12 @@ fun SettingsNotificationsScreen(
                 Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
                     SystemNotificationPermissionRow()
                     ModernToggleRow(
-                        title = "System notifications",
-                        description = "Updates about maintenance and system changes",
+                        title = "Product & maintenance updates",
+                        description = "Server-side notices about maintenance and changes",
                         icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
                         iconColor = PaceDreamColors.Gray500,
                         checked = uiState.systemNotifications,
                         onCheckedChange = { viewModel.toggleSystemNotifications() }
-                    )
-                }
-            }
-
-            // Marketing Section
-            SectionLabel("Marketing")
-            Card(
-                shape = RoundedCornerShape(PaceDreamRadius.LG),
-                colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(horizontal = PaceDreamSpacing.MD)) {
-                    ModernToggleRow(
-                        title = "Marketing & promotions",
-                        description = "Receive promotional offers and updates",
-                        icon = ImageVector.vectorResource(id = com.shourov.apps.pacedream.R.drawable.ic_notification),
-                        iconColor = Color(0xFFE91E63),
-                        checked = uiState.marketingPromotions,
-                        onCheckedChange = { viewModel.toggleMarketingPromotions() }
                     )
                 }
             }
@@ -340,6 +437,60 @@ fun SettingsNotificationsScreen(
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
         }
+    }
+}
+
+/**
+ * Master "System notifications" row showing whether the OS-level toggle
+ * for the app is on, with a chevron that deep-links to the per-app
+ * notification settings page.
+ */
+@Composable
+private fun SystemMasterRow(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val iconColor = if (enabled) PaceDreamColors.Success else PaceDreamColors.Warning
+    val statusLabel = if (enabled) "On in system settings" else "Off · tap to enable"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = PaceDreamSpacing.SM),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(iconColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (enabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "System notifications",
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary
+            )
+            Text(
+                text = statusLabel,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+        Icon(
+            imageVector = Icons.Filled.ChevronRight,
+            contentDescription = "Open system settings",
+            tint = PaceDreamColors.TextTertiary
+        )
     }
 }
 
@@ -436,6 +587,68 @@ private fun PermissionStatusChip(allowed: Boolean) {
             text = label,
             style = PaceDreamTypography.Caption,
             color = content
+        )
+    }
+}
+
+/**
+ * Per-channel row. The switch reflects the channel's current importance
+ * (read from the system) — it never mutates channel state from inside
+ * the app. Tapping the row deep-links to the channel's system page where
+ * the user can change its importance.
+ */
+@Composable
+private fun ChannelRow(
+    channel: NotificationChannels.Channel,
+    icon: ImageVector,
+    iconColor: Color,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = PaceDreamSpacing.SM),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(PaceDreamRadius.SM))
+                .background(iconColor.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = channel.displayName,
+                style = PaceDreamTypography.Callout,
+                color = PaceDreamColors.TextPrimary
+            )
+            Text(
+                text = channel.description,
+                style = PaceDreamTypography.Caption,
+                color = PaceDreamColors.TextSecondary
+            )
+        }
+        // Reflect the live system state without claiming we can change it.
+        // Tapping the switch is treated the same as tapping the row —
+        // both deep-link to system settings.
+        Switch(
+            checked = enabled,
+            onCheckedChange = { onClick() },
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = PaceDreamColors.Primary,
+                checkedThumbColor = PaceDreamColors.OnPrimary
+            )
         )
     }
 }

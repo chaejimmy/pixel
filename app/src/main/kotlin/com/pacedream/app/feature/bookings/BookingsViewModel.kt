@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.pacedream.app.core.config.AppConfig
 import com.pacedream.app.core.network.ApiClient
 import com.pacedream.app.core.network.ApiResult
+import com.pacedream.app.feature.checkout.PendingPaymentState
+import com.pacedream.app.feature.checkout.PendingPaymentStore
+import com.pacedream.app.feature.checkout.ReconciliationScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -133,11 +136,25 @@ data class BookingsUiState(
 class BookingsViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val appConfig: AppConfig,
-    private val json: Json
+    private val json: Json,
+    private val reconciliationScheduler: ReconciliationScheduler,
+    pendingPaymentStore: PendingPaymentStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookingsUiState())
     val uiState: StateFlow<BookingsUiState> = _uiState.asStateFlow()
+
+    /**
+     * Global reconciliation state — exposed so BookingsScreen can render the
+     * inline "Payment processing" row for the in-flight payment cycle even
+     * before the backend has materialised a real booking row for it.
+     */
+    val pendingPaymentState: StateFlow<PendingPaymentState> = pendingPaymentStore.state
+
+    /** "Check status" hook (also surfaced as a row affordance). */
+    fun checkPaymentStatus() {
+        reconciliationScheduler.enqueue()
+    }
 
     // Cached status configs for each booking
     private val statusConfigs = mutableMapOf<String, BookingStatusConfig>()

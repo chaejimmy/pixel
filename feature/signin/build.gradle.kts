@@ -19,7 +19,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:ui"))
 
-    testImplementation(libs.junit.junit)
+    testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test)

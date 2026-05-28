@@ -19,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -184,31 +186,43 @@ fun SignIn(
 
                 VerticalSpacer(height = 12)
 
+                val termsUrl = "https://www.pacedream.com/terms"
+                val privacyUrl = "https://www.pacedream.com/privacy"
                 val termsAnnotatedString = buildAnnotatedString {
                     append("By continuing, you agree to PaceDream's ")
-                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/terms")
+                    pushStringAnnotation(tag = "URL", annotation = termsUrl)
                     withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
                         append("Terms of Service")
                     }
                     pop()
                     append(" and ")
-                    pushStringAnnotation(tag = "URL", annotation = "https://www.pacedream.com/privacy")
+                    pushStringAnnotation(tag = "URL", annotation = privacyUrl)
                     withStyle(SpanStyle(color = PaceDreamColors.Primary, textDecoration = TextDecoration.Underline)) {
                         append("Privacy Policy")
                     }
                     pop()
                     append(". You agree that there is zero tolerance for objectionable content or abusive behavior. Violations may result in immediate account termination.")
                 }
-                ClickableText(
+                androidx.compose.foundation.text.ClickableText(
                     text = termsAnnotatedString,
                     style = PaceDreamTypography.Caption.copy(color = PaceDreamColors.TextSecondary),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                        .padding(horizontal = 4.dp)
+                        .semantics {
+                            customActions = listOf(
+                                CustomAccessibilityAction(label = "Open Terms of Service") {
+                                    runCatching { uriHandler.openUri(termsUrl) }.isSuccess
+                                },
+                                CustomAccessibilityAction(label = "Open Privacy Policy") {
+                                    runCatching { uriHandler.openUri(privacyUrl) }.isSuccess
+                                },
+                            )
+                        },
                     onClick = { offset ->
                         termsAnnotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
                             .firstOrNull()?.let { annotation ->
-                                uriHandler.openUri(annotation.item)
+                                runCatching { uriHandler.openUri(annotation.item) }
                             }
                     }
                 )

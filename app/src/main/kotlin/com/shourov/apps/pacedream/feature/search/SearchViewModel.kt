@@ -733,19 +733,7 @@ data class SearchUiState(
      * opening the sheet.
      */
     val activeFilterCount: Int
-        get() = with(filterCriteria) {
-            var n = 0
-            if (checkInEpochDay != null || checkOutEpochDay != null) n++
-            if (totalGuests > 0 || infants > 0 || pets > 0) n++
-            if (!propertyType.isNullOrBlank()) n++
-            if (minPrice != null || maxPrice != null) n++
-            if (bedrooms != null) n++
-            if (beds != null) n++
-            if (bathrooms != null) n++
-            if (instantBookOnly) n++
-            if (amenities.isNotEmpty()) n++
-            n
-        }
+        get() = filterCriteria.activeFilterCount()
 }
 
 enum class SearchPhase {

@@ -1,5 +1,9 @@
 package com.pacedream.app.feature.checkout
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +30,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -33,6 +38,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +64,7 @@ import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
+import kotlinx.coroutines.delay
 import timber.log.Timber
 import java.text.NumberFormat
 import java.util.Currency
@@ -192,6 +201,30 @@ fun CheckoutScreen(
 
     // Post-payment success state (iOS parity: NativeCheckoutView.successContent)
     if (uiState.status == CheckoutStatus.SUCCEEDED) {
+        // Only show the green CheckCircle when the backend has actually
+        // confirmed the booking. Otherwise show a neutral icon and truthful
+        // "payment received, still finalizing" copy so the user is not told
+        // the booking is confirmed before it actually is.
+        val bookingConfirmed = uiState.bookingId != null
+        // Track whether we ever showed the "finalizing"/"retrying" intermediate
+        // surface — used to acknowledge a confirmation that arrives mid-retry
+        // (instead of snapping straight to the green check with no transition).
+        // First-time success (no prior retry) leaves this false so the chip
+        // doesn't appear redundantly.
+        var wasFinalizing by remember { mutableStateOf(false) }
+        LaunchedEffect(uiState.isConfirmingBooking, uiState.confirmRetryCount) {
+            if (uiState.isConfirmingBooking || uiState.confirmRetryCount > 0) {
+                wasFinalizing = true
+            }
+        }
+        // After acknowledging, clear the flag so it doesn't reappear if the
+        // user navigates back into this surface.
+        LaunchedEffect(bookingConfirmed, wasFinalizing) {
+            if (bookingConfirmed && wasFinalizing) {
+                delay(5000)
+                wasFinalizing = false
+            }
+        }
         Scaffold(containerColor = PaceDreamColors.Background) { padding ->
             Column(
                 modifier = Modifier
@@ -200,24 +233,57 @@ fun CheckoutScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Only show the green CheckCircle when the backend has actually
-                // confirmed the booking. Otherwise show a neutral icon and truthful
-                // "payment received, still finalizing" copy so the user is not told
-                // the booking is confirmed before it actually is.
-                val bookingConfirmed = uiState.bookingId != null
-                Icon(
-                    imageVector = if (bookingConfirmed) PaceDreamIcons.CheckCircle else PaceDreamIcons.Info,
-                    contentDescription = null,
-                    tint = if (bookingConfirmed) PaceDreamColors.Success else PaceDreamColors.Primary,
-                    modifier = Modifier.size(64.dp)
-                )
+                Crossfade(
+                    targetState = bookingConfirmed,
+                    label = "checkout-success-icon",
+                ) { confirmed ->
+                    Icon(
+                        imageVector = if (confirmed) PaceDreamIcons.CheckCircle else PaceDreamIcons.Info,
+                        contentDescription = null,
+                        tint = if (confirmed) PaceDreamColors.Success else PaceDreamColors.Primary,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
-                Text(
-                    if (bookingConfirmed) "Booking Confirmed" else "Payment Received",
-                    style = PaceDreamTypography.Title2,
-                    fontWeight = FontWeight.Bold,
-                    color = PaceDreamColors.TextPrimary
-                )
+                Crossfade(
+                    targetState = bookingConfirmed,
+                    label = "checkout-success-title",
+                ) { confirmed ->
+                    Text(
+                        if (confirmed) "Booking Confirmed" else "Payment Received",
+                        style = PaceDreamTypography.Title2,
+                        fontWeight = FontWeight.Bold,
+                        color = PaceDreamColors.TextPrimary
+                    )
+                }
+                AnimatedVisibility(
+                    visible = bookingConfirmed && wasFinalizing,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(PaceDreamRadius.Round),
+                        color = PaceDreamColors.Success.copy(alpha = 0.12f),
+                        modifier = Modifier.padding(top = PaceDreamSpacing.SM),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Icon(
+                                imageVector = PaceDreamIcons.CheckCircle,
+                                contentDescription = null,
+                                tint = PaceDreamColors.Success,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Confirmed just now",
+                                style = PaceDreamTypography.Caption,
+                                color = PaceDreamColors.Success,
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
                 Text(
                     if (bookingConfirmed) {
@@ -369,9 +435,29 @@ fun CheckoutScreen(
                 // Cancellation policy
                 CancellationPolicyCard()
 
-                // Error banner
+                // Error banner — failure-kind aware.
+                //   • PAYMENT_FAILED (PaymentSheet failure OR setup-intent
+                //     failure) → red banner, "Try again" CTA wired to
+                //     [retryPayment], rendered just above the Pay button so
+                //     the retry affordance is in the user's focus path.
+                //   • everything else (quote fetch / availability) →
+                //     existing "Retry" CTA wired to [retryQuote].
                 uiState.errorMessage?.let { message ->
-                    ErrorBanner(message = message, onRetry = { viewModel.retryQuote() })
+                    val isPaymentFailure = uiState.failureKind ==
+                        CheckoutFailureKind.PAYMENT_FAILED
+                    ErrorBanner(
+                        message = message,
+                        retryLabel = if (isPaymentFailure) "Try again" else "Retry",
+                        emphasis = if (isPaymentFailure) {
+                            ErrorBannerEmphasis.PaymentFailure
+                        } else {
+                            ErrorBannerEmphasis.Generic
+                        },
+                        onRetry = {
+                            if (isPaymentFailure) viewModel.retryPayment()
+                            else viewModel.retryQuote()
+                        },
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
@@ -381,6 +467,7 @@ fun CheckoutScreen(
             PayBar(
                 quote = uiState.quote,
                 status = uiState.status,
+                isPaymentInFlight = uiState.isPaymentInFlight,
                 onPayClick = { viewModel.submitPayment() }
             )
         }
@@ -393,10 +480,20 @@ fun CheckoutScreen(
 private fun PayBar(
     quote: QuoteResponse?,
     status: CheckoutStatus,
+    isPaymentInFlight: Boolean,
     onPayClick: () -> Unit
 ) {
-    val isEnabled = status == CheckoutStatus.READY && quote != null
-    val isProcessing = status == CheckoutStatus.PROCESSING
+    // Allow tapping Pay from READY, IDLE, and FAILED (PaymentSheet/setup
+    // failure leaves the user in FAILED — the bottom Pay button must
+    // stay tappable so they can retry from the same focus path; the
+    // inline ErrorBanner "Try again" CTA above remains the primary
+    // affordance, this is the fallback).
+    val isPayableStatus = quote != null && (
+        status == CheckoutStatus.READY ||
+            status == CheckoutStatus.FAILED ||
+            status == CheckoutStatus.IDLE
+        )
+    val isProcessing = status == CheckoutStatus.PROCESSING || isPaymentInFlight
 
     HorizontalDivider(thickness = 0.5.dp, color = PaceDreamColors.Border)
     Column(
@@ -408,7 +505,7 @@ private fun PayBar(
     ) {
         Button(
             onClick = onPayClick,
-            enabled = isEnabled && !isProcessing,
+            enabled = isPayableStatus && !isProcessing,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(PaceDreamRadius.MD),
             colors = ButtonDefaults.buttonColors(containerColor = PaceDreamColors.Primary),
@@ -1258,11 +1355,41 @@ private fun SupportActionRowNoReference(
 
 // ── Error Banner (iOS parity: errorBanner) ──
 
+/**
+ * Emphasis variant for the inline checkout error banner.
+ *
+ *  - [Generic] — quote / availability / generic transport failures.
+ *    Soft red container background (ErrorContainer) so the banner is
+ *    visible but not alarming.
+ *  - [PaymentFailure] — Stripe PaymentSheet failure or setup-intent
+ *    failure.  Stronger emphasis: solid red border + red icon + red
+ *    "Try again" CTA so the user can't miss the failure and the
+ *    retry path is in their focus immediately above the Pay button.
+ */
+private enum class ErrorBannerEmphasis { Generic, PaymentFailure }
+
 @Composable
-private fun ErrorBanner(message: String, onRetry: () -> Unit) {
+private fun ErrorBanner(
+    message: String,
+    retryLabel: String = "Retry",
+    emphasis: ErrorBannerEmphasis = ErrorBannerEmphasis.Generic,
+    onRetry: () -> Unit,
+) {
+    val isPaymentFailure = emphasis == ErrorBannerEmphasis.PaymentFailure
     Card(
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.ErrorContainer)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPaymentFailure) {
+                PaceDreamColors.Error.copy(alpha = 0.08f)
+            } else {
+                PaceDreamColors.ErrorContainer
+            },
+        ),
+        border = if (isPaymentFailure) {
+            androidx.compose.foundation.BorderStroke(1.dp, PaceDreamColors.Error)
+        } else {
+            null
+        },
     ) {
         Column(modifier = Modifier.padding(PaceDreamSpacing.MD)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1282,7 +1409,11 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
                 // screen.
                 Text(
                     com.pacedream.common.util.UserFacingErrorMapper.mapMessage(message),
-                    color = PaceDreamColors.OnErrorContainer,
+                    color = if (isPaymentFailure) {
+                        PaceDreamColors.TextPrimary
+                    } else {
+                        PaceDreamColors.OnErrorContainer
+                    },
                     style = PaceDreamTypography.Callout,
                     modifier = Modifier.weight(1f)
                 )
@@ -1294,7 +1425,7 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
                 shape = RoundedCornerShape(PaceDreamRadius.SM),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Retry", style = PaceDreamTypography.Caption, color = PaceDreamColors.OnPrimary)
+                Text(retryLabel, style = PaceDreamTypography.Caption, color = PaceDreamColors.OnPrimary)
             }
         }
     }

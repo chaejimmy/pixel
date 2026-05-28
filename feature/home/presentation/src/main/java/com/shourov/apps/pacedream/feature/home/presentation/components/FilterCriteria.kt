@@ -45,4 +45,24 @@ data class FilterCriteria(
             minPrice == null && maxPrice == null &&
             bedrooms == null && beds == null && bathrooms == null &&
             amenities.isEmpty() && !instantBookOnly
+
+    /**
+     * Number of distinct filter categories the user has actively
+     * constrained. Drives the "Apply N filters" CTA label and the badge
+     * on the search header's Filters entry-point — both must compute the
+     * same count or the badge and the button would disagree.
+     */
+    fun activeFilterCount(): Int {
+        var n = 0
+        if (checkInEpochDay != null || checkOutEpochDay != null) n++
+        if (totalGuests > 0 || infants > 0 || pets > 0) n++
+        if (!propertyType.isNullOrBlank()) n++
+        if (minPrice != null || maxPrice != null) n++
+        if (bedrooms != null) n++
+        if (beds != null) n++
+        if (bathrooms != null) n++
+        if (instantBookOnly) n++
+        if (amenities.isNotEmpty()) n++
+        return n
+    }
 }

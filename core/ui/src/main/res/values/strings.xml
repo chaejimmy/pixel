@@ -24,6 +24,7 @@
     <string name="core_ui_continue_button">Continue</string>
     <string name="core_ui_phone_number_error">Invalid phone number</string>
     <string name="core_ui_phone_number_placehoolder">Enter your phone number</string>
+    <string name="core_ui_phone_number_invalid_snackbar">Enter a valid phone number</string>
     <string name="core_ui_onboarding_sign_in">Sign in</string>
     <string name="core_ui_continue_with_email">Continue with Email</string>
     <string name="core_ui_email_label">Enter your registered mail</string>

@@ -3,13 +3,13 @@ package com.pacedream.app.ui.components
 import android.app.Activity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,6 +49,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.app.core.auth.Auth0Connection
+import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
 
 /**
  * AuthFlowSheet - iOS-parity authentication modal sheet.
@@ -101,7 +105,8 @@ fun AuthFlowSheet(
             AnimatedContent(
                 targetState = uiState.mode,
                 transitionSpec = {
-                    (fadeIn(animationSpec = tween(140)) togetherWith fadeOut(animationSpec = tween(140)))
+                    (fadeIn(tween(200, easing = FastOutSlowInEasing))
+                        togetherWith fadeOut(tween(200, easing = FastOutSlowInEasing)))
                         .using(SizeTransform(clip = false))
                 },
                 label = "auth_flow_sheet_mode"
@@ -110,11 +115,17 @@ fun AuthFlowSheet(
                     AuthFlowMode.Chooser -> ChooserContent(
                         subtitle = subtitle,
                         isGoogleLoading = uiState.isGoogleLoading,
+                        isAppleLoading = uiState.isAppleLoading,
                         onSignIn = viewModel::goToSignIn,
                         onSignUp = viewModel::goToSignUp,
                         onGoogle = {
                             (context as? Activity)?.let { activity ->
                                 viewModel.loginWithAuth0(activity, Auth0Connection.Google)
+                            }
+                        },
+                        onApple = {
+                            (context as? Activity)?.let { activity ->
+                                viewModel.loginWithApple(activity)
                             }
                         },
                         onNotNow = {
@@ -158,9 +169,11 @@ fun AuthFlowSheet(
 private fun ChooserContent(
     subtitle: String,
     isGoogleLoading: Boolean,
+    isAppleLoading: Boolean,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onGoogle: () -> Unit,
+    onApple: () -> Unit,
     onNotNow: () -> Unit
 ) {
     Column(
@@ -170,15 +183,14 @@ private fun ChooserContent(
         // Compact heading - avoids repeating what the background already says
         Text(
             text = "Log in or sign up",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            style = PaceDreamTypography.Title1
         )
 
         if (subtitle.isNotBlank()) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaceDreamTypography.Body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
@@ -192,9 +204,12 @@ private fun ChooserContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         ) {
-            Text("Sign in", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Sign in",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -205,9 +220,12 @@ private fun ChooserContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         ) {
-            Text("Create account", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Create account",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -234,14 +252,48 @@ private fun ChooserContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isGoogleLoading
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            enabled = !isGoogleLoading && !isAppleLoading
         ) {
             if (isGoogleLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue with Google", fontWeight = FontWeight.Medium)
+            Text(
+                "Continue with Google",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Apple sign-in (iOS parity: solid black with white content, 16dp radius)
+        Button(
+            onClick = onApple,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,
+                contentColor = Color.White,
+                disabledContainerColor = Color.Black.copy(alpha = 0.6f),
+                disabledContentColor = Color.White.copy(alpha = 0.8f)
+            ),
+            enabled = !isAppleLoading && !isGoogleLoading
+        ) {
+            if (isAppleLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+            Text(
+                "Continue with Apple",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -253,7 +305,10 @@ private fun ChooserContent(
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         ) {
-            Text("Not now", style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Not now",
+                style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold)
+            )
         }
     }
 }
@@ -275,8 +330,7 @@ private fun SignInContent(
     ) {
         Text(
             text = "Sign in",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            style = PaceDreamTypography.Title1
         )
 
         OutlinedTextField(
@@ -286,7 +340,7 @@ private fun SignInContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         )
 
         OutlinedTextField(
@@ -297,7 +351,7 @@ private fun SignInContent(
             enabled = !isLoading,
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         )
 
         if (!error.isNullOrBlank()) {
@@ -309,7 +363,7 @@ private fun SignInContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
         ) {
             if (isLoading) {
@@ -320,7 +374,10 @@ private fun SignInContent(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Continue",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
         }
 
         Row(
@@ -328,7 +385,10 @@ private fun SignInContent(
             horizontalArrangement = Arrangement.Center
         ) {
             TextButton(onClick = onSwitchToSignUp) {
-                Text("Create an account")
+                Text(
+                    "Create an account",
+                    style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
         }
     }
@@ -355,8 +415,7 @@ private fun SignUpContent(
     ) {
         Text(
             text = "Create account",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            style = PaceDreamTypography.Title1
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -367,7 +426,7 @@ private fun SignUpContent(
                 modifier = Modifier.weight(1f),
                 enabled = !isLoading,
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(PaceDreamRadius.LG)
             )
             OutlinedTextField(
                 value = lastName,
@@ -376,7 +435,7 @@ private fun SignUpContent(
                 modifier = Modifier.weight(1f),
                 enabled = !isLoading,
                 singleLine = true,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(PaceDreamRadius.LG)
             )
         }
 
@@ -387,7 +446,7 @@ private fun SignUpContent(
             modifier = Modifier.fillMaxWidth(),
             enabled = !isLoading,
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         )
 
         OutlinedTextField(
@@ -398,7 +457,7 @@ private fun SignUpContent(
             enabled = !isLoading,
             visualTransformation = PasswordVisualTransformation(),
             singleLine = true,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(PaceDreamRadius.LG)
         )
 
         if (!error.isNullOrBlank()) {
@@ -410,7 +469,7 @@ private fun SignUpContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(PaceDreamRadius.LG),
             enabled = !isLoading &&
                 firstName.isNotBlank() &&
                 lastName.isNotBlank() &&
@@ -425,7 +484,10 @@ private fun SignUpContent(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
             }
-            Text("Continue", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Continue",
+                style = PaceDreamTypography.Callout.copy(fontWeight = FontWeight.Bold)
+            )
         }
 
         Row(
@@ -433,29 +495,37 @@ private fun SignUpContent(
             horizontalArrangement = Arrangement.Center
         ) {
             TextButton(onClick = onSwitchToSignIn) {
-                Text("Already have an account? Sign in")
+                Text(
+                    "Already have an account? Sign in",
+                    style = PaceDreamTypography.Footnote.copy(fontWeight = FontWeight.SemiBold)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AuthInlineErrorBanner(
-    message: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
+private fun AuthInlineErrorBanner(message: String, modifier: Modifier = Modifier) {
+    Row(
         modifier = modifier
             .background(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(12.dp)
+                MaterialTheme.colorScheme.error.copy(alpha = 0.10f),
+                RoundedCornerShape(PaceDreamRadius.MD),   // 14dp via token
             )
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Icon(
+            PaceDreamIcons.Warning,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(18.dp),
+        )
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer
+            style = PaceDreamTypography.Body,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -468,9 +538,11 @@ private fun PreviewAuthChooserContent() {
             ChooserContent(
                 subtitle = "Save your favorites and book spaces.",
                 isGoogleLoading = false,
+                isAppleLoading = false,
                 onSignIn = {},
                 onSignUp = {},
                 onGoogle = {},
+                onApple = {},
                 onNotNow = {}
             )
         }

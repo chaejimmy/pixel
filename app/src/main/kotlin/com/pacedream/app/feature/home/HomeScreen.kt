@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,17 +68,13 @@ import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
 import com.shourov.apps.pacedream.designsystem.NotificationBellButton
+import com.shourov.apps.pacedream.designsystem.modifier.touchTargetSize
 import com.shourov.apps.pacedream.designsystem.OnBrandSurface
 import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.designsystem.badgeOnImageColor
 import com.shourov.apps.pacedream.designsystem.scrimOnImage
 import com.shourov.apps.pacedream.feature.notification.presentation.UnreadNotificationsViewModel
 import com.shourov.apps.pacedream.R
-
-// intentional: 20.dp page gutter is off the 4/8/16/24 scale but is a deliberate
-// design decision for Home's edge-to-edge photographic hero layout. Keep it
-// exported as a private token so future token sweeps recognise it.
-private val HomeHorizontalGutter = 20.dp
 
 object HomeTestTags {
     const val Root = "home_screen_root"
@@ -128,7 +125,16 @@ fun HomeScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().testTag(HomeTestTags.Root)) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .testTag(HomeTestTags.Root)
+    ) {
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -168,8 +174,9 @@ fun HomeScreen(
             if (uiState.hasErrors) {
                 item {
                     WarningBanner(
-                        message = "Some content couldn't load. Pull to refresh.",
-                        modifier = Modifier.padding(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2)
+                        message = "Some content couldn't load.",
+                        onRefresh = { viewModel.refresh() },
+                        modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2)
                     )
                 }
             }
@@ -277,10 +284,7 @@ fun HomeScreen(
             }
         }
     }
-    SnackbarHost(
-        hostState = snackbarHostState,
-        modifier = Modifier.align(Alignment.BottomCenter)
-    )
+    }
     }
 }
 
@@ -377,7 +381,7 @@ private fun HeroHeaderSection(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(horizontal = HomeHorizontalGutter, vertical = HomeHorizontalGutter)
+                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.Layout.HomeGutter)
             ) {
                 // Top row: notification bell (right-aligned; hero copy takes over greeting).
                 Row(
@@ -393,6 +397,9 @@ private fun HeroHeaderSection(
                             onNotificationClick()
                             unreadVm.markAllAsSeen()
                         },
+                        // .size(44.dp) constrains only the visual purple circle;
+                        // the component prepends touchTargetSize() so the hit
+                        // area is floored at 48dp regardless.
                         modifier = Modifier
                             .size(44.dp)
                             .testTag(HomeTestTags.NotificationButton),
@@ -440,7 +447,7 @@ private fun HeroHeaderSection(
                         containerColor = Color.Transparent,
                         contentColor = OnBrandSurface
                     ),
-                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter, vertical = PaceDreamSpacing.SM2),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2),
                 ) {
                     Icon(
                         imageVector = PaceDreamIcons.PlayArrow,
@@ -464,7 +471,7 @@ private fun HeroHeaderSection(
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = HomeHorizontalGutter)
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 .fillMaxWidth()
                 .testTag(HomeTestTags.SearchBar)
                 .adaptiveShadow(
@@ -513,17 +520,20 @@ private fun HeroHeaderSection(
                         ),
                         color = PaceDreamColors.TextHeadline
                     )
-                    // intentional: 1.dp hairline between title and subcopy; any token would be too loose
-                    Spacer(modifier = Modifier.height(1.dp))
+                    Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.Hairline))
                     Text(
                         text = "Spaces \u00B7 Items \u00B7 Services",
                         style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                        color = PaceDreamColors.Gray500
+                        color = PaceDreamColors.IconNeutral
                     )
                 }
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
                 Surface(
                     modifier = Modifier
+                        // 48dp accessible hit area, 42dp visual; this control
+                        // sits flush against the search-bar tap target so the
+                        // extra 6dp materially reduces mis-taps.
+                        .touchTargetSize()
                         .size(42.dp)
                         .clip(CircleShape)
                         .testTag(HomeTestTags.FilterButton)
@@ -531,7 +541,7 @@ private fun HeroHeaderSection(
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
                     color = PaceDreamColors.Gray100,
-                    border = BorderStroke(0.5.dp, PaceDreamColors.Gray200)
+                    border = BorderStroke(0.5.dp, PaceDreamColors.DividerNeutral)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -576,7 +586,6 @@ private fun CategoryFilterTabs(
     Column(modifier = modifier.testTag(HomeTestTags.CategoryTabs)) {
         LazyRow(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
-            // intentional: tabs own their own internal horizontal padding so we want zero arrangement gap
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             items(categories) { (name, outlinedIcon, filledIcon) ->
@@ -591,7 +600,7 @@ private fun CategoryFilterTabs(
         }
         HorizontalDivider(
             thickness = 0.5.dp,
-            color = PaceDreamColors.Gray200
+            color = PaceDreamColors.DividerNeutral
         )
     }
 }
@@ -619,7 +628,6 @@ private fun CategoryTab(
                 onClick = onClick
             )
             .padding(horizontal = PaceDreamSpacing.MD)
-            // intentional: 0.dp bottom so the indicator rule underneath sits flush
             .padding(top = PaceDreamSpacing.SM2, bottom = 0.dp)
     ) {
         Icon(
@@ -666,11 +674,11 @@ private fun ExtendedCategoriesSection(
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
             title = "Categories",
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
         LazyRow(
-            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(getCategoryCards()) { category ->
@@ -684,11 +692,12 @@ private fun ExtendedCategoriesSection(
 }
 
 @Composable
-private fun QuickCategoryChip(
+internal fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = tween(durationMillis = 100),
@@ -700,17 +709,13 @@ private fun QuickCategoryChip(
         modifier = Modifier
             .height(48.dp)
             .scale(scale)
-            .semantics { role = Role.Button }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClickLabel = "Open ${category.name}",
+                onClick = onClick,
+            ),
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         color = tint.copy(alpha = 0.08f),
         border = BorderStroke(0.5.dp, tint.copy(alpha = 0.12f))
@@ -746,7 +751,7 @@ private fun QuickCategoryChip(
     }
 }
 
-private data class CategoryCardData(
+internal data class CategoryCardData(
     val name: String,
     val icon: ImageVector,
     val color: CategoryColor,
@@ -772,7 +777,8 @@ private fun getCategoryCards(): List<CategoryCardData> {
 @Composable
 private fun WarningBanner(
     message: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRefresh: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -798,8 +804,25 @@ private fun WarningBanner(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = PaceDreamColors.OnWarningContainer
+                color = PaceDreamColors.OnWarningContainer,
+                modifier = Modifier.weight(1f)
             )
+            if (onRefresh != null) {
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                TextButton(
+                    onClick = onRefresh,
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+                ) {
+                    Text(
+                        text = "Refresh",
+                        style = DSTypo.Subheadline.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = PaceDreamColors.OnWarningContainer
+                    )
+                }
+            }
         }
     }
 }
@@ -862,7 +885,7 @@ private fun SectionHeader(
                     fontFamily = paceDreamFontFamily,
                     lineHeight = 16.sp
                 ),
-                color = PaceDreamColors.Gray500
+                color = PaceDreamColors.IconNeutral
             )
         }
     }
@@ -889,14 +912,14 @@ private fun ListingSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
 
         if (isLoading) {
             LazyRow(
-                contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
             ) {
                 items(3) { ShimmerCard(modifier = Modifier.fillParentMaxWidth(0.62f)) }
@@ -910,7 +933,7 @@ private fun ListingSection(
                     isFavorite = item.id in favoriteIds,
                     onClick = { onItemClick(item) },
                     onFavoriteClick = { onFavoriteClick(item.id) },
-                    modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+                    modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 )
             }
             // Two items: side-by-side compact grid
@@ -918,7 +941,7 @@ private fun ListingSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = HomeHorizontalGutter),
+                        .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items.forEach { item ->
@@ -936,7 +959,7 @@ private fun ListingSection(
             // 3+ items: horizontal carousel with peek-optimized card width
             else -> {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
                     items(items) { item ->
@@ -1089,7 +1112,7 @@ private fun FeaturedFullWidthCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
@@ -1169,7 +1192,7 @@ private fun ServicesGridSection(
             title = title,
             subtitle = subtitle,
             onViewAllClick = onViewAllClick,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -1177,7 +1200,7 @@ private fun ServicesGridSection(
         if (isLoading) {
             // 2-column shimmer grid (4 skeleton cards)
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 for (row in 0 until 2) {
@@ -1193,7 +1216,7 @@ private fun ServicesGridSection(
         } else {
             // 2-column listing grid
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 val rows = items.chunked(2)
@@ -1518,7 +1541,7 @@ private fun GridListingCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -1722,7 +1745,7 @@ private fun ListingCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -1855,7 +1878,7 @@ private fun BrowseByTypeSection(
         SectionHeader(
             title = "Browse by Type",
             subtitle = "Explore spaces, items, and services",
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
 
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
@@ -1863,7 +1886,7 @@ private fun BrowseByTypeSection(
         // Segmented pill selector
         Row(
             modifier = Modifier
-                .padding(horizontal = HomeHorizontalGutter)
+                .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
                 .fillMaxWidth()
                 .background(
                     PaceDreamColors.Gray100,
@@ -1889,7 +1912,7 @@ private fun BrowseByTypeSection(
         // Subcategory chips
         val accentColor = selectedType.categoryColor.gradientStart
         LazyRow(
-            contentPadding = PaddingValues(horizontal = HomeHorizontalGutter),
+            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             items(selectedType.subcategories) { sub ->
@@ -1948,7 +1971,7 @@ private fun BrowseTypePill(
             Icon(
                 imageVector = type.icon,
                 contentDescription = null,
-                tint = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500,
+                tint = if (isSelected) OnBrandSurface else PaceDreamColors.IconNeutral,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -1958,7 +1981,7 @@ private fun BrowseTypePill(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500
+                color = if (isSelected) OnBrandSurface else PaceDreamColors.IconNeutral
             )
         }
     }
@@ -1987,7 +2010,7 @@ private fun SubcategoryChip(
             )
             .border(
                 width = 1.dp,
-                color = PaceDreamColors.Gray200,
+                color = PaceDreamColors.DividerNeutral,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
             )
             .semantics { role = Role.Button }
@@ -2052,13 +2075,13 @@ private fun TrendingDestinationsSection(
             title = "Trending Destinations",
             subtitle = "Popular places our community loves",
             onViewAllClick = onViewAllTap,
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter)
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter)
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
         val destinations = getTrendingDestinations()
         Column(
-            modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+            modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
             for (rowIndex in 0 until (destinations.size + 1) / 2) {
@@ -2208,7 +2231,7 @@ private fun ThreeStepsCTASection(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = HomeHorizontalGutter),
+            .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
         shape = RoundedCornerShape(PaceDreamRadius.XL),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp
@@ -2231,7 +2254,7 @@ private fun ThreeStepsCTASection(
             Text(
                 text = "From your next affordable rental",
                 style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                color = PaceDreamColors.Gray500,
+                color = PaceDreamColors.IconNeutral,
                 textAlign = TextAlign.Center
             )
 
@@ -2239,7 +2262,7 @@ private fun ThreeStepsCTASection(
 
             // Steps
             Column(
-                modifier = Modifier.padding(horizontal = HomeHorizontalGutter),
+                modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
             ) {
                 steps.forEachIndexed { index, step ->
@@ -2258,7 +2281,7 @@ private fun ThreeStepsCTASection(
                 modifier = Modifier
                     .widthIn(max = 260.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = HomeHorizontalGutter),
+                    .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary
@@ -2330,7 +2353,7 @@ private fun StepCard(
                 Text(
                     text = step.description,
                     style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500
+                    color = PaceDreamColors.IconNeutral
                 )
             }
         }
@@ -2458,8 +2481,7 @@ private fun EmptyState(
                 modifier = Modifier.size(36.dp)
             )
         }
-        // intentional: 20.dp empty-state gap; MD/LG both fall outside 2.dp tolerance
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
         Text(
             text = "Nothing to show right now",
             style = DSTypo.Title3.copy(
@@ -2474,7 +2496,7 @@ private fun EmptyState(
         Text(
             text = "Check back later for new spaces and rentals",
             style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.Gray500,
+            color = PaceDreamColors.IconNeutral,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
@@ -2551,7 +2573,7 @@ private fun HomeScreenPreviewBody() {
                     heroImageUrl = null,
                     onSearchClick = {},
                     onFilterClick = {},
-                    onNotificationClick = {},
+                    onNotificationClick = { /* preview no-op; production wired via NotificationRoutes.NOTIFICATIONS */ },
                     onAboutClick = {
                         // Preview-only hook so the CTA isn't a no-op in isolation;
                         // the real screen wires this to the in-app About route.

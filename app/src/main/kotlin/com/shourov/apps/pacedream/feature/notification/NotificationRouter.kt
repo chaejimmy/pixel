@@ -159,6 +159,25 @@ object NotificationRouter {
                     TabRouter.switchTo(DashboardDestination.PROFILE)
                 }
 
+                // ── Checkout retry (PaymentReconciliationWorker failure) ─
+                // The failure notification deep-links here with a JSON-
+                // encoded BookingDraft on the intent so CheckoutScreen can
+                // restore the original trip without bouncing the user back
+                // to listing detail.  Falls back to listing detail when the
+                // draft is missing or the listing id is missing.
+                "checkout" -> {
+                    TabRouter.switchTo(DashboardDestination.BOOKINGS)
+                    if (!propertyId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo(
+                            "${BookingDestination.BOOKING_FORM.name}/$propertyId"
+                        )
+                    } else if (!bookingId.isNullOrBlank()) {
+                        NavigationRouter.navigateTo(
+                            "${BookingDestination.BOOKING_DETAIL.name}/$bookingId"
+                        )
+                    }
+                }
+
                 // ── Split Booking (iOS parity) ────────────────
                 "split_detail", "split_payment", "split_invite" -> {
                     TabRouter.switchTo(DashboardDestination.BOOKINGS)
