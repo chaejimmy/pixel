@@ -517,7 +517,7 @@ private fun HeroHeaderSection(
                     Text(
                         text = "Spaces \u00B7 Items \u00B7 Services",
                         style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                        color = PaceDreamColors.Gray500
+                        color = PaceDreamColors.IconNeutral
                     )
                 }
                 Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -534,7 +534,7 @@ private fun HeroHeaderSection(
                         .clickable(onClick = onFilterClick),
                     shape = CircleShape,
                     color = PaceDreamColors.Gray100,
-                    border = BorderStroke(0.5.dp, PaceDreamColors.Gray200)
+                    border = BorderStroke(0.5.dp, PaceDreamColors.DividerNeutral)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -593,7 +593,7 @@ private fun CategoryFilterTabs(
         }
         HorizontalDivider(
             thickness = 0.5.dp,
-            color = PaceDreamColors.Gray200
+            color = PaceDreamColors.DividerNeutral
         )
     }
 }
@@ -860,7 +860,7 @@ private fun SectionHeader(
                     fontFamily = paceDreamFontFamily,
                     lineHeight = 16.sp
                 ),
-                color = PaceDreamColors.Gray500
+                color = PaceDreamColors.IconNeutral
             )
         }
     }
@@ -1087,7 +1087,7 @@ private fun FeaturedFullWidthCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XS))
@@ -1516,7 +1516,7 @@ private fun GridListingCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -1720,7 +1720,7 @@ private fun ListingCard(
                         Icon(
                             imageVector = PaceDreamIcons.LocationOn,
                             contentDescription = null,
-                            tint = PaceDreamColors.Gray400,
+                            tint = PaceDreamColors.IconMuted,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -1946,7 +1946,7 @@ private fun BrowseTypePill(
             Icon(
                 imageVector = type.icon,
                 contentDescription = null,
-                tint = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500,
+                tint = if (isSelected) OnBrandSurface else PaceDreamColors.IconNeutral,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
@@ -1956,7 +1956,7 @@ private fun BrowseTypePill(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = if (isSelected) OnBrandSurface else PaceDreamColors.Gray500
+                color = if (isSelected) OnBrandSurface else PaceDreamColors.IconNeutral
             )
         }
     }
@@ -1985,7 +1985,7 @@ private fun SubcategoryChip(
             )
             .border(
                 width = 1.dp,
-                color = PaceDreamColors.Gray200,
+                color = PaceDreamColors.DividerNeutral,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
             )
             .semantics { role = Role.Button }
@@ -2229,7 +2229,7 @@ private fun ThreeStepsCTASection(
             Text(
                 text = "From your next affordable rental",
                 style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                color = PaceDreamColors.Gray500,
+                color = PaceDreamColors.IconNeutral,
                 textAlign = TextAlign.Center
             )
 
@@ -2328,7 +2328,7 @@ private fun StepCard(
                 Text(
                     text = step.description,
                     style = DSTypo.Caption.copy(fontFamily = paceDreamFontFamily),
-                    color = PaceDreamColors.Gray500
+                    color = PaceDreamColors.IconNeutral
                 )
             }
         }
@@ -2471,7 +2471,7 @@ private fun EmptyState(
         Text(
             text = "Check back later for new spaces and rentals",
             style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.Gray500,
+            color = PaceDreamColors.IconNeutral,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
