@@ -20,8 +20,8 @@ import androidx.compose.foundation.verticalScroll
 import com.pacedream.common.icon.PaceDreamIcons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.CampaignOutlined
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Home
@@ -228,7 +228,7 @@ fun SettingsNotificationsScreen(
                     )
                     ChannelRow(
                         channel = NotificationChannels.MARKETING,
-                        icon = Icons.Filled.CampaignOutlined,
+                        icon = Icons.Outlined.Campaign,
                         iconColor = PaceDreamColors.Accent,
                         enabled = uiState.systemMasterEnabled &&
                             (uiState.channelEnabled[NotificationChannels.MARKETING.id] ?: true),
