@@ -32,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -429,7 +430,9 @@ private fun UnifiedBookingCard(
             .fillMaxWidth()
             .testTag(BookingsTestTags.Card),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -612,7 +615,7 @@ private fun UnifiedBookingCard(
                     Text(
                         "View Details",
                         style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -761,7 +764,9 @@ private fun PendingPaymentRow(
             .testTag(BookingsTestTags.PendingPaymentRow)
             .clickable { onClick() },
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -913,7 +918,7 @@ fun PaymentReconciliationBanner(
                 Text(
                     text = primaryLabel,
                     style = PaceDreamTypography.Subheadline.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }
@@ -1008,7 +1013,9 @@ private fun BookingCardSkeleton() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
-        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Background),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
