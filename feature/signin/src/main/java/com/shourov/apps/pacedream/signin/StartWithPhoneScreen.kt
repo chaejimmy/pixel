@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.shourov.apps.pacedream.core.data.UserAuthPath
 import com.shourov.apps.pacedream.core.ui.R
 import com.shourov.apps.pacedream.core.ui.SignInButton
+import kotlinx.coroutines.launch
 
 @Composable
 fun StartWithPhoneScreen(
@@ -32,19 +37,25 @@ fun StartWithPhoneScreen(
     userAuthPath: UserAuthPath,
     onNavigateToAccountSignIn: () -> Unit,
     onContinueAccountSetup: () -> Unit,
+    onProceedToOtpVerification: (String) -> Unit = {},
 ) {
     val authViewModel: EmailSignInViewModel = hiltViewModel()
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context as Activity
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     PhoneEntryScreen(
-        onProceedToOtpVerification = {},
+        onProceedToOtpVerification = onProceedToOtpVerification,
         modifier = modifier,
         onNavigateToCreateAccount = onCreateAccountClicked,
         onNavigateToAccountSignIn = onNavigateToAccountSignIn,
         userAuthPath = userAuthPath,
         onNavigateToAccountSetup = onContinueAccountSetup,
+        onShowSnackbar = { message ->
+            scope.launch { snackbarHostState.showSnackbar(message) }
+        },
     )
     Box(
         modifier = Modifier
@@ -81,6 +92,7 @@ fun StartWithPhoneScreen(
                     ),
                 isLoading = uiState.isGoogleLoading,
             )
+            SnackbarHost(hostState = snackbarHostState)
         }
     }
 }
