@@ -125,7 +125,16 @@ fun HomeScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().testTag(HomeTestTags.Root)) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .testTag(HomeTestTags.Root)
+    ) {
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
         onRefresh = { viewModel.refresh() },
@@ -165,7 +174,8 @@ fun HomeScreen(
             if (uiState.hasErrors) {
                 item {
                     WarningBanner(
-                        message = "Some content couldn't load. Pull to refresh.",
+                        message = "Some content couldn't load.",
+                        onRefresh = { viewModel.refresh() },
                         modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM2)
                     )
                 }
@@ -274,10 +284,7 @@ fun HomeScreen(
             }
         }
     }
-    SnackbarHost(
-        hostState = snackbarHostState,
-        modifier = Modifier.align(Alignment.BottomCenter)
-    )
+    }
     }
 }
 
@@ -770,7 +777,8 @@ private fun getCategoryCards(): List<CategoryCardData> {
 @Composable
 private fun WarningBanner(
     message: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRefresh: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -796,8 +804,25 @@ private fun WarningBanner(
                     fontFamily = paceDreamFontFamily,
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = PaceDreamColors.OnWarningContainer
+                color = PaceDreamColors.OnWarningContainer,
+                modifier = Modifier.weight(1f)
             )
+            if (onRefresh != null) {
+                Spacer(modifier = Modifier.width(PaceDreamSpacing.SM))
+                TextButton(
+                    onClick = onRefresh,
+                    contentPadding = PaddingValues(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
+                ) {
+                    Text(
+                        text = "Refresh",
+                        style = DSTypo.Subheadline.copy(
+                            fontFamily = paceDreamFontFamily,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = PaceDreamColors.OnWarningContainer
+                    )
+                }
+            }
         }
     }
 }

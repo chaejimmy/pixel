@@ -182,7 +182,7 @@ fun SearchScreen(
                 leadingIcon = {
                     Icon(
                         PaceDreamIcons.Search,
-                        contentDescription = "Search",
+                        contentDescription = null,
                         tint = PaceDreamColors.TextSecondary,
                         modifier = Modifier.size(20.dp)
                     )
