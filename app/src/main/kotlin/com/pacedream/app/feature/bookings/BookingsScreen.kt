@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.shourov.apps.pacedream.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -98,6 +100,7 @@ object BookingsTestTags {
 fun BookingsScreen(
     onBookingClick: (String) -> Unit,
     onBookingClickWithData: ((BookingListItem) -> Unit)? = null,
+    onBrowseClick: (() -> Unit)? = null,
     viewModel: BookingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -162,21 +165,34 @@ fun BookingsScreen(
                 // otherwise see "No bookings" with no hint that their card
                 // was charged.
                 uiState.filteredBookings.isEmpty() && paymentState !is PendingPaymentState.Pending -> {
-                    val emptyConfig = when (uiState.selectedTab) {
-                        BookingTab.ALL -> Pair(PaceDreamIcons.ListIcon, "No bookings found")
-                        BookingTab.UPCOMING -> Pair(PaceDreamIcons.CalendarToday, "No upcoming bookings")
-                        BookingTab.PAST -> Pair(PaceDreamIcons.CheckCircle, "No past bookings")
-                        BookingTab.CANCELLED -> Pair(PaceDreamIcons.Cancel, "No cancelled bookings")
+                    val emptyIcon = when (uiState.selectedTab) {
+                        BookingTab.ALL -> PaceDreamIcons.ListIcon
+                        BookingTab.UPCOMING -> PaceDreamIcons.CalendarToday
+                        BookingTab.PAST -> PaceDreamIcons.CheckCircle
+                        BookingTab.CANCELLED -> PaceDreamIcons.Cancel
+                    }
+                    val emptyTitle = when (uiState.selectedTab) {
+                        BookingTab.ALL -> "No bookings yet"
+                        BookingTab.UPCOMING -> "No upcoming bookings"
+                        BookingTab.PAST -> "No past bookings"
+                        BookingTab.CANCELLED -> "No cancelled bookings"
+                    }
+                    val emptyDescription = when (uiState.selectedTab) {
+                        BookingTab.ALL -> "Your bookings will live here. Browse spaces, items, and services to make your first one."
+                        BookingTab.UPCOMING -> "When you book a stay, it will appear here."
+                        BookingTab.PAST -> "Completed stays will appear here after checkout."
+                        BookingTab.CANCELLED -> "Cancelled or refunded bookings will show up here."
                     }
                     PaceDreamEmptyState(
-                        title = emptyConfig.second,
-                        description = when (uiState.selectedTab) {
-                            BookingTab.UPCOMING -> "When you book a stay, it will appear here."
-                            BookingTab.PAST -> "Completed stays will appear here after checkout."
-                            BookingTab.CANCELLED -> "Cancelled or refunded bookings will show up here."
-                            else -> "Start exploring and find your next stay!"
+                        title = emptyTitle,
+                        description = emptyDescription,
+                        icon = emptyIcon,
+                        actionText = "Browse spaces".takeIf {
+                            uiState.selectedTab == BookingTab.ALL && onBrowseClick != null
                         },
-                        icon = emptyConfig.first,
+                        onActionClick = onBrowseClick.takeIf {
+                            uiState.selectedTab == BookingTab.ALL
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag(BookingsTestTags.EmptyState)
@@ -248,8 +264,7 @@ fun BookingsScreen(
 
                         // Bottom padding for nav bar
                         item {
-                            // intentional: 80.dp clears the bottom nav bar + FAB; between XXXL (64) and XXXL+MD — neither fits
-                            Spacer(modifier = Modifier.height(80.dp))
+                            Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.BottomNavClearance))
                         }
                     }
                 }
@@ -287,7 +302,7 @@ private fun BookingsHeader(
         if (bookingCount > 0) {
             Spacer(modifier = Modifier.height(PaceDreamSpacing.XS))
             Text(
-                text = "$bookingCount booking${if (bookingCount == 1) "" else "s"}",
+                text = pluralStringResource(R.plurals.booking_count, bookingCount, bookingCount),
                 style = PaceDreamTypography.Subheadline,
                 color = PaceDreamColors.TextSecondary
             )
@@ -529,7 +544,11 @@ private fun UnifiedBookingCard(
                         BookingDetailRow(
                             icon = PaceDreamIcons.Hotel,
                             label = "Nights",
-                            value = "${item.nightsCount} night${if (item.nightsCount == 1) "" else "s"}"
+                            value = pluralStringResource(
+                                R.plurals.night_count,
+                                item.nightsCount,
+                                item.nightsCount
+                            )
                         )
                     }
                 }
