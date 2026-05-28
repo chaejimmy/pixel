@@ -164,7 +164,8 @@ fun SignIn(
                         viewModel.login(
                             onSuccess = {
                                 navController.navigate(route = DASHBOARD_ROUTE) {
-                                    popUpTo(0) { inclusive = true }
+                                    popUpTo(SignInRoutes.SIGN_IN.name) { inclusive = true }
+                                    launchSingleTop = true
                                 }
                             }
                         )

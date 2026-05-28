@@ -19,10 +19,10 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:ui"))
 
-    // Compose UI test for the C-03 phone-validation navigation invariant —
-    // see PhoneEntryScreenNavigationGuardTest.
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.compose.ui.test)
+    testImplementation(libs.androidx.navigation.testing)
     debugImplementation(libs.androidx.compose.ui.testManifest)
 }
