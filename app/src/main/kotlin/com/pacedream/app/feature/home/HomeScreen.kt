@@ -64,6 +64,7 @@ import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.pacedream.common.composables.designsystem.state.EmptyState
 import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
@@ -274,7 +275,11 @@ fun HomeScreen(
             if (!uiState.isLoading && uiState.isEmpty) {
                 item {
                     EmptyState(
-                        onRetry = { viewModel.refresh() },
+                        title = "Nothing to show right now",
+                        subtitle = "Check back later for new spaces and rentals",
+                        icon = PaceDreamIcons.Search,
+                        ctaLabel = "Retry",
+                        onCta = { viewModel.refresh() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(PaceDreamSpacing.XXL)
@@ -2454,74 +2459,6 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
                     )
                 }
             }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty State (iOS parity: icon + title + subtitle + retry button)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EmptyState(
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(
-                    PaceDreamColors.Primary.copy(alpha = 0.08f),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Search,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(36.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
-        Text(
-            text = "Nothing to show right now",
-            style = DSTypo.Title3.copy(
-                fontFamily = paceDreamDisplayFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.2).sp
-            ),
-            color = PaceDreamColors.TextHeadline,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Check back later for new spaces and rentals",
-            style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.IconNeutral,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Button(
-            onClick = onRetry,
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamColors.Primary
-            ),
-            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
-        ) {
-            Text(
-                text = "Retry",
-                style = DSTypo.Subheadline.copy(
-                    fontFamily = paceDreamFontFamily,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onPrimary
-            )
         }
     }
 }
