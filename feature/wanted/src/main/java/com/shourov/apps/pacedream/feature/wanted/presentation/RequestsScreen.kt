@@ -14,10 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +38,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,10 +48,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
@@ -80,6 +81,13 @@ fun RequestsScreen(
     onRequestClick: (String) -> Unit,
     onCreateClick: () -> Unit,
     onNotifyMeClick: () -> Unit = {},
+    /**
+     * Back affordance for when Requests is reached as a *pushed* destination
+     * (e.g. an "you have an offer" notification deep link, or from a detail
+     * back-stack). When null, Requests is a root tab and the top bar omits the
+     * navigation icon. Wired from the NavHost based on the back stack.
+     */
+    onBack: (() -> Unit)? = null,
     isHostMode: Boolean = false,
     /**
      * Tab to land on the first time the screen composes. Used by the
@@ -101,7 +109,19 @@ fun RequestsScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(title = { Text("Requests") })
+                TopAppBar(
+                    title = { Text("Requests", style = PaceDreamTypography.Headline) },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = PaceDreamColors.Background,
+                    ),
+                )
                 RequestsTabs(
                     selected = selectedTab,
                     mineLabel = if (isHostMode) "My offers" else "Mine",
@@ -113,8 +133,15 @@ fun RequestsScreen(
             if (selectedTab == RequestsTab.Browse) {
                 ExtendedFloatingActionButton(
                     onClick = onCreateClick,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text("Post a request") },
+                    // Merge icon + label into one node so TalkBack reads the FAB
+                    // once as "Post a request, button" rather than announcing an
+                    // unlabeled icon separately. The icon's contentDescription is
+                    // null because the visible "Post a request" text already labels it.
+                    modifier = Modifier.semantics(mergeDescendants = true) {},
+                    containerColor = PaceDreamColors.Primary,
+                    contentColor = PaceDreamColors.OnPrimary,
+                    icon = { Icon(PaceDreamIcons.Add, contentDescription = null) },
+                    text = { Text("Post a request", style = PaceDreamTypography.Callout) },
                 )
             }
         },
@@ -314,7 +341,7 @@ private fun SortMenuButton(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Filled.Sort,
+                imageVector = PaceDreamIcons.Sort,
                 contentDescription = "Sort requests",
             )
         }
@@ -330,7 +357,7 @@ private fun SortMenuButton(
                         expanded = false
                     },
                     trailingIcon = if (option == current) {
-                        { Icon(Icons.Filled.Sort, contentDescription = null) }
+                        { Icon(PaceDreamIcons.Sort, contentDescription = null) }
                     } else null,
                 )
             }
@@ -425,7 +452,7 @@ private fun ActiveFilterChip(label: String, onClear: () -> Unit) {
         label = { Text(label) },
         trailingIcon = {
             Icon(
-                imageVector = Icons.Filled.Close,
+                imageVector = PaceDreamIcons.Close,
                 contentDescription = "Clear $label",
                 modifier = Modifier.size(InputChipDefaults.IconSize),
             )
