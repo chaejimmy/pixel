@@ -2,6 +2,7 @@
 
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,15 +53,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsTab
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
+import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestCard
 
@@ -583,4 +587,128 @@ private fun ErrorMessage(message: String, onRetry: () -> Unit) {
             Text("Retry")
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark, feeding hand-built state straight into the stateless
+// RequestsContent so the IDE pane renders every meaningful branch (Content list,
+// Empty, Error) without standing up the Hilt ViewModel. The dark pass confirms
+// the surfaces use the migrated tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SampleRequests = listOf(
+    WantedRequest(
+        id = "preview-1",
+        title = "Need a quiet meeting room for 2 hours",
+        description = "Looking for a small room downtown this afternoon.",
+        type = "space",
+        category = "Meeting room",
+        location = "Downtown, San Francisco",
+        budget = 40.0,
+        imageUrl = null,
+    ),
+    WantedRequest(
+        id = "preview-2",
+        title = "Borrow a DSLR camera for the weekend",
+        description = "Any Canon or Nikon body with a kit lens works.",
+        type = "item",
+        category = "Camera",
+        location = "Mission, San Francisco",
+        budget = null,
+        imageUrl = null,
+    ),
+    WantedRequest(
+        id = "preview-3",
+        title = "Help moving a couch on Saturday",
+        description = "Two-person job, third-floor walk-up.",
+        type = "service",
+        category = "Moving",
+        location = "Oakland, CA",
+        budget = 120.0,
+        imageUrl = null,
+    ),
+)
+
+@Composable
+private fun RequestsContentPreview(
+    state: RequestsListUiState,
+    darkTheme: Boolean,
+) {
+    PaceDreamTheme(darkTheme = darkTheme) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            RequestsContent(
+                state = state,
+                filter = FilterState(),
+                isHostMode = false,
+                onRequestClick = {},
+                onRetry = {},
+                onClearFilters = {},
+                onCreateClick = {},
+                onNotifyMeClick = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Requests Content Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsContentLightPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(SampleRequests), darkTheme = false)
+}
+
+@Preview(
+    name = "Requests Content Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsContentDarkPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(SampleRequests), darkTheme = true)
+}
+
+@Preview(name = "Requests Empty Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsEmptyLightPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(emptyList()), darkTheme = false)
+}
+
+@Preview(
+    name = "Requests Empty Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsEmptyDarkPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(emptyList()), darkTheme = true)
+}
+
+@Preview(name = "Requests Error Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsErrorLightPreview() {
+    RequestsContentPreview(
+        RequestsListUiState.Error("Couldn't load requests. Check your connection."),
+        darkTheme = false,
+    )
+}
+
+@Preview(
+    name = "Requests Error Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsErrorDarkPreview() {
+    RequestsContentPreview(
+        RequestsListUiState.Error("Couldn't load requests. Check your connection."),
+        darkTheme = true,
+    )
 }
