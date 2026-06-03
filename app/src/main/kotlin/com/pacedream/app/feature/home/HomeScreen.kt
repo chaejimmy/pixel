@@ -252,13 +252,18 @@ fun HomeScreen(
                 }
             }
 
-            // ── Trending Destinations (iOS parity) ──
-            item {
-                SectionSurface {
-                    TrendingDestinationsSection(
-                        onDestinationTap = { destination -> onCategoryClick(destination) },
-                        onViewAllTap = { onSectionViewAll("destinations") },
-                    )
+            // ── Trending Destinations (derived from real listing data) ──
+            // Rendered only when the repository actually returned destinations;
+            // an empty list hides the section rather than showing fabricated rows.
+            if (uiState.trendingDestinations.isNotEmpty()) {
+                item {
+                    SectionSurface {
+                        TrendingDestinationsSection(
+                            destinations = uiState.trendingDestinations,
+                            onDestinationTap = { destination -> onCategoryClick(destination) },
+                            onViewAllTap = { onSectionViewAll("destinations") },
+                        )
+                    }
                 }
             }
 
@@ -2053,25 +2058,12 @@ private fun SubcategoryChip(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Trending Destinations (iOS parity: 2-column grid with gradient overlays)
+// Data is derived from real listings by HomeViewModel — see TrendingDestination.
 // ─────────────────────────────────────────────────────────────────────────────
-
-private data class DestinationData(
-    val title: String,
-    val propertyCount: Int,
-    val imageUrl: String
-)
-
-private fun getTrendingDestinations(): List<DestinationData> = listOf(
-    DestinationData("Grand Canyon", 42, "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=600"),
-    DestinationData("Utah", 38, "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"),
-    DestinationData("Maui", 55, "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=600"),
-    DestinationData("Glacier", 29, "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600"),
-    DestinationData("Honolulu", 67, "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=600"),
-    DestinationData("Sedona", 31, "https://images.unsplash.com/photo-1500534314263-e9e68e3c0849?w=600")
-)
 
 @Composable
 private fun TrendingDestinationsSection(
+    destinations: List<TrendingDestination>,
     onDestinationTap: (String) -> Unit,
     onViewAllTap: () -> Unit,
     modifier: Modifier = Modifier
@@ -2085,7 +2077,6 @@ private fun TrendingDestinationsSection(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
-        val destinations = getTrendingDestinations()
         Column(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
@@ -2118,7 +2109,7 @@ private fun TrendingDestinationsSection(
 
 @Composable
 private fun TrendingDestinationCard(
-    destination: DestinationData,
+    destination: TrendingDestination,
     isLarge: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
