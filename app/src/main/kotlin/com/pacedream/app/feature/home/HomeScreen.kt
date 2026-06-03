@@ -10,13 +10,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -34,13 +30,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -61,6 +55,7 @@ import coil.request.ImageRequest
 import android.content.res.Configuration
 import androidx.compose.ui.tooling.preview.Preview
 import com.pacedream.common.composables.animations.animatedCardEntry
+import com.pacedream.common.composables.designsystem.modifier.pressable
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
@@ -702,25 +697,14 @@ internal fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "chipScale"
-    )
-
     val tint = category.color.tint
     Surface(
         modifier = Modifier
             .height(48.dp)
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                role = Role.Button,
-                onClickLabel = "Open ${category.name}",
+            .pressable(
                 onClick = onClick,
+                onClickLabel = "Open ${category.name}",
+                pressedScale = 0.95f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         color = tint.copy(alpha = 0.08f),
@@ -995,30 +979,19 @@ private fun FeaturedFullWidthCard(
     onFavoriteClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "featuredScale"
-    )
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .animatedCardEntry()
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                pressedScale = 0.98f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1417,29 +1390,18 @@ private fun GridListingCard(
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit = {}
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "gridCardScale"
-    )
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1619,29 +1581,18 @@ private fun ListingCard(
     onFavoriteClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "cardScale"
-    )
-
     Surface(
         modifier = modifier
             .widthIn(min = 200.dp)
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1949,6 +1900,7 @@ private fun BrowseTypePill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(onClick = onClick)
             .then(
                 if (bgAlpha > 0f) {
                     Modifier.background(
@@ -1960,12 +1912,6 @@ private fun BrowseTypePill(
                         RoundedCornerShape(PaceDreamRadius.LG)
                     )
                 } else Modifier
-            )
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
             )
             .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center
@@ -1999,17 +1945,14 @@ private fun SubcategoryChip(
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "chipScale"
-    )
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .scale(scale)
+            .clip(RoundedCornerShape(PaceDreamRadius.XL))
+            .pressable(
+                onClick = onClick,
+                pressedScale = 0.95f,
+            )
             .background(
                 MaterialTheme.colorScheme.surface,
                 RoundedCornerShape(PaceDreamRadius.XL)
@@ -2019,17 +1962,6 @@ private fun SubcategoryChip(
                 color = PaceDreamColors.DividerNeutral,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
             )
-            .semantics { role = Role.Button }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
     ) {
         Icon(
@@ -2123,28 +2055,14 @@ private fun TrendingDestinationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "destScale"
-    )
-
     Box(
         modifier = modifier
             .height(if (isLarge) 170.dp else 130.dp)
-            .scale(scale)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
+            .pressable(
+                onClick = onClick,
+                pressedScale = 0.96f,
+            )
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
