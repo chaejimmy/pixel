@@ -33,6 +33,8 @@ import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.BuildConfig
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
@@ -79,7 +81,7 @@ fun PostRequestSuccessScreen(
                 title = {
                     Text(
                         text = if (pendingReview) "Submitted" else "Request posted",
-                        style = PaceDreamTypography.Headline,
+                        style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                     )
                 },
                 navigationIcon = {
@@ -107,6 +109,7 @@ fun PostRequestSuccessScreen(
         ) {
             Box(
                 modifier = Modifier
+                    // intentional: 72dp success badge — a fixed hero-icon size.
                     .size(72.dp)
                     .background(
                         color = accentColor.copy(alpha = 0.15f),
@@ -118,6 +121,7 @@ fun PostRequestSuccessScreen(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
+                    // intentional: 40dp glyph centered in the 72dp badge.
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -126,7 +130,7 @@ fun PostRequestSuccessScreen(
 
             Text(
                 text = title,
-                style = PaceDreamTypography.Title2,
+                style = PaceDreamTypography.Title2.copy(fontFamily = paceDreamDisplayFontFamily),
                 color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
             )
@@ -135,7 +139,7 @@ fun PostRequestSuccessScreen(
 
             Text(
                 text = body,
-                style = PaceDreamTypography.Body,
+                style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
                 color = PaceDreamColors.TextSecondary,
             )
 
@@ -152,7 +156,7 @@ fun PostRequestSuccessScreen(
             ) {
                 Text(
                     text = "Track my requests",
-                    style = PaceDreamTypography.Headline,
+                    style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -166,7 +170,7 @@ fun PostRequestSuccessScreen(
             ) {
                 Text(
                     text = "Post another",
-                    style = PaceDreamTypography.Headline,
+                    style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                 )
             }
 
@@ -175,7 +179,7 @@ fun PostRequestSuccessScreen(
                 Spacer(Modifier.height(PaceDreamSpacing.MD))
                 Text(
                     text = "ID · ${requestId.take(8)}",
-                    style = PaceDreamTypography.Caption,
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
                     color = PaceDreamColors.TextTertiary,
                 )
             }

@@ -77,7 +77,9 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamStroke
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
@@ -130,7 +132,7 @@ fun CreateRequestScreen(
                 title = {
                     Text(
                         text = "Post a Request",
-                        style = PaceDreamTypography.Headline,
+                        style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                     )
                 },
                 navigationIcon = {
@@ -164,7 +166,7 @@ fun CreateRequestScreen(
             ) {
                 Text(
                     text = "Tell providers what you need and they'll send offers.",
-                    style = PaceDreamTypography.Footnote,
+                    style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
                     color = PaceDreamColors.TextSecondary,
                 )
 
@@ -262,7 +264,7 @@ fun CreateRequestScreen(
                         state.fieldErrors.budgetError?.let { err ->
                             Text(
                                 text = err,
-                                style = PaceDreamTypography.Caption,
+                                style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
                                 color = PaceDreamColors.Error,
                             )
                         }
@@ -288,7 +290,7 @@ fun CreateRequestScreen(
 
             // Sticky bottom CTA so users on small screens can always reach
             // the submit button without scrolling past every field first.
-            HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+            HorizontalDivider(color = PaceDreamColors.Border, thickness = PaceDreamStroke.Hairline)
             Button(
                 onClick = viewModel::submit,
                 enabled = !state.submitting &&
@@ -309,14 +311,15 @@ fun CreateRequestScreen(
             ) {
                 if (state.submitting) {
                     CircularProgressIndicator(
-                        strokeWidth = 2.dp,
+                        strokeWidth = PaceDreamStroke.Thick,
                         color = PaceDreamColors.OnPrimary,
+                        // intentional: 18dp inline spinner sized to the button label.
                         modifier = Modifier.size(18.dp),
                     )
                 } else {
                     Text(
                         text = "Post Request",
-                        style = PaceDreamTypography.Headline,
+                        style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -351,7 +354,7 @@ private fun LocationField(
 ) {
     val shape = RoundedCornerShape(PaceDreamRadius.MD)
     val borderModifier = if (error != null) {
-        Modifier.border(1.dp, PaceDreamColors.Error, shape)
+        Modifier.border(PaceDreamStroke.Thin, PaceDreamColors.Error, shape)
     } else {
         Modifier
     }
@@ -377,13 +380,14 @@ private fun LocationField(
                     selected != null -> PaceDreamColors.Primary
                     else -> PaceDreamColors.TextSecondary
                 },
+                // intentional: 18dp leading field icon, off the icon-size scale.
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(PaceDreamSpacing.SM))
             Text(
                 text = selected?.displayLine?.takeIf { it.isNotBlank() }
                     ?: "Add a location",
-                style = PaceDreamTypography.Body,
+                style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
                 color = if (selected != null) PaceDreamColors.TextPrimary
                 else PaceDreamColors.TextSecondary,
                 modifier = Modifier.weight(1f),
@@ -397,7 +401,7 @@ private fun LocationField(
         if (error != null) {
             Text(
                 text = error,
-                style = PaceDreamTypography.Caption,
+                style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
                 color = PaceDreamColors.Error,
             )
         }
@@ -429,7 +433,7 @@ private fun TypePicker(
         }
         Text(
             text = selected.subtitle,
-            style = PaceDreamTypography.Caption,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
             color = PaceDreamColors.TextSecondary,
         )
     }
@@ -444,12 +448,13 @@ private fun TypeTile(
 ) {
     val shape = RoundedCornerShape(PaceDreamRadius.MD)
     val borderModifier = if (selected) {
-        Modifier.border(1.5.dp, PaceDreamColors.Primary, shape)
+        Modifier.border(PaceDreamStroke.Regular, PaceDreamColors.Primary, shape)
     } else {
         Modifier
     }
     Box(
         modifier = modifier
+            // intentional: 72dp type-tile height — a fixed component size.
             .height(72.dp)
             .clip(shape)
             .background(
@@ -478,11 +483,12 @@ private fun TypeTile(
                 },
                 contentDescription = null,
                 tint = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextSecondary,
+                // intentional: 24dp tile glyph, off the icon-size scale.
                 modifier = Modifier.size(24.dp),
             )
             Text(
                 text = type.label,
-                style = PaceDreamTypography.Headline,
+                style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                 color = if (selected) PaceDreamColors.Primary else PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -496,6 +502,7 @@ private fun TypeTile(
                 tint = PaceDreamColors.Primary,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
+                    // intentional: 12dp selected-state check badge.
                     .size(12.dp),
             )
         }
@@ -545,7 +552,7 @@ private fun CategoryDropdown(
                     text = {
                         Text(
                             text = option.label,
-                            style = PaceDreamTypography.Body,
+                            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
                             color = PaceDreamColors.TextPrimary,
                         )
                     },
@@ -594,7 +601,7 @@ private fun DateRangeField(
     ) {
         Text(
             text = label ?: "Any date",
-            style = PaceDreamTypography.Body,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
             color = if (label == null) PaceDreamColors.TextSecondary
             else PaceDreamColors.TextPrimary,
             modifier = Modifier.weight(1f),
@@ -684,6 +691,7 @@ private fun ImagePickerRow(
     ) {
         Box(
             modifier = Modifier
+                // intentional: 72dp image-preview height — a fixed component size.
                 .height(72.dp)
                 .weight(1f)
                 .clip(RoundedCornerShape(PaceDreamRadius.MD))
@@ -693,8 +701,9 @@ private fun ImagePickerRow(
             when {
                 uploading -> {
                     CircularProgressIndicator(
-                        strokeWidth = 2.dp,
+                        strokeWidth = PaceDreamStroke.Thick,
                         color = PaceDreamColors.Primary,
+                        // intentional: 20dp upload spinner centered in the preview box.
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -749,7 +758,7 @@ private fun ImagePickerRow(
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        style = PaceDreamTypography.Caption,
+        style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
         color = PaceDreamColors.TextSecondary,
         fontWeight = FontWeight.SemiBold,
     )
@@ -765,13 +774,13 @@ private fun FieldSupportingText(error: String?, current: Int, max: Int) {
     if (error != null) {
         Text(
             text = error,
-            style = PaceDreamTypography.Caption,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
             color = PaceDreamColors.Error,
         )
     } else {
         Text(
             text = "$current/$max",
-            style = PaceDreamTypography.Caption,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
             color = PaceDreamColors.TextSecondary,
         )
     }
@@ -793,12 +802,13 @@ private fun InlineErrorBanner(message: String) {
             imageVector = PaceDreamIcons.Error,
             contentDescription = null,
             tint = PaceDreamColors.Error,
+            // intentional: 18dp banner icon, off the icon-size scale.
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(PaceDreamSpacing.SM))
         Text(
             text = message,
-            style = PaceDreamTypography.Footnote,
+            style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
             color = PaceDreamColors.TextPrimary,
         )
     }
