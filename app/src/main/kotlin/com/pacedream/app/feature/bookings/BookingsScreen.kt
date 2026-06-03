@@ -249,7 +249,11 @@ fun BookingsScreen(
                             }
                         }
 
-                        items(uiState.filteredBookings, key = { it.id }) { booking ->
+                        items(
+                            uiState.filteredBookings,
+                            key = { it.id },
+                            contentType = { "booking" }
+                        ) { booking ->
                             UnifiedBookingCard(
                                 item = booking,
                                 statusConfig = viewModel.statusConfig(booking),
@@ -344,7 +348,7 @@ private fun BookingTabPicker(
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
     ) {
-        items(BookingTab.entries.toList()) { tab ->
+        items(BookingTab.entries.toList(), key = { it.name }) { tab ->
             val isSelected = selectedTab == tab
             val count = countProvider(tab)
 
@@ -455,6 +459,9 @@ private fun UnifiedBookingCard(
                     url = item.imageUrl,
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
+                    // Stable cache key per render slot so a booking thumbnail
+                    // shared with another surface caches under a distinct key.
+                    cacheKey = "${item.id}@booking",
                     modifier = Modifier.fillMaxSize()
                 )
 
