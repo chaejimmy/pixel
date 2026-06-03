@@ -80,6 +80,12 @@ fun CheckoutScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // Tracks the last publishable key we initialised Stripe with, so that
+    // PaymentConfiguration.init runs once per distinct key rather than on
+    // every PresentPaymentSheet effect (including retries). Re-initialising
+    // on each present is wasted work and can re-register SDK components.
+    var lastInitKey by remember { mutableStateOf<String?>(null) }
+
     // Use Stripe's Compose-aware API which properly registers the
     // ActivityResultLauncher via rememberLauncherForActivityResult.
     // The old PaymentSheet(activity, callback) constructor requires
@@ -110,57 +116,19 @@ fun CheckoutScreen(
                 }
                 is CheckoutViewModel.Effect.PresentPaymentSheet -> {
                     try {
-                        // Initialize Stripe with the resolved publishable key
-                        PaymentConfiguration.init(context, effect.publishableKey)
-
-                        // Configure PaymentSheet with Google Pay (iOS parity: Apple Pay).
-                        //
-                        // Environment selection MUST come from the build type, not the
-                        // publishable key prefix. Deriving env from the key means a mis-
-                        // provisioned release build that accidentally pulls a pk_test_*
-                        // key from the backend will silently route live shoppers into
-                        // Google Pay TEST mode (or vice versa), producing either fake
-                        // charges that do not settle or real charges in a "test" flow
-                        // that has no audit trail. BuildConfig.DEBUG is set by the
-                        // Android build system and cannot be overridden at runtime.
-                        val googlePayEnvironment = if (com.shourov.apps.pacedream.BuildConfig.DEBUG) {
-                            PaymentSheet.GooglePayConfiguration.Environment.Test
-                        } else {
-                            PaymentSheet.GooglePayConfiguration.Environment.Production
-                        }
-                        val configBuilder = PaymentSheet.Configuration.Builder(effect.merchantDisplayName)
-                            // Enable Google Pay (Android equivalent of iOS Apple Pay)
-                            .googlePay(PaymentSheet.GooglePayConfiguration(
-                                environment = googlePayEnvironment,
-                                countryCode = "US",
-                                currencyCode = uiState.quote?.currency?.uppercase() ?: "USD"
-                            ))
-                            // Block ACH / bank debits / any delayed-notification payment methods.
-                            // Guest checkout should only offer Card + Google Pay.
-                            .allowsDelayedPaymentMethods(false)
-                            // Prioritize card (Google Pay is presented automatically when
-                            // available and googlePay config is set). Any other method types
-                            // not in this list are deprioritized / hidden.
-                            .paymentMethodOrder(listOf("card"))
-                            // PaceDream brand appearance
-                            .appearance(PaymentSheet.Appearance(
-                                shapes = PaymentSheet.Shapes(
-                                    cornerRadiusDp = 12f,
-                                    borderStrokeWidthDp = 0.5f
-                                )
-                            ))
-
-                        // Customer session for saved cards
-                        if (effect.customerId != null && effect.ephemeralKeySecret != null) {
-                            configBuilder.customer(
-                                PaymentSheet.CustomerConfiguration(
-                                    id = effect.customerId,
-                                    ephemeralKeySecret = effect.ephemeralKeySecret
-                                )
-                            )
+                        // Initialize Stripe with the resolved publishable key, but only
+                        // when the key actually changes. Kept inside the try/catch so a
+                        // bad key still routes to onPaymentSheetFailed below.
+                        if (lastInitKey != effect.publishableKey) {
+                            PaymentConfiguration.init(context, effect.publishableKey)
+                            lastInitKey = effect.publishableKey
+                            Timber.d("PaymentConfiguration.init ran for new publishable key")
                         }
 
-                        val config = configBuilder.build()
+                        val config = buildCheckoutConfig(
+                            effect = effect,
+                            currency = uiState.quote?.currency?.uppercase() ?: "USD"
+                        )
 
                         paymentSheet.presentWithPaymentIntent(
                             effect.clientSecret,
@@ -472,6 +440,63 @@ fun CheckoutScreen(
             )
         }
     }
+}
+
+/**
+ * Builds the fully-configured [PaymentSheet.Configuration] for a checkout
+ * presentation. Isolating this keeps the effect handler small and means the
+ * Google Pay environment logic and customer-session block live in one place.
+ *
+ * Environment selection MUST come from the build type, not the publishable
+ * key prefix. Deriving env from the key means a mis-provisioned release build
+ * that accidentally pulls a pk_test_* key from the backend will silently route
+ * live shoppers into Google Pay TEST mode (or vice versa), producing either
+ * fake charges that do not settle or real charges in a "test" flow that has no
+ * audit trail. BuildConfig.DEBUG is set by the Android build system and cannot
+ * be overridden at runtime.
+ */
+private fun buildCheckoutConfig(
+    effect: CheckoutViewModel.Effect.PresentPaymentSheet,
+    currency: String
+): PaymentSheet.Configuration {
+    val googlePayEnvironment = if (com.shourov.apps.pacedream.BuildConfig.DEBUG) {
+        PaymentSheet.GooglePayConfiguration.Environment.Test
+    } else {
+        PaymentSheet.GooglePayConfiguration.Environment.Production
+    }
+    val configBuilder = PaymentSheet.Configuration.Builder(effect.merchantDisplayName)
+        // Enable Google Pay (Android equivalent of iOS Apple Pay)
+        .googlePay(PaymentSheet.GooglePayConfiguration(
+            environment = googlePayEnvironment,
+            countryCode = "US",
+            currencyCode = currency
+        ))
+        // Block ACH / bank debits / any delayed-notification payment methods.
+        // Guest checkout should only offer Card + Google Pay.
+        .allowsDelayedPaymentMethods(false)
+        // Prioritize card (Google Pay is presented automatically when
+        // available and googlePay config is set). Any other method types
+        // not in this list are deprioritized / hidden.
+        .paymentMethodOrder(listOf("card"))
+        // PaceDream brand appearance
+        .appearance(PaymentSheet.Appearance(
+            shapes = PaymentSheet.Shapes(
+                cornerRadiusDp = 12f,
+                borderStrokeWidthDp = 0.5f
+            )
+        ))
+
+    // Customer session for saved cards
+    if (effect.customerId != null && effect.ephemeralKeySecret != null) {
+        configBuilder.customer(
+            PaymentSheet.CustomerConfiguration(
+                id = effect.customerId,
+                ephemeralKeySecret = effect.ephemeralKeySecret
+            )
+        )
+    }
+
+    return configBuilder.build()
 }
 
 // ── Pay Bar (iOS parity: NativeCheckoutView.payBar) ──
@@ -1204,16 +1229,22 @@ private fun SupportActionRow(
                     if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
                     append("\nPlease reconcile and confirm my booking.")
                 }
-                val uri = android.net.Uri.parse(
-                    "mailto:support@pacedream.com" +
-                        "?subject=" + android.net.Uri.encode(subject) +
-                        "&body=" + android.net.Uri.encode(body)
-                )
-                val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
-                try {
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to launch mailto intent")
+                // Build the mailto Uri from parts (no query string) and pass
+                // subject/body as extras so the OS escapes them \u2014 a subject
+                // containing spaces or the payment id can't produce a malformed
+                // Uri. Wrapped in runCatching so a device with no mail app
+                // falls back to copying the details to the clipboard instead of
+                // crashing.
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_SENDTO,
+                    android.net.Uri.fromParts("mailto", "support@pacedream.com", null)
+                ).apply {
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, subject)
+                    putExtra(android.content.Intent.EXTRA_TEXT, body)
+                }
+                runCatching { context.startActivity(intent) }.onFailure { e ->
+                    Timber.w(e, "Failed to launch mailto intent; copying to clipboard")
+                    clipboard.setText(AnnotatedString("$subject\n\n$body"))
                 }
             },
             shape = RoundedCornerShape(PaceDreamRadius.MD),
@@ -1302,6 +1333,7 @@ private fun SupportActionRowNoReference(
     onReturnToListing: () -> Unit,
 ) {
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1331,16 +1363,18 @@ private fun SupportActionRowNoReference(
                     if (listingTitle.isNotBlank()) append("Listing: $listingTitle\n")
                     append("\nPlease check whether a charge went through and reconcile.")
                 }
-                val uri = android.net.Uri.parse(
-                    "mailto:support@pacedream.com" +
-                        "?subject=" + android.net.Uri.encode(subject) +
-                        "&body=" + android.net.Uri.encode(body)
-                )
-                val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO, uri)
-                try {
-                    context.startActivity(intent)
-                } catch (e: Exception) {
-                    Timber.w(e, "Failed to launch mailto intent")
+                // mailto Uri from parts + subject/body as extras (OS-escaped),
+                // with a clipboard fallback when no mail app is installed.
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_SENDTO,
+                    android.net.Uri.fromParts("mailto", "support@pacedream.com", null)
+                ).apply {
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, subject)
+                    putExtra(android.content.Intent.EXTRA_TEXT, body)
+                }
+                runCatching { context.startActivity(intent) }.onFailure { e ->
+                    Timber.w(e, "Failed to launch mailto intent; copying to clipboard")
+                    clipboard.setText(AnnotatedString("$subject\n\n$body"))
                 }
             },
             shape = RoundedCornerShape(PaceDreamRadius.MD),
