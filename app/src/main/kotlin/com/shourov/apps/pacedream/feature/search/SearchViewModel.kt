@@ -14,11 +14,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
@@ -42,7 +42,11 @@ class SearchViewModel @Inject constructor(
     )
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
-    private var autocompleteJob: Job? = null
+    // Single source of truth for the WHERE keystroke stream.  The autocomplete
+    // network call is driven off this via a centralized debounce pipeline (see
+    // init) so we never fire a request per keystroke and the debounce lives in
+    // one place rather than being re-implemented at each call site.
+    private val autocompleteQuery = MutableStateFlow("")
 
     val authState: StateFlow<AuthState> = authSession.authState
 
@@ -102,6 +106,17 @@ class SearchViewModel @Inject constructor(
                 }
             }
         }
+
+        // Centralized autocomplete debounce: collapse rapid WHERE keystrokes
+        // into a single network request after the user pauses typing.
+        // collectLatest cancels any still-in-flight autocomplete when a newer
+        // (debounced) query arrives, so the suggestions never lag the input.
+        viewModelScope.launch {
+            autocompleteQuery
+                .debounce(AUTOCOMPLETE_DEBOUNCE_MS)
+                .distinctUntilChanged()
+                .collectLatest { q -> runAutocomplete(q) }
+        }
     }
 
     suspend fun toggleFavorite(listingId: String): ApiResult<Boolean> {
@@ -147,7 +162,10 @@ class SearchViewModel @Inject constructor(
 
     fun onQueryChanged(q: String) {
         _uiState.update { it.copy(query = q, errorMessage = null) }
-        fetchAutocompleteDebounced(q)
+        // Feed the debounce pipeline rather than launching a request here;
+        // the actual network call happens in runAutocomplete after the
+        // debounce window (see init).
+        autocompleteQuery.value = q
     }
 
     fun updateSearchParams(
@@ -504,29 +522,31 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    private fun fetchAutocompleteDebounced(q: String) {
-        autocompleteJob?.cancel()
-        if (q.trim().length < 2) {
+    /**
+     * Resolve autocomplete suggestions for a single (already-debounced) query.
+     * Invoked only from the debounce pipeline in [init] via collectLatest, so
+     * a fresh keystroke automatically cancels an in-flight call.  Queries
+     * shorter than two characters clear the suggestion list without hitting
+     * the network.
+     */
+    private suspend fun runAutocomplete(q: String) {
+        val trimmed = q.trim()
+        if (trimmed.length < 2) {
             _uiState.update { it.copy(suggestions = emptyList()) }
             return
         }
-
-        autocompleteJob = viewModelScope.launch {
-            try {
-                delay(250)
-                val res = repo.autocompleteWhere(q.trim())
-                when (res) {
-                    is ApiResult.Success -> _uiState.update { it.copy(suggestions = res.data) }
-                    is ApiResult.Failure -> {
-                        // Non-blocking; keep suggestions empty on failure.
-                        _uiState.update { it.copy(suggestions = emptyList()) }
-                    }
+        try {
+            when (val res = repo.autocompleteWhere(trimmed)) {
+                is ApiResult.Success -> _uiState.update { it.copy(suggestions = res.data) }
+                is ApiResult.Failure -> {
+                    // Non-blocking; keep suggestions empty on failure.
+                    _uiState.update { it.copy(suggestions = emptyList()) }
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                _uiState.update { it.copy(suggestions = emptyList()) }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            _uiState.update { it.copy(suggestions = emptyList()) }
         }
     }
 
@@ -559,6 +579,14 @@ class SearchViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * Debounce window for the WHERE autocomplete network call.  Matches
+         * the place-prediction debounce used in SearchScreen so both
+         * suggestion sources settle on the same 300ms cadence and a burst of
+         * keystrokes results in at most one request.
+         */
+        private const val AUTOCOMPLETE_DEBOUNCE_MS = 300L
+
         private val ISO_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
 
         // SavedStateHandle keys for SearchQueryState persistence. Kept here so

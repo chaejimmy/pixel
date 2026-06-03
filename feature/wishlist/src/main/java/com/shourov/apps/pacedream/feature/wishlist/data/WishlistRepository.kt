@@ -6,9 +6,16 @@ import com.shourov.apps.pacedream.core.network.api.ApiResult
 import com.shourov.apps.pacedream.core.network.config.AppConfig
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItem
 import com.shourov.apps.pacedream.feature.wishlist.model.WishlistItemType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -44,6 +51,18 @@ class WishlistRepository @Inject constructor(
     private val _changes = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
     val changes: SharedFlow<Unit> = _changes.asSharedFlow()
 
+    // Single-flight coalescing for getWishlist().  Auth-state transitions and
+    // wishlist-change events independently trigger a refresh in several
+    // ViewModels (HomeFeed, Search, HomeScreen, PropertyDetail), so a single
+    // user action could otherwise fan out into 3-4 concurrent GET /wishlists.
+    // Callers that arrive while a fetch is in flight await the same Deferred
+    // instead of issuing a new request.  The shared fetch runs in a
+    // repository-owned scope (not the caller's) so one caller cancelling does
+    // not tear down the request that other awaiters depend on.
+    private val wishlistFetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val wishlistFetchMutex = Mutex()
+    private var inFlightWishlist: Deferred<ApiResult<List<WishlistItem>>>? = null
+
     private fun notifyChanged() {
         _changes.tryEmit(Unit)
     }
@@ -60,9 +79,29 @@ class WishlistRepository @Inject constructor(
      */
     
     /**
-     * Fetch wishlist items with tolerant parsing
+     * Fetch wishlist items with tolerant parsing.
+     *
+     * Single-flight: concurrent callers share one in-flight network request.
+     * The first caller starts the fetch in [wishlistFetchScope]; subsequent
+     * callers await the same [Deferred] until it completes, after which the
+     * next call starts a fresh request (no stale caching of the result here —
+     * freshness is still per-trigger, we only collapse the concurrent burst).
      */
     suspend fun getWishlist(): ApiResult<List<WishlistItem>> {
+        val deferred = wishlistFetchMutex.withLock {
+            inFlightWishlist ?: wishlistFetchScope.async { fetchWishlist() }
+                .also { inFlightWishlist = it }
+        }
+        return try {
+            deferred.await()
+        } finally {
+            wishlistFetchMutex.withLock {
+                if (inFlightWishlist === deferred) inFlightWishlist = null
+            }
+        }
+    }
+
+    private suspend fun fetchWishlist(): ApiResult<List<WishlistItem>> {
         // Primary: /account/wishlist (matches iOS, single auth layer)
         val primaryUrl = appConfig.buildApiUrl("account", "wishlist")
 

@@ -8,6 +8,7 @@ import com.shourov.apps.pacedream.feature.help.HelpCenterAnalytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -314,7 +315,9 @@ class SupportChatViewModel @Inject constructor(
         val sessionId = _uiState.value.session?.sessionId ?: return
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
-            while (true) {
+            // isActive guard: exit the poll loop promptly when the job/scope
+            // is cancelled rather than completing another delay + fetch cycle.
+            while (isActive) {
                 delay(POLL_INTERVAL_MS)
                 val currentSid = _uiState.value.session?.sessionId
                 if (currentSid != sessionId) return@launch

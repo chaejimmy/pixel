@@ -9,6 +9,7 @@ import com.shourov.apps.pacedream.feature.wifi.util.WifiTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -232,7 +233,9 @@ class WifiSessionViewModel @Inject constructor(
     private fun restartTicker() {
         tickerJob?.cancel()
         tickerJob = viewModelScope.launch {
-            while (true) {
+            // isActive guard: stop ticking immediately once the job/scope is
+            // cancelled instead of running one more tick() after cancellation.
+            while (isActive) {
                 tick()
                 delay(1_000L)
             }
@@ -242,7 +245,7 @@ class WifiSessionViewModel @Inject constructor(
     private fun restartPoll(sessionId: String) {
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
-            while (true) {
+            while (isActive) {
                 delay(30_000L)
                 repository.getSession(sessionId).onSuccess { applyServerSession(it) }
             }

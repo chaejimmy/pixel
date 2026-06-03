@@ -129,6 +129,9 @@ fun ListingCard(
                     ImageRequest.Builder(context)
                         .data(currentUrl)
                         .crossfade(200)
+                        // Card photo is at most ~288x216dp — cap decode so a
+                        // full-res CDN image isn't sampled into the gallery slot.
+                        .size(coil.size.Size(864, 648))
                         .build()
                 }
                 AsyncImage(

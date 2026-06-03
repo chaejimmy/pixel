@@ -146,9 +146,9 @@ fun EnhancedPropertyCard(
                     .fillMaxWidth()
                     .height(180.dp)
                     // Stable placeholder colour rendered behind AsyncImage so
-                    // the card never flashes empty on slow networks.  Coil
-                    // sizes the bitmap to the Box pixel dimensions via the
-                    // ConstraintsSizeResolver — no explicit ImageRequest.size().
+                    // the card never flashes empty on slow networks.  The
+                    // request also carries an explicit ImageRequest.size() cap
+                    // so the decoded bitmap stays bounded.
                     .clip(RoundedCornerShape(topStart = PaceDreamRadius.LG, topEnd = PaceDreamRadius.LG))
                     .background(PaceDreamColors.Gray100)
             ) {
@@ -159,6 +159,8 @@ fun EnhancedPropertyCard(
                         ImageRequest.Builder(context)
                             .data(imageUrl)
                             .crossfade(200)
+                            // 280dp-wide / 180dp-tall card — bound the decode.
+                            .size(coil.size.Size(840, 540))
                             .build()
                     }
                     AsyncImage(
@@ -368,8 +370,17 @@ fun CompactPropertyCard(
                         .clip(RoundedCornerShape(topStart = PaceDreamRadius.MD, topEnd = PaceDreamRadius.MD))
                         .background(PaceDreamColors.Gray100)
                 ) {
+                    val context = LocalContext.current
+                    val compactImageRequest = remember(imageUrl, context) {
+                        ImageRequest.Builder(context)
+                            .data(imageUrl)
+                            .crossfade(200)
+                            // 160dp-wide / 100dp-tall compact card — bound decode.
+                            .size(coil.size.Size(480, 300))
+                            .build()
+                    }
                     AsyncImage(
-                        model = imageUrl,
+                        model = compactImageRequest,
                         contentDescription = propertyName,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -480,6 +491,8 @@ fun PropertyImageCarousel(
                 ImageRequest.Builder(context)
                     .data(currentUrl)
                     .crossfade(200)
+                    // Full-width carousel, 200dp tall — bound the decode size.
+                    .size(coil.size.Size(840, 600))
                     .build()
             }
             AsyncImage(

@@ -331,6 +331,9 @@ private fun UnifiedListingCard(
         ImageRequest.Builder(context)
             .data(imageUrl)
             .crossfade(200)
+            // 156x108dp thumbnail — cap decode so we never sample a full-res
+            // CDN photo into the small browse-by-type tile.
+            .size(coil.size.Size(480, 340))
             .build()
     }
     Column(

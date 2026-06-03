@@ -110,6 +110,9 @@ private fun TrendingDestinationCard(
         ImageRequest.Builder(context)
             .data(destination.imageUrl)
             .crossfade(200)
+            // Cap decode well below source resolution (CDN photos are often
+            // 1600-2400px) so a ~170dp card never decodes a full-res bitmap.
+            .size(coil.size.Size(800, 600))
             .build()
     }
     val scrimColor = scrimOnImage(0.55f)
@@ -126,9 +129,9 @@ private fun TrendingDestinationCard(
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             // Stable placeholder color: rendered before the AsyncImage commits
             // its first frame so the card never flashes empty / fully
-            // transparent on slow networks.  Coil's ConstraintsSizeResolver
-            // already sizes the bitmap to this Box's pixel size, so no
-            // explicit ImageRequest.size() is needed.
+            // transparent on slow networks.  The request also carries an
+            // explicit ImageRequest.size() cap (above) so the decoded bitmap
+            // stays bounded regardless of the parent's measured constraints.
             .background(PaceDreamGray100)
             .clickable(onClick = onClick),
     ) {

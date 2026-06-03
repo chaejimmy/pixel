@@ -107,6 +107,8 @@ fun DealsCard(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(gallery.thumbnail)
                         .crossfade(200)
+                        // 280x180dp deal card — bound the decode size.
+                        .size(coil.size.Size(840, 540))
                         .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
@@ -229,6 +231,8 @@ fun LastMinuteDealCard(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(gallery.thumbnail)
                         .crossfade(200)
+                        // 280x180dp deal card — bound the decode size.
+                        .size(coil.size.Size(840, 540))
                         .build(),
                     contentDescription = "",
                     contentScale = ContentScale.Crop,
@@ -363,6 +367,8 @@ fun RentedGearDealsCard(
                     .data(if (images.isNullOrEmpty()) R.drawable.no_image else images?.get(0)
                         ?: R.drawable.no_image)
                     .crossfade(200)
+                    // 280dp-wide deal card — bound the decode size.
+                    .size(coil.size.Size(840, 540))
                     .build(),
                 contentDescription = "",
                 contentScale = ContentScale.Crop,
