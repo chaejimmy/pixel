@@ -1,10 +1,12 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,11 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -41,13 +51,18 @@ fun RequestTag(
 ) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = PaceDreamTypography.Caption2,
         color = MaterialTheme.colorScheme.onPrimary,
         fontWeight = FontWeight.SemiBold,
+        // Decorative chip: clearAndSetSemantics keeps it out of TalkBack's
+        // focus order so the whole card reads as one button. defaultMinSize
+        // gives it a chip-like minimum height.
         modifier = modifier
+            .defaultMinSize(minHeight = 20.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .clearAndSetSemantics { },
     )
 }
 
@@ -183,12 +198,25 @@ fun RequestCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            // Lifted look via the design-system shadow (dark-mode safe), not
+            // Material elevation — matches FeaturedFullWidthCard.
+            .adaptiveShadow(
+                elevation = PaceDreamElevation.SM,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            // Merge every line into one node so TalkBack reads the card as a
+            // single "Open request: …, button" instead of stopping on each Text.
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                onClick(label = "Open request: ${request.title.ifBlank { "Untitled request" }}") { false }
+            }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = PaceDreamColors.Card,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(0.5.dp, PaceDreamColors.Border.copy(alpha = 0.4f)),
     ) {
         Column(
             modifier = Modifier
