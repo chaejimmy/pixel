@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.designsystem.state.EmptyState
-import com.pacedream.common.composables.designsystem.state.ListShimmer
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTheme
@@ -69,6 +68,7 @@ import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestCard
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestCardSkeleton
 
 /**
  * Top-level Wanted entry point.
@@ -477,7 +477,7 @@ private fun RequestsContent(
     onNotifyMeClick: () -> Unit,
 ) {
     when (state) {
-        RequestsListUiState.Loading -> ListShimmer()
+        RequestsListUiState.Loading -> RequestsLoadingSkeleton()
         is RequestsListUiState.Error -> CenteredBox {
             EmptyState(
                 title = "Couldn't load requests",
@@ -503,14 +503,7 @@ private fun RequestsContent(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = PaceDreamSpacing.MD,
-                        end = PaceDreamSpacing.MD,
-                        top = PaceDreamSpacing.SM2,
-                        // intentional: 96dp clears the bottom nav + the
-                        // overhanging "Post a request" FAB; off the 8dp grid.
-                        bottom = 96.dp,
-                    ),
+                    contentPadding = requestsListContentPadding(),
                     verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
                 ) {
                     items(items = state.requests, key = { it.id }) { request ->
@@ -522,6 +515,36 @@ private fun RequestsContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * Shared padding for the requests list so the loading skeleton and the real
+ * list line up exactly. The 96dp bottom is intentional: it clears the bottom
+ * nav + the overhanging "Post a request" FAB (off the 8dp grid).
+ */
+private fun requestsListContentPadding() = PaddingValues(
+    start = PaceDreamSpacing.MD,
+    end = PaceDreamSpacing.MD,
+    top = PaceDreamSpacing.SM2,
+    bottom = 96.dp,
+)
+
+/**
+ * Loading state for the Browse feed: a non-scrolling column of card skeletons
+ * that echoes the real list's card shape, contentPadding and 12dp spacing,
+ * shimmering with the same sweep as Search & Bookings. Each [RequestCardSkeleton]
+ * clears its own semantics, so TalkBack skips the placeholders entirely.
+ */
+@Composable
+private fun RequestsLoadingSkeleton() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = requestsListContentPadding(),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
+        userScrollEnabled = false,
+    ) {
+        items(6) { RequestCardSkeleton() }
     }
 }
 

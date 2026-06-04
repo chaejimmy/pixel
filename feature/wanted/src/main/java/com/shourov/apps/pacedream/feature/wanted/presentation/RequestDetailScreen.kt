@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +65,7 @@ import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.LifecycleBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.ModerationBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
+import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestDetailSkeleton
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
@@ -179,7 +179,7 @@ fun RequestDetailScreen(
                 .padding(padding),
         ) {
             when (val s = state) {
-                RequestDetailUiState.Loading -> Centered { CircularProgressIndicator() }
+                RequestDetailUiState.Loading -> RequestDetailSkeleton()
                 is RequestDetailUiState.Error -> Centered {
                     Text(
                         text = s.message,
