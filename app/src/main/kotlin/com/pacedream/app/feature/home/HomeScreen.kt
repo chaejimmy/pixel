@@ -10,13 +10,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -24,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.composables.designsystem.modifier.pressable
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -34,13 +31,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -64,6 +59,7 @@ import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.pacedream.common.composables.designsystem.state.EmptyState
 import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
@@ -115,6 +111,13 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val selectedCategoryFilter = uiState.selectedCategory
 
+    // Resolve the unread-notifications VM at the stable screen scope rather than
+    // inside the hero LazyColumn item. Keeping it here ties it to HomeScreen's
+    // ViewModelStoreOwner and confines unread-count recompositions to the hero
+    // item we pass it into, instead of churning VM resolution as the list scrolls.
+    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -150,9 +153,11 @@ fun HomeScreen(
                 HeroHeaderSection(
                     heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
+                    unreadCount = unreadCount,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
                     onNotificationClick = onNotificationClick,
+                    onMarkAllSeen = { unreadVm.markAllAsSeen() },
                     onAboutClick = onAboutClick,
                 )
             }
@@ -171,7 +176,7 @@ fun HomeScreen(
 
             // ── Warning banner ──
             if (uiState.hasErrors) {
-                item(key = "warning", contentType = "warning") {
+                item(key = "warningBanner", contentType = "warningBanner") {
                     WarningBanner(
                         message = "Some content couldn't load.",
                         onRefresh = { viewModel.refresh() },
@@ -190,7 +195,7 @@ fun HomeScreen(
 
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
-                item(key = "spaces", contentType = "listingSection") {
+                item(key = "spaces", contentType = "spaces") {
                     SectionSurface {
                         ListingSection(
                             title = "Spaces",
@@ -208,7 +213,7 @@ fun HomeScreen(
 
             // ── Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
-                item(key = "items", contentType = "listingSection") {
+                item(key = "items", contentType = "items") {
                     SectionSurface {
                         ListingSection(
                             title = "Items",
@@ -226,7 +231,7 @@ fun HomeScreen(
 
             // ── Services (2-column vertical grid — iOS parity) ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
-                item(key = "services", contentType = "servicesGrid") {
+                item(key = "services", contentType = "services") {
                     SectionSurface {
                         ServicesGridSection(
                             title = "Services",
@@ -252,13 +257,16 @@ fun HomeScreen(
                 }
             }
 
-            // ── Trending Destinations (iOS parity) ──
-            item(key = "destinations", contentType = "destinations") {
-                SectionSurface {
-                    TrendingDestinationsSection(
-                        onDestinationTap = { destination -> onCategoryClick(destination) },
-                        onViewAllTap = { onSectionViewAll("destinations") },
-                    )
+            // ── Trending Destinations (derived from live listings) ──
+            if (uiState.trendingDestinations.isNotEmpty()) {
+                item(key = "destinations", contentType = "destinations") {
+                    SectionSurface {
+                        TrendingDestinationsSection(
+                            destinations = uiState.trendingDestinations,
+                            onDestinationTap = { destination -> onCategoryClick(destination) },
+                            onViewAllTap = { onSectionViewAll("destinations") },
+                        )
+                    }
                 }
             }
 
@@ -274,7 +282,11 @@ fun HomeScreen(
             if (!uiState.isLoading && uiState.isEmpty) {
                 item(key = "empty", contentType = "empty") {
                     EmptyState(
-                        onRetry = { viewModel.refresh() },
+                        title = "Nothing to show right now",
+                        subtitle = "Check back later for new spaces and rentals",
+                        icon = PaceDreamIcons.Search,
+                        ctaLabel = "Retry",
+                        onCta = { viewModel.refresh() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(PaceDreamSpacing.XXL)
@@ -315,9 +327,11 @@ private fun SectionSurface(
 @Composable
 private fun HeroHeaderSection(
     heroImageUrl: String?,
+    unreadCount: Int,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onMarkAllSeen: () -> Unit,
     onAboutClick: () -> Unit,
     heroAsset: Painter? = null,
 ) {
@@ -392,13 +406,11 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
-                    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
                     NotificationBellButton(
                         unreadCount = unreadCount,
                         onClick = {
                             onNotificationClick()
-                            unreadVm.markAllAsSeen()
+                            onMarkAllSeen()
                         },
                         // .size(44.dp) constrains only the visual purple circle;
                         // the component prepends touchTargetSize() so the hit
@@ -599,7 +611,7 @@ private fun CategoryFilterTabs(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            items(categories, key = { it.first }) { (name, outlinedIcon, filledIcon) ->
+            items(categories, key = { it.first }, contentType = { "categoryTab" }) { (name, outlinedIcon, filledIcon) ->
                 val isSelected = selectedCategory == name
                 CategoryTab(
                     name = name,
@@ -691,7 +703,7 @@ private fun ExtendedCategoriesSection(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            items(getCategoryCards(), key = { it.name }) { category ->
+            items(getCategoryCards(), key = { it.name }, contentType = { "categoryChip" }) { category ->
                 QuickCategoryChip(
                     category = category,
                     onClick = { onCategoryClick(category.name) }
@@ -706,25 +718,14 @@ internal fun QuickCategoryChip(
     category: CategoryCardData,
     onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "chipScale"
-    )
-
     val tint = category.color.tint
     Surface(
         modifier = Modifier
             .height(48.dp)
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                role = Role.Button,
-                onClickLabel = "Open ${category.name}",
+            .pressable(
                 onClick = onClick,
+                onClickLabel = "Open ${category.name}",
+                pressedScale = 0.95f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.Round),
         color = tint.copy(alpha = 0.08f),
@@ -999,30 +1000,20 @@ private fun FeaturedFullWidthCard(
     onFavoriteClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "featuredScale"
-    )
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .animatedCardEntry()
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                onClickLabel = item.title,
+                pressedScale = 0.98f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1425,29 +1416,19 @@ private fun GridListingCard(
     onClick: () -> Unit,
     onFavoriteClick: () -> Unit = {}
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "gridCardScale"
-    )
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                onClickLabel = item.title,
+                pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1631,29 +1612,19 @@ private fun ListingCard(
     onFavoriteClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "cardScale"
-    )
-
     Surface(
         modifier = modifier
             .widthIn(min = 200.dp)
-            .scale(scale)
             .adaptiveShadow(
-                elevation = if (isPressed) 10.dp else 4.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
-                intensity = if (isPressed) 1.5f else 1f
             )
             .testTag(HomeTestTags.ListingCard)
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
+            .pressable(
+                onClick = onClick,
+                onClickLabel = item.title,
+                pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
         color = MaterialTheme.colorScheme.surface
@@ -1977,11 +1948,10 @@ private fun BrowseTypePill(
                     )
                 } else Modifier
             )
-            .semantics { role = Role.Button }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
+            .pressable(
+                onClick = onClick,
+                onClickLabel = type.displayTitle,
+                pressedScale = 0.95f,
             )
             .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center
@@ -2015,17 +1985,9 @@ private fun SubcategoryChip(
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "chipScale"
-    )
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .scale(scale)
             .background(
                 MaterialTheme.colorScheme.surface,
                 RoundedCornerShape(PaceDreamRadius.XL)
@@ -2035,17 +1997,12 @@ private fun SubcategoryChip(
                 color = PaceDreamColors.DividerNeutral,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
             )
-            .semantics { role = Role.Button }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
+            .clip(RoundedCornerShape(PaceDreamRadius.XL))
+            .pressable(
+                onClick = onClick,
+                onClickLabel = "Open ${subcategory.title}",
+                pressedScale = 0.95f,
+            )
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
     ) {
         Icon(
@@ -2071,23 +2028,9 @@ private fun SubcategoryChip(
 // Trending Destinations (iOS parity: 2-column grid with gradient overlays)
 // ─────────────────────────────────────────────────────────────────────────────
 
-private data class DestinationData(
-    val title: String,
-    val propertyCount: Int,
-    val imageUrl: String
-)
-
-private fun getTrendingDestinations(): List<DestinationData> = listOf(
-    DestinationData("Grand Canyon", 42, "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=600"),
-    DestinationData("Utah", 38, "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"),
-    DestinationData("Maui", 55, "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=600"),
-    DestinationData("Glacier", 29, "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600"),
-    DestinationData("Honolulu", 67, "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=600"),
-    DestinationData("Sedona", 31, "https://images.unsplash.com/photo-1500534314263-e9e68e3c0849?w=600")
-)
-
 @Composable
 private fun TrendingDestinationsSection(
+    destinations: List<HomeDestination>,
     onDestinationTap: (String) -> Unit,
     onViewAllTap: () -> Unit,
     modifier: Modifier = Modifier
@@ -2101,7 +2044,6 @@ private fun TrendingDestinationsSection(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
-        val destinations = getTrendingDestinations()
         Column(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
@@ -2134,33 +2076,20 @@ private fun TrendingDestinationsSection(
 
 @Composable
 private fun TrendingDestinationCard(
-    destination: DestinationData,
+    destination: HomeDestination,
     isLarge: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 100),
-        label = "destScale"
-    )
-
     Box(
         modifier = modifier
             .height(if (isLarge) 170.dp else 130.dp)
-            .scale(scale)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
+            .pressable(
+                onClick = onClick,
+                onClickLabel = "Open ${destination.title}",
+                pressedScale = 0.96f,
+            )
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
@@ -2478,74 +2407,6 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Empty State (iOS parity: icon + title + subtitle + retry button)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EmptyState(
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(
-                    PaceDreamColors.Primary.copy(alpha = 0.08f),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Search,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(36.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
-        Text(
-            text = "Nothing to show right now",
-            style = DSTypo.Title3.copy(
-                fontFamily = paceDreamDisplayFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.2).sp
-            ),
-            color = PaceDreamColors.TextHeadline,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Check back later for new spaces and rentals",
-            style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.IconNeutral,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Button(
-            onClick = onRetry,
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamColors.Primary
-            ),
-            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
-        ) {
-            Text(
-                text = "Retry",
-                style = DSTypo.Subheadline.copy(
-                    fontFamily = paceDreamFontFamily,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Previews — light & dark. Exercises the dark-theme surfaces, shadows and
 // overlays so regressions show up in the PR render without standing up the
 // ViewModel / data layer.
@@ -2596,9 +2457,11 @@ private fun HomeScreenPreviewBody() {
                 val uriHandler = LocalUriHandler.current
                 HeroHeaderSection(
                     heroImageUrl = null,
+                    unreadCount = 3,
                     onSearchClick = {},
                     onFilterClick = {},
                     onNotificationClick = { /* preview no-op; production wired via NotificationRoutes.NOTIFICATIONS */ },
+                    onMarkAllSeen = { /* preview no-op; production calls UnreadNotificationsViewModel.markAllAsSeen() */ },
                     onAboutClick = {
                         // Preview-only hook so the CTA isn't a no-op in isolation;
                         // the real screen wires this to the in-app About route.

@@ -33,11 +33,10 @@ fun PaceDreamImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     placeholderIcon: ImageVector = PaceDreamIcons.Image,
-    // Stable memory-cache key for this render slot. Pass a value derived from
-    // the domain id plus a render-context suffix (e.g. "$id@booking") so the
-    // same URL rendered at two different sizes caches under distinct keys and
-    // the two don't evict each other on scroll. Null falls back to Coil's
-    // default URL-based key.
+    // Stable per-render-slot memory cache key. Defaults to null (Coil keys by
+    // the request URL). Pass a distinct suffix per render context — e.g.
+    // "$id@booking" vs "$id@card" — so the same URL decoded at two sizes
+    // doesn't evict the other on cold scroll.
     cacheKey: String? = null,
 ) {
     if (url.isNullOrBlank()) {
@@ -48,7 +47,7 @@ fun PaceDreamImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(url)
             .crossfade(true)
-            .apply { cacheKey?.let { memoryCacheKey(it) } }
+            .memoryCacheKey(cacheKey)
             .build(),
         contentDescription = contentDescription,
         modifier = modifier,
