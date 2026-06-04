@@ -1,4 +1,3 @@
-// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.pacedream.app.feature.search
 
 import androidx.compose.animation.AnimatedVisibility
@@ -91,6 +90,8 @@ import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.shourov.apps.pacedream.designsystem.OnBrandSurface
+import com.shourov.apps.pacedream.designsystem.scrimOnImage
 
 object SearchTestTags {
     const val Root = "search_screen_root"
@@ -140,32 +141,24 @@ fun SearchScreen(
                 .background(PaceDreamColors.Background)
                 .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.MD)
         ) {
-            // Title row with close button (matches iOS header)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        "Explore",
-                        style = PaceDreamTypography.Title2.copy(
-                            fontFamily = paceDreamDisplayFontFamily,
-                            letterSpacing = (-0.5).sp,
-                            fontSize = 24.sp,
-                            lineHeight = 28.sp
-                        ),
-                        color = PaceDreamColors.TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
-                    Text(
-                        "Spaces \u00B7 Items \u00B7 Services",
-                        style = PaceDreamTypography.Footnote.copy(
-                            fontFamily = paceDreamFontFamily
-                        ),
-                        color = PaceDreamColors.TextSecondary
-                    )
-                }
+            // Title + subtitle. Root tab — no nav icon.
+            Column {
+                Text(
+                    "Explore",
+                    style = PaceDreamTypography.Title2.copy(
+                        fontFamily = paceDreamDisplayFontFamily,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = PaceDreamColors.TextPrimary
+                )
+                Spacer(modifier = Modifier.height(PaceDreamSpacing.XXS))
+                Text(
+                    "Spaces \u00B7 Items \u00B7 Services",
+                    style = PaceDreamTypography.Footnote.copy(
+                        fontFamily = paceDreamFontFamily
+                    ),
+                    color = PaceDreamColors.TextSecondary
+                )
             }
 
             Spacer(modifier = Modifier.height(PaceDreamSpacing.MD))
@@ -276,7 +269,7 @@ fun SearchScreen(
                                         fontFamily = paceDreamFontFamily,
                                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
                                     ),
-                                    color = if (isSelected) Color.White else PaceDreamColors.TextSecondary
+                                    color = if (isSelected) OnBrandSurface else PaceDreamColors.TextSecondary
                                 )
                             }
                         }
@@ -313,7 +306,6 @@ fun SearchScreen(
                             style = PaceDreamTypography.Caption.copy(
                                 fontFamily = paceDreamFontFamily,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                fontSize = 12.sp,
                                 letterSpacing = (-0.1).sp
                             )
                         )
@@ -417,8 +409,8 @@ private fun SearchResultCard(
             .shadow(
                 elevation = if (isPressed) 8.dp else 4.dp,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
-                ambientColor = Color.Black.copy(alpha = 0.06f),
-                spotColor = Color.Black.copy(alpha = 0.06f)
+                ambientColor = Color.Black.copy(alpha = 0.06f), // allow-token
+                spotColor = Color.Black.copy(alpha = 0.06f) // allow-token
             )
             .testTag(SearchTestTags.ResultRow)
             .pointerInput(Unit) {
@@ -484,7 +476,7 @@ private fun SearchResultCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.30f)
+                                    scrimOnImage(0.30f)
                                 )
                             )
                         )
@@ -493,7 +485,7 @@ private fun SearchResultCard(
                 // Type badge (iOS parity: ultraThinMaterial capsule)
                 Surface(
                     shape = RoundedCornerShape(PaceDreamRadius.XS),
-                    color = Color.Black.copy(alpha = 0.45f),
+                    color = scrimOnImage(0.45f),
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(PaceDreamSpacing.SM)
@@ -509,7 +501,7 @@ private fun SearchResultCard(
                             fontFamily = paceDreamFontFamily,
                             fontWeight = FontWeight.Medium
                         ),
-                        color = Color.White,
+                        color = OnBrandSurface,
                         modifier = Modifier.padding(
                             horizontal = PaceDreamSpacing.SM,
                             vertical = PaceDreamSpacing.XS
@@ -521,7 +513,7 @@ private fun SearchResultCard(
                 item.rating?.let { rating ->
                     Surface(
                         shape = RoundedCornerShape(PaceDreamRadius.XS),
-                        color = Color.Black.copy(alpha = 0.45f),
+                        color = scrimOnImage(0.45f),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(PaceDreamSpacing.SM)
@@ -536,7 +528,7 @@ private fun SearchResultCard(
                             Icon(
                                 PaceDreamIcons.Star,
                                 contentDescription = null,
-                                tint = Color(0xFFFFBE0B),
+                                tint = PaceDreamColors.StarRating,
                                 modifier = Modifier.size(10.dp)
                             )
                             Spacer(modifier = Modifier.width(PaceDreamSpacing.XXS))
@@ -547,7 +539,7 @@ private fun SearchResultCard(
                                     fontFamily = paceDreamFontFamily,
                                     fontWeight = FontWeight.Medium
                                 ),
-                                color = Color.White
+                                color = OnBrandSurface
                             )
                         }
                     }
@@ -635,9 +627,9 @@ private fun SearchShimmerGrid() {
     )
     val shimmerBrush = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFF0F0F0),
-            Color(0xFFE0E0E0),
-            Color(0xFFF0F0F0)
+            PaceDreamColors.Gray50,
+            PaceDreamColors.Gray100,
+            PaceDreamColors.Gray50
         ),
         start = Offset(shimmerX.value, 0f),
         end = Offset(shimmerX.value + 300f, 0f)
@@ -656,7 +648,7 @@ private fun SearchShimmerGrid() {
         items(6) {
             Surface(
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
-                color = Color.White,
+                color = PaceDreamColors.Card,
                 shadowElevation = 1.dp
             ) {
                 Column {
@@ -766,11 +758,11 @@ private fun SearchErrorState(
             ) {
                 Text(
                     "Retry",
-                    style = PaceDreamTypography.Headline.copy(
+                    style = PaceDreamTypography.Subheadline.copy(
                         fontFamily = paceDreamFontFamily,
-                        fontSize = 15.sp
+                        fontWeight = FontWeight.SemiBold
                     ),
-                    color = Color.White
+                    color = OnBrandSurface
                 )
             }
         }
