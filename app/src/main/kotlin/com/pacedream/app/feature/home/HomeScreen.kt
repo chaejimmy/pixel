@@ -1009,6 +1009,7 @@ private fun FeaturedFullWidthCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
             )
             .testTag(HomeTestTags.ListingCard)
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
                 onClickLabel = item.title,
@@ -1420,6 +1421,7 @@ private fun GridListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
             )
             .testTag(HomeTestTags.ListingCard)
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
                 onClickLabel = item.title,
@@ -1612,6 +1614,7 @@ private fun ListingCard(
                 shape = RoundedCornerShape(PaceDreamRadius.LG),
             )
             .testTag(HomeTestTags.ListingCard)
+            .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
                 onClickLabel = item.title,
