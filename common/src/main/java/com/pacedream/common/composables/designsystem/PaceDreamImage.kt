@@ -33,6 +33,11 @@ fun PaceDreamImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     placeholderIcon: ImageVector = PaceDreamIcons.Image,
+    // Stable per-render-slot memory cache key. Defaults to null (Coil keys by
+    // the request URL). Pass a distinct suffix per render context — e.g.
+    // "$id@booking" vs "$id@card" — so the same URL decoded at two sizes
+    // doesn't evict the other on cold scroll.
+    cacheKey: String? = null,
 ) {
     if (url.isNullOrBlank()) {
         ImagePlaceholder(icon = placeholderIcon, modifier = modifier)
@@ -42,6 +47,7 @@ fun PaceDreamImage(
         model = ImageRequest.Builder(LocalContext.current)
             .data(url)
             .crossfade(true)
+            .memoryCacheKey(cacheKey)
             .build(),
         contentDescription = contentDescription,
         modifier = modifier,

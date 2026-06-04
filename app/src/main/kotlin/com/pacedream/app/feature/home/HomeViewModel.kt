@@ -239,6 +239,9 @@ class HomeViewModel @Inject constructor(
          */
         private const val FAVORITES_ENDPOINT_TIMEOUT_MS = 5_000L
 
+        /** Cap for the Trending Destinations grid (3 rows of 2 cards). */
+        private const val MAX_TRENDING_DESTINATIONS = 6
+
         /** shareCategory values that identify service listings (matches website). */
         private val SERVICE_SHARE_CATEGORIES = setOf(
             "HOME_HELP", "MOVING_HELP", "CLEANING_ORGANIZING", "EVERYDAY_HELP",
@@ -282,6 +285,13 @@ class HomeViewModel @Inject constructor(
                 useListings.first.filter { !isServiceListing(it) }
             }
 
+            // Trending Destinations are derived from the listings we just loaded
+            // rather than hard-coded: real places, real counts, real images. The
+            // section hides itself when this is empty (see HomeScreen).
+            val trendingDestinations = computeTrendingDestinations(
+                spaces + rentGear.first + splitListings.first
+            )
+
             _uiState.update {
                 it.copy(
                     isRefreshing = false,
@@ -291,12 +301,46 @@ class HomeViewModel @Inject constructor(
                     hourlySpaces = spaces,
                     rentGear = rentGear.first,
                     splitStays = splitListings.first,
+                    trendingDestinations = trendingDestinations,
                     hourlySpacesError = useListings.second,
                     rentGearError = rentGear.second,
                     splitStaysError = splitListings.second
                 )
             }
         }
+    }
+
+    /**
+     * Aggregate the loaded listings into "Trending Destinations": group by the
+     * listing's location, count how many published listings sit there, and pick
+     * a representative image from one of them. Counts are therefore real rather
+     * than invented, and images route through Coil with the rest of the app's
+     * config. Returns at most [MAX_TRENDING_DESTINATIONS], most-listed first.
+     *
+     * A destination is only included when at least one of its listings has a
+     * usable image, so the cards never render as blank tiles.
+     */
+    private fun computeTrendingDestinations(
+        listings: List<HomeListingItem>
+    ): List<HomeDestination> {
+        return listings
+            .mapNotNull { item ->
+                val place = item.location?.trim()?.takeIf { it.isNotEmpty() }
+                if (place == null) null else place to item
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapNotNull { (place, items) ->
+                val image = items.firstNotNullOfOrNull { listing ->
+                    listing.imageUrl?.takeIf { it.isNotBlank() }
+                } ?: return@mapNotNull null
+                HomeDestination(
+                    title = place,
+                    propertyCount = items.size,
+                    imageUrl = image
+                )
+            }
+            .sortedByDescending { it.propertyCount }
+            .take(MAX_TRENDING_DESTINATIONS)
     }
     
     /**
@@ -465,6 +509,17 @@ class HomeViewModel @Inject constructor(
 }
 
 /**
+ * A trending destination shown on the home feed. Derived from live listings
+ * (see [HomeViewModel.computeTrendingDestinations]) — [propertyCount] is the
+ * real number of published listings in [title], not an invented figure.
+ */
+data class HomeDestination(
+    val title: String,
+    val propertyCount: Int,
+    val imageUrl: String
+)
+
+/**
  * Home UI State
  */
 data class HomeUiState(
@@ -475,6 +530,7 @@ data class HomeUiState(
     val hourlySpaces: List<HomeListingItem> = emptyList(),
     val rentGear: List<HomeListingItem> = emptyList(),
     val splitStays: List<HomeListingItem> = emptyList(),
+    val trendingDestinations: List<HomeDestination> = emptyList(),
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
     val splitStaysError: String? = null,
