@@ -2,32 +2,52 @@
 
 ## Canonical package root
 
-**All Kotlin code must live under `com.shourov.apps.pacedream`.**
+This project standardizes on a single Kotlin/Java package root:
 
-This is the canonical package root for the project. The evidence:
+```
+com.shourov.apps.pacedream
+```
 
-- The application's `applicationId` is `com.shourov.apps.pacedream` (`app/build.gradle.kts`).
-- The `:app` module `namespace` is `com.shourov.apps.pacedream`.
-- The generated `BuildConfig`, the design system (`com.shourov.apps.pacedream.designsystem`),
-  and 38 of 40 Gradle modules already declare a `com.shourov.apps.pacedream.*` namespace.
+**All new files must use this root.** Do not add files under the legacy
+`com.pacedream.*` root — it is being migrated out (see below).
 
-Historically the codebase grew a second root, `com.pacedream.*`
-(`com.pacedream.app.*`, `com.pacedream.common.*`, `com.pacedream.notifications`).
-This dual root makes module ownership ambiguous and forces a "which root?"
-decision for every new file. We are consolidating onto the canonical root
-module-by-module; **do not introduce new files under `com.pacedream.*`.**
+### Why this root is canonical
 
-### Rules for new code
+| Evidence | Value |
+| --- | --- |
+| `app/build.gradle.kts` → `applicationId` | `com.shourov.apps.pacedream` |
+| `app/build.gradle.kts` → `namespace` | `com.shourov.apps.pacedream` |
+| Source files under `com.shourov.apps.pacedream.*` | 572 |
+| Source files under `com.pacedream.*` (legacy) | 160 |
+| Modules declaring a `com.shourov.apps.pacedream.*` namespace | 38 of 40 |
 
-- New packages and files go under `com.shourov.apps.pacedream`.
-- A feature module `:feature:foo` uses `com.shourov.apps.pacedream.feature.foo`.
-- A core module `:core:foo` uses `com.shourov.apps.pacedream.core.foo`.
-- Keep each module's source package root aligned with its `namespace` in
-  `build.gradle.kts`.
+The `applicationId` is the published identity of the app and cannot change
+without breaking installs and store listings, so it anchors the decision.
+`BuildConfig`, the design system (`com.shourov.apps.pacedream.designsystem`),
+and the icon facade already live under this root, and the overwhelming
+majority of modules declare their namespace there.
 
-### Migration status
+### Naming convention by module type
 
-Migration is incremental and tracked as follow-up tickets so that no single
-PR carries a high-risk, repo-wide rename. See the "Remaining modules to
-migrate" section in the platform tracking PR. Modules still on the legacy
-`com.pacedream.*` root will be moved over in dependency order.
+| Module kind | Package / namespace pattern | Example |
+| --- | --- | --- |
+| App | `com.shourov.apps.pacedream` | `:app` |
+| Core | `com.shourov.apps.pacedream.core.<name>` | `:core:network` → `...core.network` |
+| Feature | `com.shourov.apps.pacedream.feature.<name>` | `:feature:wanted` → `...feature.wanted` |
+| Design system | `com.shourov.apps.pacedream.designsystem` | `:core:designsystem` |
+
+When you create a module, set its `namespace` in `build.gradle.kts` to match
+the pattern above and place sources under the matching directory. Keep each
+module's source package root aligned with its `namespace`.
+
+### Legacy `com.pacedream.*` — being migrated
+
+A second root, `com.pacedream.*` (`com.pacedream.app.*`, `com.pacedream.common.*`,
+`com.pacedream.notifications`), exists for historical reasons. This dual root
+makes module ownership ambiguous and forces a "which root?" decision for every
+new file, so it is being retired module-by-module (low-risk, one module per PR)
+to avoid a risky big-bang refactor.
+
+Migration proceeds in dependency order (leaves first, `:app` last). Modules
+still on the legacy root are tracked as follow-up tickets in the platform
+tracking PR. **Do not introduce new code under `com.pacedream.*`.**
