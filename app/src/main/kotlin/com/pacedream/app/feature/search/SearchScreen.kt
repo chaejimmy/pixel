@@ -88,6 +88,7 @@ import com.pacedream.common.composables.animations.animatedCardEntry
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamStroke
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
@@ -286,7 +287,7 @@ fun SearchScreen(
         }
 
         HorizontalDivider(
-            thickness = 0.5.dp,
+            thickness = PaceDreamStroke.Hairline,
             color = PaceDreamColors.Gray100
         )
 
