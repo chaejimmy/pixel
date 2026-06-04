@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.util.MoneyFormatter
 import com.shourov.apps.pacedream.feature.wanted.model.OfferStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedOffer
 
@@ -72,7 +73,7 @@ fun OfferCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = formatBudget(offer.price, offer.currency),
+                    text = MoneyFormatter.formatAmount(offer.price, offer.currency),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,

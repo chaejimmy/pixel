@@ -25,8 +25,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.shourov.apps.pacedream.MainActivity
 import com.pacedream.common.composables.components.PaceDreamTopAppBar
-import com.pacedream.notifications.PushDeepLink
-import com.pacedream.notifications.PushDeepLinkHandler
+import com.shourov.apps.pacedream.feature.notifications.PushDeepLink
+import com.shourov.apps.pacedream.feature.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.feature.host.presentation.HostModeScreen
 import com.shourov.apps.pacedream.feature.wifi.presentation.WifiSessionHost
 import com.shourov.apps.pacedream.navigation.PaceDreamNavHost

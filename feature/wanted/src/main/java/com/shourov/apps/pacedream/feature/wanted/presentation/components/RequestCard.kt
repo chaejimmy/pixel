@@ -1,10 +1,13 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation.components
 
+import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,15 +20,26 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamTheme
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.util.MoneyFormatter
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -41,13 +55,18 @@ fun RequestTag(
 ) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = PaceDreamTypography.Caption2,
         color = MaterialTheme.colorScheme.onPrimary,
         fontWeight = FontWeight.SemiBold,
+        // Decorative chip: clearAndSetSemantics (applied at the end of the
+        // chain) keeps it out of TalkBack's focus order so the whole card reads
+        // as one button. defaultMinSize gives it a chip-like minimum height.
         modifier = modifier
+            .defaultMinSize(minHeight = 20.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .clearAndSetSemantics { },
     )
 }
 
@@ -183,12 +202,24 @@ fun RequestCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            // Lifted look via the design-system shadow (dark-mode safe), not
+            // Material elevation — matches FeaturedFullWidthCard.
+            .adaptiveShadow(
+                elevation = PaceDreamElevation.SM,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
+            // Merge the whole card into one semantics node so TalkBack reads it
+            // as a single "Open request: …, button" instead of stopping on each
+            // line of text. The onClick label drives the announced action.
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                onClick(label = "Open request: ${request.title.ifBlank { "Untitled request" }}") { false }
+            }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(0.5.dp, PaceDreamColors.Border.copy(alpha = 0.4f)),
     ) {
         Column(
             modifier = Modifier
@@ -273,7 +304,7 @@ fun RequestCard(
                 }
                 request.budget?.let { budget ->
                     Text(
-                        text = formatBudget(budget, request.budgetCurrency),
+                        text = MoneyFormatter.formatAmount(budget, request.budgetCurrency),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -284,13 +315,75 @@ fun RequestCard(
     }
 }
 
-fun formatBudget(amount: Double, currency: String): String {
-    val symbol = when (currency.uppercase()) {
-        "USD" -> "$"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        else -> "$currency "
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark. Two fixtures: one with a budget (so the primary-tinted
+// budget label renders) and one without (so the layout collapses gracefully).
+// Renders without a Hilt graph; the dark pass confirms the card surface uses the
+// migrated tokens rather than a stray Material default.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SampleRequests = listOf(
+    WantedRequest(
+        id = "preview-1",
+        title = "Need a quiet meeting room for 2 hours",
+        description = "Looking for a small room downtown this afternoon.",
+        type = "space",
+        category = "Meeting room",
+        location = "Downtown, San Francisco",
+        budget = 40.0,
+        imageUrl = null,
+    ),
+    WantedRequest(
+        id = "preview-2",
+        title = "Borrow a DSLR camera for the weekend",
+        description = "Any Canon or Nikon body with a kit lens works.",
+        type = "item",
+        category = "Camera",
+        location = "Mission, San Francisco",
+        budget = null,
+        imageUrl = null,
+    ),
+)
+
+@Composable
+private fun RequestCardPreviewBody() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SampleRequests.forEach { request ->
+            RequestCard(
+                request = request,
+                onClick = {},
+                // Pin "today" so the derived lifecycle/expiry labels stay
+                // deterministic across preview renders.
+                today = LocalDate.of(2025, 1, 1),
+            )
+        }
     }
-    val rounded = if (amount % 1.0 == 0.0) amount.toLong().toString() else "%.2f".format(amount)
-    return "$symbol$rounded"
+}
+
+@Preview(name = "RequestCard Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestCardLightPreview() {
+    PaceDreamTheme(darkTheme = false) {
+        RequestCardPreviewBody()
+    }
+}
+
+@Preview(
+    name = "RequestCard Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestCardDarkPreview() {
+    PaceDreamTheme(darkTheme = true) {
+        RequestCardPreviewBody()
+    }
 }
