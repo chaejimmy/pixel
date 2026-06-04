@@ -456,6 +456,8 @@ private fun UnifiedBookingCard(
                     url = item.imageUrl,
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
+                    // Stable cache key per render slot so a booking thumbnail
+                    // shared with another surface caches under a distinct key.
                     cacheKey = "${item.id}@booking",
                     modifier = Modifier.fillMaxSize()
                 )

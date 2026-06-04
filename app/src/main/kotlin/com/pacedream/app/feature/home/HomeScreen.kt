@@ -372,9 +372,9 @@ private fun HeroHeaderSection(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(heroImageUrl)
                             .crossfade(true)
-                            // Distinct cache key for the hero render slot so the
-                            // full-bleed decode doesn't evict (or get evicted by)
-                            // the same URL rendered at card/grid size elsewhere.
+                            // Hero has no listing id; key off the URL + render
+                            // slot so the full-bleed hero decode doesn't evict
+                            // the same image cached for a card/grid slot.
                             .memoryCacheKey("$heroImageUrl@hero")
                             .build(),
                         contentDescription = null,
@@ -1035,6 +1035,9 @@ private fun FeaturedFullWidthCard(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
                         .crossfade(true)
+                        // Keyed per render slot (id + "@featured") so the
+                        // full-width decode doesn't evict the grid/card decode
+                        // of the same URL.
                         .memoryCacheKey("${item.id}@featured")
                         .build(),
                     contentDescription = item.title,
@@ -1447,6 +1450,9 @@ private fun GridListingCard(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
                         .crossfade(true)
+                        // Keyed per render slot (id + "@grid") so the 2-column
+                        // grid decode doesn't evict the carousel/featured decode
+                        // of the same URL.
                         .memoryCacheKey("${item.id}@grid")
                         .build(),
                     contentDescription = item.title,
@@ -1640,6 +1646,9 @@ private fun ListingCard(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
                         .crossfade(true)
+                        // Keyed per render slot (id + "@card") so the carousel
+                        // decode doesn't evict the grid/featured decode of the
+                        // same URL.
                         .memoryCacheKey("${item.id}@card")
                         .build(),
                     contentDescription = item.title,
@@ -1899,7 +1908,7 @@ private fun BrowseByTypeSection(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            items(selectedType.subcategories) { sub ->
+            items(selectedType.subcategories, key = { it.title }) { sub ->
                 SubcategoryChip(
                     subcategory = sub,
                     accentColor = accentColor,
@@ -2086,6 +2095,8 @@ private fun TrendingDestinationCard(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(destination.imageUrl)
                 .crossfade(true)
+                // Destinations have no id; title is unique. Suffix the render
+                // slot so the large vs small destination tiles cache distinctly.
                 .memoryCacheKey("${destination.title}@destination")
                 .build(),
             contentDescription = destination.title,
@@ -2442,7 +2453,7 @@ private fun HomeScreenPreviewBody() {
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
         ) {
-            item {
+            item(key = "hero", contentType = "hero") {
                 val uriHandler = LocalUriHandler.current
                 HeroHeaderSection(
                     heroImageUrl = null,
@@ -2458,14 +2469,14 @@ private fun HomeScreenPreviewBody() {
                     },
                 )
             }
-            item {
+            item(key = "categoryTabs", contentType = "categoryTabs") {
                 CategoryFilterTabs(
                     selectedCategory = "All",
                     onCategorySelected = {},
                     modifier = Modifier.padding(top = PaceDreamSpacing.XS),
                 )
             }
-            item {
+            item(key = "spaces", contentType = "listingSection") {
                 SectionSurface {
                     ListingSection(
                         title = "Spaces",
@@ -2479,7 +2490,7 @@ private fun HomeScreenPreviewBody() {
                     )
                 }
             }
-            item {
+            item(key = "threeSteps", contentType = "threeSteps") {
                 ThreeStepsCTASection(onGetStarted = {})
             }
         }
