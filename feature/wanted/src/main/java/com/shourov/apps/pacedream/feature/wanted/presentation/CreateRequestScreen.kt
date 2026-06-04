@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -415,7 +416,9 @@ private fun TypePicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             WantedType.entries.forEach { type ->
@@ -462,7 +465,9 @@ private fun TypeTile(
                 role = Role.RadioButton,
                 onClick = onClick,
             )
-            .semantics { contentDescription = type.label }
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${type.label}. ${type.subtitle}"
+            }
             .padding(PaceDreamSpacing.XS),
     ) {
         Column(
