@@ -1,10 +1,12 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,11 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.util.MoneyFormatter
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -41,10 +50,14 @@ fun RequestTag(
 ) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = PaceDreamTypography.Caption2,
         color = MaterialTheme.colorScheme.onPrimary,
         fontWeight = FontWeight.SemiBold,
+        // Decorative chip — the card's merged button label already conveys
+        // "request", so this label must not be a separate TalkBack focus stop.
         modifier = modifier
+            .clearAndSetSemantics { }
+            .defaultMinSize(minHeight = 20.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
             .padding(horizontal = 8.dp, vertical = 3.dp),
@@ -183,12 +196,18 @@ fun RequestCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            // Merge the whole card into one semantics node so TalkBack reads it
+            // as a single "Open request: …, button" instead of stopping on each
+            // line of text. The onClick label drives the announced action.
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                onClick(label = "Open request: ${request.title.ifBlank { "Untitled request" }}") { false }
+            }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(0.5.dp, PaceDreamColors.Border.copy(alpha = 0.4f)),
     ) {
         Column(
             modifier = Modifier
@@ -273,7 +292,7 @@ fun RequestCard(
                 }
                 request.budget?.let { budget ->
                     Text(
-                        text = formatBudget(budget, request.budgetCurrency),
+                        text = MoneyFormatter.formatAmount(budget, request.budgetCurrency),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -282,15 +301,4 @@ fun RequestCard(
             }
         }
     }
-}
-
-fun formatBudget(amount: Double, currency: String): String {
-    val symbol = when (currency.uppercase()) {
-        "USD" -> "$"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        else -> "$currency "
-    }
-    val rounded = if (amount % 1.0 == 0.0) amount.toLong().toString() else "%.2f".format(amount)
-    return "$symbol$rounded"
 }
