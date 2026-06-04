@@ -82,10 +82,10 @@ fun RequestsScreen(
     onCreateClick: () -> Unit,
     onNotifyMeClick: () -> Unit = {},
     /**
-     * Pops the back stack when Requests is reached as a pushed
-     * destination (deep link from a "you have an offer" notification,
-     * or from a detail back-stack). When null — Requests serving as a
-     * root tab — no back affordance is rendered.
+     * Back affordance for when Requests is reached as a *pushed* destination
+     * (e.g. an "you have an offer" notification deep link, or from a detail
+     * back-stack). When null, Requests is a root tab and the top bar omits the
+     * navigation icon. Wired from the NavHost based on the back stack.
      */
     onBack: (() -> Unit)? = null,
     isHostMode: Boolean = false,
@@ -133,9 +133,10 @@ fun RequestsScreen(
             if (selectedTab == RequestsTab.Browse) {
                 ExtendedFloatingActionButton(
                     onClick = onCreateClick,
-                    // Merge icon + label into a single TalkBack node so the FAB
-                    // is announced once as "Post a request, button" rather than
-                    // walking the icon and text as separate children.
+                    // Merge icon + label into one node so TalkBack reads the FAB
+                    // once as "Post a request, button" rather than announcing an
+                    // unlabeled icon separately. The icon's contentDescription is
+                    // null because the visible "Post a request" text already labels it.
                     modifier = Modifier.semantics(mergeDescendants = true) {},
                     containerColor = PaceDreamColors.Primary,
                     contentColor = PaceDreamColors.OnPrimary,
