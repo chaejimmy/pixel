@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -48,14 +47,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.common.composables.designsystem.state.EmptyState
+import com.pacedream.common.composables.designsystem.state.ListShimmer
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
-import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
@@ -472,11 +471,15 @@ private fun RequestsContent(
     onNotifyMeClick: () -> Unit,
 ) {
     when (state) {
-        RequestsListUiState.Loading -> CenteredBox {
-            CircularProgressIndicator()
-        }
+        RequestsListUiState.Loading -> ListShimmer()
         is RequestsListUiState.Error -> CenteredBox {
-            ErrorMessage(state.message, onRetry)
+            EmptyState(
+                title = "Couldn't load requests",
+                subtitle = state.message,
+                icon = PaceDreamIcons.Warning,
+                ctaLabel = "Retry",
+                onCta = onRetry,
+            )
         }
         is RequestsListUiState.Content -> {
             if (state.requests.isEmpty()) {
@@ -525,65 +528,31 @@ private fun RoleAwareEmptyState(
     if (isHostMode) {
         EmptyState(
             title = "No open requests",
-            body = "We'll let you know when new requests match your listings.",
+            subtitle = "We'll let you know when new requests match your listings.",
+            icon = PaceDreamIcons.Inbox,
             ctaLabel = "Notify me",
-            onCtaClick = onNotifyMeClick,
+            onCta = onNotifyMeClick,
         )
     } else {
         EmptyState(
             title = "No requests yet",
-            body = "Be the first — tell providers what you need.",
+            subtitle = "Be the first to post one.",
+            icon = PaceDreamIcons.Inbox,
             ctaLabel = "Post a request",
-            onCtaClick = onCreateClick,
+            onCta = onCreateClick,
         )
-    }
-}
-
-@Composable
-private fun EmptyState(
-    title: String,
-    body: String,
-    ctaLabel: String,
-    onCtaClick: () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
-    ) {
-        Text(
-            text = title,
-            style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.TextHeadline,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = body,
-            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onCtaClick) {
-            Text(ctaLabel)
-        }
     }
 }
 
 @Composable
 private fun EmptyFilteredState(onClearFilters: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
-    ) {
-        Text(
-            text = "No matching requests — clear filters",
-            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.TextSecondary,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onClearFilters) {
-            Text("Clear filters")
-        }
-    }
+    EmptyState(
+        title = "No matching requests",
+        subtitle = "Try adjusting or clearing your filters.",
+        icon = PaceDreamIcons.Search,
+        ctaLabel = "Clear filters",
+        onCta = onClearFilters,
+    )
 }
 
 @Composable
@@ -594,22 +563,4 @@ private fun CenteredBox(content: @Composable () -> Unit) {
             .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center,
     ) { content() }
-}
-
-@Composable
-private fun ErrorMessage(message: String, onRetry: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
-    ) {
-        Text(
-            text = message,
-            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.Error,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onRetry) {
-            Text("Retry")
-        }
-    }
 }
