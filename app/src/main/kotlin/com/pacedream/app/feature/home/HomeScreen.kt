@@ -2123,7 +2123,8 @@ private fun TrendingDestinationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
         animationSpec = tween(durationMillis = 100),
@@ -2135,16 +2136,13 @@ private fun TrendingDestinationCard(
             .height(if (isLarge) 170.dp else 130.dp)
             .scale(scale)
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClickLabel = "Open ${destination.title}",
+                onClick = onClick,
+            )
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
