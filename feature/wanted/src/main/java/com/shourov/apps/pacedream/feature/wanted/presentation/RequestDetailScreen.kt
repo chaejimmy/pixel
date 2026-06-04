@@ -2,6 +2,7 @@
 
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +53,7 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.pacedream.common.util.MoneyFormatter
@@ -662,4 +665,98 @@ private fun ModerationBanner(
             color = PaceDreamColors.TextPrimary,
         )
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark. The hand-built sample state is fed straight into the
+// stateless RequestDetailBody (no Hilt ViewModel). Two variants: the provider's
+// view and the owner's view (which surfaces the offers list). The dark pass
+// confirms the detail surfaces use the migrated tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SampleRequest = WantedRequest(
+    id = "preview-1",
+    title = "Need a quiet meeting room for 2 hours",
+    description = "Looking for a small, quiet room downtown this afternoon for a " +
+        "client call. Wi-Fi and a door that closes are the only must-haves.",
+    type = "space",
+    category = "Meeting room",
+    location = "Downtown, San Francisco",
+    budget = 40.0,
+    imageUrl = null,
+    authorName = "Jordan Lee",
+)
+
+private val SampleOffers = listOf(
+    WantedOffer(
+        id = "offer-1",
+        requestId = "preview-1",
+        price = 35.0,
+        message = "I have a quiet room two blocks from downtown — available all afternoon.",
+        authorName = "Casey Morgan",
+    ),
+    WantedOffer(
+        id = "offer-2",
+        requestId = "preview-1",
+        price = 42.0,
+        message = "Private studio with fast Wi-Fi, flexible on timing.",
+        authorName = "Riley Chen",
+    ),
+)
+
+@Composable
+private fun RequestDetailPreviewBody(
+    isOwner: Boolean,
+    darkTheme: Boolean,
+) {
+    PaceDreamTheme(darkTheme = darkTheme) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            RequestDetailBody(
+                request = SampleRequest,
+                offers = if (isOwner) SampleOffers else emptyList(),
+                isOwner = isOwner,
+                onMessageProvider = { _, _ -> },
+                onAcceptOffer = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "RequestDetail Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestDetailLightPreview() {
+    RequestDetailPreviewBody(isOwner = false, darkTheme = false)
+}
+
+@Preview(
+    name = "RequestDetail Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestDetailDarkPreview() {
+    RequestDetailPreviewBody(isOwner = false, darkTheme = true)
+}
+
+@Preview(name = "RequestDetail Owner Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestDetailOwnerLightPreview() {
+    RequestDetailPreviewBody(isOwner = true, darkTheme = false)
+}
+
+@Preview(
+    name = "RequestDetail Owner Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestDetailOwnerDarkPreview() {
+    RequestDetailPreviewBody(isOwner = true, darkTheme = true)
 }

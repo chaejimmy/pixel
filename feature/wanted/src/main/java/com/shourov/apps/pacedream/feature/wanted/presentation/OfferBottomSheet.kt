@@ -1,5 +1,6 @@
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,12 +25,14 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +42,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
@@ -365,3 +369,73 @@ object OfferSheetTestTags {
 
 private val SuccessBadgeBackground = PaceDreamColors.Success.copy(alpha = 0.15f)
 private val SuccessBadgeForeground = PaceDreamColors.Success
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark. Hand-built form state is fed straight into the
+// stateless OfferBottomSheetContent (no Hilt ViewModel). Two variants exercise
+// both layouts: the submission form and the success confirmation. The dark pass
+// confirms the sheet surfaces use the migrated tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SampleOfferForm = OfferFormState(
+    price = "45",
+    message = "I have a quiet room two blocks from downtown — available all afternoon.",
+)
+
+@Composable
+private fun OfferSheetPreviewBody(
+    state: OfferFormState,
+    darkTheme: Boolean,
+) {
+    PaceDreamTheme(darkTheme = darkTheme) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            OfferBottomSheetContent(
+                state = state,
+                onPriceChange = {},
+                onMessageChange = {},
+                onSubmit = {},
+                onDone = {},
+                requesterName = "Jordan Lee",
+            )
+        }
+    }
+}
+
+@Preview(name = "OfferSheet Form Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun OfferSheetFormLightPreview() {
+    OfferSheetPreviewBody(SampleOfferForm, darkTheme = false)
+}
+
+@Preview(
+    name = "OfferSheet Form Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun OfferSheetFormDarkPreview() {
+    OfferSheetPreviewBody(SampleOfferForm, darkTheme = true)
+}
+
+@Preview(name = "OfferSheet Submitted Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun OfferSheetSubmittedLightPreview() {
+    OfferSheetPreviewBody(SampleOfferForm.copy(submitted = true), darkTheme = false)
+}
+
+@Preview(
+    name = "OfferSheet Submitted Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun OfferSheetSubmittedDarkPreview() {
+    OfferSheetPreviewBody(SampleOfferForm.copy(submitted = true), darkTheme = true)
+}
