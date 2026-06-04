@@ -99,14 +99,42 @@ class CreateRequestViewModel @Inject constructor(
                     ?: "other"
                 nextForm.copy(category = firstCategory)
             } else nextForm
-            // Clear the post-submit location error as soon as the user
-            // makes a valid pick — keeping it visible would feel like a
-            // bug on the very next render.
-            val nextErrors = computeFieldErrors(safeForm)
-                .copy(
-                    locationError = current.fieldErrors.locationError
-                        ?.takeIf { !safeForm.location.hasVerifiedSelection },
-                )
+            // Recompute only the field(s) the user actually touched and keep
+            // every other field's error untouched. Clearing the whole map on
+            // any keystroke would wipe a sibling field's submit-time error —
+            // e.g. fixing the title shouldn't make the "description too short"
+            // message vanish.
+            val prev = current.fieldErrors
+            val live = computeFieldErrors(safeForm)
+            val nextErrors = prev.copy(
+                titleError = if (safeForm.title != current.form.title) {
+                    live.titleError
+                } else {
+                    prev.titleError
+                },
+                descriptionError = if (safeForm.description != current.form.description) {
+                    live.descriptionError
+                } else {
+                    prev.descriptionError
+                },
+                categoryError = if (safeForm.category != current.form.category) {
+                    // A new pick is always valid (it came from the list), so
+                    // clear any submit-time "pick a category" error.
+                    null
+                } else {
+                    prev.categoryError
+                },
+                budgetError = if (safeForm.budget != current.form.budget) {
+                    live.budgetError
+                } else {
+                    prev.budgetError
+                },
+                // Clear the post-submit location error as soon as the user
+                // makes a valid pick — keeping it visible would feel like a
+                // bug on the very next render.
+                locationError = prev.locationError
+                    ?.takeIf { !safeForm.location.hasVerifiedSelection },
+            )
             current.copy(
                 form = safeForm,
                 fieldErrors = nextErrors,
@@ -172,25 +200,24 @@ class CreateRequestViewModel @Inject constructor(
     fun submit() {
         val current = _state.value
         val form = current.form
-        if (current.uploading) return
-        // Location moved from "optional" to "required" to match the web
-        // moderation flow — a request without a verified place is impossible
-        // to review or surface on a map. Flip an inline error so the user
-        // sees *why* the disabled CTA is disabled rather than just bouncing.
-        if (!form.location.hasVerifiedSelection) {
+        if (current.uploading || current.submitting) return
+        // Run the full validation (including the min-length / required rules
+        // that live-typing deliberately stays quiet about). If anything fails
+        // we surface every field error at once, point the UI at the first
+        // problem, and do NOT call the repository.
+        val errors = validateForSubmit(form)
+        if (!errors.isEmpty()) {
+            val firstInvalid = errors.firstInvalidField()
+            Timber.d("post_request_submit_blocked firstInvalidField=%s", firstInvalid?.name)
             _state.update {
                 it.copy(
-                    fieldErrors = it.fieldErrors.copy(
-                        locationError = "Add a location so we can publish your request.",
-                    ),
+                    fieldErrors = errors,
+                    focusTarget = firstInvalid,
+                    error = null,
                 )
             }
             return
         }
-        // The submit button is gated on live validity in the UI, so reaching
-        // this point with errors implies a programmatic call — bail rather
-        // than POST an invalid request.
-        if (!current.fieldErrors.isEmpty() || !current.requiredFieldsPresent) return
 
         val budgetValue = form.budget.takeIf { it.isNotBlank() }
             ?.replace(",", "")
@@ -282,6 +309,15 @@ class CreateRequestViewModel @Inject constructor(
     }
 
     /**
+     * Acknowledge the [CreateRequestUiState.focusTarget] signal once the
+     * screen has moved focus to the offending field, so a later
+     * recomposition doesn't yank focus back.
+     */
+    fun consumeFocusTarget() {
+        _state.update { it.copy(focusTarget = null) }
+    }
+
+    /**
      * Convert an epoch-millis value (assumed UTC midnight, as produced by
      * `DateRangePicker`) to its `yyyy-MM-dd` ISO-8601 representation.
      */
@@ -322,6 +358,47 @@ class CreateRequestViewModel @Inject constructor(
             titleError = titleError,
             descriptionError = descriptionError,
             budgetError = budgetError,
+        )
+    }
+
+    /**
+     * The strict, submit-time gate. Layers the "too short" / "required"
+     * checks on top of the live [computeFieldErrors] rules and the required
+     * location pick. Unlike [computeFieldErrors] (which stays quiet while the
+     * user is mid-type so we don't shout "too short" at a half-typed field),
+     * this runs only when the user presses Post and is the single source of
+     * truth for whether the request reaches the network.
+     */
+    private fun validateForSubmit(form: CreateRequestForm): FieldErrors {
+        val live = computeFieldErrors(form)
+        val title = form.title.trim()
+        val titleError = live.titleError ?: when {
+            title.isEmpty() -> "Add a title so providers know what you need."
+            title.length < CreateRequestUiState.TITLE_MIN_LENGTH ->
+                "Title is too short (${CreateRequestUiState.TITLE_MIN_LENGTH} min)"
+            else -> null
+        }
+        val description = form.description.trim()
+        val descriptionError = live.descriptionError ?: when {
+            description.isEmpty() -> "Add a few details so providers can make an offer."
+            description.length < CreateRequestUiState.DESCRIPTION_MIN_LENGTH ->
+                "Description is too short (${CreateRequestUiState.DESCRIPTION_MIN_LENGTH} min)"
+            else -> null
+        }
+        val categoryError = if (form.category.isBlank()) "Pick a category" else null
+        // Location moved from "optional" to "required" to match the web
+        // moderation flow — a request without a verified place is impossible
+        // to review or surface on a map.
+        val locationError = if (!form.location.hasVerifiedSelection) {
+            "Add a location so we can publish your request."
+        } else {
+            null
+        }
+        return live.copy(
+            titleError = titleError,
+            descriptionError = descriptionError,
+            categoryError = categoryError,
+            locationError = locationError,
         )
     }
 

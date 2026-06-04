@@ -1,4 +1,7 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(
+    androidx.compose.material3.ExperimentalMaterial3Api::class,
+    androidx.compose.foundation.ExperimentalFoundationApi::class,
+)
 
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
@@ -20,6 +23,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +66,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -79,6 +86,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestField
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
 import com.shourov.apps.pacedream.feature.wanted.model.SelectedPlace
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
@@ -111,8 +119,42 @@ fun CreateRequestScreen(
     var showLocationSheet by remember { mutableStateOf(false) }
     val locationSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Focus + scroll plumbing for "land on the first invalid field" after a
+    // failed submit. Text fields get a FocusRequester (places the cursor);
+    // every field also gets a BringIntoViewRequester so non-text targets
+    // (the category dropdown, the location row) can be scrolled into view.
+    val titleFocus = remember { FocusRequester() }
+    val descriptionFocus = remember { FocusRequester() }
+    val budgetFocus = remember { FocusRequester() }
+    val titleBring = remember { BringIntoViewRequester() }
+    val descriptionBring = remember { BringIntoViewRequester() }
+    val categoryBring = remember { BringIntoViewRequester() }
+    val budgetBring = remember { BringIntoViewRequester() }
+    val locationBring = remember { BringIntoViewRequester() }
+
     LaunchedEffect(state.createdId) {
         state.createdId?.let { onCreated(it) }
+    }
+
+    LaunchedEffect(state.focusTarget) {
+        when (state.focusTarget) {
+            CreateRequestField.Title -> {
+                titleBring.bringIntoView()
+                titleFocus.requestFocus()
+            }
+            CreateRequestField.Description -> {
+                descriptionBring.bringIntoView()
+                descriptionFocus.requestFocus()
+            }
+            CreateRequestField.Category -> categoryBring.bringIntoView()
+            CreateRequestField.Budget -> {
+                budgetBring.bringIntoView()
+                budgetFocus.requestFocus()
+            }
+            CreateRequestField.Location -> locationBring.bringIntoView()
+            null -> return@LaunchedEffect
+        }
+        viewModel.consumeFocusTarget()
     }
 
     val imagePicker = rememberLauncherForActivityResult(
@@ -178,7 +220,9 @@ fun CreateRequestScreen(
                 CategoryDropdown(
                     options = state.categoriesByType[state.form.type].orEmpty(),
                     selectedKey = state.form.category,
+                    error = state.fieldErrors.categoryError,
                     onSelect = { opt -> viewModel.update { it.copy(category = opt.key) } },
+                    modifier = Modifier.bringIntoViewRequester(categoryBring),
                 )
 
                 SectionLabel("Title")
@@ -201,7 +245,10 @@ fun CreateRequestScreen(
                     ),
                     colors = pdTextFieldColors(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(titleBring)
+                        .focusRequester(titleFocus),
                 )
 
                 SectionLabel("Description")
@@ -226,7 +273,10 @@ fun CreateRequestScreen(
                     ),
                     colors = pdTextFieldColors(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(descriptionBring)
+                        .focusRequester(descriptionFocus),
                 )
 
                 SectionLabel("Where?")
@@ -235,6 +285,7 @@ fun CreateRequestScreen(
                     error = state.fieldErrors.locationError,
                     onClick = { showLocationSheet = true },
                     onClear = { viewModel.update { it.copy(location = null) } },
+                    modifier = Modifier.bringIntoViewRequester(locationBring),
                 )
 
                 SectionLabel("When? (optional)")
@@ -270,7 +321,10 @@ fun CreateRequestScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = pdTextFieldColors(),
                     shape = RoundedCornerShape(PaceDreamRadius.MD),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(budgetBring)
+                        .focusRequester(budgetFocus),
                 )
 
                 SectionLabel("Cover image (optional)")
@@ -290,11 +344,13 @@ fun CreateRequestScreen(
             // the submit button without scrolling past every field first.
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
             Button(
+                // Intentionally NOT gated on form validity: pressing Post on
+                // an incomplete form runs the submit-time validation, surfaces
+                // each field's error, and focuses the first problem — far more
+                // discoverable than a silently-disabled CTA. The button only
+                // blocks while a submit or image upload is genuinely in flight.
                 onClick = viewModel::submit,
-                enabled = !state.submitting &&
-                    !state.uploading &&
-                    state.fieldErrors.isEmpty() &&
-                    state.requiredFieldsPresent,
+                enabled = !state.submitting && !state.uploading,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PaceDreamColors.Primary,
@@ -348,6 +404,7 @@ private fun LocationField(
     error: String?,
     onClick: () -> Unit,
     onClear: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(PaceDreamRadius.MD)
     val borderModifier = if (error != null) {
@@ -355,7 +412,10 @@ private fun LocationField(
     } else {
         Modifier
     }
-    Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -510,7 +570,9 @@ private fun TypeTile(
 private fun CategoryDropdown(
     options: List<WantedCategoryOption>,
     selectedKey: String,
+    error: String?,
     onSelect: (WantedCategoryOption) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selectedLabel = options.firstOrNull { it.key == selectedKey }?.label
         ?: options.firstOrNull()?.label
@@ -521,13 +583,23 @@ private fun CategoryDropdown(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         OutlinedTextField(
             value = selectedLabel,
             onValueChange = {},
             readOnly = true,
             singleLine = true,
+            isError = error != null,
+            supportingText = error?.let {
+                {
+                    Text(
+                        text = it,
+                        style = PaceDreamTypography.Caption,
+                        color = PaceDreamColors.Error,
+                    )
+                }
+            },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = pdTextFieldColors(),
             shape = RoundedCornerShape(PaceDreamRadius.MD),

@@ -395,9 +395,23 @@ data class CreateRequestForm(
     val imageUrl: String? = null,
 )
 
+/**
+ * Identifies a single field on the Post-a-Request form. Used to drive
+ * focus-to-first-error after a failed submit — the screen maps each value
+ * to a [androidx.compose.ui.focus.FocusRequester] / scroll target so the
+ * user lands on the exact problem instead of the bottom of the form.
+ */
+enum class CreateRequestField { Title, Description, Category, Budget, Location }
+
 data class FieldErrors(
     val titleError: String? = null,
     val descriptionError: String? = null,
+    /**
+     * Category is required and must belong to the selected type's list. In
+     * practice the dropdown always carries a default selection, so this is
+     * only ever populated by the submit-time guard.
+     */
+    val categoryError: String? = null,
     val budgetError: String? = null,
     /**
      * Populated only after the user attempts to submit without picking a
@@ -410,8 +424,23 @@ data class FieldErrors(
     fun isEmpty(): Boolean =
         titleError == null &&
             descriptionError == null &&
+            categoryError == null &&
             budgetError == null &&
             locationError == null
+
+    /**
+     * The first field (in visual top-to-bottom order) that carries an
+     * error, or null when the form is clean. Drives focus-to-first-error so
+     * the user is taken to the highest problem on the page.
+     */
+    fun firstInvalidField(): CreateRequestField? = when {
+        titleError != null -> CreateRequestField.Title
+        descriptionError != null -> CreateRequestField.Description
+        categoryError != null -> CreateRequestField.Category
+        budgetError != null -> CreateRequestField.Budget
+        locationError != null -> CreateRequestField.Location
+        else -> null
+    }
 }
 
 data class CreateRequestUiState(
@@ -420,6 +449,13 @@ data class CreateRequestUiState(
     val submitting: Boolean = false,
     val uploading: Boolean = false,
     val error: String? = null,
+    /**
+     * One-shot signal set by [com.shourov.apps.pacedream.feature.wanted.presentation.CreateRequestViewModel.submit]
+     * when a submit attempt fails validation: the screen focuses / scrolls to
+     * this field, then calls `consumeFocusTarget()` to clear it so a later
+     * recomposition doesn't steal focus again.
+     */
+    val focusTarget: CreateRequestField? = null,
     val createdId: String? = null,
     /**
      * Moderation state echoed by the server on successful submit. New
