@@ -390,7 +390,7 @@ private fun OfferSheetPreviewBody(
     PaceDreamTheme(darkTheme = darkTheme) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
+            color = PaceDreamColors.Surface,
         ) {
             OfferBottomSheetContent(
                 state = state,

@@ -4,6 +4,7 @@ package com.shourov.apps.pacedream.feature.wanted.presentation
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -63,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -75,9 +78,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamStroke
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
@@ -116,8 +121,12 @@ fun CreateRequestScreen(
         state.createdId?.let { onCreated(it) }
     }
 
+    // Android Photo Picker (PickVisualMedia) instead of the legacy
+    // any-file document picker: it's the platform standard, scoped to
+    // photos, and needs no READ_EXTERNAL_STORAGE / READ_MEDIA_IMAGES
+    // permission — the system picker hands back a single grant.
     val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
+        contract = ActivityResultContracts.PickVisualMedia(),
     ) { uri: Uri? ->
         // The picker returns a local content:// URI that's only valid on
         // this device. We hand it to the ViewModel which uploads the
@@ -278,7 +287,13 @@ fun CreateRequestScreen(
                 ImagePickerRow(
                     imageUri = state.form.imageUrl,
                     uploading = state.uploading,
-                    onPick = { imagePicker.launch("image/*") },
+                    onPick = {
+                        imagePicker.launch(
+                            PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly,
+                            ),
+                        )
+                    },
                     onClear = viewModel::clearCoverImage,
                 )
 
@@ -296,7 +311,7 @@ fun CreateRequestScreen(
             // the outer .imePadding() so when the keyboard is open the button
             // rides above the IME — the larger inset wins.
             Column(modifier = Modifier.navigationBarsPadding()) {
-                HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = PaceDreamStroke.Hairline)
                 Button(
                     onClick = viewModel::submit,
                     enabled = !state.submitting &&
@@ -424,7 +439,9 @@ private fun TypePicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             WantedType.entries.forEach { type ->
@@ -471,7 +488,9 @@ private fun TypeTile(
                 role = Role.RadioButton,
                 onClick = onClick,
             )
-            .semantics { contentDescription = type.label }
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${type.label}. ${type.subtitle}"
+            }
             .padding(PaceDreamSpacing.XS),
     ) {
         Column(
@@ -708,8 +727,15 @@ private fun ImagePickerRow(
                     )
                 }
                 imageUri != null -> {
+                    // 72dp decorative thumbnail — bounded by the parent Box and
+                    // crossfaded per the E-03 Coil convention. Stays
+                    // contentDescription = null because the labelled
+                    // "Replace"/"Remove" controls beside it already name it.
                     AsyncImage(
-                        model = imageUri,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(imageUri)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
