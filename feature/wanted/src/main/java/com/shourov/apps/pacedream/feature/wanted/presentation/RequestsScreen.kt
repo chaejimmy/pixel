@@ -619,7 +619,7 @@ private fun RequestsContentPreview(
     PaceDreamTheme(darkTheme = darkTheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
+            color = PaceDreamColors.Background,
         ) {
             RequestsContent(
                 state = state,
