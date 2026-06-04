@@ -2,6 +2,7 @@
 
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -31,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -42,6 +37,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,16 +47,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pacedream.common.composables.designsystem.state.EmptyState
+import com.pacedream.common.composables.designsystem.state.ListShimmer
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTheme
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsListUiState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestsTab
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoriesByType
 import com.shourov.apps.pacedream.feature.wanted.model.WantedCategoryOption
+import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
 import com.shourov.apps.pacedream.feature.wanted.model.WantedType
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestCard
 
@@ -80,6 +86,13 @@ fun RequestsScreen(
     onRequestClick: (String) -> Unit,
     onCreateClick: () -> Unit,
     onNotifyMeClick: () -> Unit = {},
+    /**
+     * Back affordance for when Requests is reached as a *pushed* destination
+     * (e.g. an "you have an offer" notification deep link, or from a detail
+     * back-stack). When null, Requests is a root tab and the top bar omits the
+     * navigation icon. Wired from the NavHost based on the back stack.
+     */
+    onBack: (() -> Unit)? = null,
     isHostMode: Boolean = false,
     /**
      * Tab to land on the first time the screen composes. Used by the
@@ -101,7 +114,19 @@ fun RequestsScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(title = { Text("Requests") })
+                TopAppBar(
+                    title = { Text("Requests", style = PaceDreamTypography.Headline) },
+                    navigationIcon = {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(PaceDreamIcons.ArrowBack, contentDescription = "Back")
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = PaceDreamColors.Background,
+                    ),
+                )
                 RequestsTabs(
                     selected = selectedTab,
                     mineLabel = if (isHostMode) "My offers" else "Mine",
@@ -113,8 +138,15 @@ fun RequestsScreen(
             if (selectedTab == RequestsTab.Browse) {
                 ExtendedFloatingActionButton(
                     onClick = onCreateClick,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text("Post a request") },
+                    // Merge icon + label into one node so TalkBack reads the FAB
+                    // once as "Post a request, button" rather than announcing an
+                    // unlabeled icon separately. The icon's contentDescription is
+                    // null because the visible "Post a request" text already labels it.
+                    modifier = Modifier.semantics(mergeDescendants = true) {},
+                    containerColor = PaceDreamColors.Primary,
+                    contentColor = PaceDreamColors.OnPrimary,
+                    icon = { Icon(PaceDreamIcons.Add, contentDescription = null) },
+                    text = { Text("Post a request", style = PaceDreamTypography.Callout) },
                 )
             }
         },
@@ -231,14 +263,14 @@ private fun FilterHeader(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = PaceDreamColors.Background,
         tonalElevation = 1.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(top = PaceDreamSpacing.SM, bottom = PaceDreamSpacing.SM),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             TypeAndSortRow(
                 selected = filter.type,
@@ -275,7 +307,7 @@ private fun TypeAndSortRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val entries = WantedType.entries
@@ -314,7 +346,7 @@ private fun SortMenuButton(
     Box {
         IconButton(onClick = { expanded = true }) {
             Icon(
-                imageVector = Icons.Filled.Sort,
+                imageVector = PaceDreamIcons.Sort,
                 contentDescription = "Sort requests",
             )
         }
@@ -330,7 +362,7 @@ private fun SortMenuButton(
                         expanded = false
                     },
                     trailingIcon = if (option == current) {
-                        { Icon(Icons.Filled.Sort, contentDescription = null) }
+                        { Icon(PaceDreamIcons.Sort, contentDescription = null) }
                     } else null,
                 )
             }
@@ -351,8 +383,8 @@ private fun CategoryChipRow(
     if (categories.isEmpty()) return
 
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         modifier = Modifier.fillMaxWidth(),
     ) {
         items(categories, key = { it.key }) { category ->
@@ -378,8 +410,8 @@ private fun ActiveFilterStrip(
     onClearAll: () -> Unit,
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -425,7 +457,7 @@ private fun ActiveFilterChip(label: String, onClear: () -> Unit) {
         label = { Text(label) },
         trailingIcon = {
             Icon(
-                imageVector = Icons.Filled.Close,
+                imageVector = PaceDreamIcons.Close,
                 contentDescription = "Clear $label",
                 modifier = Modifier.size(InputChipDefaults.IconSize),
             )
@@ -445,11 +477,15 @@ private fun RequestsContent(
     onNotifyMeClick: () -> Unit,
 ) {
     when (state) {
-        RequestsListUiState.Loading -> CenteredBox {
-            CircularProgressIndicator()
-        }
+        RequestsListUiState.Loading -> ListShimmer()
         is RequestsListUiState.Error -> CenteredBox {
-            ErrorMessage(state.message, onRetry)
+            EmptyState(
+                title = "Couldn't load requests",
+                subtitle = state.message,
+                icon = PaceDreamIcons.Warning,
+                ctaLabel = "Retry",
+                onCta = onRetry,
+            )
         }
         is RequestsListUiState.Content -> {
             if (state.requests.isEmpty()) {
@@ -468,12 +504,14 @@ private fun RequestsContent(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 12.dp,
+                        start = PaceDreamSpacing.MD,
+                        end = PaceDreamSpacing.MD,
+                        top = PaceDreamSpacing.SM2,
+                        // intentional: 96dp clears the bottom nav + the
+                        // overhanging "Post a request" FAB; off the 8dp grid.
                         bottom = 96.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
                 ) {
                     items(items = state.requests, key = { it.id }) { request ->
                         RequestCard(
@@ -496,65 +534,31 @@ private fun RoleAwareEmptyState(
     if (isHostMode) {
         EmptyState(
             title = "No open requests",
-            body = "We'll let you know when new requests match your listings.",
+            subtitle = "We'll let you know when new requests match your listings.",
+            icon = PaceDreamIcons.Inbox,
             ctaLabel = "Notify me",
-            onCtaClick = onNotifyMeClick,
+            onCta = onNotifyMeClick,
         )
     } else {
         EmptyState(
             title = "No requests yet",
-            body = "Be the first — tell providers what you need.",
+            subtitle = "Be the first to post one.",
+            icon = PaceDreamIcons.Inbox,
             ctaLabel = "Post a request",
-            onCtaClick = onCreateClick,
+            onCta = onCreateClick,
         )
-    }
-}
-
-@Composable
-private fun EmptyState(
-    title: String,
-    body: String,
-    ctaLabel: String,
-    onCtaClick: () -> Unit,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onCtaClick) {
-            Text(ctaLabel)
-        }
     }
 }
 
 @Composable
 private fun EmptyFilteredState(onClearFilters: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "No matching requests — clear filters",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onClearFilters) {
-            Text("Clear filters")
-        }
-    }
+    EmptyState(
+        title = "No matching requests",
+        subtitle = "Try adjusting or clearing your filters.",
+        icon = PaceDreamIcons.Search,
+        ctaLabel = "Clear filters",
+        onCta = onClearFilters,
+    )
 }
 
 @Composable
@@ -562,25 +566,131 @@ private fun CenteredBox(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center,
     ) { content() }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Previews — light & dark, feeding hand-built state straight into the stateless
+// RequestsContent so the IDE pane renders every meaningful branch (Content list,
+// Empty, Error) without standing up the Hilt ViewModel. The dark pass confirms
+// the surfaces use the migrated tokens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+private val SampleRequests = listOf(
+    WantedRequest(
+        id = "preview-1",
+        title = "Need a quiet meeting room for 2 hours",
+        description = "Looking for a small room downtown this afternoon.",
+        type = "space",
+        category = "Meeting room",
+        location = "Downtown, San Francisco",
+        budget = 40.0,
+        imageUrl = null,
+    ),
+    WantedRequest(
+        id = "preview-2",
+        title = "Borrow a DSLR camera for the weekend",
+        description = "Any Canon or Nikon body with a kit lens works.",
+        type = "item",
+        category = "Camera",
+        location = "Mission, San Francisco",
+        budget = null,
+        imageUrl = null,
+    ),
+    WantedRequest(
+        id = "preview-3",
+        title = "Help moving a couch on Saturday",
+        description = "Two-person job, third-floor walk-up.",
+        type = "service",
+        category = "Moving",
+        location = "Oakland, CA",
+        budget = 120.0,
+        imageUrl = null,
+    ),
+)
+
 @Composable
-private fun ErrorMessage(message: String, onRetry: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onRetry) {
-            Text("Retry")
+private fun RequestsContentPreview(
+    state: RequestsListUiState,
+    darkTheme: Boolean,
+) {
+    PaceDreamTheme(darkTheme = darkTheme) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
+            RequestsContent(
+                state = state,
+                filter = FilterState(),
+                isHostMode = false,
+                onRequestClick = {},
+                onRetry = {},
+                onClearFilters = {},
+                onCreateClick = {},
+                onNotifyMeClick = {},
+            )
         }
     }
+}
+
+@Preview(name = "Requests Content Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsContentLightPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(SampleRequests), darkTheme = false)
+}
+
+@Preview(
+    name = "Requests Content Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsContentDarkPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(SampleRequests), darkTheme = true)
+}
+
+@Preview(name = "Requests Empty Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsEmptyLightPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(emptyList()), darkTheme = false)
+}
+
+@Preview(
+    name = "Requests Empty Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsEmptyDarkPreview() {
+    RequestsContentPreview(RequestsListUiState.Content(emptyList()), darkTheme = true)
+}
+
+@Preview(name = "Requests Error Light", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RequestsErrorLightPreview() {
+    RequestsContentPreview(
+        RequestsListUiState.Error("Couldn't load requests. Check your connection."),
+        darkTheme = false,
+    )
+}
+
+@Preview(
+    name = "Requests Error Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun RequestsErrorDarkPreview() {
+    RequestsContentPreview(
+        RequestsListUiState.Error("Couldn't load requests. Check your connection."),
+        darkTheme = true,
+    )
 }

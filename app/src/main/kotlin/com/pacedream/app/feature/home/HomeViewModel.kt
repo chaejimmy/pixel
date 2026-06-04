@@ -239,7 +239,7 @@ class HomeViewModel @Inject constructor(
          */
         private const val FAVORITES_ENDPOINT_TIMEOUT_MS = 5_000L
 
-        /** Cap on how many destinations the Trending section renders (2-col grid). */
+        /** Cap for the Trending Destinations grid (3 rows of 2 cards). */
         private const val MAX_TRENDING_DESTINATIONS = 6
 
         /** shareCategory values that identify service listings (matches website). */
@@ -286,10 +286,8 @@ class HomeViewModel @Inject constructor(
             }
 
             // Trending Destinations are derived from the listings we just loaded
-            // rather than hard-coded. Property counts are the real number of
-            // listings we know about per location, and images reuse listing
-            // imageUrls (already routed through Coil with the app's config), so
-            // production no longer ships invented counts or external hot-links.
+            // rather than hard-coded: real places, real counts, real images. The
+            // section hides itself when this is empty (see HomeScreen).
             val trendingDestinations = computeTrendingDestinations(
                 spaces + rentGear.first + splitListings.first
             )
@@ -313,24 +311,32 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Derive "Trending Destinations" from the loaded listings: group by
-     * location, count the listings in each, and surface the busiest places.
-     * The count reflects real listings (not an invented figure) and the image
-     * is borrowed from an actual listing in that location. Returns an empty
-     * list when no listing carries both a location and an image, in which case
-     * the UI hides the section entirely.
+     * Aggregate the loaded listings into "Trending Destinations": group by the
+     * listing's location, count how many published listings sit there, and pick
+     * a representative image from one of them. Counts are therefore real rather
+     * than invented, and images route through Coil with the rest of the app's
+     * config. Returns at most [MAX_TRENDING_DESTINATIONS], most-listed first.
+     *
+     * A destination is only included when at least one of its listings has a
+     * usable image, so the cards never render as blank tiles.
      */
     private fun computeTrendingDestinations(
         listings: List<HomeListingItem>
-    ): List<TrendingDestination> {
+    ): List<HomeDestination> {
         return listings
-            .filter { !it.location.isNullOrBlank() && !it.imageUrl.isNullOrBlank() }
-            .groupBy { it.location!!.trim() }
-            .map { (location, items) ->
-                TrendingDestination(
-                    title = location,
+            .mapNotNull { item ->
+                val place = item.location?.trim()?.takeIf { it.isNotEmpty() }
+                if (place == null) null else place to item
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapNotNull { (place, items) ->
+                val image = items.firstNotNullOfOrNull { listing ->
+                    listing.imageUrl?.takeIf { it.isNotBlank() }
+                } ?: return@mapNotNull null
+                HomeDestination(
+                    title = place,
                     propertyCount = items.size,
-                    imageUrl = items.first().imageUrl!!
+                    imageUrl = image
                 )
             }
             .sortedByDescending { it.propertyCount }
@@ -503,15 +509,11 @@ class HomeViewModel @Inject constructor(
 }
 
 /**
- * A trending destination derived from real listing data.
- *
- * @param title the location label (e.g. "Austin, TX"), taken from listings.
- * @param propertyCount number of loaded listings in this location — a real
- *   count, not an invented figure.
- * @param imageUrl a representative listing image for the location; flows
- *   through the same Coil pipeline as every other listing image.
+ * A trending destination shown on the home feed. Derived from live listings
+ * (see [HomeViewModel.computeTrendingDestinations]) — [propertyCount] is the
+ * real number of published listings in [title], not an invented figure.
  */
-data class TrendingDestination(
+data class HomeDestination(
     val title: String,
     val propertyCount: Int,
     val imageUrl: String
@@ -528,7 +530,7 @@ data class HomeUiState(
     val hourlySpaces: List<HomeListingItem> = emptyList(),
     val rentGear: List<HomeListingItem> = emptyList(),
     val splitStays: List<HomeListingItem> = emptyList(),
-    val trendingDestinations: List<TrendingDestination> = emptyList(),
+    val trendingDestinations: List<HomeDestination> = emptyList(),
     val hourlySpacesError: String? = null,
     val rentGearError: String? = null,
     val splitStaysError: String? = null,
