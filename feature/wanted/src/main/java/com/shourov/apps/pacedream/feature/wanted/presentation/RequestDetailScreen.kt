@@ -25,7 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -51,6 +50,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
@@ -104,7 +106,7 @@ fun RequestDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM2),
                 ) {
                     val effectiveStatus = remember(content.request) {
                         RequestExpiryResolver.effectiveStatus(content.request, LocalDate.now())
@@ -177,8 +179,8 @@ fun RequestDetailScreen(
                 is RequestDetailUiState.Error -> Centered {
                     Text(
                         text = s.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+                        color = PaceDreamColors.Error,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -240,8 +242,8 @@ private fun RequestDetailBody(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(PaceDreamSpacing.MD),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         request.imageUrl?.takeIf { it.isNotBlank() }?.let { url ->
             AsyncImage(
@@ -263,13 +265,13 @@ private fun RequestDetailBody(
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             RequestTag()
             Text(
                 text = request.category,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.TextSecondary,
             )
             if (request.moderationStatus != ModerationStatus.Approved) {
                 ModerationBadge(status = request.moderationStatus)
@@ -284,7 +286,8 @@ private fun RequestDetailBody(
         }
         Text(
             text = request.title.ifBlank { "Untitled request" },
-            style = MaterialTheme.typography.headlineSmall,
+            style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextHeadline,
             fontWeight = FontWeight.Bold,
         )
         AuthorRow(
@@ -295,8 +298,8 @@ private fun RequestDetailBody(
         request.budget?.let { budget ->
             Text(
                 text = "Budget: ${formatBudget(budget, request.budgetCurrency)}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Primary,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -313,7 +316,7 @@ private fun RequestDetailBody(
         }
 
         if (isOwner) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(PaceDreamSpacing.XS))
             OffersList(
                 offers = offers,
                 onMessageProvider = onMessageProvider,
@@ -321,16 +324,17 @@ private fun RequestDetailBody(
             )
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(PaceDreamSpacing.XS))
         Text(
             text = "Description",
-            style = MaterialTheme.typography.titleMedium,
+            style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextHeadline,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = request.description.ifBlank { "No description provided." },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextPrimary,
         )
     }
 }
@@ -343,18 +347,19 @@ private fun OffersList(
 ) {
     Text(
         text = if (offers.isEmpty()) "Offers" else "Offers (${offers.size})",
-        style = MaterialTheme.typography.titleMedium,
+        style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+        color = PaceDreamColors.TextHeadline,
         fontWeight = FontWeight.SemiBold,
     )
     if (offers.isEmpty()) {
         Text(
             text = "No offers yet — we'll notify you when providers respond.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
         )
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)) {
         offers.forEach { offer ->
             OfferRow(
                 offer = offer,
@@ -375,19 +380,19 @@ private fun OfferRow(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = PaceDreamColors.Card,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(PaceDreamSpacing.MD),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 ProviderAvatar(
@@ -397,15 +402,16 @@ private fun OfferRow(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = offer.authorName?.takeIf { it.isNotBlank() } ?: "Provider",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = PaceDreamTypography.Callout.copy(fontFamily = paceDreamFontFamily),
+                        color = PaceDreamColors.TextHeadline,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = formatBudget(offer.price, offer.currency),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+                        color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold,
                     )
                 }
@@ -414,12 +420,12 @@ private fun OfferRow(
             if (offer.message.isNotBlank()) {
                 Text(
                     text = offer.message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.TextSecondary,
                 )
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedButton(
@@ -451,13 +457,13 @@ private fun ProviderAvatar(avatarUrl: String?, initial: String?) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+                .background(PaceDreamColors.SurfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = initial ?: "P",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.TextPrimary,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -474,17 +480,17 @@ private fun AuthorRow(
     val rowModifier = Modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(vertical = 4.dp)
+        .padding(vertical = PaceDreamSpacing.XS)
     Row(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         val avatarModifier = Modifier
             .size(32.dp)
             .clip(CircleShape)
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = PaceDreamColors.SurfaceVariant,
                 shape = CircleShape,
             )
         if (!avatarUrl.isNullOrBlank()) {
@@ -501,17 +507,17 @@ private fun AuthorRow(
             ) {
                 Text(
                     text = displayName.first().uppercaseChar().toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
+                    color = PaceDreamColors.TextSecondary,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
         }
         Text(
             text = displayName,
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = PaceDreamColors.TextPrimary,
         )
     }
 }
@@ -520,18 +526,18 @@ private fun AuthorRow(
 private fun DetailRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(end = 4.dp),
+            style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
+            modifier = Modifier.padding(end = PaceDreamSpacing.XS),
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextPrimary,
         )
     }
 }
@@ -541,7 +547,7 @@ private fun Centered(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center,
     ) { content() }
 }
@@ -564,7 +570,7 @@ private fun OwnerActionsBar(
     when (status) {
         RequestStatus.Active -> Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             OutlinedButton(
                 onClick = onCancel,
@@ -577,7 +583,7 @@ private fun OwnerActionsBar(
         }
         RequestStatus.Expired -> Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             OutlinedButton(
                 onClick = onCancel,
@@ -590,15 +596,15 @@ private fun OwnerActionsBar(
         }
         RequestStatus.Fulfilled -> Text(
             text = "Marked as fulfilled.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
         RequestStatus.Cancelled -> Text(
             text = "This request was cancelled.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -641,19 +647,19 @@ private fun ModerationBanner(
             .fillMaxWidth()
             .clip(RoundedCornerShape(PaceDreamRadius.MD))
             .background(accent.copy(alpha = 0.12f))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(PaceDreamSpacing.SM2),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.XS),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = PaceDreamTypography.Callout.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextPrimary,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
             text = body,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextPrimary,
         )
     }
 }
