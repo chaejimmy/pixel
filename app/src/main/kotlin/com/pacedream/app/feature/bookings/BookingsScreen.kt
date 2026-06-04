@@ -60,6 +60,7 @@ import com.pacedream.common.composables.designsystem.PaceDreamImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamStroke
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.PaceDreamButtonHeight
 import com.pacedream.common.composables.theme.PaceDreamIconSize
@@ -121,7 +122,7 @@ fun BookingsScreen(
             onTabSelected = { viewModel.selectTab(it) }
         )
 
-        HorizontalDivider(color = PaceDreamColors.Gray200, thickness = 0.5.dp)
+        HorizontalDivider(color = PaceDreamColors.Gray200, thickness = PaceDreamStroke.Hairline)
 
         // ── Main content area ──
         PullToRefreshBox(
@@ -439,7 +440,7 @@ private fun UnifiedBookingCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
-                    width = 0.5.dp,
+                    width = PaceDreamStroke.Hairline,
                     color = PaceDreamColors.Gray200.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
@@ -650,7 +651,7 @@ private fun RoleBadge(role: BookingRole, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
+            .border(PaceDreamStroke.Hairline, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
             .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.XS)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Role: ${role.label}"
@@ -682,7 +683,7 @@ private fun StatusBadge(config: BookingStatusConfig, modifier: Modifier = Modifi
     Row(
         modifier = modifier
             .background(bgColor, RoundedCornerShape(PaceDreamRadius.Round))
-            .border(0.5.dp, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
+            .border(PaceDreamStroke.Hairline, borderColor, RoundedCornerShape(PaceDreamRadius.Round))
             .padding(horizontal = PaceDreamSpacing.SM, vertical = PaceDreamSpacing.SM)
             .semantics(mergeDescendants = true) {
                 contentDescription = "Status: ${config.label}"
@@ -948,7 +949,7 @@ fun PaymentProcessingPill(modifier: Modifier = Modifier) {
                 RoundedCornerShape(PaceDreamRadius.Round)
             )
             .border(
-                width = 0.5.dp,
+                width = PaceDreamStroke.Hairline,
                 color = PaceDreamColors.Warning.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(PaceDreamRadius.Round)
             )
@@ -1022,7 +1023,7 @@ private fun BookingCardSkeleton() {
             modifier = Modifier
                 .fillMaxWidth()
                 .border(
-                    width = 0.5.dp,
+                    width = PaceDreamStroke.Hairline,
                     color = PaceDreamColors.Gray200.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(PaceDreamRadius.LG)
                 )
