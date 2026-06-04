@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
+import com.pacedream.common.util.MoneyFormatter
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
@@ -60,7 +61,6 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.components.Lifecyc
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.ModerationBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
-import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
 import java.time.LocalDate
@@ -294,7 +294,7 @@ private fun RequestDetailBody(
         )
         request.budget?.let { budget ->
             Text(
-                text = "Budget: ${formatBudget(budget, request.budgetCurrency)}",
+                text = "Budget: ${MoneyFormatter.formatAmount(budget, request.budgetCurrency)}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
@@ -403,7 +403,7 @@ private fun OfferRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = formatBudget(offer.price, offer.currency),
+                        text = MoneyFormatter.formatAmount(offer.price, offer.currency),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
