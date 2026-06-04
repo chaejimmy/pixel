@@ -34,10 +34,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.util.MoneyFormatter
+import com.shourov.apps.pacedream.designsystem.modifier.adaptiveShadow
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -56,14 +58,15 @@ fun RequestTag(
         style = PaceDreamTypography.Caption2,
         color = MaterialTheme.colorScheme.onPrimary,
         fontWeight = FontWeight.SemiBold,
-        // Decorative chip — the card's merged button label already conveys
-        // "request", so this label must not be a separate TalkBack focus stop.
+        // Decorative chip: clearAndSetSemantics (applied at the end of the
+        // chain) keeps it out of TalkBack's focus order so the whole card reads
+        // as one button. defaultMinSize gives it a chip-like minimum height.
         modifier = modifier
-            .clearAndSetSemantics { }
             .defaultMinSize(minHeight = 20.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
             .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .clearAndSetSemantics { },
     )
 }
 
@@ -199,6 +202,12 @@ fun RequestCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            // Lifted look via the design-system shadow (dark-mode safe), not
+            // Material elevation — matches FeaturedFullWidthCard.
+            .adaptiveShadow(
+                elevation = PaceDreamElevation.SM,
+                shape = RoundedCornerShape(PaceDreamRadius.MD),
+            )
             // Merge the whole card into one semantics node so TalkBack reads it
             // as a single "Open request: …, button" instead of stopping on each
             // line of text. The onClick label drives the announced action.
