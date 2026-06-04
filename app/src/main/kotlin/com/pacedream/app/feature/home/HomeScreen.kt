@@ -258,6 +258,8 @@ fun HomeScreen(
             }
 
             // ── Trending Destinations (derived from live listings) ──
+            // Rendered only when the repository actually returned destinations;
+            // an empty list hides the section rather than showing fabricated rows.
             if (uiState.trendingDestinations.isNotEmpty()) {
                 item(key = "destinations", contentType = "destinations") {
                     SectionSurface {
@@ -2026,6 +2028,7 @@ private fun SubcategoryChip(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Trending Destinations (iOS parity: 2-column grid with gradient overlays)
+// Data is derived from real listings by HomeViewModel — see HomeDestination.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
