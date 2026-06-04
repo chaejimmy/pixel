@@ -3,7 +3,6 @@ package com.shourov.apps.pacedream.feature.wanted.presentation.components
 import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,12 +26,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.designsystem.modifier.pressable
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamElevation
 import com.pacedream.common.composables.theme.PaceDreamRadius
@@ -208,14 +207,17 @@ fun RequestCard(
                 elevation = PaceDreamElevation.SM,
                 shape = RoundedCornerShape(PaceDreamRadius.MD),
             )
-            // Merge the whole card into one semantics node so TalkBack reads it
-            // as a single "Open request: …, button" instead of stopping on each
-            // line of text. The onClick label drives the announced action.
-            .semantics(mergeDescendants = true) {
-                role = Role.Button
-                onClick(label = "Open request: ${request.title.ifBlank { "Untitled request" }}") { false }
-            }
-            .clickable(onClick = onClick),
+            // Clip BEFORE pressable so the Material ripple is clipped to the
+            // card's rounded corners (the ripple is drawn at the pressable node).
+            .clip(RoundedCornerShape(PaceDreamRadius.MD))
+            // The shared press affordance: ripple + cancel-on-slide-off + a
+            // subtle card-scale, with the action verb + Role.Button for TalkBack.
+            .pressable(
+                onClick = onClick,
+                onClickLabel = "Open request: ${request.title.ifBlank { "Untitled request" }}",
+                pressedScale = 0.98f,
+                role = Role.Button,
+            ),
         shape = RoundedCornerShape(PaceDreamRadius.MD),
         colors = CardDefaults.cardColors(containerColor = PaceDreamColors.Card),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -224,7 +226,22 @@ fun RequestCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                // Merge the card's text into one semantics node so TalkBack reads
+                // it as a single stop instead of walking each line; the action
+                // verb is supplied by .pressable's onClickLabel above.
+                .semantics(mergeDescendants = true) {
+                    contentDescription = buildString {
+                        append("Request. ")
+                        append(request.title.ifBlank { "Untitled request" })
+                        append(", ${request.category}")
+                        if (request.location.isNotBlank()) append(", ${request.location}")
+                        requestDateLabel?.let { append(", $it") }
+                        request.budget?.let {
+                            append(", budget ${MoneyFormatter.formatAmount(it, request.budgetCurrency)}")
+                        }
+                    }
+                },
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
