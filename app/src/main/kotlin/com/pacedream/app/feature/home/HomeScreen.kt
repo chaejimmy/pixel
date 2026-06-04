@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.composables.designsystem.modifier.pressable
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
@@ -55,10 +56,10 @@ import coil.request.ImageRequest
 import android.content.res.Configuration
 import androidx.compose.ui.tooling.preview.Preview
 import com.pacedream.common.composables.animations.animatedCardEntry
-import com.pacedream.common.composables.designsystem.modifier.pressable
 import com.pacedream.common.composables.theme.PaceDreamTheme
 import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.pacedream.common.composables.designsystem.state.EmptyState
 import com.shourov.apps.pacedream.designsystem.CategoryColor
 import com.shourov.apps.pacedream.designsystem.CategoryColors
 import com.shourov.apps.pacedream.designsystem.FavoriteIconButton
@@ -110,6 +111,13 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val selectedCategoryFilter = uiState.selectedCategory
 
+    // Resolve the unread-notifications VM at the stable screen scope rather than
+    // inside the hero LazyColumn item. Keeping it here ties it to HomeScreen's
+    // ViewModelStoreOwner and confines unread-count recompositions to the hero
+    // item we pass it into, instead of churning VM resolution as the list scrolls.
+    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -141,19 +149,21 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
-            item {
+            item(key = "hero", contentType = "hero") {
                 HeroHeaderSection(
                     heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
+                    unreadCount = unreadCount,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
                     onNotificationClick = onNotificationClick,
+                    onMarkAllSeen = { unreadVm.markAllAsSeen() },
                     onAboutClick = onAboutClick,
                 )
             }
 
             // ── Category Filter Tabs ──
-            item {
+            item(key = "categoryTabs", contentType = "categoryTabs") {
                 CategoryFilterTabs(
                     selectedCategory = selectedCategoryFilter,
                     onCategorySelected = { category ->
@@ -166,7 +176,7 @@ fun HomeScreen(
 
             // ── Warning banner ──
             if (uiState.hasErrors) {
-                item {
+                item(key = "warningBanner", contentType = "warningBanner") {
                     WarningBanner(
                         message = "Some content couldn't load.",
                         onRefresh = { viewModel.refresh() },
@@ -176,7 +186,7 @@ fun HomeScreen(
             }
 
             // ── Extended Categories (iOS parity) ──
-            item {
+            item(key = "categories", contentType = "categories") {
                 ExtendedCategoriesSection(
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.padding(top = PaceDreamSpacing.MD)
@@ -185,7 +195,7 @@ fun HomeScreen(
 
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
-                item {
+                item(key = "spaces", contentType = "spaces") {
                     SectionSurface {
                         ListingSection(
                             title = "Spaces",
@@ -203,7 +213,7 @@ fun HomeScreen(
 
             // ── Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
-                item {
+                item(key = "items", contentType = "items") {
                     SectionSurface {
                         ListingSection(
                             title = "Items",
@@ -221,7 +231,7 @@ fun HomeScreen(
 
             // ── Services (2-column vertical grid — iOS parity) ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
-                item {
+                item(key = "services", contentType = "services") {
                     SectionSurface {
                         ServicesGridSection(
                             title = "Services",
@@ -238,7 +248,7 @@ fun HomeScreen(
             }
 
             // ── Browse by Type Section (Marketplace taxonomy) ──
-            item {
+            item(key = "browseByType", contentType = "browseByType") {
                 SectionSurface {
                     BrowseByTypeSection(
                         onTypeTap = { type -> onCategoryClick(type) },
@@ -247,18 +257,21 @@ fun HomeScreen(
                 }
             }
 
-            // ── Trending Destinations (iOS parity) ──
-            item {
-                SectionSurface {
-                    TrendingDestinationsSection(
-                        onDestinationTap = { destination -> onCategoryClick(destination) },
-                        onViewAllTap = { onSectionViewAll("destinations") },
-                    )
+            // ── Trending Destinations (derived from live listings) ──
+            if (uiState.trendingDestinations.isNotEmpty()) {
+                item(key = "destinations", contentType = "destinations") {
+                    SectionSurface {
+                        TrendingDestinationsSection(
+                            destinations = uiState.trendingDestinations,
+                            onDestinationTap = { destination -> onCategoryClick(destination) },
+                            onViewAllTap = { onSectionViewAll("destinations") },
+                        )
+                    }
                 }
             }
 
             // ── 3 Steps CTA (iOS parity) ──
-            item {
+            item(key = "threeSteps", contentType = "threeSteps") {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
                     modifier = Modifier.padding(top = PaceDreamSpacing.SM)
@@ -267,9 +280,13 @@ fun HomeScreen(
 
             // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
-                item {
+                item(key = "empty", contentType = "empty") {
                     EmptyState(
-                        onRetry = { viewModel.refresh() },
+                        title = "Nothing to show right now",
+                        subtitle = "Check back later for new spaces and rentals",
+                        icon = PaceDreamIcons.Search,
+                        ctaLabel = "Retry",
+                        onCta = { viewModel.refresh() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(PaceDreamSpacing.XXL)
@@ -310,9 +327,11 @@ private fun SectionSurface(
 @Composable
 private fun HeroHeaderSection(
     heroImageUrl: String?,
+    unreadCount: Int,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onMarkAllSeen: () -> Unit,
     onAboutClick: () -> Unit,
     heroAsset: Painter? = null,
 ) {
@@ -353,6 +372,10 @@ private fun HeroHeaderSection(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(heroImageUrl)
                             .crossfade(true)
+                            // Distinct cache key for the hero render slot so the
+                            // full-bleed decode doesn't evict (or get evicted by)
+                            // the same URL rendered at card/grid size elsewhere.
+                            .memoryCacheKey("$heroImageUrl@hero")
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
@@ -383,13 +406,11 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
-                    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
                     NotificationBellButton(
                         unreadCount = unreadCount,
                         onClick = {
                             onNotificationClick()
-                            unreadVm.markAllAsSeen()
+                            onMarkAllSeen()
                         },
                         // .size(44.dp) constrains only the visual purple circle;
                         // the component prepends touchTargetSize() so the hit
@@ -590,7 +611,7 @@ private fun CategoryFilterTabs(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            items(categories) { (name, outlinedIcon, filledIcon) ->
+            items(categories, key = { it.first }, contentType = { "categoryTab" }) { (name, outlinedIcon, filledIcon) ->
                 val isSelected = selectedCategory == name
                 CategoryTab(
                     name = name,
@@ -682,7 +703,7 @@ private fun ExtendedCategoriesSection(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            items(getCategoryCards()) { category ->
+            items(getCategoryCards(), key = { it.name }, contentType = { "categoryChip" }) { category ->
                 QuickCategoryChip(
                     category = category,
                     onClick = { onCategoryClick(category.name) }
@@ -952,7 +973,7 @@ private fun ListingSection(
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
-                    items(items) { item ->
+                    items(items, key = { it.id }, contentType = { "listingCard" }) { item ->
                         ListingCard(
                             item = item,
                             isFavorite = item.id in favoriteIds,
@@ -991,6 +1012,7 @@ private fun FeaturedFullWidthCard(
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
+                onClickLabel = item.title,
                 pressedScale = 0.98f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -1012,7 +1034,8 @@ private fun FeaturedFullWidthCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@featured")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -1401,6 +1424,7 @@ private fun GridListingCard(
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
+                onClickLabel = item.title,
                 pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -1422,7 +1446,8 @@ private fun GridListingCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@grid")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -1592,6 +1617,7 @@ private fun ListingCard(
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
+                onClickLabel = item.title,
                 pressedScale = 0.97f,
             ),
         shape = RoundedCornerShape(PaceDreamRadius.LG),
@@ -1613,7 +1639,8 @@ private fun ListingCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@card")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -1900,7 +1927,6 @@ private fun BrowseTypePill(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
-            .pressable(onClick = onClick)
             .then(
                 if (bgAlpha > 0f) {
                     Modifier.background(
@@ -1912,6 +1938,11 @@ private fun BrowseTypePill(
                         RoundedCornerShape(PaceDreamRadius.LG)
                     )
                 } else Modifier
+            )
+            .pressable(
+                onClick = onClick,
+                onClickLabel = type.displayTitle,
+                pressedScale = 0.95f,
             )
             .padding(vertical = PaceDreamSpacing.SM2),
         contentAlignment = Alignment.Center
@@ -1948,11 +1979,6 @@ private fun SubcategoryChip(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clip(RoundedCornerShape(PaceDreamRadius.XL))
-            .pressable(
-                onClick = onClick,
-                pressedScale = 0.95f,
-            )
             .background(
                 MaterialTheme.colorScheme.surface,
                 RoundedCornerShape(PaceDreamRadius.XL)
@@ -1961,6 +1987,12 @@ private fun SubcategoryChip(
                 width = 1.dp,
                 color = PaceDreamColors.DividerNeutral,
                 shape = RoundedCornerShape(PaceDreamRadius.XL)
+            )
+            .clip(RoundedCornerShape(PaceDreamRadius.XL))
+            .pressable(
+                onClick = onClick,
+                onClickLabel = "Open ${subcategory.title}",
+                pressedScale = 0.95f,
             )
             .padding(horizontal = PaceDreamSpacing.MD, vertical = PaceDreamSpacing.SM)
     ) {
@@ -1987,23 +2019,9 @@ private fun SubcategoryChip(
 // Trending Destinations (iOS parity: 2-column grid with gradient overlays)
 // ─────────────────────────────────────────────────────────────────────────────
 
-private data class DestinationData(
-    val title: String,
-    val propertyCount: Int,
-    val imageUrl: String
-)
-
-private fun getTrendingDestinations(): List<DestinationData> = listOf(
-    DestinationData("Grand Canyon", 42, "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=600"),
-    DestinationData("Utah", 38, "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600"),
-    DestinationData("Maui", 55, "https://images.unsplash.com/photo-1542259009477-d625272157b7?w=600"),
-    DestinationData("Glacier", 29, "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600"),
-    DestinationData("Honolulu", 67, "https://images.unsplash.com/photo-1507876466758-bc54f384809c?w=600"),
-    DestinationData("Sedona", 31, "https://images.unsplash.com/photo-1500534314263-e9e68e3c0849?w=600")
-)
-
 @Composable
 private fun TrendingDestinationsSection(
+    destinations: List<HomeDestination>,
     onDestinationTap: (String) -> Unit,
     onViewAllTap: () -> Unit,
     modifier: Modifier = Modifier
@@ -2017,7 +2035,6 @@ private fun TrendingDestinationsSection(
         )
         Spacer(modifier = Modifier.height(PaceDreamSpacing.SM2))
 
-        val destinations = getTrendingDestinations()
         Column(
             modifier = Modifier.padding(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
@@ -2050,7 +2067,7 @@ private fun TrendingDestinationsSection(
 
 @Composable
 private fun TrendingDestinationCard(
-    destination: DestinationData,
+    destination: HomeDestination,
     isLarge: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -2061,13 +2078,15 @@ private fun TrendingDestinationCard(
             .clip(RoundedCornerShape(PaceDreamRadius.LG))
             .pressable(
                 onClick = onClick,
+                onClickLabel = "Open ${destination.title}",
                 pressedScale = 0.96f,
             )
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(destination.imageUrl)
-                .crossfade(200)
+                .crossfade(true)
+                .memoryCacheKey("${destination.title}@destination")
                 .build(),
             contentDescription = destination.title,
             contentScale = ContentScale.Crop,
@@ -2377,74 +2396,6 @@ private fun ShimmerCard(modifier: Modifier = Modifier) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Empty State (iOS parity: icon + title + subtitle + retry button)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EmptyState(
-    onRetry: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(
-                    PaceDreamColors.Primary.copy(alpha = 0.08f),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = PaceDreamIcons.Search,
-                contentDescription = null,
-                tint = PaceDreamColors.Primary,
-                modifier = Modifier.size(36.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.HomeGutter))
-        Text(
-            text = "Nothing to show right now",
-            style = DSTypo.Title3.copy(
-                fontFamily = paceDreamDisplayFontFamily,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.2).sp
-            ),
-            color = PaceDreamColors.TextHeadline,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.SM))
-        Text(
-            text = "Check back later for new spaces and rentals",
-            style = DSTypo.Subheadline.copy(fontFamily = paceDreamFontFamily),
-            color = PaceDreamColors.IconNeutral,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(PaceDreamSpacing.LG))
-        Button(
-            onClick = onRetry,
-            shape = RoundedCornerShape(PaceDreamRadius.MD),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = PaceDreamColors.Primary
-            ),
-            contentPadding = PaddingValues(horizontal = PaceDreamSpacing.LG, vertical = PaceDreamSpacing.SM2)
-        ) {
-            Text(
-                text = "Retry",
-                style = DSTypo.Subheadline.copy(
-                    fontFamily = paceDreamFontFamily,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Previews — light & dark. Exercises the dark-theme surfaces, shadows and
 // overlays so regressions show up in the PR render without standing up the
 // ViewModel / data layer.
@@ -2495,9 +2446,11 @@ private fun HomeScreenPreviewBody() {
                 val uriHandler = LocalUriHandler.current
                 HeroHeaderSection(
                     heroImageUrl = null,
+                    unreadCount = 3,
                     onSearchClick = {},
                     onFilterClick = {},
                     onNotificationClick = { /* preview no-op; production wired via NotificationRoutes.NOTIFICATIONS */ },
+                    onMarkAllSeen = { /* preview no-op; production calls UnreadNotificationsViewModel.markAllAsSeen() */ },
                     onAboutClick = {
                         // Preview-only hook so the CTA isn't a no-op in isolation;
                         // the real screen wires this to the in-app About route.

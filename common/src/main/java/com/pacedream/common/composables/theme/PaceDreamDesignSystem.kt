@@ -2,9 +2,12 @@ package com.pacedream.common.composables.theme
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.em
@@ -457,7 +460,16 @@ object PaceDreamEasing {
 // inline. Hairline matches iOS opaque-separator rendering on @2x/@3x.
 // ============================================================================
 object PaceDreamStroke {
-    val Hairline = 0.5.dp   // iOS opaque separator, glass edge
+    // True 1-physical-pixel hairline, resolved from the current density so it is
+    // ALWAYS exactly one device pixel and never floors to 0. A literal 0.5.dp
+    // rounds down to 0px on mdpi (1dp == 1px), so those separators silently
+    // disappear; on hdpi it renders an inconsistent 0.5–1px line. Computing
+    // (1 / density).dp guarantees a crisp single pixel across mdpi → xxxhdpi,
+    // matching iOS's opaque-separator / glass-edge hairline on @2x/@3x.
+    // NOTE: this is a @Composable getter (reads LocalDensity), so it can only be
+    // referenced from composable code — use Thin (1.dp) for non-composable callers.
+    val Hairline: Dp
+        @Composable get() = with(LocalDensity.current) { (1f / density).dp }
     val Thin = 1.dp         // Standard divider, card outline
     val Regular = 1.5.dp    // Selected state, emphasis outline
     val Thick = 2.dp        // Focus ring, primary outlined button

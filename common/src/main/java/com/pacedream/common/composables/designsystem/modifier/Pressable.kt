@@ -14,47 +14,34 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.semantics.Role
 
 /**
- * The single design-system gesture for "shrink slightly while pressed, then
- * fire onClick" — the press affordance shared by every tappable Home card,
- * chip and tile.
+ * The one-and-only press affordance for tappable surfaces.
  *
- * Why this exists: callsites used to re-implement press feedback by hand and
- * drifted apart. Three flavours had shipped:
- *  - `detectTapGestures { onPress { ...; tryAwaitRelease(); onClick() } }` —
- *    fires on release *regardless of whether the pointer is still inside the
- *    node*, so a drag-off-to-abort still navigated, and it draws no ripple.
- *  - `clickable(indication = null)` — correct cancel semantics but no ripple.
- *  - `clickable(indication = LocalIndication.current)` — correct, but every
- *    callsite owned its own `MutableInteractionSource` + `animateFloatAsState`.
+ * Replaces the per-callsite `MutableInteractionSource` + `animateFloatAsState`
+ * + `clickable` boilerplate that used to be copy-pasted (and subtly diverge)
+ * across Home cards. Every tappable card should reach for this instead of
+ * hand-rolling press scale, so the family stays consistent:
  *
- * [pressable] folds all three into one modifier with the correct behaviour:
- *  - **Ripple** — uses [LocalIndication], so Material's indication shows.
- *  - **Cancel on slide-off** — built on [clickable], whose press is cancelled
- *    when the pointer leaves the node's bounds, so onClick does not fire.
- *  - **Announced as a button** — exposes [role] (default [Role.Button]) and
- *    [onClickLabel] to the accessibility tree for TalkBack.
+ *  - **Ripple** — uses [LocalIndication], so presses ripple like every other
+ *    Material surface. (The old `clickable(indication = null)` callsites had
+ *    no ripple at all.)
+ *  - **Cancel on slide-off** — built on [clickable], the press is cancelled
+ *    when the pointer leaves the node's bounds and [onClick] does NOT fire.
+ *    (The old `detectTapGestures { tryAwaitRelease(); onClick() }` callsites
+ *    fired on release regardless of where the pointer ended up.)
+ *  - **TalkBack** — announces as [role] (a button by default).
+ *  - **Press scale** — shrinks to [pressedScale] while held, animated over a
+ *    short [tween], driven by a single shared interaction source.
  *
- * The press-scale animation reads from a single [MutableInteractionSource]
- * that also drives [clickable], so the shrink and the click/ripple stay in
- * lockstep — no separate sources to keep in sync.
+ * Note: the ripple is drawn by [clickable] at this node, so it is only clipped
+ * to a rounded shape if an ancestor clips. Callers that want the ripple
+ * clipped should apply `.clip(shape)` BEFORE `.pressable(...)`.
  *
- * Ripple clipping: [scale] is applied before [clickable], but the ripple is
- * not clipped to any shape here. Callers that draw a rounded/clipped surface
- * should apply `.clip(shape)` *before* `.pressable(...)` so the ripple is
- * bounded to that shape:
- * ```
- * Modifier
- *     .clip(RoundedCornerShape(16.dp))
- *     .pressable(onClick = onClick)
- * ```
- *
- * @param onClick invoked on a completed tap (press + release inside bounds).
- * @param onClickLabel accessibility label describing the action, e.g.
- *   "Open Restroom"; surfaced to TalkBack.
- * @param pressedScale the scale factor held while pressed. Chips use ~0.95,
- *   cards ~0.98, image tiles ~0.96; pass the callsite's value explicitly.
- * @param enabled when false, the node neither animates nor reacts to taps.
- * @param role the accessibility role; defaults to [Role.Button].
+ * @param onClick Invoked on a completed tap (press + release inside bounds).
+ * @param onClickLabel Accessibility label describing the click action.
+ * @param pressedScale Scale applied while the press is held. `1f` disables the
+ *   shrink. Chips use `0.95f`, cards `0.98f`, image tiles `0.96f`.
+ * @param enabled When `false`, the node is not clickable and does not react.
+ * @param role Accessibility role announced to TalkBack. Defaults to a button.
  */
 fun Modifier.pressable(
     onClick: () -> Unit,
