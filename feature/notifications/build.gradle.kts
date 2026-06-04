@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.pacedream.notifications"
+    namespace = "com.shourov.apps.pacedream.feature.notifications"
 }
 
 dependencies {

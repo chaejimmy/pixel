@@ -42,7 +42,6 @@ Gradle stubs `feature/auth`, `feature/guest`, `feature/host`,
 | `feature/inbox` | 5 | 9 | 3 | 0 | **17** |
 | `feature/signin` | 0 | 0 | 16 | 0 | **16** |
 | `app/shourov/feature/profile` | 0 | 5 | 9 | 0 | **14** |
-| `app/pacedream.app/feature/search` | 4 | 10 | 0 | 0 | **14** |
 | `app/pacedream.app/feature/bookings` | 10 | 4 | 0 | 0 | **14** |
 | `feature/chat` | 0 | 6 | 3 | 4 | **13** |
 | `app/shourov/feature/homefeed` | 0 | 8 | 5 | 0 | **13** |
@@ -71,6 +70,7 @@ Gradle stubs `feature/auth`, `feature/guest`, `feature/host`,
 | `app/shourov/feature/bookingdetail` | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/listing` | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/listingdetail` &nbsp;<sup>‖</sup> | 0 | 0 | 0 | 0 | **0** |
+| `app/pacedream.app/feature/search` &nbsp;<sup>¶</sup> | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/hostprofile` | 0 | 0 | 0 | 0 | **0** |
 | `app/pacedream.app/feature/faq` | 0 | 0 | 0 | 0 | **0** |
 | `feature/home` (excl. `redesign/`) &nbsp;<sup>†</sup> | 0 | 0 | 0 | 0 | **0** |
@@ -113,21 +113,41 @@ SubmitReport CTA text on `PaceDreamColors.Primary` containers →
 Review banner became `MaterialTheme.typography.titleSmall` and
 `labelMedium`.  No subtree carve-outs.
 
+<sup>¶</sup> `app/pacedream.app/feature/search` was migrated in
+`Search: remove dead close-button scaffold + stale DesignSystemEscape`
+(previously **14** hits).  Mapping highlights: the `#FFBE0B` rating star
+→ `PaceDreamColors.StarRating`; the photo bottom-gradient + type / rating
+badge scrims (`Color.Black.copy(alpha = …)` over imagery) →
+`scrimOnImage(0.30f)` / `scrimOnImage(0.45f)`; the selected-tab,
+on-image badge, and Retry-CTA white text on brand / scrim surfaces →
+`OnBrandSurface`; the shimmer skeleton greys + card fill
+(`Color(0xFFF0F0F0)` / `0xFFE0E0E0` / `Color.White`) → `Gray50` /
+`Gray100` / `Card`.  The two card drop-shadow `Color.Black` ambient /
+spot tints are semantically-correct theme-independent shadows, kept with
+`// allow-token`.  Three inline `fontSize = N.sp` literals were dropped:
+the redundant 12.sp chip label (already `Caption`), the 15.sp Retry label
+(→ `Subheadline` + SemiBold), and the 24.sp `Explore` title (→ `Title2`,
+22.sp).  No subtree carve-outs.
+
 ## Totals
 
 | Column | Sum across all modules |
 |---|---:|
-| `Color(0x…)` literals | 102 |
-| `Color.White` / `Color.Black` | 142 |
+| `Color(0x…)` literals | 98 |
+| `Color.White` / `Color.Black` | 132 |
 | raw `.dp` paddings | 240 |
 | `RoundedCornerShape(N.dp)` | 10 &nbsp;<sup>‡</sup> |
-| **Grand total** | **494** |
+| **Grand total** | **480** |
 
 (Down from 805 at commit `8d93034` — `refactor/ds-migration-home`
 cleared 101 hits in `feature/home` outside `redesign/`;
 `refactor/ds-migration-host` cleared 167 hits in `app/shourov/feature/host`;
 `refactor/ds-migration-listingdetail` cleared 43 hits in
-`app/pacedream.app/feature/listingdetail`; the deferred **109** hits
+`app/pacedream.app/feature/listingdetail`; the
+`Search: remove dead close-button scaffold + stale DesignSystemEscape`
+change cleared the 14 hits in `app/pacedream.app/feature/search` (the two
+remaining card-shadow `Color.Black` tints are sanctioned via
+`// allow-token`, so the file passes `designSystemCheck`); the deferred **109** hits
 inside `feature/home/.../redesign/` are still counted in the table row
 for that subtree so the grand total reflects everything currently in code.)
 
@@ -200,15 +220,15 @@ Both the `Color.White` / `Color.Black` rules and the four
 now run repo-wide on the standard `check` lifecycle, so a future PR
 that introduces any of them inside feature code fails CI.
 
-To unblock the rollout without forcing the remaining ~494-hit
-migration in one PR, the 44 currently-violating files (post-merge
+To unblock the rollout without forcing the remaining ~480-hit
+migration in one PR, the currently-violating files (post-merge
 with `refactor/ds-migration-listingdetail`) have been opted out with
 a top-of-file `// @DesignSystemEscape (reason="…")` marker.  The
 escape table:
 
 | Escape reason                                                          | File count |
 |---|---:|
-| `legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out` | 39 |
+| `legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out` | 38 |
 | `HomeRedesign owns a self-contained Purple/Coral palette pending a design call — see DESIGN_SYSTEM_COVERAGE.md` | 5 |
 
 Removing an opt-out is the migration unit going forward: delete the

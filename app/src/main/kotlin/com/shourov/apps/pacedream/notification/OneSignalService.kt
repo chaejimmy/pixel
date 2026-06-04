@@ -7,7 +7,7 @@ import com.onesignal.notifications.INotificationClickEvent
 import com.onesignal.notifications.INotificationClickListener
 import com.onesignal.notifications.INotificationWillDisplayEvent
 import com.onesignal.notifications.INotificationLifecycleListener
-import com.pacedream.notifications.PushDeepLinkHandler
+import com.shourov.apps.pacedream.feature.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.BuildConfig
 import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import dagger.hilt.android.qualifiers.ApplicationContext
