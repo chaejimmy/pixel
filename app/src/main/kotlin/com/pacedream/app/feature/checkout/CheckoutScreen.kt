@@ -60,14 +60,13 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
+import com.pacedream.common.util.MoneyFormatter
 import com.stripe.android.PaymentConfiguration
 import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import kotlinx.coroutines.delay
 import timber.log.Timber
-import java.text.NumberFormat
-import java.util.Currency
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -524,7 +523,7 @@ private fun PayBar(
                     )
                     if (quote != null) {
                         Text(
-                            formatCents(quote.totalCents, quote.currency),
+                            MoneyFormatter.formatCents(quote.totalCents.toLong(), quote.currency),
                             style = PaceDreamTypography.Headline,
                             fontWeight = FontWeight.Bold,
                             color = PaceDreamColors.OnPrimary
@@ -695,10 +694,10 @@ private fun PriceBreakdownCard(
             HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
 
             if (quote != null) {
-                SummaryRow("Price", formatCents(quote.baseAmountCents, quote.currency))
+                SummaryRow("Price", MoneyFormatter.formatCents(quote.baseAmountCents.toLong(), quote.currency))
 
                 if (quote.serviceFeeCents > 0) {
-                    SummaryRow("Service fee", formatCents(quote.serviceFeeCents, quote.currency))
+                    SummaryRow("Service fee", MoneyFormatter.formatCents(quote.serviceFeeCents.toLong(), quote.currency))
                 } else {
                     // Early access: service fee waived (iOS parity)
                     Row(
@@ -724,7 +723,7 @@ private fun PriceBreakdownCard(
                 }
 
                 if (quote.taxCents > 0) {
-                    SummaryRow("Tax", formatCents(quote.taxCents, quote.currency))
+                    SummaryRow("Tax", MoneyFormatter.formatCents(quote.taxCents.toLong(), quote.currency))
                 }
 
                 HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
@@ -741,7 +740,7 @@ private fun PriceBreakdownCard(
                         color = PaceDreamColors.TextPrimary
                     )
                     Text(
-                        formatCents(quote.totalCents, quote.currency),
+                        MoneyFormatter.formatCents(quote.totalCents.toLong(), quote.currency),
                         fontWeight = FontWeight.Bold,
                         style = PaceDreamTypography.Headline,
                         color = PaceDreamColors.TextPrimary
@@ -1441,25 +1440,6 @@ private fun SummaryRow(label: String, value: String) {
     ) {
         Text(label, color = PaceDreamColors.TextSecondary, style = PaceDreamTypography.Callout)
         Text(value, fontWeight = FontWeight.Medium, style = PaceDreamTypography.Callout, color = PaceDreamColors.TextPrimary)
-    }
-}
-
-private val threadLocalCurrencyFormatter = ThreadLocal.withInitial {
-    mutableMapOf<String, NumberFormat>()
-}
-
-private fun formatCents(cents: Int, currency: String): String {
-    val dollars = cents / 100.0
-    return try {
-        val cache = threadLocalCurrencyFormatter.get()
-        val formatter = cache.getOrPut(currency.uppercase()) {
-            NumberFormat.getCurrencyInstance().apply {
-                this.currency = java.util.Currency.getInstance(currency.uppercase())
-            }
-        }
-        formatter.format(dollars)
-    } catch (_: Exception) {
-        String.format("$%.2f", dollars)
     }
 }
 
