@@ -1,4 +1,3 @@
-// @DesignSystemEscape (reason="legacy debt tracked in DESIGN_SYSTEM_COVERAGE.md — migrate per the suggested order in that file before removing this opt-out")
 package com.shourov.apps.pacedream.feature.wanted.presentation
 
 import androidx.compose.foundation.background
@@ -23,7 +22,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,7 +29,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +37,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
+import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamDisplayFontFamily
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.shourov.apps.pacedream.feature.wanted.model.HostListingSummary
 import com.shourov.apps.pacedream.feature.wanted.model.OFFER_MESSAGE_MAX_LENGTH
 import com.shourov.apps.pacedream.feature.wanted.model.OfferExpiry
@@ -106,13 +108,14 @@ private fun OfferFormContent(
             // expiry, optional listing row, submit) — let it scroll on
             // short devices instead of clipping the submit button.
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.SM)
             .testTag(OfferSheetTestTags.Form),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         Text(
             text = "Make an Offer",
-            style = MaterialTheme.typography.titleLarge,
+            style = PaceDreamTypography.Title2.copy(fontFamily = paceDreamDisplayFontFamily),
+            color = PaceDreamColors.TextHeadline,
             fontWeight = FontWeight.Bold,
         )
         OutlinedTextField(
@@ -143,9 +146,9 @@ private fun OfferFormContent(
         // they can't ship an over-length message by accident.
         Text(
             text = "${state.message.length}/$OFFER_MESSAGE_MAX_LENGTH",
-            style = MaterialTheme.typography.bodySmall,
-            color = if (messageOverLimit) MaterialTheme.colorScheme.error
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+            color = if (messageOverLimit) PaceDreamColors.Error
+                else PaceDreamColors.TextSecondary,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(OfferSheetTestTags.MessageCounter),
@@ -170,22 +173,22 @@ private fun OfferFormContent(
         state.error?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                style = PaceDreamTypography.Caption.copy(fontFamily = paceDreamFontFamily),
+                color = PaceDreamColors.Error,
             )
         }
         Button(
             onClick = onSubmit,
             enabled = !state.submitting && !messageOverLimit,
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = 12.dp),
+            contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2),
         ) {
             if (state.submitting) {
                 CircularProgressIndicator(
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = PaceDreamColors.OnPrimary,
                     modifier = Modifier
-                        .padding(end = 8.dp)
+                        .padding(end = PaceDreamSpacing.SM)
                         .size(18.dp),
                 )
             }
@@ -204,7 +207,7 @@ private fun RequiredLabel(text: String) {
         buildAnnotatedString {
             append(text)
             append(' ')
-            withStyle(SpanStyle(color = MaterialTheme.colorScheme.error)) {
+            withStyle(SpanStyle(color = PaceDreamColors.Error)) {
                 append("*")
             }
         }
@@ -217,14 +220,16 @@ private fun ExpiryRow(
     enabled: Boolean,
     onChange: (Int) -> Unit,
 ) {
+    // intentional: 6dp label↔chips gap sits between XS (4dp) and SM (8dp);
+    // tighter than SM to bind the field label to its control group.
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             text = "Expires in",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
             modifier = Modifier.testTag(OfferSheetTestTags.ExpiryRow),
         ) {
             OfferExpiry.entries.forEach { option ->
@@ -249,12 +254,14 @@ private fun LinkListingRow(
 ) {
     Column(
         modifier = Modifier.testTag(OfferSheetTestTags.LinkListingRow),
+        // intentional: 6dp label↔picker gap sits between XS (4dp) and SM
+        // (8dp); tighter than SM to bind the field label to its control group.
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = "Link a listing",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Footnote.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
         )
         // Inline picker: each listing is a toggleable chip. Tapping the
         // selected chip again clears it (handled by the caller). The
@@ -264,6 +271,8 @@ private fun LinkListingRow(
                 .fillMaxWidth()
                 .heightIn(max = 180.dp)
                 .verticalScroll(rememberScrollState()),
+            // intentional: 6dp inter-chip gap sits between XS (4dp) and SM
+            // (8dp); keeps the listing chips compact within the capped column.
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             listings.forEach { listing ->
@@ -291,10 +300,10 @@ private fun OfferSubmittedContent(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = PaceDreamSpacing.Layout.HomeGutter, vertical = PaceDreamSpacing.MD)
             .testTag(OfferSheetTestTags.Success),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         Box(
             modifier = Modifier
@@ -312,20 +321,21 @@ private fun OfferSubmittedContent(
         }
         Text(
             text = "Offer sent",
-            style = MaterialTheme.typography.titleLarge,
+            style = PaceDreamTypography.Title2.copy(fontFamily = paceDreamDisplayFontFamily),
+            color = PaceDreamColors.TextHeadline,
             fontWeight = FontWeight.Bold,
         )
         Text(
             text = "$displayName will see your offer and reply in your inbox if they're interested.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
         if (onViewMyOffers != null) {
             OutlinedButton(
                 onClick = onViewMyOffers,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 12.dp),
+                contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2),
             ) {
                 Text("View my offers")
             }
@@ -333,7 +343,7 @@ private fun OfferSubmittedContent(
         Button(
             onClick = onDone,
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = 12.dp),
+            contentPadding = PaddingValues(vertical = PaceDreamSpacing.SM2),
         ) {
             Text("Done")
         }
@@ -353,5 +363,5 @@ object OfferSheetTestTags {
     const val LinkListingRow = "offer_sheet_link_listing_row"
 }
 
-private val SuccessBadgeBackground = Color(0xFFE6F4EA)
-private val SuccessBadgeForeground = Color(0xFF1E8E3E)
+private val SuccessBadgeBackground = PaceDreamColors.Success.copy(alpha = 0.15f)
+private val SuccessBadgeForeground = PaceDreamColors.Success

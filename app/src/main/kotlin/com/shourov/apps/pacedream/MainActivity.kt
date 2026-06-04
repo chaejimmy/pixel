@@ -13,7 +13,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.metrics.performance.JankStats
-import com.pacedream.notifications.PushDeepLinkHandler
+import com.shourov.apps.pacedream.feature.notifications.PushDeepLinkHandler
 import com.shourov.apps.pacedream.feature.host.domain.HostModeManager
 import com.shourov.apps.pacedream.feature.notification.NotificationRouter
 import com.shourov.apps.pacedream.feature.webflow.DeepLinkHandler

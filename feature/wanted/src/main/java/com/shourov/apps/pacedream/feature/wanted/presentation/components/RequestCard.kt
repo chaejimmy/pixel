@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.util.MoneyFormatter
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
 import com.shourov.apps.pacedream.feature.wanted.model.WantedRequest
@@ -291,7 +292,7 @@ fun RequestCard(
                 }
                 request.budget?.let { budget ->
                     Text(
-                        text = formatBudget(budget, request.budgetCurrency),
+                        text = MoneyFormatter.formatAmount(budget, request.budgetCurrency),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -300,15 +301,4 @@ fun RequestCard(
             }
         }
     }
-}
-
-fun formatBudget(amount: Double, currency: String): String {
-    val symbol = when (currency.uppercase()) {
-        "USD" -> "$"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        else -> "$currency "
-    }
-    val rounded = if (amount % 1.0 == 0.0) amount.toLong().toString() else "%.2f".format(amount)
-    return "$symbol$rounded"
 }

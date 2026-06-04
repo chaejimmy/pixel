@@ -1,4 +1,4 @@
-package com.pacedream.notifications
+package com.shourov.apps.pacedream.feature.notifications
 
 import android.net.Uri
 import org.junit.Assert.assertEquals
