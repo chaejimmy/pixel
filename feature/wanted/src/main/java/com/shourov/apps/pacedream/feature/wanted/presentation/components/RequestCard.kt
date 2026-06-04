@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -56,7 +55,7 @@ fun RequestTag(
     Text(
         text = label.uppercase(),
         style = PaceDreamTypography.Caption2,
-        color = MaterialTheme.colorScheme.onPrimary,
+        color = PaceDreamColors.OnPrimary,
         fontWeight = FontWeight.SemiBold,
         // Decorative chip: clearAndSetSemantics (applied at the end of the
         // chain) keeps it out of TalkBack's focus order so the whole card reads
@@ -64,7 +63,7 @@ fun RequestTag(
         modifier = modifier
             .defaultMinSize(minHeight = 20.dp)
             .clip(RoundedCornerShape(PaceDreamRadius.XS))
-            .background(MaterialTheme.colorScheme.primary)
+            .background(PaceDreamColors.Primary)
             .padding(horizontal = 8.dp, vertical = 3.dp)
             .clearAndSetSemantics { },
     )
@@ -125,7 +124,7 @@ private fun StatusPill(
 ) {
     Text(
         text = label.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
+        style = PaceDreamTypography.Caption,
         color = foreground,
         fontWeight = FontWeight.SemiBold,
         modifier = modifier
@@ -234,8 +233,8 @@ fun RequestCard(
                 RequestTag()
                 Text(
                     text = request.category,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = PaceDreamTypography.Caption,
+                    color = PaceDreamColors.TextSecondary,
                 )
                 if (request.moderationStatus != ModerationStatus.Approved) {
                     ModerationBadge(status = request.moderationStatus)
@@ -244,17 +243,17 @@ fun RequestCard(
             }
             Text(
                 text = request.title.ifBlank { "Untitled request" },
-                style = MaterialTheme.typography.titleMedium,
+                style = PaceDreamTypography.Headline,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = PaceDreamColors.TextPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (request.description.isNotBlank()) {
                 Text(
                     text = request.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = PaceDreamTypography.Footnote,
+                    color = PaceDreamColors.TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -268,8 +267,8 @@ fun RequestCard(
                     if (request.location.isNotBlank()) {
                         Text(
                             text = request.location,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = PaceDreamTypography.Footnote,
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -277,8 +276,8 @@ fun RequestCard(
                     requestDateLabel?.let {
                         Text(
                             text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = PaceDreamTypography.Footnote,
+                            color = PaceDreamColors.TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -291,9 +290,9 @@ fun RequestCard(
                         activeUntilLabel?.let {
                             Text(
                                 text = it,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = PaceDreamTypography.Footnote,
                                 color = if (expiringSoon) PaceDreamColors.Warning
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                else PaceDreamColors.TextSecondary,
                                 fontWeight = if (expiringSoon) FontWeight.SemiBold
                                 else FontWeight.Normal,
                                 maxLines = 1,
@@ -305,9 +304,9 @@ fun RequestCard(
                 request.budget?.let { budget ->
                     Text(
                         text = MoneyFormatter.formatAmount(budget, request.budgetCurrency),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = PaceDreamTypography.Headline,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = PaceDreamColors.Primary,
                     )
                 }
             }
@@ -350,7 +349,7 @@ private fun RequestCardPreviewBody() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(PaceDreamColors.Background)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
