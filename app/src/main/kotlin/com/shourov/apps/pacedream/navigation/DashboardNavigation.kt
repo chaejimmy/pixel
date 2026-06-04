@@ -806,6 +806,16 @@ fun NavGraphBuilder.DashboardNavigation(
                                 }
                                 val requestsIsHostMode by hostModeManager.isHostMode
                                     .collectAsStateWithLifecycle()
+                                // Show a back affordance only when Requests was
+                                // pushed onto the stack (deep link / detail
+                                // back-stack). As a tab root there is nothing to
+                                // pop, so onBack stays null and the icon is omitted.
+                                val requestsOnBack: (() -> Unit)? =
+                                    if (navController.previousBackStackEntry != null) {
+                                        { navController.popBackStack() }
+                                    } else {
+                                        null
+                                    }
                                 com.shourov.apps.pacedream.feature.wanted.presentation.RequestsScreen(
                                     onRequestClick = { id ->
                                         navController.navigate("requests/$id")
@@ -818,6 +828,7 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNotifyMeClick = {
                                         navController.navigate("settings_notifications")
                                     },
+                                    onBack = requestsOnBack,
                                     isHostMode = requestsIsHostMode,
                                     initialTab = initialTab,
                                 )
