@@ -113,6 +113,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Hotel
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.Language
@@ -363,6 +364,7 @@ object PaceDreamIcons {
     val ErrorOutline: ImageVector = Icons.Rounded.ErrorOutline
     val Warning: ImageVector = Icons.Rounded.Warning
     val Info: ImageVector = Icons.Rounded.Info
+    val Inbox: ImageVector = Icons.Rounded.Inbox
     val Circle: ImageVector = Icons.Rounded.Circle
     val LocalFireDepartment: ImageVector = Icons.Rounded.LocalFireDepartment
 
