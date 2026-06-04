@@ -53,6 +53,7 @@ import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.composables.theme.paceDreamFontFamily
+import com.pacedream.common.util.MoneyFormatter
 import com.shourov.apps.pacedream.feature.wanted.model.ModerationStatus
 import com.shourov.apps.pacedream.feature.wanted.model.RequestDetailUiState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestStatus
@@ -62,7 +63,6 @@ import com.shourov.apps.pacedream.feature.wanted.presentation.components.Lifecyc
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.ModerationBadge
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.OfferStatusPill
 import com.shourov.apps.pacedream.feature.wanted.presentation.components.RequestTag
-import com.shourov.apps.pacedream.feature.wanted.presentation.components.formatBudget
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestDateFormatter
 import com.shourov.apps.pacedream.feature.wanted.presentation.util.RequestExpiryResolver
 import java.time.LocalDate
@@ -297,7 +297,7 @@ private fun RequestDetailBody(
         )
         request.budget?.let { budget ->
             Text(
-                text = "Budget: ${formatBudget(budget, request.budgetCurrency)}",
+                text = "Budget: ${MoneyFormatter.formatAmount(budget, request.budgetCurrency)}",
                 style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
                 color = PaceDreamColors.Primary,
                 fontWeight = FontWeight.SemiBold,
@@ -409,7 +409,7 @@ private fun OfferRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = formatBudget(offer.price, offer.currency),
+                        text = MoneyFormatter.formatAmount(offer.price, offer.currency),
                         style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
                         color = PaceDreamColors.Primary,
                         fontWeight = FontWeight.Bold,
