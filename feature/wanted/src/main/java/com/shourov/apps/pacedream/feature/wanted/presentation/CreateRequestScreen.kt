@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -303,37 +304,45 @@ fun CreateRequestScreen(
 
             // Sticky bottom CTA so users on small screens can always reach
             // the submit button without scrolling past every field first.
-            HorizontalDivider(color = PaceDreamColors.Border, thickness = PaceDreamStroke.Hairline)
-            Button(
-                onClick = viewModel::submit,
-                enabled = !state.submitting &&
-                    !state.uploading &&
-                    state.fieldErrors.isEmpty() &&
-                    state.requiredFieldsPresent,
-                shape = RoundedCornerShape(PaceDreamRadius.MD),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PaceDreamColors.Primary,
-                    contentColor = PaceDreamColors.OnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = PaceDreamSpacing.MD,
-                        vertical = PaceDreamSpacing.SM,
+            //
+            // The footer carries .navigationBarsPadding() so the divider + CTA
+            // clear the system navigation bar / gesture pill (the scrolling
+            // fields above intentionally stay under the bar). It composes with
+            // the outer .imePadding() so when the keyboard is open the button
+            // rides above the IME — the larger inset wins.
+            Column(modifier = Modifier.navigationBarsPadding()) {
+                HorizontalDivider(color = PaceDreamColors.Border, thickness = PaceDreamStroke.Hairline)
+                Button(
+                    onClick = viewModel::submit,
+                    enabled = !state.submitting &&
+                        !state.uploading &&
+                        state.fieldErrors.isEmpty() &&
+                        state.requiredFieldsPresent,
+                    shape = RoundedCornerShape(PaceDreamRadius.MD),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PaceDreamColors.Primary,
+                        contentColor = PaceDreamColors.OnPrimary,
                     ),
-            ) {
-                if (state.submitting) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = PaceDreamColors.OnPrimary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                } else {
-                    Text(
-                        text = "Post Request",
-                        style = PaceDreamTypography.Headline,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = PaceDreamSpacing.MD,
+                            vertical = PaceDreamSpacing.SM,
+                        ),
+                ) {
+                    if (state.submitting) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            color = PaceDreamColors.OnPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    } else {
+                        Text(
+                            text = "Post Request",
+                            style = PaceDreamTypography.Headline,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
         }
