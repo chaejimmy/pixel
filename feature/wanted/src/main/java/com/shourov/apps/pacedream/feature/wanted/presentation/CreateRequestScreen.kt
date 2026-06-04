@@ -77,6 +77,7 @@ import coil.compose.AsyncImage
 import com.pacedream.common.composables.theme.PaceDreamColors
 import com.pacedream.common.composables.theme.PaceDreamRadius
 import com.pacedream.common.composables.theme.PaceDreamSpacing
+import com.pacedream.common.composables.theme.PaceDreamStroke
 import com.pacedream.common.composables.theme.PaceDreamTypography
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.CreateRequestUiState
@@ -288,7 +289,7 @@ fun CreateRequestScreen(
 
             // Sticky bottom CTA so users on small screens can always reach
             // the submit button without scrolling past every field first.
-            HorizontalDivider(color = PaceDreamColors.Border, thickness = 0.5.dp)
+            HorizontalDivider(color = PaceDreamColors.Border, thickness = PaceDreamStroke.Hairline)
             Button(
                 onClick = viewModel::submit,
                 enabled = !state.submitting &&
