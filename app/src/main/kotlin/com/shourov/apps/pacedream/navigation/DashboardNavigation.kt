@@ -818,6 +818,11 @@ fun NavGraphBuilder.DashboardNavigation(
                                     onNotifyMeClick = {
                                         navController.navigate("settings_notifications")
                                     },
+                                    // Requests is always reached as a pushed
+                                    // route here (deep link / profile menu /
+                                    // post-success), so provide a back affordance
+                                    // that pops the back stack.
+                                    onBack = { navController.popBackStack() },
                                     isHostMode = requestsIsHostMode,
                                     initialTab = initialTab,
                                 )
