@@ -215,7 +215,7 @@ fun BookingsScreen(
                         verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.MD)
                     ) {
                         if (uiState.error != null) {
-                            item {
+                            item(key = "inline_error_banner", contentType = "errorBanner") {
                                 com.pacedream.common.composables.components.InlineErrorBanner(
                                     message = uiState.error ?: "An unexpected error occurred",
                                     onAction = { viewModel.refresh() },
@@ -236,7 +236,7 @@ fun BookingsScreen(
                         if (pending != null &&
                             uiState.selectedTab in setOf(BookingTab.ALL, BookingTab.UPCOMING)
                         ) {
-                            item(key = "pending_payment_${pending.bookingId ?: "unknown"}") {
+                            item(key = "pending_payment_${pending.bookingId ?: "unknown"}", contentType = "pendingPayment") {
                                 PendingPaymentRow(
                                     state = pending,
                                     onCheckStatus = { viewModel.checkPaymentStatus() },
@@ -250,7 +250,7 @@ fun BookingsScreen(
                             }
                         }
 
-                        items(uiState.filteredBookings, key = { it.id }) { booking ->
+                        items(uiState.filteredBookings, key = { it.id }, contentType = { "booking" }) { booking ->
                             UnifiedBookingCard(
                                 item = booking,
                                 statusConfig = viewModel.statusConfig(booking),
@@ -265,7 +265,7 @@ fun BookingsScreen(
                         }
 
                         // Bottom padding for nav bar
-                        item {
+                        item(key = "bottom_spacer", contentType = "spacer") {
                             Spacer(modifier = Modifier.height(PaceDreamSpacing.Layout.BottomNavClearance))
                         }
                     }
@@ -345,7 +345,7 @@ private fun BookingTabPicker(
         horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
     ) {
-        items(BookingTab.entries.toList()) { tab ->
+        items(BookingTab.entries.toList(), key = { it.name }, contentType = { "bookingTab" }) { tab ->
             val isSelected = selectedTab == tab
             val count = countProvider(tab)
 
@@ -456,6 +456,7 @@ private fun UnifiedBookingCard(
                     url = item.imageUrl,
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
+                    cacheKey = "${item.id}@booking",
                     modifier = Modifier.fillMaxSize()
                 )
 

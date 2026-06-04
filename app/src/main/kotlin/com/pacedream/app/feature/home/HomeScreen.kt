@@ -141,7 +141,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = PaceDreamSpacing.LG)
         ) {
             // ── Hero Header with Gradient + Overlapping Search Bar ──
-            item {
+            item(key = "hero", contentType = "hero") {
                 HeroHeaderSection(
                     heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
@@ -153,7 +153,7 @@ fun HomeScreen(
             }
 
             // ── Category Filter Tabs ──
-            item {
+            item(key = "categoryTabs", contentType = "categoryTabs") {
                 CategoryFilterTabs(
                     selectedCategory = selectedCategoryFilter,
                     onCategorySelected = { category ->
@@ -166,7 +166,7 @@ fun HomeScreen(
 
             // ── Warning banner ──
             if (uiState.hasErrors) {
-                item {
+                item(key = "warningBanner", contentType = "warningBanner") {
                     WarningBanner(
                         message = "Some content couldn't load.",
                         onRefresh = { viewModel.refresh() },
@@ -176,7 +176,7 @@ fun HomeScreen(
             }
 
             // ── Extended Categories (iOS parity) ──
-            item {
+            item(key = "categories", contentType = "categories") {
                 ExtendedCategoriesSection(
                     onCategoryClick = onCategoryClick,
                     modifier = Modifier.padding(top = PaceDreamSpacing.MD)
@@ -185,7 +185,7 @@ fun HomeScreen(
 
             // ── Hourly Spaces ──
             if (uiState.filteredHourlySpaces.isNotEmpty() || uiState.isLoadingHourlySpaces) {
-                item {
+                item(key = "spaces", contentType = "spaces") {
                     SectionSurface {
                         ListingSection(
                             title = "Spaces",
@@ -203,7 +203,7 @@ fun HomeScreen(
 
             // ── Items ──
             if (uiState.filteredRentGear.isNotEmpty() || uiState.isLoadingRentGear) {
-                item {
+                item(key = "items", contentType = "items") {
                     SectionSurface {
                         ListingSection(
                             title = "Items",
@@ -221,7 +221,7 @@ fun HomeScreen(
 
             // ── Services (2-column vertical grid — iOS parity) ──
             if (uiState.filteredSplitStays.isNotEmpty() || uiState.isLoadingSplitStays) {
-                item {
+                item(key = "services", contentType = "services") {
                     SectionSurface {
                         ServicesGridSection(
                             title = "Services",
@@ -238,7 +238,7 @@ fun HomeScreen(
             }
 
             // ── Browse by Type Section (Marketplace taxonomy) ──
-            item {
+            item(key = "browseByType", contentType = "browseByType") {
                 SectionSurface {
                     BrowseByTypeSection(
                         onTypeTap = { type -> onCategoryClick(type) },
@@ -248,7 +248,7 @@ fun HomeScreen(
             }
 
             // ── Trending Destinations (iOS parity) ──
-            item {
+            item(key = "destinations", contentType = "destinations") {
                 SectionSurface {
                     TrendingDestinationsSection(
                         onDestinationTap = { destination -> onCategoryClick(destination) },
@@ -258,7 +258,7 @@ fun HomeScreen(
             }
 
             // ── 3 Steps CTA (iOS parity) ──
-            item {
+            item(key = "threeSteps", contentType = "threeSteps") {
                 ThreeStepsCTASection(
                     onGetStarted = { onCategoryClick("create-listing") },
                     modifier = Modifier.padding(top = PaceDreamSpacing.SM)
@@ -267,7 +267,7 @@ fun HomeScreen(
 
             // ── Empty state ──
             if (!uiState.isLoading && uiState.isEmpty) {
-                item {
+                item(key = "empty", contentType = "empty") {
                     EmptyState(
                         onRetry = { viewModel.refresh() },
                         modifier = Modifier
@@ -353,6 +353,10 @@ private fun HeroHeaderSection(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(heroImageUrl)
                             .crossfade(true)
+                            // Distinct cache key for the hero render slot so the
+                            // full-bleed decode doesn't evict (or get evicted by)
+                            // the same URL rendered at card/grid size elsewhere.
+                            .memoryCacheKey("$heroImageUrl@hero")
                             .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
@@ -590,7 +594,7 @@ private fun CategoryFilterTabs(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
             horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            items(categories) { (name, outlinedIcon, filledIcon) ->
+            items(categories, key = { it.first }, contentType = { "categoryTab" }) { (name, outlinedIcon, filledIcon) ->
                 val isSelected = selectedCategory == name
                 CategoryTab(
                     name = name,
@@ -682,7 +686,7 @@ private fun ExtendedCategoriesSection(
             contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
             horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM)
         ) {
-            items(getCategoryCards()) { category ->
+            items(getCategoryCards(), key = { it.name }, contentType = { "categoryChip" }) { category ->
                 QuickCategoryChip(
                     category = category,
                     onClick = { onCategoryClick(category.name) }
@@ -952,7 +956,7 @@ private fun ListingSection(
                     contentPadding = PaddingValues(horizontal = PaceDreamSpacing.Layout.HomeGutter),
                     horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2)
                 ) {
-                    items(items) { item ->
+                    items(items, key = { it.id }, contentType = { "listingCard" }) { item ->
                         ListingCard(
                             item = item,
                             isFavorite = item.id in favoriteIds,
@@ -1012,7 +1016,8 @@ private fun FeaturedFullWidthCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@featured")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -1422,7 +1427,8 @@ private fun GridListingCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@grid")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -1613,7 +1619,8 @@ private fun ListingCard(
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.imageUrl)
-                        .crossfade(200)
+                        .crossfade(true)
+                        .memoryCacheKey("${item.id}@card")
                         .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
@@ -2073,7 +2080,8 @@ private fun TrendingDestinationCard(
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(destination.imageUrl)
-                .crossfade(200)
+                .crossfade(true)
+                .memoryCacheKey("${destination.title}@destination")
                 .build(),
             contentDescription = destination.title,
             contentScale = ContentScale.Crop,
