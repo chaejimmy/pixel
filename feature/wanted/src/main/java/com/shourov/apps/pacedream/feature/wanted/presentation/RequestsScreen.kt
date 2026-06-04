@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -54,7 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pacedream.common.composables.theme.PaceDreamColors
+import com.pacedream.common.composables.theme.PaceDreamSpacing
 import com.pacedream.common.composables.theme.PaceDreamTypography
+import com.pacedream.common.composables.theme.paceDreamFontFamily
 import com.pacedream.common.icon.PaceDreamIcons
 import com.shourov.apps.pacedream.feature.wanted.model.FilterState
 import com.shourov.apps.pacedream.feature.wanted.model.RequestSort
@@ -257,14 +258,14 @@ private fun FilterHeader(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
+        color = PaceDreamColors.Background,
         tonalElevation = 1.dp,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(top = PaceDreamSpacing.SM, bottom = PaceDreamSpacing.SM),
+            verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         ) {
             TypeAndSortRow(
                 selected = filter.type,
@@ -301,7 +302,7 @@ private fun TypeAndSortRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = PaceDreamSpacing.MD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val entries = WantedType.entries
@@ -377,8 +378,8 @@ private fun CategoryChipRow(
     if (categories.isEmpty()) return
 
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         modifier = Modifier.fillMaxWidth(),
     ) {
         items(categories, key = { it.key }) { category ->
@@ -404,8 +405,8 @@ private fun ActiveFilterStrip(
     onClearAll: () -> Unit,
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = PaceDreamSpacing.MD),
+        horizontalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -494,12 +495,14 @@ private fun RequestsContent(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 12.dp,
+                        start = PaceDreamSpacing.MD,
+                        end = PaceDreamSpacing.MD,
+                        top = PaceDreamSpacing.SM2,
+                        // intentional: 96dp clears the bottom nav + the
+                        // overhanging "Post a request" FAB; off the 8dp grid.
                         bottom = 96.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
                 ) {
                     items(items = state.requests, key = { it.id }) { request ->
                         RequestCard(
@@ -545,18 +548,18 @@ private fun EmptyState(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = PaceDreamTypography.Headline.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextHeadline,
             textAlign = TextAlign.Center,
         )
         Text(
             text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
         TextButton(onClick = onCtaClick) {
@@ -569,12 +572,12 @@ private fun EmptyState(
 private fun EmptyFilteredState(onClearFilters: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         Text(
             text = "No matching requests — clear filters",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.TextSecondary,
             textAlign = TextAlign.Center,
         )
         TextButton(onClick = onClearFilters) {
@@ -588,7 +591,7 @@ private fun CenteredBox(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(PaceDreamSpacing.LG),
         contentAlignment = Alignment.Center,
     ) { content() }
 }
@@ -597,12 +600,12 @@ private fun CenteredBox(content: @Composable () -> Unit) {
 private fun ErrorMessage(message: String, onRetry: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(PaceDreamSpacing.SM2),
     ) {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            style = PaceDreamTypography.Body.copy(fontFamily = paceDreamFontFamily),
+            color = PaceDreamColors.Error,
             textAlign = TextAlign.Center,
         )
         TextButton(onClick = onRetry) {
