@@ -115,6 +115,13 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val selectedCategoryFilter = uiState.selectedCategory
 
+    // Resolve the unread-notifications VM at the stable screen scope rather than
+    // inside the hero LazyColumn item. Keeping it here ties it to HomeScreen's
+    // ViewModelStoreOwner and confines unread-count recompositions to the hero
+    // item we pass it into, instead of churning VM resolution as the list scrolls.
+    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
+    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
+
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -150,9 +157,11 @@ fun HomeScreen(
                 HeroHeaderSection(
                     heroAsset = heroAsset,
                     heroImageUrl = uiState.heroImageUrl,
+                    unreadCount = unreadCount,
                     onSearchClick = onSearchClick,
                     onFilterClick = onSearchClick,
                     onNotificationClick = onNotificationClick,
+                    onMarkAllSeen = { unreadVm.markAllAsSeen() },
                     onAboutClick = onAboutClick,
                 )
             }
@@ -315,9 +324,11 @@ private fun SectionSurface(
 @Composable
 private fun HeroHeaderSection(
     heroImageUrl: String?,
+    unreadCount: Int,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
     onNotificationClick: () -> Unit,
+    onMarkAllSeen: () -> Unit,
     onAboutClick: () -> Unit,
     heroAsset: Painter? = null,
 ) {
@@ -388,13 +399,11 @@ private fun HeroHeaderSection(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val unreadVm: UnreadNotificationsViewModel = hiltViewModel()
-                    val unreadCount by unreadVm.unreadCount.collectAsStateWithLifecycle()
                     NotificationBellButton(
                         unreadCount = unreadCount,
                         onClick = {
                             onNotificationClick()
-                            unreadVm.markAllAsSeen()
+                            onMarkAllSeen()
                         },
                         // .size(44.dp) constrains only the visual purple circle;
                         // the component prepends touchTargetSize() so the hit
@@ -2577,9 +2586,11 @@ private fun HomeScreenPreviewBody() {
                 val uriHandler = LocalUriHandler.current
                 HeroHeaderSection(
                     heroImageUrl = null,
+                    unreadCount = 3,
                     onSearchClick = {},
                     onFilterClick = {},
                     onNotificationClick = { /* preview no-op; production wired via NotificationRoutes.NOTIFICATIONS */ },
+                    onMarkAllSeen = { /* preview no-op; production calls UnreadNotificationsViewModel.markAllAsSeen() */ },
                     onAboutClick = {
                         // Preview-only hook so the CTA isn't a no-op in isolation;
                         // the real screen wires this to the in-app About route.
